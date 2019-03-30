@@ -21,6 +21,7 @@ defmodule DungeonCrawl.ModelCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
+      import DungeonCrawl.TestHelpers
       import DungeonCrawl.ModelCase
     end
   end

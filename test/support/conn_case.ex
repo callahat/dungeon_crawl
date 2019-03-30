@@ -26,6 +26,7 @@ defmodule DungeonCrawl.ConnCase do
       import Ecto.Query
 
       import DungeonCrawl.Router.Helpers
+      import DungeonCrawl.TestHelpers
 
       # The default endpoint for testing
       @endpoint DungeonCrawl.Endpoint

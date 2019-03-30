@@ -36,6 +36,7 @@ defmodule DungeonCrawl.Web do
 
       import DungeonCrawl.Router.Helpers
       import DungeonCrawl.Gettext
+      import DungeonCrawl.Auth, only: [authenticate_user: 2]
     end
   end
 
@@ -58,6 +59,8 @@ defmodule DungeonCrawl.Web do
   def router do
     quote do
       use Phoenix.Router
+
+      import DungeonCrawl.Auth, only: [authenticate_user: 2]
     end
   end
 
