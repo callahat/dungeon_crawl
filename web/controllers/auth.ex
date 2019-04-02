@@ -66,4 +66,15 @@ defmodule DungeonCrawl.Auth do
       |> halt()
     end
   end
+
+  def verify_user_is_admin(conn, _opts) do
+    if conn.assigns.current_user && conn.assigns.current_user.is_admin do
+      conn
+    else
+      conn
+      |> put_flash(:error, "You may not see that page")
+      |> redirect(to: Helpers.page_path(conn, :index))
+      |> halt()
+    end
+  end
 end

@@ -24,6 +24,29 @@ defmodule DungeonCrawl.AuthTest do
     refute conn.halted
   end
 
+  test "verify_user_is_admin halts when the current user does not exist", %{conn: conn} do
+    conn = Auth.verify_user_is_admin(conn, [])
+    assert conn.halted
+  end
+
+  test "verify_user_is_admin halts when the current user is not an admin", %{conn: conn} do
+    conn =
+      conn
+      |> assign(:current_user, %DungeonCrawl.User{})
+      |> Auth.verify_user_is_admin([])
+
+    assert conn.halted
+  end
+
+  test "verify_user_id_admin continues when the current user is an admin", %{conn: conn} do
+    conn =
+      conn
+      |> assign(:current_user, %DungeonCrawl.User{is_admin: true})
+      |> Auth.verify_user_is_admin([])
+
+    refute conn.halted
+  end
+
   test "login puts the user in the session", %{conn: conn} do
     login_conn =
       conn

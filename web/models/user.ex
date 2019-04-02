@@ -6,6 +6,7 @@ defmodule DungeonCrawl.User do
     field :username, :string
     field :password, :string, virtual: true
     field :password_hash, :string
+    field :is_admin, :boolean
 
     timestamps()
   end
@@ -27,6 +28,12 @@ defmodule DungeonCrawl.User do
     |> cast(params, ~w(password), [])
     |> validate_length(:password, min: 6, max: 100)
     |> put_pass_hash()
+  end
+
+  def admin_changeset(struct, params \\ %{}) do
+    struct
+    |> registration_changeset(params)
+    |> cast(params, ~w(is_admin), [])
   end
 
   defp put_pass_hash(changeset) do

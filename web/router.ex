@@ -18,8 +18,14 @@ defmodule DungeonCrawl.Router do
     pipe_through :browser # Use the default browser stack
 
     get "/", PageController, :index
-    resources "/users", UserController
+    resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
+  end
+
+  scope "/manage", DungeonCrawl do
+    pipe_through [:browser, :authenticate_user, :verify_user_is_admin]
+
+    resources "/users", ManageUserController
   end
 
   # Other scopes may use custom stacks.

@@ -9,7 +9,7 @@ defmodule DungeonCrawl.TestHelpers do
     }, attrs)
 
     %DungeonCrawl.User{}
-    |> DungeonCrawl.User.registration_changeset(changes)
+    |> DungeonCrawl.User.admin_changeset(changes)
     |> Repo.insert!()
   end
 end

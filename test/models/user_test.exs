@@ -37,4 +37,18 @@ defmodule DungeonCrawl.UserTest do
     assert pass_hash
     assert Comeonin.Bcrypt.checkpw(pass, pass_hash)
   end
+
+  test "registration_changeset does not let is_admin be set" do
+    attrs = Map.put(@valid_attrs, :is_admin, true)
+    changeset = User.registration_changeset(%User{}, attrs)
+
+    refute changeset.changes |> Map.has_key?(:is_admin)
+  end
+
+  test "admin_changeset lets is_admin be set" do
+    attrs = Map.put(@valid_attrs, :is_admin, true)
+    changeset = User.admin_changeset(%User{}, attrs)
+
+    assert %{is_admin: true} = changeset.changes
+  end
 end

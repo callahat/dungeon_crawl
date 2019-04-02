@@ -9,6 +9,13 @@ defmodule DungeonCrawl.Mixfile do
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     test_coverage: [tool: ExCoveralls],
+     preferred_cli_env: [
+       "coveralls": :test,
+       "coveralls.detail": :test,
+       "coveralls.post": :test,
+       "coveralls.html": :test
+     ],
      aliases: aliases(),
      deps: deps()]
   end
@@ -38,7 +45,8 @@ defmodule DungeonCrawl.Mixfile do
      {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
-     {:comeonin, "~> 2.0"}
+     {:comeonin, "~> 2.0"},
+     {:excoveralls, "~> 0.10", only: :test}
     ]
   end
 

@@ -45,7 +45,7 @@ defmodule DungeonCrawl.Web do
       use Phoenix.View, root: "web/templates"
 
       # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
+      import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1, controller_module: 1]
 
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
@@ -60,7 +60,7 @@ defmodule DungeonCrawl.Web do
     quote do
       use Phoenix.Router
 
-      import DungeonCrawl.Auth, only: [authenticate_user: 2]
+      import DungeonCrawl.Auth, only: [authenticate_user: 2, verify_user_is_admin: 2]
     end
   end
 

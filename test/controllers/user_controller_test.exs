@@ -17,12 +17,6 @@ defmodule DungeonCrawl.UserControllerTest do
     end
   end
 
-  @tag login_as: "maxheadroom"
-  test "lists all entries on index", %{conn: conn} do
-    conn = get conn, user_path(conn, :index)
-    assert html_response(conn, 200) =~ "Listing users"
-  end
-
   test "renders form for new resources", %{conn: conn} do
     conn = get conn, user_path(conn, :new)
     assert html_response(conn, 200) =~ "New user"
@@ -30,7 +24,7 @@ defmodule DungeonCrawl.UserControllerTest do
 
   test "creates resource and redirects when data is valid", %{conn: conn} do
     conn = post conn, user_path(conn, :create), user: @valid_attrs
-    assert redirected_to(conn) == user_path(conn, :index)
+    assert redirected_to(conn) == page_path(conn, :index)
     assert Repo.get_by(User, Map.delete(@valid_attrs, :password))
   end
 
@@ -39,47 +33,49 @@ defmodule DungeonCrawl.UserControllerTest do
     assert html_response(conn, 200) =~ "New user"
   end
 
-  @tag login_as: "maxheadroom"
-  test "shows chosen resource", %{conn: conn, user: _user} do
-    target_user = insert_user @valid_attrs
-    conn = get conn, user_path(conn, :show, target_user)
-    assert html_response(conn, 200) =~ "Show user"
-  end
-
-  @tag login_as: "maxheadroom"
-  test "renders page not found when id is nonexistent", %{conn: conn, user: _user} do
-    assert_error_sent 404, fn ->
-      get conn, user_path(conn, :show, -1)
-    end
-  end
-
-  @tag login_as: "maxheadroom"
-  test "renders form for editing chosen resource", %{conn: conn, user: user} do
-    target_user = insert_user @valid_attrs
-    conn = get conn, user_path(conn, :edit, target_user)
-    assert html_response(conn, 200) =~ "Edit user"
-  end
-
-  @tag login_as: "maxheadroom"
-  test "updates chosen resource and redirects when data is valid", %{conn: conn, user: user} do
-    target_user = insert_user @valid_attrs
-    conn = put conn, user_path(conn, :update, target_user), user: @valid_attrs
-    assert redirected_to(conn) == user_path(conn, :show, target_user)
+  test "does not allow is_admin to be set to true", %{conn: conn} do
+    conn = post conn, user_path(conn, :create), user: Map.put(@valid_attrs, :is_admin, true)
+    refute Repo.get_by(User, Map.delete(@valid_attrs, :password)).is_admin
+    assert redirected_to(conn) == page_path(conn, :index)
     assert Repo.get_by(User, Map.delete(@valid_attrs, :password))
   end
 
   @tag login_as: "maxheadroom"
-  test "does not update chosen resource and renders errors when data is invalid", %{conn: conn, user: user} do
-    target_user = insert_user @valid_attrs
-    conn = put conn, user_path(conn, :update, target_user), user: @invalid_attrs
+  test "shows the current resource", %{conn: conn, user: _user} do
+    conn = get conn, user_path(conn, :show)
+    assert html_response(conn, 200) =~ "Show user"
+  end
+
+  @tag login_as: "maxheadroom"
+  test "renders form for editing current resource", %{conn: conn, user: _user} do
+    conn = get conn, user_path(conn, :edit)
     assert html_response(conn, 200) =~ "Edit user"
   end
 
   @tag login_as: "maxheadroom"
-  test "deletes chosen resource", %{conn: conn, user: user} do
-    target_user = insert_user @valid_attrs
-    conn = delete conn, user_path(conn, :delete, target_user)
-    assert redirected_to(conn) == user_path(conn, :index)
-    refute Repo.get(User, target_user.id)
+  test "updates chosen resource and redirects when data is valid", %{conn: conn, user: _user} do
+    conn = put conn, user_path(conn, :update), user: @valid_attrs
+    assert redirected_to(conn) == user_path(conn, :show)
+    assert Repo.get_by(User, Map.delete(@valid_attrs, :password))
+  end
+
+  @tag login_as: "maxheadroom"
+  test "does not allow is_admin to be updated to true", %{conn: conn} do
+    conn = put conn, user_path(conn, :update), user: Map.put(@valid_attrs, :is_admin, true)
+    assert redirected_to(conn) == user_path(conn, :show)
+    refute Repo.get_by(User, Map.delete(@valid_attrs, :password)).is_admin
+  end
+
+  @tag login_as: "maxheadroom"
+  test "does not update current resource and renders errors when data is invalid", %{conn: conn, user: _user} do
+    conn = put conn, user_path(conn, :update), user: @invalid_attrs
+    assert html_response(conn, 200) =~ "Edit user"
+  end
+
+  @tag login_as: "maxheadroom"
+  test "deletes current resource", %{conn: conn, user: user} do
+    conn = delete conn, user_path(conn, :delete)
+    assert redirected_to(conn) == page_path(conn, :index)
+    refute Repo.get(User, user.id)
   end
 end
