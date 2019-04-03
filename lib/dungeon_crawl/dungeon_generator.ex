@@ -9,7 +9,8 @@ defmodule DungeonCrawl.DungeonGenerator do
   @cave_width      80
 
   @doors           '+\''
-  @entities        Enum.to_list(?A..?|)
+  #@entities        Enum.to_list(?A..?|)
+  @entities        ''
 
   def generate() do
     map = Enum.to_list(0..(@cave_height * @cave_width - 1)) |> Enum.reduce(%{}, fn(i, acc) -> Map.put(acc, i, ?\s) end) 
@@ -17,10 +18,13 @@ defmodule DungeonCrawl.DungeonGenerator do
     map = _plop_room(map, coords, ?@)
 
     _generate(map, @iterations)
-    |> _map_to_charlist
     |> _replace_corners
+  end
+
+  def pretty_print(map) do
+    map
+    |> _map_to_charlist
     |> _render
-    nil
   end
 
   defp _generate(map, 0), do: map
@@ -78,9 +82,12 @@ defmodule DungeonCrawl.DungeonGenerator do
     |> Enum.map(fn({_, v}) -> v end)
   end
 
-  defp _replace_corners([]), do: []
-  defp _replace_corners([head | tail]) when head == 0, do: [?# | _replace_corners(tail)]
-  defp _replace_corners([head | tail]), do: [head | _replace_corners(tail)]
+  defp _replace_corners(map) when is_map(map), do: _replace_corners(map,Map.keys(map))
+  defp _replace_corners(map, []), do: map
+  defp _replace_corners(map, [head | tail]) do
+    if((map[head] == 0), do: Map.put(map, head, ?#), else: map)
+    |> _replace_corners(tail)
+  end
 
   defp _add_door(map, {col, row}) do
     _replace_tile_at(map, col, row, Enum.random(@doors))
