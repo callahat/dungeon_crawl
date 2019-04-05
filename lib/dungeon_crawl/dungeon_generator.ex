@@ -13,7 +13,12 @@ defmodule DungeonCrawl.DungeonGenerator do
   @entities        ''
 
   def generate() do
-    map = Enum.to_list(0..(@cave_height * @cave_width - 1)) |> Enum.reduce(%{}, fn(i, acc) -> Map.put(acc, i, ?\s) end) 
+    map = Enum.to_list(0..@cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
+            Enum.to_list(0..@cave_width-1) |> Enum.reduce(map, fn(col, map) ->
+              Map.put map, {row, col}, ?\s
+            end)
+          end)
+
     {:good_room, coords} = try_generating_room_coordinates(map)
     map = _plop_room(map, coords, ?@)
 
@@ -21,10 +26,12 @@ defmodule DungeonCrawl.DungeonGenerator do
     |> _replace_corners
   end
 
-  def pretty_print(map) do
+  def stringify(map) do
     map
     |> _map_to_charlist
-    |> _render
+    |> Enum.chunk(@cave_width)
+    |> Enum.map(&(to_string(&1)))
+    |> Enum.join("\n")
   end
 
   defp _generate(map, 0), do: map
@@ -67,12 +74,12 @@ defmodule DungeonCrawl.DungeonGenerator do
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
 
   defp _tile_at(map, col, row) do
-    map[row * @cave_width + col]
+    map[{row, col}]
   end
 
   defp _replace_tile_at(map, col, row, new_tile) do
     # IO.puts "#{col} #{row} #{[new_tile]}"
-    Map.put(map, row * @cave_width + col, new_tile)
+    Map.put(map, {row, col}, new_tile)
   end
 
   defp _map_to_charlist(map) do
@@ -112,7 +119,7 @@ defmodule DungeonCrawl.DungeonGenerator do
     |> _replace_tile_at(_rand_range(tlc + 1, brc - 1), _rand_range(tlr + 1, brr - 1), ?@)
   end
 
-  defp _plop_room(map, coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}, entities) do
+  defp _plop_room(map, coords, entities) do
     case _door_candidates(map, coords) do
       [] -> 
         map
@@ -123,7 +130,7 @@ defmodule DungeonCrawl.DungeonGenerator do
     end
   end
 
-  defp _corners_walls_floors(map, coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}) do
+  defp _corners_walls_floors(map, _coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}) do
     inner_tlr = tlr + 1
     inner_brr = brr - 1
     inner_tlc = tlc + 1
@@ -171,7 +178,7 @@ defmodule DungeonCrawl.DungeonGenerator do
     |> _floors(col, rows)
   end
 
-  defp _door_candidates(map, coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}) do
+  defp _door_candidates(map, _coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}) do
     for [cols,rows] <- [ [[tlc, brc], Enum.to_list((tlr+1)..(brr-1))], [Enum.to_list((tlc+1)..(brc-1)), [tlr,brr]] ] do
       for col <- cols do
         for row <- rows do
@@ -181,13 +188,6 @@ defmodule DungeonCrawl.DungeonGenerator do
     end
     |> Enum.concat
     |> Enum.concat
-    |> Enum.filter(fn({col, row}) -> map[row * @cave_width + col] == ?# end)
-  end
-
-  defp _replace_tiles([], map), do: map
-  defp _replace_tiles([{col, row, new_tile} | tail], map), do: _replace_tiles(tail, _replace_tile_at(map, col, row, new_tile))
-
-  defp _render(map) do
-    Enum.chunk(map, @cave_width) |> Enum.map(&(to_string(&1))) |> Enum.join("\n") |> IO.puts
+    |> Enum.filter(fn({col, row}) -> _tile_at(map, col, row) == ?# end)
   end
 end
