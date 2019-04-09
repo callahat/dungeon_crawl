@@ -1,0 +1,8 @@
+<h2>Showing Dungeon: <%= @dungeon.name %></h2>
+
+<pre>
+<%= @dungeon_render %>
+</pre>
+
+<%= link "Edit", to: dungeon_path(@conn, :edit, @dungeon) %>
+<%= link "Back", to: dungeon_path(@conn, :index) %>

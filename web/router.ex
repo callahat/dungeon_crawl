@@ -20,6 +20,7 @@ defmodule DungeonCrawl.Router do
     get "/", PageController, :index
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
+    resources "/dungeons", DungeonController
   end
 
   scope "/manage", DungeonCrawl do

@@ -1,0 +1,6 @@
+<h2>New dungeon</h2>
+
+<%= render "form.html", changeset: @changeset,
+                        action: dungeon_path(@conn, :create) %>
+
+<%= link "Back", to: dungeon_path(@conn, :index) %>

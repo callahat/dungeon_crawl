@@ -1,0 +1,26 @@
+<h2>Listing dungeons</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for dungeon <- @dungeons do %>
+    <tr>
+      <td><%= dungeon.name %></td>
+
+      <td class="text-right">
+        <%= link "Show", to: dungeon_path(@conn, :show, dungeon), class: "btn btn-default btn-xs" %>
+        <%= link "Edit", to: dungeon_path(@conn, :edit, dungeon), class: "btn btn-default btn-xs" %>
+        <%= link "Delete", to: dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
+<%= link "New dungeon", to: dungeon_path(@conn, :new) %>
