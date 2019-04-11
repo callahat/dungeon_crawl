@@ -2,6 +2,7 @@ defmodule DungeonCrawl.DungeonController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.DungeonMapTile
   alias DungeonCrawl.DungeonGenerator
 
   def index(conn, _params) do
@@ -19,19 +20,13 @@ defmodule DungeonCrawl.DungeonController do
 
     case Repo.insert(changeset) do
       {:ok, dungeon} ->
-        dungeon_map_tiles = 
-          DungeonGenerator.generate
-          |> Enum.to_list
-          |> Enum.map(fn({{row,col}, tile}) -> %{row: row, col: col, tile: to_string([tile])} end)
+        dungeon_map_tiles = Dungeon.generate_dungeon_map_tiles(dungeon, DungeonGenerator,Ecto.DateTime.autogenerate)
 
-        dungeon
-          |> Repo.preload(:dungeon_map_tiles)
-          |> Dungeon.changeset(%{dungeon_map_tiles: dungeon_map_tiles})
-          |> Repo.update
+        Repo.insert_all(DungeonMapTile, dungeon_map_tiles)
 
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-        |> redirect(to: dungeon_path(conn, :index))
+        |> redirect(to: dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
     end
