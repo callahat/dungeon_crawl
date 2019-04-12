@@ -1,1 +1,6 @@
 /* This file is for your main application css. */
+
+pre.dungeon_preview {
+  display: inline-block;
+  line-height: 1;
+}

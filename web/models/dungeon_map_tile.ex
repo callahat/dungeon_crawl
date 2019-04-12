@@ -6,8 +6,6 @@ defmodule DungeonCrawl.DungeonMapTile do
     field :col, :integer
     field :tile, :string
     belongs_to :dungeon, DungeonCrawl.Dungeon
-
-    timestamps()
   end
 
   @doc """

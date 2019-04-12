@@ -4,6 +4,8 @@
   <thead>
     <tr>
       <th>Name</th>
+      <th>Dimensions (HxW)</th>
+      <th>Last Updated</th>
 
       <th></th>
     </tr>
@@ -12,10 +14,11 @@
 <%= for dungeon <- @dungeons do %>
     <tr>
       <td><%= dungeon.name %></td>
+      <td><%= dungeon.height %>x<%= dungeon.width %></td>
+      <td><%= dungeon.updated_at %></td>
 
       <td class="text-right">
         <%= link "Show", to: dungeon_path(@conn, :show, dungeon), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: dungeon_path(@conn, :edit, dungeon), class: "btn btn-default btn-xs" %>
         <%= link "Delete", to: dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
       </td>
     </tr>

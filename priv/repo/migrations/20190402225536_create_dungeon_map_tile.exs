@@ -7,8 +7,6 @@ defmodule DungeonCrawl.Repo.Migrations.CreateDungeonMapTile do
       add :col, :integer
       add :tile, :string
       add :dungeon_id, references(:dungeons, on_delete: :nothing)
-
-      timestamps()
     end
     create index(:dungeon_map_tiles, [:dungeon_id, :row, :col])
 

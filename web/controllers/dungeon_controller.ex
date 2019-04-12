@@ -20,7 +20,7 @@ defmodule DungeonCrawl.DungeonController do
 
     case Repo.insert(changeset) do
       {:ok, dungeon} ->
-        dungeon_map_tiles = Dungeon.generate_dungeon_map_tiles(dungeon, DungeonGenerator,Ecto.DateTime.autogenerate)
+        dungeon_map_tiles = Dungeon.generate_dungeon_map_tiles(dungeon, DungeonGenerator)
 
         Repo.insert_all(DungeonMapTile, dungeon_map_tiles)
 
@@ -39,30 +39,10 @@ defmodule DungeonCrawl.DungeonController do
       |> Enum.sort(fn(a,b) -> {a.row, a.col} < {b.row, b.col} end)
       |> Enum.map(fn(row) -> row.tile end)
       |> to_charlist
-      |> Enum.chunk(80) # TODO: replace this with something like dungeon.width if this ever is not hardcoded
+      |> Enum.chunk(dungeon.width) # TODO: replace this with something like dungeon.width if this ever is not hardcoded
       |> Enum.join("\n")
 
     render(conn, "show.html", dungeon: dungeon, dungeon_render: dungeon_render)
-  end
-
-  def edit(conn, %{"id" => id}) do
-    dungeon = Repo.get!(Dungeon, id)
-    changeset = Dungeon.changeset(dungeon)
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset)
-  end
-
-  def update(conn, %{"id" => id, "dungeon" => dungeon_params}) do
-    dungeon = Repo.get!(Dungeon, id)
-    changeset = Dungeon.changeset(dungeon, dungeon_params)
-
-    case Repo.update(changeset) do
-      {:ok, dungeon} ->
-        conn
-        |> put_flash(:info, "Dungeon updated successfully.")
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
-      {:error, changeset} ->
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset)
-    end
   end
 
   def delete(conn, %{"id" => id}) do

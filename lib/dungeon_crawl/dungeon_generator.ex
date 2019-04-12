@@ -12,17 +12,17 @@ defmodule DungeonCrawl.DungeonGenerator do
   #@entities        Enum.to_list(?A..?|)
   @entities        ''
 
-  def generate() do
-    map = Enum.to_list(0..@cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
-            Enum.to_list(0..@cave_width-1) |> Enum.reduce(map, fn(col, map) ->
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width) do
+    map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
+            Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
               Map.put map, {row, col}, ?\s
             end)
           end)
 
-    {:good_room, coords} = try_generating_room_coordinates(map)
+    {:good_room, coords} = try_generating_room_coordinates(map, cave_height, cave_width)
     map = _plop_room(map, coords, ?@)
 
-    _generate(map, @iterations)
+    _generate(map, cave_height, cave_width, round(cave_height * cave_width / 3) + @iterations)
     |> _replace_corners
   end
 
@@ -34,26 +34,26 @@ defmodule DungeonCrawl.DungeonGenerator do
     |> Enum.join("\n")
   end
 
-  defp _generate(map, 0), do: map
-  defp _generate(map, n) do
-    case try_generating_room_coordinates(map) do
+  defp _generate(map, _cave_height, _cave_width, 0), do: map
+  defp _generate(map, cave_height, cave_width, n) do
+    case try_generating_room_coordinates(map, cave_height, cave_width) do
       {:good_room, coords} ->
         # IO.puts inspect coords
         entities = @entities |> Enum.shuffle |> Enum.take(_rand_range(1,6))
         _plop_room(map, coords, entities)
-        |> _generate(n - 1)
+        |> _generate(cave_height, cave_width, n - 1)
       {:bad_room} ->
-        _generate(map, n - 1)
+        _generate(map, cave_height, cave_width, n - 1)
     end
   end
 
-  def try_generating_room_coordinates(map) do
+  def try_generating_room_coordinates(map, cave_height, cave_width) do
     w = _rand_range(@room_min_width,  @room_max_width)
     h = _rand_range(@room_min_height, @room_max_height)
 
     # -2 for the outer walls
-    top_left_col = _rand_range(0, (@cave_width  - 2) - w)
-    top_left_row = _rand_range(0, (@cave_height - 2) - h)
+    top_left_col = _rand_range(0, (cave_width  - 2) - w)
+    top_left_row = _rand_range(0, (cave_height - 2) - h)
 
     bottom_right_col = top_left_col + w + 1
     bottom_right_row = top_left_row + h + 1
