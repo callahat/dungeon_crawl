@@ -4,6 +4,7 @@ defmodule DungeonCrawl.DungeonController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonMapTile
   alias DungeonCrawl.DungeonGenerator
+  alias Ecto.Multi
 
   def index(conn, _params) do
     dungeons = Repo.all(Dungeon)
@@ -16,19 +17,25 @@ defmodule DungeonCrawl.DungeonController do
   end
 
   def create(conn, %{"dungeon" => dungeon_params}) do
-    changeset = Dungeon.changeset(%Dungeon{}, dungeon_params)
-
-    case Repo.insert(changeset) do
-      {:ok, dungeon} ->
-        dungeon_map_tiles = Dungeon.generate_dungeon_map_tiles(dungeon, DungeonGenerator)
-
-        Repo.insert_all(DungeonMapTile, dungeon_map_tiles)
-
+    Multi.new
+    |> Multi.insert(:dungeon, Dungeon.changeset(%Dungeon{}, dungeon_params))
+    |> Multi.run(:dungeon_map_tiles, fn(%{dungeon: dungeon}) ->
+        result = Repo.insert_all(DungeonMapTile, Dungeon.generate_dungeon_map_tiles(dungeon, DungeonGenerator))
+        {:ok, result}
+      end)
+    |> Repo.transaction
+    |> case do
+      {:ok, %{dungeon: dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: dungeon_path(conn, :show, dungeon))
-      {:error, changeset} ->
+      {:error, :dungeon, changeset, others} ->
         render(conn, "new.html", changeset: changeset)
+      # This probably won't happen; if :dungeon_map_tiles has a prolem insert_all, exception bubbles up
+      {:error, op, res, others} ->
+        conn
+        |> put_flash(:error, "Something went wrong with '#{op}'")
+        |> render("new.html", changeset: Dungeon.changeset(%Dungeon{}))
     end
   end
 
