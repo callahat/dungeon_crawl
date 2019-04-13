@@ -3,7 +3,7 @@ defmodule DungeonCrawl.DungeonMapTileTest do
 
   alias DungeonCrawl.DungeonMapTile
 
-  @valid_attrs %{tile: "some content", x: 42, y: 42}
+  @valid_attrs %{tile: "!", row: 42, col: 42}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

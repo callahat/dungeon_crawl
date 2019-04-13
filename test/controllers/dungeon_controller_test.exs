@@ -17,7 +17,7 @@ defmodule DungeonCrawl.DungeonControllerTest do
 
   test "creates resource and redirects when data is valid", %{conn: conn} do
     conn = post conn, dungeon_path(conn, :create), dungeon: @valid_attrs
-    assert redirected_to(conn) == dungeon_path(conn, :index)
+    assert redirected_to(conn) == dungeon_path(conn, :show, Repo.get_by(Dungeon, @valid_attrs))
     assert Repo.get_by(Dungeon, @valid_attrs)
   end
 
@@ -29,32 +29,13 @@ defmodule DungeonCrawl.DungeonControllerTest do
   test "shows chosen resource", %{conn: conn} do
     dungeon = Repo.insert! %Dungeon{}
     conn = get conn, dungeon_path(conn, :show, dungeon)
-    assert html_response(conn, 200) =~ "Show dungeon"
+    assert html_response(conn, 200) =~ "Dungeon: "
   end
 
   test "renders page not found when id is nonexistent", %{conn: conn} do
     assert_error_sent 404, fn ->
       get conn, dungeon_path(conn, :show, -1)
     end
-  end
-
-  test "renders form for editing chosen resource", %{conn: conn} do
-    dungeon = Repo.insert! %Dungeon{}
-    conn = get conn, dungeon_path(conn, :edit, dungeon)
-    assert html_response(conn, 200) =~ "Edit dungeon"
-  end
-
-  test "updates chosen resource and redirects when data is valid", %{conn: conn} do
-    dungeon = Repo.insert! %Dungeon{}
-    conn = put conn, dungeon_path(conn, :update, dungeon), dungeon: @valid_attrs
-    assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
-    assert Repo.get_by(Dungeon, @valid_attrs)
-  end
-
-  test "does not update chosen resource and renders errors when data is invalid", %{conn: conn} do
-    dungeon = Repo.insert! %Dungeon{}
-    conn = put conn, dungeon_path(conn, :update, dungeon), dungeon: @invalid_attrs
-    assert html_response(conn, 200) =~ "Edit dungeon"
   end
 
   test "deletes chosen resource", %{conn: conn} do

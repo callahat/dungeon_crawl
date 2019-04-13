@@ -19,24 +19,24 @@ defmodule DungeonCrawl.DungeonGenerator do
             end)
           end)
 
-    {:good_room, coords} = try_generating_room_coordinates(map, cave_height, cave_width)
+    {:good_room, coords} = _try_generating_room_coordinates(map, cave_height, cave_width)
     map = _plop_room(map, coords, ?@)
 
     _generate(map, cave_height, cave_width, round(cave_height * cave_width / 3) + @iterations)
     |> _replace_corners
   end
 
-  def stringify(map) do
+  def stringify(map, cave_width \\ @cave_width) do
     map
     |> _map_to_charlist
-    |> Enum.chunk(@cave_width)
+    |> Enum.chunk(cave_width)
     |> Enum.map(&(to_string(&1)))
     |> Enum.join("\n")
   end
 
   defp _generate(map, _cave_height, _cave_width, 0), do: map
   defp _generate(map, cave_height, cave_width, n) do
-    case try_generating_room_coordinates(map, cave_height, cave_width) do
+    case _try_generating_room_coordinates(map, cave_height, cave_width) do
       {:good_room, coords} ->
         # IO.puts inspect coords
         entities = @entities |> Enum.shuffle |> Enum.take(_rand_range(1,6))
@@ -47,7 +47,7 @@ defmodule DungeonCrawl.DungeonGenerator do
     end
   end
 
-  def try_generating_room_coordinates(map, cave_height, cave_width) do
+  def _try_generating_room_coordinates(map, cave_height, cave_width) do
     w = _rand_range(@room_min_width,  @room_max_width)
     h = _rand_range(@room_min_height, @room_max_height)
 
