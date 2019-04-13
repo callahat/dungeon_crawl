@@ -7,6 +7,7 @@ defmodule DungeonCrawl.User do
     field :password, :string, virtual: true
     field :password_hash, :string
     field :is_admin, :boolean
+    has_one :player_location, DungeonCrawl.PlayerLocation
 
     timestamps()
   end

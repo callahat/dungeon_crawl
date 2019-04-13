@@ -5,6 +5,29 @@ defmodule DungeonCrawl.DungeonControllerTest do
   @valid_attrs %{name: "some content"}
   @invalid_attrs %{}
 
+  setup %{conn: conn} = config do
+    case config do
+      %{nouser: true} -> :ok
+      _    ->
+        user = insert_user(%{username: config[:login_as] || "CSwaggins", is_admin: !config[:not_admin]})
+        conn = assign(build_conn(), :current_user, user)
+        {:ok, conn: conn, user: user}
+    end
+  end
+
+  # TODO: test that non admins can't access anything here?
+  @tag login_as: "notadmin", not_admin: true
+  test "redirects non admin users", %{conn: conn} do
+    conn = get conn, dungeon_path(conn, :index)
+    assert redirected_to(conn) == page_path(conn, :index)
+  end
+
+  @tag nouser: true
+  test "redirects non users", %{conn: conn} do
+    conn = get conn, dungeon_path(conn, :index)
+    assert redirected_to(conn) == page_path(conn, :index)
+  end
+
   test "lists all entries on index", %{conn: conn} do
     conn = get conn, dungeon_path(conn, :index)
     assert html_response(conn, 200) =~ "Listing dungeons"
@@ -27,7 +50,7 @@ defmodule DungeonCrawl.DungeonControllerTest do
   end
 
   test "shows chosen resource", %{conn: conn} do
-    dungeon = Repo.insert! %Dungeon{}
+    dungeon = insert_dungeon()
     conn = get conn, dungeon_path(conn, :show, dungeon)
     assert html_response(conn, 200) =~ "Dungeon: "
   end
@@ -39,7 +62,7 @@ defmodule DungeonCrawl.DungeonControllerTest do
   end
 
   test "deletes chosen resource", %{conn: conn} do
-    dungeon = Repo.insert! %Dungeon{}
+    dungeon = insert_dungeon()
     conn = delete conn, dungeon_path(conn, :delete, dungeon)
     assert redirected_to(conn) == dungeon_path(conn, :index)
     refute Repo.get(Dungeon, dungeon.id)

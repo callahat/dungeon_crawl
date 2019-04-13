@@ -20,13 +20,13 @@ defmodule DungeonCrawl.Router do
     get "/", PageController, :index
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
-    resources "/dungeons", DungeonController, except: [:edit, :update]
   end
 
   scope "/manage", DungeonCrawl do
     pipe_through [:browser, :authenticate_user, :verify_user_is_admin]
 
     resources "/users", ManageUserController
+    resources "/dungeons", DungeonController, except: [:edit, :update]
   end
 
   # Other scopes may use custom stacks.

@@ -17,7 +17,6 @@ defmodule DungeonCrawl.ManageUserControllerTest do
     end
   end
 
-  # TODO: test that non admins can't access anything here?
   @tag login_as: "notadmin", not_admin: true
   test "redirects non admin users", %{conn: conn} do
     conn = get conn, manage_user_path(conn, :index)
