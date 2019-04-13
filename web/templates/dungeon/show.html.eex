@@ -1,0 +1,10 @@
+<h2>Dungeon: <%= @dungeon.name %> (<%= @dungeon.height %>x<%= @dungeon.width %>)</h2>
+<p>Last updated: <%= @dungeon.updated_at %>
+
+<div class="text-center">
+<pre class="dungeon_preview">
+<%= @dungeon_render %>
+</pre>
+</div>
+
+<%= link "Back", to: dungeon_path(@conn, :index) %>
