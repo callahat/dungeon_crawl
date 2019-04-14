@@ -1,9 +1,9 @@
 defmodule DungeonCrawl.UserControllerTest do
   use DungeonCrawl.ConnCase
-
-  import Plug.Conn, only: [assign: 3]
-
   alias DungeonCrawl.User
+
+  import Plug.Conn, only: [assign: 3, get_session: 2]
+
   @valid_attrs %{name: "some content", password: "some content", username: "some content"}
   @invalid_attrs %{name: ""}
 
@@ -26,6 +26,13 @@ defmodule DungeonCrawl.UserControllerTest do
     conn = post conn, user_path(conn, :create), user: @valid_attrs
     assert redirected_to(conn) == page_path(conn, :index)
     assert Repo.get_by(User, Map.delete(@valid_attrs, :password))
+  end
+
+  test "generates the user_id_hash from the session", %{conn: conn} do
+    conn = post conn, user_path(conn, :create), user: @valid_attrs
+    user = Repo.get_by(User, Map.delete(@valid_attrs, :password))
+    assert String.length(user.user_id_hash) > 10
+    assert user.user_id_hash == get_session(conn, :user_id_hash)
   end
 
   test "does not create resource and renders errors when data is invalid", %{conn: conn} do

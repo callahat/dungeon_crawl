@@ -6,6 +6,7 @@ defmodule DungeonCrawl.User do
     field :username, :string
     field :password, :string, virtual: true
     field :password_hash, :string
+    field :user_id_hash, :string
     field :is_admin, :boolean
     has_one :player_location, DungeonCrawl.PlayerLocation
 
@@ -41,6 +42,15 @@ defmodule DungeonCrawl.User do
     case changeset do
       %Ecto.Changeset{valid?: true, changes: %{password: pass}} ->
         put_change(changeset, :password_hash, Comeonin.Bcrypt.hashpwsalt(pass))
+      _ ->
+        changeset
+    end
+  end
+
+  def put_user_id_hash(changeset, user_id_hash \\ nil) do
+    case changeset do
+      %Ecto.Changeset{valid?: true} ->
+        put_change(changeset, :user_id_hash, user_id_hash || :base64.encode(:crypto.strong_rand_bytes(24)))
       _ ->
         changeset
     end

@@ -29,10 +29,10 @@ defmodule DungeonCrawl.DungeonController do
         conn
         |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: dungeon_path(conn, :show, dungeon))
-      {:error, :dungeon, changeset, others} ->
+      {:error, :dungeon, changeset, _others} ->
         render(conn, "new.html", changeset: changeset)
       # This probably won't happen; if :dungeon_map_tiles has a prolem insert_all, exception bubbles up
-      {:error, op, res, others} ->
+      {:error, op, _res, _others} ->
         conn
         |> put_flash(:error, "Something went wrong with '#{op}'")
         |> render("new.html", changeset: Dungeon.changeset(%Dungeon{}))
