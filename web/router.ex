@@ -18,8 +18,12 @@ defmodule DungeonCrawl.Router do
     pipe_through :browser # Use the default browser stack
 
     get "/", PageController, :index
+    # TODO: refactor to use the standard resource words
     get "/crawler", CrawlerController, :show
-    put "/crawler", CrawlerController, :action
+    post "/crawler", CrawlerController, :create
+    delete "/crawler", CrawlerController, :destroy
+    put  "/crawler", CrawlerController, :act
+
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
   end

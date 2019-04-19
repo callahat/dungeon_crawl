@@ -16,7 +16,7 @@ defmodule DungeonCrawl.PlayerLocation do
   """
   def changeset(struct, params \\ %{}) do
     struct
-    |> cast(params, [:row, :col, :user_id_hash])
-    |> validate_required([:row, :col, :user_id_hash])
+    |> cast(params, [:row, :col, :user_id_hash, :dungeon_id])
+    |> validate_required([:row, :col, :user_id_hash, :dungeon_id])
   end
 end

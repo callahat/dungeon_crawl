@@ -4,3 +4,5 @@ pre.dungeon_preview {
   display: inline-block;
   line-height: 1;
 }
+
+.breadcrumb > li.pull-left + li:before {content: none;}
