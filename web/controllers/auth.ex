@@ -15,6 +15,8 @@ defmodule DungeonCrawl.Auth do
     cond do
       user = conn.assigns[:current_user] ->
         put_current_user(conn, user)
+      user_id_hash = conn.assigns[:user_id_hash] ->
+        put_guest_user(conn, user_id_hash)
       user = user_id && repo.get(User, user_id) ->
         put_current_user(conn, user)
       user_id_hash = get_session(conn, :user_id_hash) ->

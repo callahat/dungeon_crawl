@@ -3,7 +3,7 @@ defmodule DungeonCrawl.PlayerLocationTest do
 
   alias DungeonCrawl.PlayerLocation
 
-  @valid_attrs %{col: 42, row: 42, user_id_hash: "some content"}
+  @valid_attrs %{col: 42, row: 42, user_id_hash: "some content", dungeon_id: 1}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
