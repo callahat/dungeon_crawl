@@ -3,6 +3,7 @@
 <pre class="dungeon_preview">
 <%= @dungeon_render %>
 </pre>
+<br/>
 <%= link "Clear Dungeon", to: crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
 </div>
 <%= else %>
