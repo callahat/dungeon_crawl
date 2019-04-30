@@ -16,20 +16,7 @@ defmodule DungeonCrawl.CrawlerController do
   def show(conn, _opts) do
     player_location = conn.assigns[:player_location]
 
-    if(player_location == nil || player_location.dungeon == nil) do
-      render(conn, "show.html", dungeon_render: nil)
-    else
-      # render and listen.
-      dungeon_render = 
-      player_location.dungeon.dungeon_map_tiles
-      |> Enum.sort(fn(a,b) -> {a.row, a.col} < {b.row, b.col} end)
-      |> Enum.map(fn(row) -> row.tile end)
-      |> to_charlist
-      |> List.replace_at(player_location.row * player_location.dungeon.width + player_location.col, ?@)
-      |> Enum.chunk(player_location.dungeon.width)
-      |> Enum.join("\n")
-      render(conn, "show.html", dungeon: player_location.dungeon, dungeon_render: dungeon_render)
-    end
+    render(conn, "show.html", player_location: player_location)
   end
 
   def create(conn, _opts) do
@@ -99,7 +86,7 @@ defmodule DungeonCrawl.CrawlerController do
   end
 
   defp validate_not_crawling(conn, _opts) do
-    if conn.assigns.player_location == nil || conn.assigns.player_location.dungeon == nil do
+    if conn.assigns.player_location == nil do
       conn
     else
       conn

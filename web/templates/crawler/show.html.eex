@@ -1,8 +1,6 @@
-<%= if @dungeon_render do %>
+<%= if @player_location do %>
 <div class="text-center">
-<pre class="dungeon_preview">
-<%= @dungeon_render %>
-</pre>
+<%= render(DungeonCrawl.SharedView, "dungeon.html", player_location: @player_location) %>
 <br/>
 <%= link "Clear Dungeon", to: crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
 </div>
