@@ -26,17 +26,28 @@ defmodule DungeonCrawl.DungeonChannel do
                        _       -> { 0,  0}
                      end
 
-    new_location = _update_player_location(player_location, player_location.dungeon_id, player_location.row + d_row, player_location.col + d_col)
+    proposed_location = _proposed_player_location(player_location, player_location.dungeon_id, player_location.row + d_row, player_location.col + d_col)
 
-    broadcast socket, "tile_update", %{new_location: %{row: new_location.row, col: new_location.col}, old_location: %{row: standing_on.row, col: standing_on.col, tile: standing_on.tile}}
+    if _valid_move(Map.merge(player_location, proposed_location.changes)) do
+      new_location = proposed_location |> Repo.update!
+      broadcast socket, "tile_update", %{new_location: %{row: new_location.row, col: new_location.col}, old_location: %{row: standing_on.row, col: standing_on.col, tile: standing_on.tile}}
+    end
 
     {:reply, :ok, socket}
   end
 
-  defp _update_player_location(player_location, dungeon_id, row, col) do
+  defp _valid_move(%{dungeon_id: dungeon_id, row: row, col: col}) do
+    case Repo.get_by(DungeonCrawl.DungeonMapTile, %{dungeon_id: dungeon_id, row: row, col: col}).tile do
+      "." -> true
+      "'" -> true
+      "+" -> true
+      _   -> false
+    end
+  end
+
+  defp _proposed_player_location(player_location, dungeon_id, row, col) do
     player_location
     |> DungeonCrawl.PlayerLocation.changeset(%{dungeon_id: dungeon_id, row: row, col: col})
-    |> Repo.update!
   end
 
   # It is also common to receive messages from the client and
