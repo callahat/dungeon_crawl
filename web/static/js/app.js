@@ -21,8 +21,5 @@ import "phoenix_html"
 import socket from "./socket"
 import Dungeon from "./dungeon"
 
-console.log("preparing to call Dungeon.init")
-
 Dungeon.init(socket, document.getElementById("dungeon"))
 
-console.log("wat")

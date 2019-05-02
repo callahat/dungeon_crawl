@@ -1,47 +1,52 @@
 let Dungeon = {
   init(socket, element){ if(!element){ return }
     let dungeonId = element.getAttribute("data-dungeon-id")
-console.log("dungeonId: ")
-console.log(dungeonId)
-console.log("Connecting...")
     socket.connect()
-console.log("Dungeoned inited")
-    this.onReady(dungeonId, socket)
-  },
-  onReady(dungeonId, socket){
+
     let dungeonChannel   = socket.channel("dungeons:" + dungeonId)
-console.log("joining channel: " + "dungeons:" + dungeonId)
+
     window.addEventListener("keydown", e => {
       let direction = e.keyCode || e.which
-          console.log(direction)
-      //WASD or arrow keys
+      // console.log(direction)
+      // arrow keys or WASD, respectiv
       switch(direction){
-        case(38,87):
-          console.log("Up")
+        case(38):
+        case(87):
+          this.move(dungeonChannel, "up")
           break
-        case(40,83):
-          console.log("Down")
+        case(40):
+        case(83):
+          this.move(dungeonChannel, "down")
           break
-        case(37,65):
-          console.log("Left")
+        case(37):
+        case(65):
+          this.move(dungeonChannel, "left")
           break
-        case(39,68):
-          console.log("Right")
+        case(39):
+        case(68):
+          this.move(dungeonChannel, "right")
           break
       }
-
+      return(false)
 //      if(code sgInput.value == ""){ return }
 //     let payload = {body: msgInput.value, at: Player.getCurrentTime()}
 //      vidChannel.push("new_annotation", payload)
 //                .receive("error", e => console.log(e))
 //      msgInput.value = ""
     })
-/*
-    vidChannel.on("new_annotation", (resp) => {
-      vidChannel.params.last_seen_id = resp.id
-      this.renderAnnotation(msgContainer, resp)
+    dungeonChannel.on("tile_update", (resp) => {
+      console.log("Got tile_update")
+      console.log(resp)
+      console.log(dungeonChannel.params)
+      let old_location = resp.old_location
+      let new_location = resp.new_location
+      document.getElementById(old_location.row + "_" + old_location.col).innerHTML = old_location.tile
+      document.getElementById(new_location.row + "_" + new_location.col).innerHTML = "@"
+//      dungeonChannel.params.last_seen_id = resp.id
+//      this.renderAnnotation(msgContainer, resp)
     })
 
+/*
     msgContainer.addEventListener("click", e => {
       e.preventDefault()
       let seconds = e.target.getAttribute("data-seek") || e.target.parentNode.getAttribute("data-seek")
@@ -52,13 +57,18 @@ console.log("joining channel: " + "dungeons:" + dungeonId)
     dungeonChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeons channel!")
-        console.log(resp)
 //        let ids = resp.annotations.map(ann => ann.id)
 //        if(ids.length > 0) {vidChannel.params.last_seen_id = Math.max(...ids)}
 //        this.scheduleMessages(msgContainer, resp.annotations)
       })
       .receive("error", resp => console.log("join failed", resp))
     dungeonChannel.on("ping", ({count}) => console.log("PING", count))
+  },
+  move(dungeonChannel, direction){
+    console.log(direction)
+    let payload = {direction: direction}
+    dungeonChannel.push("move", payload)
+                  .receive("error", e => console.log(e))
   }
 /*  esc(str){
     let div = document.createElement("div")

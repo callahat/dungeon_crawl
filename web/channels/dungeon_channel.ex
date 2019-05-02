@@ -5,13 +5,38 @@ defmodule DungeonCrawl.DungeonChannel do
     dungeon_id = String.to_integer(dungeon_id)
     dungeon = Repo.get(DungeonCrawl.Dungeon, dungeon_id)
 
-    {:ok, %{dungeon: dungeon}, assign(socket, :dungeon_id, dungeon_id)}
+    {:ok, %{dungeon_id: dungeon_id}, assign(socket, :dungeon_id, dungeon_id)}
+  end
+
+  def handle_in("ping", payload, socket) do
+    {:reply, {:ok, payload}, socket}
   end
 
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
-  def handle_in("ping", payload, socket) do
-    {:reply, {:ok, payload}, socket}
+  def handle_in("move", %{"direction" => direction}, socket) do
+    player_location = Repo.get_by(DungeonCrawl.PlayerLocation, %{user_id_hash: socket.assigns.user_id_hash})
+    standing_on = Repo.get_by(DungeonCrawl.DungeonMapTile, %{dungeon_id: player_location.dungeon_id, row: player_location.row, col: player_location.col})
+
+    {d_row, d_col} = case direction do
+                       "up"    -> {-1,  0}
+                       "down"  -> { 1,  0}
+                       "left"  -> { 0, -1}
+                       "right" -> { 0,  1}
+                       _       -> { 0,  0}
+                     end
+
+    new_location = _update_player_location(player_location, player_location.dungeon_id, player_location.row + d_row, player_location.col + d_col)
+
+    broadcast socket, "tile_update", %{new_location: %{row: new_location.row, col: new_location.col}, old_location: %{row: standing_on.row, col: standing_on.col, tile: standing_on.tile}}
+
+    {:reply, :ok, socket}
+  end
+
+  defp _update_player_location(player_location, dungeon_id, row, col) do
+    player_location
+    |> DungeonCrawl.PlayerLocation.changeset(%{dungeon_id: dungeon_id, row: row, col: col})
+    |> Repo.update!
   end
 
   # It is also common to receive messages from the client and
