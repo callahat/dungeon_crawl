@@ -24,6 +24,7 @@ defmodule DungeonCrawl.ChannelCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
+      import DungeonCrawl.TestHelpers
 
 
       # The default endpoint for testing

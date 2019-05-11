@@ -54,18 +54,6 @@ defmodule DungeonCrawl.CrawlerController do
     end
   end
 
-  def act(conn, _opts) do
-#    changeset = Crawler.changeset(%Crawler{}, crawler_params)
-
-#    case Repo.insert(changeset) do
-#      {:ok, _crawler} ->
-        conn
-        |> redirect(to: crawler_path(conn, :show))
-#      {:error, changeset} ->
-#        render(conn, "new.html", changeset: changeset)
-#    end
-  end
-
   def destroy(conn, _opts) do
     player_location = Repo.get_by(PlayerLocation, %{user_id_hash: conn.assigns[:user_id_hash]})
                       |> Repo.preload(:dungeon)
