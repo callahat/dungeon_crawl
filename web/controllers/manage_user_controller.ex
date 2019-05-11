@@ -14,7 +14,7 @@ defmodule DungeonCrawl.ManageUserController do
   end
 
   def create(conn, %{"user" => user_params}) do
-    changeset = User.admin_changeset(%User{}, user_params)
+    changeset = User.admin_changeset(%User{}, user_params) |> User.put_user_id_hash
 
     case Repo.insert(changeset) do
       {:ok, _user} ->

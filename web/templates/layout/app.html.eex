@@ -16,11 +16,13 @@
       <header class="header">
         <nav role="navigation">
           <ul class="breadcrumb text-right">
+            <li class="pull-left"><%= link "Dungeon Crawl", to: crawler_path(@conn, :show) %></li>
             <%= if @current_user do %>
               <li><%= link @current_user.username, to: user_path(@conn, :show) %></li>
               <li><%= link "Log out", to: session_path(@conn, :delete, @current_user), method: "delete" %></li>
               <%= if @current_user.is_admin do %>
               <li><%= link "Users", to: manage_user_path(@conn, :index) %></li>
+              <li><%= link "Dungeons", to: dungeon_path(@conn, :index) %></li>
               <% end %>
             <% else %>
               <li><%= link "Register", to: user_path(@conn, :new) %></li>
@@ -28,7 +30,7 @@
             <% end %>
           </ul>
         </nav>
-        <span class="logo"></span>
+        <!-- <span class="logo"></span> /-->
       </header>
 
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
@@ -39,6 +41,7 @@
       </main>
 
     </div> <!-- /container -->
+    <script>window.userToken = "<%= assigns[:user_token] %>"</script>
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>
 </html>

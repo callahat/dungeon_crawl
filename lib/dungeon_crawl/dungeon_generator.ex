@@ -114,9 +114,8 @@ defmodule DungeonCrawl.DungeonGenerator do
     end
   end
 
-  defp _plop_room(map, coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}, ?@) do
+  defp _plop_room(map, coords, ?@) do
     _corners_walls_floors(map, coords)
-    |> _replace_tile_at(_rand_range(tlc + 1, brc - 1), _rand_range(tlr + 1, brr - 1), ?@)
   end
 
   defp _plop_room(map, coords, entities) do

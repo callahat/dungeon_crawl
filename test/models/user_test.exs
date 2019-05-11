@@ -51,4 +51,17 @@ defmodule DungeonCrawl.UserTest do
 
     assert %{is_admin: true} = changeset.changes
   end
+
+  test "put_user_id_hash into changeset" do
+    changeset = User.changeset(%User{}, @valid_attrs) |> User.put_user_id_hash("GOODHASH")
+    assert changeset.valid?
+    assert %{user_id_hash: "GOODHASH"} = changeset.changes
+  end
+
+  test "generates a user_id_hash if none given" do
+    changeset = User.changeset(%User{}, @valid_attrs) |> User.put_user_id_hash()
+    assert changeset.valid?
+    assert %{user_id_hash: hash} = changeset.changes
+    assert String.length(hash) > 10
+  end
 end

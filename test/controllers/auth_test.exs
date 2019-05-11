@@ -38,7 +38,7 @@ defmodule DungeonCrawl.AuthTest do
     assert conn.halted
   end
 
-  test "verify_user_id_admin continues when the current user is an admin", %{conn: conn} do
+  test "verify_user_is_admin continues when the current user is an admin", %{conn: conn} do
     conn =
       conn
       |> assign(:current_user, %DungeonCrawl.User{is_admin: true})
@@ -50,22 +50,26 @@ defmodule DungeonCrawl.AuthTest do
   test "login puts the user in the session", %{conn: conn} do
     login_conn =
       conn
-      |> Auth.login(%DungeonCrawl.User{id: 123})
+      |> Auth.login(%DungeonCrawl.User{id: 123, user_id_hash: "asdf"})
       |> send_resp(:ok,"")
 
     next_conn = get(login_conn, "/")
     assert get_session(next_conn, :user_id) == 123
+    assert get_session(next_conn, :user_id_hash) == "asdf"
   end
 
   test "logout drops the session", %{conn: conn} do
     logout_conn = 
       conn
       |> put_session(:user_id, 123)
+      |> put_session(:user_id_hash, "asdf")
       |> Auth.logout()
       |> send_resp(:ok, "")
 
     next_conn = get(logout_conn, "/")
     refute get_session(next_conn, :user_id)
+    assert get_session(next_conn, :user_id_hash)
+    assert get_session(next_conn, :user_id_hash) != "asdf"
   end
 
   test "call places the user from the session into assigns", %{conn: conn} do
@@ -76,6 +80,7 @@ defmodule DungeonCrawl.AuthTest do
       |> Auth.call(Repo)
 
     assert conn.assigns.current_user.id == user.id
+    assert conn.assigns.user_id_hash == user.user_id_hash
   end
 
   test "call with no session sets the current_user assign to nil", %{conn: conn} do
@@ -83,11 +88,19 @@ defmodule DungeonCrawl.AuthTest do
     assert conn.assigns.current_user == nil
   end
 
+  test "call with no session sets the user_id_hash", %{conn: conn} do
+    conn = Auth.call(conn, Repo)
+
+    assert get_session(conn, :user_id_hash)
+    assert conn.assigns.user_id_hash == get_session(conn, :user_id_hash)
+  end
+
   test "login with a valid username and password", %{conn: conn} do
     user = insert_user(%{username: "me", password: "secret"})
     {:ok, conn} = Auth.login_by_username_and_pass(conn, "me", "secret", repo: Repo)
 
     assert conn.assigns.current_user.id == user.id
+    assert conn.assigns.user_id_hash == user.user_id_hash
   end
 
   test "login with a not found user", %{conn: conn} do

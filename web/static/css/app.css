@@ -3,4 +3,13 @@
 pre.dungeon_preview {
   display: inline-block;
   line-height: 1;
+  padding: 0.5em;
 }
+
+pre.dungeon_preview table {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb > li.pull-left + li:before {content: none;}

@@ -17,7 +17,6 @@ defmodule DungeonCrawl.ManageUserControllerTest do
     end
   end
 
-  # TODO: test that non admins can't access anything here?
   @tag login_as: "notadmin", not_admin: true
   test "redirects non admin users", %{conn: conn} do
     conn = get conn, manage_user_path(conn, :index)
@@ -41,7 +40,9 @@ defmodule DungeonCrawl.ManageUserControllerTest do
   test "creates resource and redirects when data is valid", %{conn: conn} do
     conn = post conn, manage_user_path(conn, :create), user: @valid_attrs
     assert redirected_to(conn) == manage_user_path(conn, :index)
-    assert Repo.get_by(User, Map.delete(@valid_attrs, :password))
+    new_user = Repo.get_by(User, Map.delete(@valid_attrs, :password))
+    assert new_user
+    assert new_user.user_id_hash != nil
   end
 
   @tag login_as: "maxheadroom"
