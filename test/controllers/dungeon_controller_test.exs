@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.DungeonControllerTest do
-  use DungeonCrawl.ConnCase
+defmodule DungeonCrawlWeb.DungeonControllerTest do
+  use DungeonCrawlWeb.ConnCase
 
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawlWeb.Dungeon
   @valid_attrs %{name: "some content"}
   @invalid_attrs %{}
 

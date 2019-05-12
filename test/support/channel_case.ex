@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.ChannelCase do
+defmodule DungeonCrawlWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -24,11 +24,11 @@ defmodule DungeonCrawl.ChannelCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import DungeonCrawl.TestHelpers
+      import DungeonCrawlWeb.TestHelpers
 
 
       # The default endpoint for testing
-      @endpoint DungeonCrawl.Endpoint
+      @endpoint DungeonCrawlWeb.Endpoint
     end
   end
 

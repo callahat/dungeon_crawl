@@ -1,0 +1,11 @@
+<%= if @player_location do %>
+<div class="text-center">
+<pre id="short_comm">Move...</pre>
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", player_location: @player_location) %>
+<br/>
+<%= link "Clear Dungeon", to: crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
+</div>
+<%= else %>
+Not currently in any dungeon.
+<%= link "Generate a new one", to: crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<% end %>

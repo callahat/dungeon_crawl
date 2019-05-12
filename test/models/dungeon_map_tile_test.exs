@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.DungeonMapTileTest do
-  use DungeonCrawl.ModelCase
+defmodule DungeonCrawlWeb.DungeonMapTileTest do
+  use DungeonCrawlWeb.ModelCase
 
-  alias DungeonCrawl.DungeonMapTile
+  alias DungeonCrawlWeb.DungeonMapTile
 
   @valid_attrs %{tile: "!", row: 42, col: 42}
   @invalid_attrs %{}

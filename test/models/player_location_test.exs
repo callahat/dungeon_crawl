@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.PlayerLocationTest do
-  use DungeonCrawl.ModelCase
+defmodule DungeonCrawlWeb.PlayerLocationTest do
+  use DungeonCrawlWeb.ModelCase
 
-  alias DungeonCrawl.PlayerLocation
+  alias DungeonCrawlWeb.PlayerLocation
 
   @valid_attrs %{col: 42, row: 42, user_id_hash: "some content", dungeon_id: 1}
   @invalid_attrs Map.merge(@valid_attrs, %{dungeon_id: nil})

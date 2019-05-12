@@ -1,7 +1,9 @@
-defmodule DungeonCrawl.CrawlerControllerTest do
-  use DungeonCrawl.ConnCase
+defmodule DungeonCrawlWeb.CrawlerControllerTest do
+  use DungeonCrawlWeb.ConnCase
 
   import Plug.Conn, only: [assign: 3]
+
+  alias DungeonCrawlWeb.{PlayerLocation,Dungeon}
 
   setup %{conn: _conn} = config do
     if username = config[:login_as] do
@@ -47,7 +49,7 @@ defmodule DungeonCrawl.CrawlerControllerTest do
 
   test "player location is set", %{conn: conn} do
     conn = post conn, crawler_path(conn, :create)
-    player_location = Repo.get_by(DungeonCrawl.PlayerLocation, %{user_id_hash: conn.assigns[:user_id_hash]})
+    player_location = Repo.get_by(PlayerLocation, %{user_id_hash: conn.assigns[:user_id_hash]})
     assert player_location
     assert player_location.dungeon_id
   end
@@ -69,7 +71,7 @@ defmodule DungeonCrawl.CrawlerControllerTest do
     conn = delete conn, crawler_path(conn, :destroy)
     assert redirected_to(conn) == crawler_path(conn, :show)
     assert get_flash(conn, :info) == "Dungeon cleared."
-    refute Repo.get(DungeonCrawl.PlayerLocation, player_location.id)
-    refute Repo.get(DungeonCrawl.Dungeon, dungeon.id)
+    refute Repo.get(PlayerLocation, player_location.id)
+    refute Repo.get(Dungeon, dungeon.id)
   end
 end

@@ -1,6 +1,6 @@
-defmodule DungeonCrawl.UserRepoTest do
-  use DungeonCrawl.ModelCase
-  alias DungeonCrawl.User
+defmodule DungeonCrawlWeb.UserRepoTest do
+  use DungeonCrawlWeb.ModelCase
+  alias DungeonCrawlWeb.User
 
   @valid_attrs %{name: "Name", username: "myname"}
 
