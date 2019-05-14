@@ -36,7 +36,7 @@ defmodule DungeonCrawlWeb.UserController do
 
   def update(conn, %{"user" => user_params}) do
     user = Repo.get!(User, conn.assigns.current_user.id)
-    changeset = User.registration_changeset(user, user_params)
+    changeset = User.changeset(user, user_params)
 
     case Repo.update(changeset) do
       {:ok, _} ->

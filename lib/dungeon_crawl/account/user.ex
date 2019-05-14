@@ -1,5 +1,8 @@
-defmodule DungeonCrawlWeb.User do
-  use DungeonCrawl.Web, :model
+defmodule DungeonCrawl.Account.User do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+
 
   schema "users" do
     field :name, :string
@@ -7,15 +10,13 @@ defmodule DungeonCrawlWeb.User do
     field :password, :string, virtual: true
     field :password_hash, :string
     field :user_id_hash, :string
-    field :is_admin, :boolean
+    field :is_admin, :boolean, default: false
     has_one :player_location, DungeonCrawlWeb.PlayerLocation
 
     timestamps()
   end
 
-  @doc """
-  Builds a changeset based on the `struct` and `params`.
-  """
+  @doc false
   def changeset(struct, params \\ %{}) do
     struct
     |> cast(params, [:name, :username, :password])
@@ -24,24 +25,6 @@ defmodule DungeonCrawlWeb.User do
     |> validate_length(:password, min: 6, max: 100)
     |> unique_constraint(:username)
     |> put_pass_hash()
-  end
-
-  def registration_changeset(struct, params \\ %{}) do
-    struct
-    |> changeset(params)
-    |> validate_required([:password])
-  end
-
-  def admin_registration_changeset(struct, params \\ %{}) do
-    struct
-    |> registration_changeset(params)
-    |> cast(params, [:is_admin])
-  end
-
-  def admin_changeset(struct, params \\ %{}) do
-    struct
-    |> changeset(params)
-    |> cast(params, [:is_admin])
   end
 
   defp put_pass_hash(changeset) do
@@ -53,6 +36,28 @@ defmodule DungeonCrawlWeb.User do
     end
   end
 
+  @doc false
+  def registration_changeset(struct, params \\ %{}) do
+    struct
+    |> changeset(params)
+    |> validate_required([:password])
+  end
+
+  @doc false
+  def admin_registration_changeset(struct, params \\ %{}) do
+    struct
+    |> registration_changeset(params)
+    |> cast(params, [:is_admin])
+  end
+
+  @doc false
+  def admin_changeset(struct, params \\ %{}) do
+    struct
+    |> changeset(params)
+    |> cast(params, [:is_admin])
+  end
+
+  @doc false
   def put_user_id_hash(changeset, user_id_hash \\ nil) do
     case changeset do
       %Ecto.Changeset{valid?: true} ->
