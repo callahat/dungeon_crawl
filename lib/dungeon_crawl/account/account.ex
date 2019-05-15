@@ -140,4 +140,11 @@ defmodule DungeonCrawl.Account do
   def change_admin(%User{} = user) do
     User.admin_changeset(user, %{})
   end
+
+  @doc """
+  Returns the user_id_hash stored in the connection, or generates a new one.
+  """
+  def extract_user_id_hash(conn) do
+    conn.assigns[:user_id_hash] || :base64.encode(:crypto.strong_rand_bytes(24))
+  end
 end

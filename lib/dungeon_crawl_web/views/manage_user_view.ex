@@ -1,6 +1,6 @@
 defmodule DungeonCrawlWeb.ManageUserView do
   use DungeonCrawl.Web, :view
-  alias DungeonCrawlWeb.User
+  alias DungeonCrawl.Account.User
 
   def first_name(%User{name: name}) do
     name

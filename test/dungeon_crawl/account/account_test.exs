@@ -6,8 +6,8 @@ defmodule DungeonCrawl.AccountTest do
   describe "users" do
     alias DungeonCrawl.Account.User
 
-    @valid_attrs %{name: "some content", password: "password", username: "some content"}
-    @admin_attrs %{name: "some content", password: "password", username: "some content", is_admin: true}
+    @valid_attrs %{name: "some content", password: "password", username: "some content", user_id_hash: "validhash"}
+    @admin_attrs %{name: "some content", password: "password", username: "some content", user_id_hash: "validhashforadmin", is_admin: true}
     @update_attrs %{name: "some updated name", is_admin: true}
     @invalid_attrs %{name: "junk", password: "no"}
 
@@ -101,6 +101,17 @@ defmodule DungeonCrawl.AccountTest do
     test "change_admin/1 returns a user changeset" do
       user = user_fixture()
       assert %Ecto.Changeset{} = Account.change_admin(user)
+    end
+
+    test "extract_user_id_hash/1 returns the user_id_hash stored in conn" do
+      conn = %{assigns: %{user_id_hash: "SECRETHASH"}}
+      assert Account.extract_user_id_hash(conn) == "SECRETHASH"
+    end
+
+    test "extract_user_id_hash/1 generates user_id_hash if one is not stored in conn" do
+      conn = %{assigns: %{}}
+      refute conn.assigns[:user_id_hash]
+      assert Account.extract_user_id_hash(conn)
     end
   end
 end

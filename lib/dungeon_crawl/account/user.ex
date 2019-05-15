@@ -40,7 +40,8 @@ defmodule DungeonCrawl.Account.User do
   def registration_changeset(struct, params \\ %{}) do
     struct
     |> changeset(params)
-    |> validate_required([:password])
+    |> cast(params, [:user_id_hash])
+    |> validate_required([:password,:user_id_hash])
   end
 
   @doc false
