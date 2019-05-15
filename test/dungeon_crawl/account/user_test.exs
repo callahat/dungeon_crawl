@@ -1,10 +1,19 @@
-defmodule DungeonCrawlWeb.UserTest do
-  use DungeonCrawlWeb.ModelCase
+defmodule DungeonCrawl.Account.UserTest do
+  use DungeonCrawl.DataCase
 
-  alias DungeonCrawlWeb.User
+  alias DungeonCrawl.Account.User
 
   @valid_attrs %{name: "some content", password_hash: "some content", username: "some content"}
   @invalid_attrs %{}
+
+  test "converts unique_constraint on username to error" do
+    insert_user(%{username: "eric"})
+    attrs = Map.put(@valid_attrs, :username, "eric")
+    changeset = User.changeset(%User{}, attrs)
+
+    assert {:error, changeset} = Repo.insert(changeset)
+    assert {:username, {"has already been taken", []}} in changeset.errors
+  end
 
   test "changeset with valid attributes" do
     changeset = User.changeset(%User{}, @valid_attrs)
@@ -17,9 +26,9 @@ defmodule DungeonCrawlWeb.UserTest do
   end
 
   test "changeset does not accept long usernames" do
-    attrs = Map.put(@valid_attrs, :username, String.duplicate("A", 30))
-    assert {:username, "should be at most 20 character(s)"} in 
-           errors_on(%User{}, attrs)
+    attrs = User.changeset(%User{}, %{@valid_attrs | username: String.duplicate("A", 30)})
+    assert {:username, ["should be at most 20 character(s)"]} in
+           errors_on(attrs)
   end
 
   test "registration_changeset password must be 6 characters long" do
@@ -29,9 +38,9 @@ defmodule DungeonCrawlWeb.UserTest do
   end
 
   test "registration_changeset with valid attrs hashes password" do
-    attrs = Map.put(@valid_attrs, :password, "123456")
+    attrs = Map.merge(@valid_attrs, %{password: "123456", user_id_hash: "goodhash"})
     changeset = User.registration_changeset(%User{}, attrs)
-    %{password: pass, password_hash: pass_hash} = changeset.changes
+    %{password: pass, password_hash: pass_hash, user_id_hash: "goodhash"} = changeset.changes
 
     assert changeset.valid?
     assert pass_hash

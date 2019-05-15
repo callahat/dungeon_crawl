@@ -8,9 +8,9 @@ defmodule DungeonCrawlWeb.TestHelpers do
       password: "secretsauce",
     }, attrs)
 
-    %DungeonCrawlWeb.User{}
-    |> DungeonCrawlWeb.User.admin_changeset(changes)
-    |> DungeonCrawlWeb.User.put_user_id_hash(:base64.encode(:crypto.strong_rand_bytes(24)))
+    %DungeonCrawl.Account.User{}
+    |> DungeonCrawl.Account.User.admin_changeset(changes)
+    |> DungeonCrawl.Account.User.put_user_id_hash(:base64.encode(:crypto.strong_rand_bytes(24)))
     |> Repo.insert!()
   end
 

@@ -1,6 +1,6 @@
 defmodule DungeonCrawlWeb.UserControllerTest do
   use DungeonCrawlWeb.ConnCase
-  alias DungeonCrawlWeb.User
+  alias DungeonCrawl.Account.User
 
   import Plug.Conn, only: [assign: 3, get_session: 2]
 

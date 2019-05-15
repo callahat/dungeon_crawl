@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.ManageUserControllerTest do
 
   import Plug.Conn, only: [assign: 3]
 
-  alias DungeonCrawlWeb.User
+  alias DungeonCrawl.Account.User
   @valid_attrs %{name: "some content", password: "some content", username: "some content", is_admin: true}
   @invalid_attrs %{name: ""}
 
