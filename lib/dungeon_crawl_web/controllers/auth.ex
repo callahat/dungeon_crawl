@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.Auth do
   import Comeonin.Bcrypt, only: [checkpw: 2, dummy_checkpw: 0]
   import Phoenix.Controller
   alias DungeonCrawlWeb.Router.Helpers
-  alias DungeonCrawl.Account.User
+  alias DungeonCrawl.Account
 
   def init(opts) do
     Keyword.fetch!(opts, :repo)
@@ -15,7 +15,7 @@ defmodule DungeonCrawlWeb.Auth do
     cond do
       user = conn.assigns[:current_user] ->
         put_current_user(conn, user)
-      user = user_id && repo.get(User, user_id) ->
+      user = user_id && Account.get_user(user_id, repo) ->
         put_current_user(conn, user)
       user_id_hash = conn.assigns[:user_id_hash] ->
         put_guest_user(conn, user_id_hash)
@@ -63,7 +63,7 @@ defmodule DungeonCrawlWeb.Auth do
 
   def login_by_username_and_pass(conn, username, given_pass, opts) do
     repo = Keyword.fetch!(opts, :repo)
-    user = repo.get_by(User, username: username)
+    user = Account.get_by_username(username, repo)
 
     cond do
       user && checkpw(given_pass, user.password_hash) ->

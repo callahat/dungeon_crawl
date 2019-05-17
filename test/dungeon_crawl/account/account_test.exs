@@ -30,6 +30,11 @@ defmodule DungeonCrawl.AccountTest do
       assert Account.get_user!(user.id) == user
     end
 
+    test "get_by_username!/1 returns the user with given username" do
+      user = user_fixture()
+      assert Account.get_by_username!(user.username) == user
+    end
+
     test "create_user/1 with valid data creates a user" do
       assert {:ok, %User{} = user} = Account.create_user(@valid_attrs)
       assert user.name == "some content"

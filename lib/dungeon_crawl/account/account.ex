@@ -24,9 +24,16 @@ defmodule DungeonCrawl.Account do
   @doc """
   Gets a single user.
 
-  Raises `Ecto.NoResultsError` if the User does not exist.
+  If the exclaimation version is used and the User does not exist,
+  raises `Ecto.NoResultsError`, otherwise `nil` is returned.
 
   ## Examples
+
+      iex> get_user(123)
+      %User{}
+
+      iex> get_user(456)
+      nil
 
       iex> get_user!(123)
       %User{}
@@ -35,7 +42,32 @@ defmodule DungeonCrawl.Account do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user!(id), do: Repo.get!(User, id)
+  def get_user(id, repo \\ Repo),  do: repo.get(User, id)
+  def get_user!(id, repo \\ Repo), do: repo.get!(User, id)
+
+  @doc """
+  Gets a single user by their username.
+
+  If the exclaimation version is used and the User does not exist,
+  raises `Ecto.NoResultsError`, otherwise `nil` is returned.
+
+  ## Examples
+
+      iex> get_by_username("Doc")
+      %User{}
+
+      iex> get_by_username("RealFakeUser")
+      nil
+
+      iex> get_by_username!("Doc")
+      %User{}
+
+      iex> get_by_username!("RealFakeUser")
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_by_username(username, repo \\ Repo),  do: repo.get_by(User, username: username)
+  def get_by_username!(username, repo \\ Repo), do: repo.get_by!(User, username: username)
 
   @doc """
   Creates a user.
