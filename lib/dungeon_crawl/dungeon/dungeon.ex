@@ -38,7 +38,10 @@ defmodule DungeonCrawl.Dungeon do
       ** (Ecto.NoResultsError)
 
   """
+  def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
+
+  def get_map_by(attrs), do: Repo.get_by!(Map, attrs)
 
   @doc """
   Creates a map.
@@ -163,7 +166,12 @@ defmodule DungeonCrawl.Dungeon do
       ** (Ecto.NoResultsError)
 
   """
+  def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile!(dungeon_id, row, col)
+  def get_map_tile!(dungeon_id, row, col), do: Repo.get_by!(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
   def get_map_tile!(id), do: Repo.get!(MapTile, id)
+
+  def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile(dungeon_id, row, col)
+  def get_map_tile(dungeon_id, row, col), do: Repo.get_by(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
 
   @doc """
   Creates a map_tile.
@@ -195,26 +203,22 @@ defmodule DungeonCrawl.Dungeon do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_map_tile(%MapTile{} = map_tile, attrs) do
+  def update_map_tile(%MapTile{} = map_tile, new_tile) do
     map_tile
-    |> MapTile.changeset(attrs)
+    |> MapTile.changeset(%{tile: new_tile})
     |> Repo.update()
   end
+  def update_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile) do
+    update_map_tile(get_map_tile!(dungeon_id, row, col), new_tile)
+  end
 
-  @doc """
-  Deletes a MapTile.
-
-  ## Examples
-
-      iex> delete_map_tile(map_tile)
-      {:ok, %MapTile{}}
-
-      iex> delete_map_tile(map_tile)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_map_tile(%MapTile{} = map_tile) do
-    Repo.delete(map_tile)
+  def update_map_tile!(%MapTile{} = map_tile, new_tile) do
+    map_tile
+    |> MapTile.changeset(%{tile: new_tile})
+    |> Repo.update!
+  end
+  def update_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile) do
+    update_map_tile!(get_map_tile!(dungeon_id, row, col), new_tile)
   end
 
   @doc """

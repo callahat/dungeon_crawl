@@ -3,7 +3,8 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
 
   import Plug.Conn, only: [assign: 3]
 
-  alias DungeonCrawlWeb.{PlayerLocation,Dungeon}
+  alias DungeonCrawlWeb.PlayerLocation
+  alias DungeonCrawl.Dungeon
 
   setup %{conn: _conn} = config do
     if username = config[:login_as] do
@@ -72,6 +73,6 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     assert redirected_to(conn) == crawler_path(conn, :show)
     assert get_flash(conn, :info) == "Dungeon cleared."
     refute Repo.get(PlayerLocation, player_location.id)
-    refute Repo.get(Dungeon, dungeon.id)
+    refute Dungeon.get_map(dungeon.id)
   end
 end

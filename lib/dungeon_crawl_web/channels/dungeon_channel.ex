@@ -1,7 +1,8 @@
 defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
-  alias DungeonCrawlWeb.{PlayerLocation, DungeonMapTile}
+  alias DungeonCrawlWeb.PlayerLocation
+  alias DungeonCrawl.Dungeon
 
   def join("dungeons:" <> dungeon_id, _payload, socket) do
     dungeon_id = String.to_integer(dungeon_id)
@@ -30,7 +31,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     proposed_location = _proposed_player_location(player_location, target_coords)
 
     if _valid_move(Map.merge(player_location, proposed_location.changes)) do
-      standing_on = Repo.get_by(DungeonMapTile, %{dungeon_id: player_location.dungeon_id, row: player_location.row, col: player_location.col})
+      standing_on = Dungeon.get_map_tile(player_location.dungeon_id, player_location.row, player_location.col)
       new_location = proposed_location |> Repo.update!
       broadcast socket, "tile_update", %{new_location: %{row: new_location.row, col: new_location.col}, old_location: %{row: standing_on.row, col: standing_on.col, tile: standing_on.tile}}
     end
@@ -43,12 +44,10 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     player_location = Repo.get_by(PlayerLocation, %{user_id_hash: socket.assigns.user_id_hash})
     target_coords = _target_location(direction, player_location.row, player_location.col)
-    door_location = Repo.get_by(DungeonMapTile, Map.merge(%{dungeon_id: player_location.dungeon_id}, target_coords))
+    door_location = Dungeon.get_map_tile(player_location.dungeon_id, target_coords.row, target_coords.col)
 
     if _door_state(door_location, door) do
-      door = door_location 
-             |> DungeonMapTile.changeset(%{tile: actioned_door})
-             |> Repo.update!
+      door = Dungeon.update_map_tile!(door_location, actioned_door)
       broadcast socket, "door_changed", %{door_location: %{row: door.row, col: door.col, tile: door.tile}}
       {:reply, :ok, socket}
     else
@@ -70,7 +69,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   defp _valid_move(%{dungeon_id: dungeon_id, row: row, col: col}) do
-    case Repo.get_by(DungeonMapTile, %{dungeon_id: dungeon_id, row: row, col: col}).tile do
+    case Dungeon.get_map_tile(dungeon_id, row, col).tile do
       "." -> true
       "'" -> true
       _   -> false
@@ -78,7 +77,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   defp _door_state(%{dungeon_id: dungeon_id, row: row, col: col}, door) do
-    case Repo.get_by(DungeonMapTile, %{dungeon_id: dungeon_id, row: row, col: col}).tile do
+    case Dungeon.get_map_tile(dungeon_id, row, col).tile do
       ^door -> true
       _     -> false
     end

@@ -72,15 +72,17 @@ defmodule DungeonCrawl.DungeonTest do
   describe "dungeon_map_tiles" do
     alias DungeonCrawl.Dungeon.MapTile
 
-    @valid_attrs %{dungeon_id: 1, tile: "!", row: 42, col: 42}
+    @valid_attrs %{tile: "!", row: 15, col: 42}
     @update_attrs %{tile: "."}
     @invalid_attrs %{tile: "bad"}
 
     def map_tile_fixture(attrs \\ %{}) do
+      {:ok, map} = Dungeon.create_map(%{name: "test"})
       {:ok, map_tile} =
-        attrs
-        |> Enum.into(@valid_attrs)
-        |> Dungeon.create_map_tile()
+        Elixir.Map.merge(%MapTile{}, @valid_attrs)
+        |> Elixir.Map.merge(%{dungeon_id: map.id})
+        |> Elixir.Map.merge(attrs)
+        |> Repo.insert()
 
       map_tile
     end
@@ -105,7 +107,7 @@ defmodule DungeonCrawl.DungeonTest do
 
     test "update_map_tile/2 with valid data updates the map_tile" do
       map_tile = map_tile_fixture()
-      assert {:ok, map_tile} = Dungeon.update_map_tile(map_tile, @update_attrs)
+      assert {:ok, map_tile} = Dungeon.update_map_tile(map_tile, @update_attrs.tile)
       assert %MapTile{} = map_tile
     end
 
@@ -115,15 +117,21 @@ defmodule DungeonCrawl.DungeonTest do
       assert map_tile == Dungeon.get_map_tile!(map_tile.id)
     end
 
-    test "delete_map_tile/1 deletes the map_tile" do
-      map_tile = map_tile_fixture()
-      assert {:ok, %MapTile{}} = Dungeon.delete_map_tile(map_tile)
-      assert_raise Ecto.NoResultsError, fn -> Dungeon.get_map_tile!(map_tile.id) end
-    end
-
     test "change_map_tile/1 returns a map_tile changeset" do
       map_tile = map_tile_fixture()
       assert %Ecto.Changeset{} = Dungeon.change_map_tile(map_tile)
+    end
+
+    test "get_map_tile/1 returns a map_tile" do
+      map_tile = map_tile_fixture()
+      assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row, col: map_tile.col}) == map_tile
+      refute Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col})
+    end
+
+    test "get_map_tile/3 returns a map_tile" do
+      map_tile = map_tile_fixture()
+      assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col) == map_tile
+      refute Dungeon.get_map_tile(map_tile.dungeon_id + 1, map_tile.row, map_tile.col)
     end
   end
 end
