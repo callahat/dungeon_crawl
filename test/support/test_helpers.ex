@@ -32,8 +32,6 @@ defmodule DungeonCrawlWeb.TestHelpers do
       user_id_hash: "good_hash"
     }, attrs)
 
-    %DungeonCrawlWeb.PlayerLocation{}
-    |> DungeonCrawlWeb.PlayerLocation.changeset(changes)
-    |> Repo.insert!()
+    DungeonCrawl.Player.create_location!(changes)
   end
 end

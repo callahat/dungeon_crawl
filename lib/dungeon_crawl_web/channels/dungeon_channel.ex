@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
-  alias DungeonCrawlWeb.PlayerLocation
+  alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeon
 
   def join("dungeons:" <> dungeon_id, _payload, socket) do
@@ -24,7 +24,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    player_location = Repo.get_by(PlayerLocation, %{user_id_hash: socket.assigns.user_id_hash})
+    player_location = Player.get_location!(socket.assigns.user_id_hash)
 
     target_coords = _target_location(direction, player_location.row, player_location.col)
 
@@ -32,6 +32,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     if _valid_move(Map.merge(player_location, proposed_location.changes)) do
       standing_on = Dungeon.get_map_tile(player_location.dungeon_id, player_location.row, player_location.col)
+      # TODO: most of this should belong in its own 'action' module
       new_location = proposed_location |> Repo.update!
       broadcast socket, "tile_update", %{new_location: %{row: new_location.row, col: new_location.col}, old_location: %{row: standing_on.row, col: standing_on.col, tile: standing_on.tile}}
     end
@@ -42,7 +43,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) do
     {door, actioned_door} = if action == "open", do: {"+","'"}, else: {"'","+"}
 
-    player_location = Repo.get_by(PlayerLocation, %{user_id_hash: socket.assigns.user_id_hash})
+    player_location = Player.get_location!(socket.assigns.user_id_hash)
     target_coords = _target_location(direction, player_location.row, player_location.col)
     door_location = Dungeon.get_map_tile(player_location.dungeon_id, target_coords.row, target_coords.col)
 
@@ -85,7 +86,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   defp _proposed_player_location(player_location, new_coordinates = %{row: _row, col: _col}) do
     player_location
-    |> PlayerLocation.changeset(new_coordinates)
+    |> Player.change_location(new_coordinates)
   end
 
 end

@@ -1,5 +1,5 @@
 defmodule DungeonCrawl.DungeonGeneratorTest do
-  use DungeonCrawlWeb.ModelCase
+  use DungeonCrawl.DataCase
 
   alias DungeonCrawl.DungeonGenerator
 

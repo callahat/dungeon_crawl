@@ -1,5 +1,7 @@
-defmodule DungeonCrawlWeb.PlayerLocation do
-  use DungeonCrawl.Web, :model
+defmodule DungeonCrawl.Player.Location do
+  use Ecto.Schema
+  import Ecto.Changeset
+
 
   schema "player_locations" do
     field :row, :integer
@@ -11,12 +13,10 @@ defmodule DungeonCrawlWeb.PlayerLocation do
     timestamps()
   end
 
-  @doc """
-  Builds a changeset based on the `struct` and `params`.
-  """
-  def changeset(struct, params \\ %{}) do
-    struct
-    |> cast(params, [:row, :col, :user_id_hash, :dungeon_id])
+  @doc false
+  def changeset(location, attrs) do
+    location
+    |> cast(attrs, [:row, :col, :user_id_hash, :dungeon_id])
     |> validate_required([:row, :col, :user_id_hash, :dungeon_id])
   end
 end
