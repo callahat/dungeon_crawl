@@ -1,3 +1,3 @@
-defmodule DungeonCrawl.LayoutViewTest do
-  use DungeonCrawl.ConnCase, async: true
+defmodule DungeonCrawlWeb.LayoutViewTest do
+  use DungeonCrawlWeb.ConnCase, async: true
 end

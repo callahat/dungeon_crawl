@@ -1,5 +1,5 @@
-defmodule DungeonCrawl.PageControllerTest do
-  use DungeonCrawl.ConnCase
+defmodule DungeonCrawlWeb.PageControllerTest do
+  use DungeonCrawlWeb.ConnCase
 
   test "GET /", %{conn: conn} do
     conn = get conn, "/"

@@ -24,7 +24,7 @@ defmodule DungeonCrawl.Mixfile do
   #
   # Type `mix help compile.app` for more information.
   def application do
-    [mod: {DungeonCrawl, []},
+    [mod: {DungeonCrawl.Application, []},
      applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
                     :phoenix_ecto, :postgrex, :comeonin]]
   end
@@ -37,14 +37,14 @@ defmodule DungeonCrawl.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.2.5"},
+    [{:phoenix, "~> 1.3.4"},
      {:phoenix_pubsub, "~> 1.0"},
      {:phoenix_ecto, "~> 3.0"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.6"},
      {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:gettext, "~> 0.11"},
-     {:cowboy, "~> 1.0"},
+     {:plug_cowboy, "~> 1.0"},
      {:comeonin, "~> 2.0"},
      {:excoveralls, "~> 0.10", only: :test}
     ]

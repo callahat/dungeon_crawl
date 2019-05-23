@@ -1,3 +1,3 @@
-defmodule DungeonCrawl.PageViewTest do
-  use DungeonCrawl.ConnCase, async: true
+defmodule DungeonCrawlWeb.PageViewTest do
+  use DungeonCrawlWeb.ConnCase, async: true
 end

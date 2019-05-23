@@ -1,10 +1,11 @@
-defmodule DungeonCrawl.AuthTest do
-  use DungeonCrawl.ConnCase
-  alias DungeonCrawl.Auth
+defmodule DungeonCrawlWeb.AuthTest do
+  use DungeonCrawlWeb.ConnCase
+  alias DungeonCrawlWeb.Auth
+  alias DungeonCrawl.Account.User
 
   setup %{conn: conn} do
     conn = conn
-      |> bypass_through(DungeonCrawl.Router, :browser)
+      |> bypass_through(DungeonCrawlWeb.Router, :browser)
       |> get("/")
 
     {:ok, %{conn: conn}}
@@ -18,7 +19,7 @@ defmodule DungeonCrawl.AuthTest do
   test "authenticate_user continues when the current user exists", %{conn: conn} do
     conn = 
       conn
-      |> assign(:current_user, %DungeonCrawl.User{})
+      |> assign(:current_user, %User{})
       |> Auth.authenticate_user([])
 
     refute conn.halted
@@ -32,7 +33,7 @@ defmodule DungeonCrawl.AuthTest do
   test "verify_user_is_admin halts when the current user is not an admin", %{conn: conn} do
     conn =
       conn
-      |> assign(:current_user, %DungeonCrawl.User{})
+      |> assign(:current_user, %User{})
       |> Auth.verify_user_is_admin([])
 
     assert conn.halted
@@ -41,7 +42,7 @@ defmodule DungeonCrawl.AuthTest do
   test "verify_user_is_admin continues when the current user is an admin", %{conn: conn} do
     conn =
       conn
-      |> assign(:current_user, %DungeonCrawl.User{is_admin: true})
+      |> assign(:current_user, %User{is_admin: true})
       |> Auth.verify_user_is_admin([])
 
     refute conn.halted
@@ -50,7 +51,7 @@ defmodule DungeonCrawl.AuthTest do
   test "login puts the user in the session", %{conn: conn} do
     login_conn =
       conn
-      |> Auth.login(%DungeonCrawl.User{id: 123, user_id_hash: "asdf"})
+      |> Auth.login(%User{id: 123, user_id_hash: "asdf"})
       |> send_resp(:ok,"")
 
     next_conn = get(login_conn, "/")
