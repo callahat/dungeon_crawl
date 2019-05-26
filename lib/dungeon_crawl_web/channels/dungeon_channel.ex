@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Action.Move
 
   def join("dungeons:" <> dungeon_id, _payload, socket) do
     dungeon_id = String.to_integer(dungeon_id)
@@ -25,16 +26,14 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
     player_location = Player.get_location!(socket.assigns.user_id_hash)
+    destination = Dungeon.get_map_tile(player_location, direction)
 
-    target_coords = _target_location(direction, player_location.row, player_location.col)
+    case Move.go(player_location, destination) do
+      {:ok, %{new_location: new_location, old_location: old_location}} ->
+        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]), old_location: Map.take(old_location, [:row, :col, :tile])}
 
-    proposed_location = _proposed_player_location(player_location, target_coords)
-
-    if _valid_move(Map.merge(player_location, proposed_location.changes)) do
-      standing_on = Dungeon.get_map_tile(player_location.dungeon_id, player_location.row, player_location.col)
-      # TODO: most of this should belong in its own 'action' module
-      new_location = proposed_location |> Repo.update!
-      broadcast socket, "tile_update", %{new_location: %{row: new_location.row, col: new_location.col}, old_location: %{row: standing_on.row, col: standing_on.col, tile: standing_on.tile}}
+      {:invalid} ->
+        # noop
     end
 
     {:reply, :ok, socket}
@@ -69,24 +68,10 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     %{row: row + d_row, col: col + d_col}
   end
 
-  defp _valid_move(%{dungeon_id: dungeon_id, row: row, col: col}) do
-    case Dungeon.get_map_tile(dungeon_id, row, col).tile do
-      "." -> true
-      "'" -> true
-      _   -> false
-    end
-  end
-
   defp _door_state(%{dungeon_id: dungeon_id, row: row, col: col}, door) do
     case Dungeon.get_map_tile(dungeon_id, row, col).tile do
       ^door -> true
       _     -> false
     end
   end
-
-  defp _proposed_player_location(player_location, new_coordinates = %{row: _row, col: _col}) do
-    player_location
-    |> Player.change_location(new_coordinates)
-  end
-
 end

@@ -128,10 +128,26 @@ defmodule DungeonCrawl.DungeonTest do
       refute Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col})
     end
 
+    test "get_map_tile/2 returns a map tile in the given direction" do
+      map_tile = map_tile_fixture()
+      assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row+1, col: map_tile.col},   "up") == map_tile
+      assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row-1, col: map_tile.col},   "down") == map_tile
+      assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row,   col: map_tile.col+1}, "left") == map_tile
+      assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row,   col: map_tile.col-1}, "right") == map_tile
+    end
+
     test "get_map_tile/3 returns a map_tile" do
       map_tile = map_tile_fixture()
       assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col) == map_tile
       refute Dungeon.get_map_tile(map_tile.dungeon_id + 1, map_tile.row, map_tile.col)
+    end
+
+    test "get_map_tile/4 returns a map tile in the given direction" do
+      map_tile = map_tile_fixture()
+      assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row+1, map_tile.col,   "up") == map_tile
+      assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row-1, map_tile.col,   "down") == map_tile
+      assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row,   map_tile.col+1, "left") == map_tile
+      assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row,   map_tile.col-1, "right") == map_tile
     end
   end
 end
