@@ -33,7 +33,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]), old_location: Map.take(old_location, [:row, :col, :tile])}
 
       {:invalid} ->
-        # noop
+        :ok
     end
 
     {:reply, :ok, socket}

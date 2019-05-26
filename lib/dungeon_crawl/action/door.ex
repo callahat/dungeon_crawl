@@ -1,5 +1,5 @@
 defmodule DungeonCrawl.Action.Door do
-  alias DungeonCrawl.{Dungeon,Player}
+  alias DungeonCrawl.Dungeon
 
   def open(door_location) do
     if _door_state(door_location, "+") do
