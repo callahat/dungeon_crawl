@@ -166,12 +166,32 @@ defmodule DungeonCrawl.Dungeon do
       ** (Ecto.NoResultsError)
 
   """
+  def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
+    {d_row, d_col} = _direction_delta(direction)
+    get_map_tile!(dungeon_id, row + d_row, col + d_col)
+  end
   def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile!(dungeon_id, row, col)
+  def get_map_tile!(dungeon_id, row, col, direction), do: get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
   def get_map_tile!(dungeon_id, row, col), do: Repo.get_by!(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
   def get_map_tile!(id), do: Repo.get!(MapTile, id)
 
+  def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
+    {d_row, d_col} = _direction_delta(direction)
+    get_map_tile(dungeon_id, row + d_row, col + d_col)
+  end
   def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile(dungeon_id, row, col)
+  def get_map_tile(dungeon_id, row, col, direction), do: get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
   def get_map_tile(dungeon_id, row, col), do: Repo.get_by(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
+
+  defp _direction_delta(direction) do
+    {d_row, d_col} = case direction do
+                       "up"    -> {-1,  0}
+                       "down"  -> { 1,  0}
+                       "left"  -> { 0, -1}
+                       "right" -> { 0,  1}
+                       _       -> { 0,  0}
+                     end
+  end
 
   @doc """
   Creates a map_tile.

@@ -25,6 +25,23 @@ defmodule DungeonCrawlWeb.TestHelpers do
     dungeon
   end
 
+  def insert_stubbed_dungeon(attrs \\ %{}, tiles \\ []) do
+    changes = Map.merge(%DungeonCrawl.Dungeon.Map{
+      name: "Stubbed",
+      height: 20,
+      width: 20
+    }, attrs)
+
+    dungeon = DungeonCrawl.Dungeon.change_map(changes) |> Repo.insert!
+    Repo.insert_all(DungeonCrawl.Dungeon.MapTile, _tile_hydrator(dungeon.id, tiles))
+    dungeon
+  end
+
+  defp _tile_hydrator(dungeon_id, tiles) do
+    tiles
+    |> Enum.map(fn(t) -> %{dungeon_id: dungeon_id, row: t.row, col: t.col, tile: t.tile} end)
+  end
+
   def insert_player_location(attrs \\ %{}) do
     changes = Map.merge(%{
       row: 3,
