@@ -15,7 +15,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     render(conn, "new.html", changeset: changeset)
   end
 
-  def create(conn, %{"dungeon" => dungeon_params}) do
+  def create(conn, %{"map" => dungeon_params}) do
     case Dungeon.generate_map(DungeonGenerator, dungeon_params) do
       {:ok, %{dungeon: dungeon}} ->
         conn

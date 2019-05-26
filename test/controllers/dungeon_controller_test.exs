@@ -39,13 +39,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   end
 
   test "creates resource and redirects when data is valid", %{conn: conn} do
-    conn = post conn, dungeon_path(conn, :create), dungeon: @valid_attrs
+    conn = post conn, dungeon_path(conn, :create), map: @valid_attrs
     assert redirected_to(conn) == dungeon_path(conn, :show, Dungeon.get_map_by(@valid_attrs))
     assert Dungeon.get_map_by(@valid_attrs)
   end
 
   test "does not create resource and renders errors when data is invalid", %{conn: conn} do
-    conn = post conn, dungeon_path(conn, :create), dungeon: @invalid_attrs
+    conn = post conn, dungeon_path(conn, :create), map: @invalid_attrs
     assert html_response(conn, 200) =~ "New dungeon"
   end
 

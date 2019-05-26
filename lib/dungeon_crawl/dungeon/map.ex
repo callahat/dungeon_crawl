@@ -26,14 +26,4 @@ defmodule DungeonCrawl.Dungeon.Map do
     |> validate_inclusion(:width, 20..120, message: "must be between 20 and 120")
   end
 
-  @doc false
-  def generate_dungeon_map_tiles(dungeon, dungeon_generator) do
-    dungeon_generator.generate(dungeon.height, dungeon.width)
-    |> Enum.to_list
-    |> Enum.map(fn({{row,col}, tile}) -> dungeon_map_tile_map(dungeon.id, row, col, tile) end)
-  end
-
-  defp dungeon_map_tile_map(dungeon_id, row, col, tile) do
-    %{dungeon_id: dungeon_id, row: row, col: col, tile: to_string([tile])}
-  end
 end
