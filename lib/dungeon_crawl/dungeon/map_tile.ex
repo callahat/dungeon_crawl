@@ -7,7 +7,7 @@ defmodule DungeonCrawl.Dungeon.MapTile do
     field :row, :integer
     field :col, :integer
     field :tile, :string
-    belongs_to :dungeon, DungeonCrawl.Dungeon.Map#, foreign_key: :dungeon_id
+    belongs_to :dungeon, DungeonCrawl.Dungeon.Map
   end
 
   @doc false
