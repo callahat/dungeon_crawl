@@ -6,6 +6,23 @@ defmodule DungeonCrawl.EventResponder.Parser do
   Returns a tuple with the results of a successful parse, or
   an indication that the given representation is invalid.
 
+  It accepts binaries/strings that follow the grammar:
+
+  expression  => {<event_pairs>}
+  event_pairs => <event_pair>
+                 <event_pair>,<event_pairs>
+  event_pair  => <event>:<result>
+  result      => {:<status>,<callbacks>}
+  callbacks   => <callback>
+                 <callback>,<callbacks>
+  callback    => <action>:[<params>]
+  params      => <param>
+                 <param>,<params>
+
+  param, status, action, event, all being terminals.
+  status, action, event matching [A-Za-z_\-]+,
+  and param being able to contain other characters.
+
   ## Examples
 
       iex> Parser.parse("{move: {:ok}}")
@@ -14,81 +31,77 @@ defmodule DungeonCrawl.EventResponder.Parser do
       iex> Parser.parse("{move: {:ok}, close: {:ok, replace: [123]}}")
       {:ok, %{move: {:ok}, close: {:ok, %{replace: [123]}}}}
 
-      iex> Parser.parse("{jibberish}")
-      {:error, "jibberish"}
+      iex> Parser.parse("jibberish}")
+      {:error, "Problem parsing", "jibberish}"}
+
+      iex> Parser.parse("{open: {:ok, replace: 1234}}")
+      {:error, "Problem parsing callbacks", " replace: 1234"}
   """
   def parse(event_responder) do
-    case Regex.named_captures(~r/\A{(?<events>.+)}\z/ms, String.trim(event_responder)) do
-      %{"events" => events} -> 
-        case _parse_events(events) do
-          {:ok, parsed_events} -> {:ok, parsed_events}
-          error               -> error
+    case Regex.named_captures(~r/\A{(?<event_pairs>.+)}\z/ms, String.trim(event_responder)) do
+      %{"event_pairs" => event_pairs} ->
+        case _parse_event_pairs(event_pairs) do
+          {:ok, parsed_event_pairs} -> {:ok, parsed_event_pairs}
+          error                     -> error
         end
-      nil                   -> {:error, event_responder}
+
+      nil -> {:error, "Problem parsing", event_responder}
     end
   end
 
-  defp _parse_events(given_events) do
-IO.puts "_parse_events"
-IO.puts given_events
-    case Regex.named_captures(~r/\A(?<event>#{@word}:\s*{.+?})(?:,(?<events>.+))?\z/ms, String.trim(given_events)) do
-      %{"event" => event, "events" => ""}     -> 
-        case _parse_event(event) do
-          {:ok, parsed_event} -> {:ok, parsed_event}
-          error               -> error
+  defp _parse_event_pairs(given_event_pairs) do
+    case Regex.named_captures(~r/\A(?<event_pair>#{@word}:\s*{.+?})(?:,(?<event_pairs>.+))?\z/ms, String.trim(given_event_pairs)) do
+      %{"event_pair" => event_pair, "event_pairs" => ""} ->
+        case _parse_event_pair(event_pair) do
+          {:ok, parsed_event_pair} -> {:ok, parsed_event_pair}
+          error                    -> error
         end
 
-      %{"event" => event, "events" => events} -> 
-        case _parse_events(events) do
-          {:ok, parsed_events} -> 
-            case _parse_event(event) do
-              {:ok, parsed_event} -> {:ok, Map.merge(parsed_events, parsed_event)}
-              error               -> error
+      %{"event_pair" => event_pair, "event_pairs" => event_pairs} ->
+        case _parse_event_pairs(event_pairs) do
+          {:ok, parsed_event_pairs} ->
+            case _parse_event_pair(event_pair) do
+              {:ok, parsed_event_pair} -> {:ok, Map.merge(parsed_event_pairs, parsed_event_pair)}
+              error                    -> error
             end
 
-          error               -> error
+          error -> error
         end
 
-      nil                                     -> {:error, given_events}
+      nil -> {:error, "Problem parsing event pairs", given_event_pairs}
     end
   end
 
-  defp _parse_event(given_event) do
-IO.puts "_parse_event"
-IO.puts given_event
-    case Regex.named_captures(~r/\A(?<event_name>#{@word}):\s*(?<result>.+)\z/ms, String.trim(given_event)) do
-      %{"event_name" => event_name, "result" => ""}     -> {:error, given_event}
-      %{"event_name" => event_name, "result" => result} -> #{:ok, %{ String.to_atom(event_name) => _parse_result(result) }}
+  defp _parse_event_pair(given_event_pair) do
+    case Regex.named_captures(~r/\A(?<event_name>#{@word}):\s*(?<result>.+)\z/ms, String.trim(given_event_pair)) do
+      %{"event_name" => _event_name, "result" => ""}     -> {:error, given_event_pair}
+      %{"event_name" => event_name,  "result" => result} ->
             case _parse_result(result) do
               {:ok, parsed_result} -> {:ok, %{ String.to_atom(event_name) => parsed_result }}
-              error               -> error
+              error                -> error
             end
 
-      nil                                   -> {:error, given_event}
+      nil                                                -> {:error, given_event_pair}
     end
   end
 
   defp _parse_result(result) do
-IO.puts "_parse_result"
-IO.puts result
     case Regex.named_captures(~r/\A{\s*:(?<status>#{@word})(?:,(?<callbacks>.+))?}\z/ms, String.trim(result)) do
       %{"status" => status, "callbacks" => ""}        -> {:ok, {String.to_atom(status)} }
 
-      %{"status" => status, "callbacks" => callbacks} -> 
+      %{"status" => status, "callbacks" => callbacks} ->
         case _parse_callbacks(callbacks) do
           {:ok, parsed_callbacks} -> {:ok, {String.to_atom(status), parsed_callbacks} }
           error                   -> error
         end
 
-      nil                                             -> {:error, result}
+      nil                                             -> {:error, "Problem parsing event results", result}
     end
   end
 
   defp _parse_callbacks(given_callbacks) do
-IO.puts "_parse_callbacks"
-IO.puts given_callbacks
     case Regex.named_captures(~r/\A(?<callback>#{@word}:\s*\[.+?\])(?:\s*,(?<callbacks>.+))?\z/ms, String.trim(given_callbacks)) do
-      %{"callback" => callback, "callbacks" => ""}     -> 
+      %{"callback" => callback, "callbacks" => ""}        ->
         case _parse_callback(callback) do
           {:ok, parsed_callback} -> {:ok, parsed_callback}
           error                  -> error
@@ -96,7 +109,7 @@ IO.puts given_callbacks
 
       %{"callback" => callback, "callbacks" => callbacks} -> 
         case _parse_callbacks(callbacks) do
-          {:ok, parsed_callbacks} -> 
+          {:ok, parsed_callbacks} ->
             case _parse_callback(callback) do
               {:ok, parsed_callback} -> {:ok, Map.merge(parsed_callbacks, parsed_callback)}
               error                  -> error
@@ -105,18 +118,16 @@ IO.puts given_callbacks
           error                      -> error
         end
 
-      nil                            -> {:error, given_callbacks}
+      nil                            -> {:error, "Problem parsing callbacks", given_callbacks}
     end
   end
 
   defp _parse_callback(callback) do
-IO.puts "_parse_callback"
-IO.puts callback
     case Regex.named_captures(~r/\A(?<word>#{@word}):\s*\[(?<params>.+)\]\z/ms, String.trim(callback)) do
       # lazy way of getting the parameters, may need to make it better later as text with a comma will mess it up
       %{"word" => word, "params" => params} -> {:ok, %{ String.to_atom(word) => _parse_params(params) } }
 
-      nil                                   -> {:error, callback}
+      nil                                   -> {:error, "Problem parsing callback", callback}
     end
   end
 
