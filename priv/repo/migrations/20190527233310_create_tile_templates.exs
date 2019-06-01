@@ -13,8 +13,6 @@ defmodule DungeonCrawl.Repo.Migrations.CreateTileTemplates do
       timestamps()
     end
 
-    # seed the basic tiles 
-
     alter table(:dungeon_map_tiles) do
       add :tile_template_id, references(:tile_templates, on_delete: :nothing)
     end
