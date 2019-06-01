@@ -6,6 +6,10 @@ defmodule DungeonCrawl.EventResponder.Parser do
   Returns a tuple with the results of a successful parse, or
   an indication that the given representation is invalid.
 
+  Bounded by curly brackets, there can be one or more event pairs,
+  where each event is associated with a status (ie, :ok) and callback
+  methods with params. See examples below the grammar.
+
   It accepts binaries/strings that follow the grammar:
 
   expression  => {<event_pairs>}
@@ -38,7 +42,9 @@ defmodule DungeonCrawl.EventResponder.Parser do
       {:error, "Problem parsing callbacks", " replace: 1234"}
   """
   def parse(event_responder) do
-    case Regex.named_captures(~r/\A{(?<event_pairs>.+)}\z/ms, String.trim(event_responder)) do
+    case Regex.named_captures(~r/\A{(?:(?<event_pairs>.+)|(?<no_events>\s*))}\z/ms, String.trim(event_responder)) do
+      %{"event_pairs" => "", "no_events" => _ } -> {:ok, %{}}
+
       %{"event_pairs" => event_pairs} ->
         case _parse_event_pairs(event_pairs) do
           {:ok, parsed_event_pairs} -> {:ok, parsed_event_pairs}
@@ -100,7 +106,7 @@ defmodule DungeonCrawl.EventResponder.Parser do
   end
 
   defp _parse_callbacks(given_callbacks) do
-    case Regex.named_captures(~r/\A(?<callback>#{@word}:\s*\[.+?\])(?:\s*,(?<callbacks>.+))?\z/ms, String.trim(given_callbacks)) do
+    case Regex.named_captures(~r/\A(?<callback>#{@word}:\s*\[.*?\])(?:\s*,(?<callbacks>.+))?\z/ms, String.trim(given_callbacks)) do
       %{"callback" => callback, "callbacks" => ""}        ->
         case _parse_callback(callback) do
           {:ok, parsed_callback} -> {:ok, parsed_callback}
@@ -123,8 +129,10 @@ defmodule DungeonCrawl.EventResponder.Parser do
   end
 
   defp _parse_callback(callback) do
-    case Regex.named_captures(~r/\A(?<word>#{@word}):\s*\[(?<params>.+)\]\z/ms, String.trim(callback)) do
+    case Regex.named_captures(~r/\A(?<word>#{@word}):\s*\[(?<params>.*)\]\z/ms, String.trim(callback)) do
       # lazy way of getting the parameters, may need to make it better later as text with a comma will mess it up
+      %{"word" => word, "params" => ""}     -> {:ok, %{ String.to_atom(word) => [] } }
+
       %{"word" => word, "params" => params} -> {:ok, %{ String.to_atom(word) => _parse_params(params) } }
 
       nil                                   -> {:error, "Problem parsing callback", callback}
