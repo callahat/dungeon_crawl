@@ -6,9 +6,9 @@ defmodule DungeonCrawl.TileTemplatesTest do
   describe "tile_templates" do
     alias DungeonCrawl.TileTemplates.TileTemplate
 
-    @valid_attrs %{background_color: "some background_color", blocking: true, character: "some character", closeable: true, color: "some color", description: "some description", durability: 42, name: "some name", openable: true}
-    @update_attrs %{background_color: "some updated background_color", blocking: false, character: "some updated character", closeable: false, color: "some updated color", description: "some updated description", durability: 43, name: "some updated name", openable: false}
-    @invalid_attrs %{background_color: nil, blocking: nil, character: nil, closeable: nil, color: nil, description: nil, durability: nil, name: nil, openable: nil}
+    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black"}
+    @update_attrs %{color: "puce", character: "█"}
+    @invalid_attrs %{name: "", character: "BIG"}
 
     def tile_template_fixture(attrs \\ %{}) do
       {:ok, tile_template} =
@@ -27,38 +27,64 @@ defmodule DungeonCrawl.TileTemplatesTest do
     test "get_tile_template!/1 returns the tile_template with given id" do
       tile_template = tile_template_fixture()
       assert TileTemplates.get_tile_template!(tile_template.id) == tile_template
+      assert TileTemplates.get_tile_template(tile_template.id) == tile_template
     end
 
     test "create_tile_template/1 with valid data creates a tile_template" do
       assert {:ok, %TileTemplate{} = tile_template} = TileTemplates.create_tile_template(@valid_attrs)
-      assert tile_template.background_color == "some background_color"
-      assert tile_template.blocking == true
-      assert tile_template.character == "some character"
-      assert tile_template.closeable == true
-      assert tile_template.color == "some color"
-      assert tile_template.description == "some description"
-      assert tile_template.durability == 42
-      assert tile_template.name == "some name"
-      assert tile_template.openable == true
+      assert tile_template.background_color == "black"
+      assert tile_template.character == "X"
+      assert tile_template.color == "red"
+      assert tile_template.description == "A big capital X"
+      assert tile_template.name == "A Big X"
+      assert tile_template.responders == "{}"
     end
 
     test "create_tile_template/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = TileTemplates.create_tile_template(@invalid_attrs)
     end
 
+    test "create_tile_template/1 with bad responders" do
+      assert {:error, changeset} = TileTemplates.create_tile_template(Map.merge(@valid_attrs, %{responders: "junk", character: "BIG"}))
+      assert "Problem parsing - junk" in errors_on(changeset).responders
+      assert "should be at most 1 character(s)" in errors_on(changeset).character
+      assert %{responders: ["Problem parsing - junk"], character: ["should be at most 1 character(s)"]} = errors_on(changeset)
+    end
+
+    test "find_or_create_tile_template/1 finds existing tile_template" do
+      {:ok, %TileTemplate{} = existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
+
+      assert {:ok, existing_tile_template} == TileTemplates.find_or_create_tile_template(@valid_attrs)
+    end
+
+    test "find_or_create_tile_template!/1 finds existing tile_template" do
+      {:ok, %TileTemplate{} = existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
+
+      assert existing_tile_template == TileTemplates.find_or_create_tile_template!(@valid_attrs)
+    end
+
+    test "find_or_create_tile_template/1 creates tile_template when matching one not found" do
+      {:ok, %TileTemplate{} = existing_tile_template} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :character, "Y"))
+      assert {:ok, %TileTemplate{} = tile_template} = TileTemplates.find_or_create_tile_template(@valid_attrs)
+
+      refute existing_tile_template == tile_template
+      assert tile_template.background_color == "black"
+      assert tile_template.character == "X"
+      assert tile_template.color == "red"
+      assert tile_template.description == "A big capital X"
+      assert tile_template.name == "A Big X"
+      assert tile_template.responders == "{}"
+    end
+
+    test "find_or_create_tile_template/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = TileTemplates.find_or_create_tile_template(@invalid_attrs)
+    end
+
     test "update_tile_template/2 with valid data updates the tile_template" do
       tile_template = tile_template_fixture()
       assert {:ok, tile_template} = TileTemplates.update_tile_template(tile_template, @update_attrs)
       assert %TileTemplate{} = tile_template
-      assert tile_template.background_color == "some updated background_color"
-      assert tile_template.blocking == false
-      assert tile_template.character == "some updated character"
-      assert tile_template.closeable == false
-      assert tile_template.color == "some updated color"
-      assert tile_template.description == "some updated description"
-      assert tile_template.durability == 43
-      assert tile_template.name == "some updated name"
-      assert tile_template.openable == false
+      assert tile_template.color == "puce"
     end
 
     test "update_tile_template/2 with invalid data returns error changeset" do

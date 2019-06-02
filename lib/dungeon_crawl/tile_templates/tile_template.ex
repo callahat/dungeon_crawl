@@ -19,7 +19,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   def changeset(tile_template, attrs) do
     tile_template
     |> cast(attrs, [:name, :character, :description, :color, :background_color, :responders])
-    |> validate_required([:name, :character, :description])
+    |> validate_required([:name, :description])
+    |> validate_length(:character, min: 1, max: 1)
     |> validate_responders
   end
 

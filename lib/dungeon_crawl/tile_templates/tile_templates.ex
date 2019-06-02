@@ -35,6 +35,7 @@ defmodule DungeonCrawl.TileTemplates do
       ** (Ecto.NoResultsError)
 
   """
+  def get_tile_template(id),  do: Repo.get(TileTemplate, id)
   def get_tile_template!(id), do: Repo.get!(TileTemplate, id)
 
   @doc """
@@ -53,6 +54,49 @@ defmodule DungeonCrawl.TileTemplates do
     %TileTemplate{}
     |> TileTemplate.changeset(attrs)
     |> Repo.insert()
+  end
+  def create_tile_template!(attrs \\ %{}) do
+    %TileTemplate{}
+    |> TileTemplate.changeset(attrs)
+    |> Repo.insert!()
+  end
+
+  @doc """
+  Finds or creates a tile_template; mainly useful for the initial seeds.
+  When one is found, the oldest tile_template will be returned (ie, first created)
+  to ensure that similar tiles created later are not returned.
+
+  Does not accept attributes of `nil`
+
+  ## Examples
+
+      iex> find_or_create_tile_template(%{field: value})
+      {:ok, %TileTemplate{}}
+
+      iex> find_or_create_tile_template(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def find_or_create_tile_template(attrs \\ %{}) do
+    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+      nil      -> create_tile_template(attrs)
+      template -> {:ok, template}
+    end
+  end
+
+  def find_or_create_tile_template!(attrs \\ %{}) do
+    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+      nil      -> create_tile_template!(attrs)
+      template -> template
+    end
+  end
+
+  defp _attrs_query(attrs) do
+    Enum.reduce(attrs, TileTemplate,
+      fn {x,y}, query ->
+        field_query = [{x, y}] #dynamic keyword list
+        query|>where(^field_query)
+      end)
   end
 
   @doc """
@@ -98,7 +142,7 @@ defmodule DungeonCrawl.TileTemplates do
       %Ecto.Changeset{source: %TileTemplate{}}
 
   """
-  def change_tile_template(%TileTemplate{} = tile_template) do
-    TileTemplate.changeset(tile_template, %{})
+  def change_tile_template(%TileTemplate{} = tile_template, changes \\ %{}) do
+    TileTemplate.changeset(tile_template, changes)
   end
 end
