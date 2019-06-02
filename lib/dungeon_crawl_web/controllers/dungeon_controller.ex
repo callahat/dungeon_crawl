@@ -27,13 +27,13 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def show(conn, %{"id" => id}) do
-    dungeon = Dungeon.get_map!(id) |> Repo.preload(:dungeon_map_tiles)
+    dungeon = Dungeon.get_map!(id) |> Repo.preload(dungeon_map_tiles: :tile_template)
     dungeon_render = 
       dungeon.dungeon_map_tiles
       |> Enum.sort(fn(a,b) -> {a.row, a.col} < {b.row, b.col} end)
-      |> Enum.map(fn(row) -> row.tile end)
+      |> Enum.map(fn(row) -> row.tile_template.character end)
       |> to_charlist
-      |> Enum.chunk(dungeon.width) # TODO: replace this with something like dungeon.width if this ever is not hardcoded
+      |> Enum.chunk(dungeon.width)
       |> Enum.join("\n")
 
     render(conn, "show.html", dungeon: dungeon, dungeon_render: dungeon_render)

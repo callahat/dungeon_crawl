@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.SharedView do
 
   def dungeon_as_table(player_location) do
     player_location.dungeon.dungeon_map_tiles
-    |> Enum.reduce(%{}, fn(dmt,acc) -> Map.put(acc, {dmt.row, dmt.col}, dmt.tile) end)
+    |> Enum.reduce(%{}, fn(dmt,acc) -> Map.put(acc, {dmt.row, dmt.col}, dmt.tile_template.character) end)
     |> put_player_location(player_location)
     |> rows(player_location.dungeon.height, player_location.dungeon.width)
   end
