@@ -1,13 +1,11 @@
 defmodule DungeonCrawl.TileTemplates.TileSeeder do
-  import Ecto.Query
-
   alias DungeonCrawl.Repo
   alias DungeonCrawl.TileTemplates
 
   @doc """
   Seeds the DB with the basic tiles (floor, wall, rock, open/closed doors, and statue),
-  returning a map of the tile's character as the key, and the existing or created tile template record
-  as the value.
+  returning a map of the tile's character (as the character code and also as the string)
+  as the key, and the existing or created tile template record as the value.
   """
   def basic_tiles() do
     floor = TileTemplates.find_or_create_tile_template!(%{character: ".", name: "Floor", description: "Just a dusty floor", responders: "{move: {:ok}}"})
@@ -21,6 +19,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{responders: "{move: {:ok}, close: {:ok, replace: [#{closed_door.id}]}}"})
     closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{responders: "{open: {:ok, replace: [#{open_door.id}]}}"})
 
-    %{?. => floor, ?# => wall, ?\s => rock, ?' => open_door, ?+ => closed_door, ?@ => statue}
+    %{?.  => floor, ?#  => wall, ?\s => rock, ?'  => open_door, ?+  => closed_door, ?@  => statue,
+      "." => floor, "#" => wall, " " => rock, "'" => open_door, "+" => closed_door, "@" => statue}
   end
 end
