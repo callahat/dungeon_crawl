@@ -5,6 +5,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.DungeonGenerator
 
+  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
+
   def index(conn, _params) do
     dungeons = Dungeon.list_dungeons()
     render(conn, "index.html", dungeons: dungeons)
@@ -16,7 +18,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def create(conn, %{"map" => dungeon_params}) do
-    case Dungeon.generate_map(DungeonGenerator, dungeon_params) do
+    case Dungeon.generate_map(@dungeon_generator, dungeon_params) do
       {:ok, %{dungeon: dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")

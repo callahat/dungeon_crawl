@@ -12,6 +12,19 @@ defmodule DungeonCrawl.DungeonGenerator do
   #@entities        Enum.to_list(?A..?|)
   @entities        ''
 
+  @doc """
+  Generates a dungeon using the box method.
+
+  Returns a Map containing a {row, col} tuple and a value. The value will be one of several
+  single character codes indicating what is at that coordinate.
+
+  ?\s - Rock
+  ?.  - Floor
+  ?#  - Wall
+  ?'  - Open door
+  ?+  - Closed door
+  ?@  - Statue (or player location)
+  """
   def generate(cave_height \\ @cave_height, cave_width \\ @cave_width) do
     map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
             Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->

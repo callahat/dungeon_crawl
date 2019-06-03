@@ -11,6 +11,8 @@ defmodule DungeonCrawl.Dungeon do
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.Dungeon.MapTile
 
+  alias DungeonCrawl.TileTemplates.TileSeeder
+
   @doc """
   Returns the list of dungeons.
 
@@ -84,9 +86,11 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _generate_dungeon_map_tiles(dungeon, dungeon_generator) do
+    tile_mapping = TileSeeder.basic_tiles()
+
     dungeon_generator.generate(dungeon.height, dungeon.width)
     |> Enum.to_list
-    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile: to_string([tile])} end)
+    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile: tile_mapping[tile].character, tile_template_id: tile_mapping[tile].id} end)
   end
 
   @doc """
