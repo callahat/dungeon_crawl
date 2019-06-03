@@ -10,7 +10,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   as the value.
   """
   def basic_tiles() do
-    floor = TileTemplates.find_or_create_tile_template!(%{character: ".", name: "Floor", description: "Just a dusty floor", color: "", background_color: "", responders: "{move: {:ok}}"})
+    floor = TileTemplates.find_or_create_tile_template!(%{character: ".", name: "Floor", description: "Just a dusty floor", responders: "{move: {:ok}}"})
     wall  = TileTemplates.find_or_create_tile_template!(%{character: "#", name: "Wall",  description: "A Rough wall"})
     rock  = TileTemplates.find_or_create_tile_template!(%{character: " ", name: "Rock",  description: "Impassible stone"})
     statue= TileTemplates.find_or_create_tile_template!(%{character: "@", name: "Statue",  description: "It looks oddly familiar"})
@@ -21,6 +21,6 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{responders: "{move: {:ok}, close: {:ok, replace: [#{closed_door.id}]}}"})
     closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{responders: "{open: {:ok, replace: [#{open_door.id}]}}"})
 
-    %{"." => floor, "#" => wall, " " => rock, "'" => open_door, "+" => closed_door, "@" => statue}
+    %{?. => floor, ?# => wall, ?\s => rock, ?' => open_door, ?+ => closed_door, ?@ => statue}
   end
 end
