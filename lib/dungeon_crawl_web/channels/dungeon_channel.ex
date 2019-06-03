@@ -30,7 +30,9 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     case Move.go(player_location, destination) do
       {:ok, %{new_location: new_location, old_location: old_location}} ->
-        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]), old_location: Map.take(old_location, [:row, :col, :tile])}
+        old = old_location |> Repo.preload(:tile_template)
+
+        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]), old_location: %{row: old.row, col: old.col, tile: old.tile_template.character}}
 
       {:invalid} ->
         :ok

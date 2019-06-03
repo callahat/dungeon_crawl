@@ -236,6 +236,17 @@ defmodule DungeonCrawl.Dungeon do
     update_map_tile(get_map_tile!(dungeon_id, row, col), new_tile)
   end
 
+  # TODO: remove the guard clause when the other tile update method is removed
+  def update_map_tile!(%MapTile{} = map_tile, new_tile) when is_integer(new_tile) do
+    map_tile
+    |> MapTile.changeset(%{tile_template_id: new_tile})
+    |> Repo.update!
+  end
+  def update_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile) when is_integer(new_tile) do
+    update_map_tile!(get_map_tile!(dungeon_id, row, col), new_tile)
+  end
+
+  # TODO: remove this
   def update_map_tile!(%MapTile{} = map_tile, new_tile) do
     map_tile
     |> MapTile.changeset(%{tile: new_tile})

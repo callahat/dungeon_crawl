@@ -1,30 +1,29 @@
 defmodule DungeonCrawl.Action.Door do
   alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.EventResponder.Parser
+  alias DungeonCrawl.Repo
+  alias DungeonCrawl.TileTemplates
 
   def open(door_location) do
-    if _door_state(door_location, "+") do
-      door = Dungeon.update_map_tile!(door_location, "'")
-
-      {:ok, %{door_location: %{row: door.row, col: door.col, tile: door.tile}}}
-    else
-      {:invalid}
-    end
+    {:ok, responders} = Parser.parse(Repo.preload(door_location,:tile_template).tile_template.responders)
+    _try_door door_location, responders[:open]
   end
 
   def close(door_location) do
-    if _door_state(door_location, "'") do
-      door = Dungeon.update_map_tile!(door_location, "+")
+    {:ok, responders} = Parser.parse(Repo.preload(door_location,:tile_template).tile_template.responders)
 
-      {:ok, %{door_location: %{row: door.row, col: door.col, tile: door.tile}}}
-    else
-      {:invalid}
-    end
+    _try_door door_location, responders[:close]
   end
 
-  defp _door_state(%{dungeon_id: dungeon_id, row: row, col: col}, door) do
-    case Dungeon.get_map_tile(dungeon_id, row, col).tile do
-      ^door -> true
-      _     -> false
+  defp _try_door(door_location, response) do
+    case response do
+      {:ok, %{replace: [new_id]}} ->
+        new_tile = TileTemplates.get_tile_template(new_id)
+        door = Dungeon.update_map_tile!(door_location, new_id)
+
+        {:ok, %{door_location: %{row: door.row, col: door.col, tile: new_tile.character}}}
+      _ ->
+        {:invalid}
     end
   end
 end
