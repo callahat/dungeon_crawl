@@ -32,7 +32,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       {:ok, %{new_location: new_location, old_location: old_location}} ->
         old = old_location |> Repo.preload(:tile_template)
 
-        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]), old_location: %{row: old.row, col: old.col, tile: old.tile_template.character}}
+        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]),
+                                           old_location: %{row: old.row, col: old.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(old.tile_template)}}
 
       {:invalid} ->
         :ok
@@ -43,11 +44,11 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "open" or action == "close" do
     player_location = Player.get_location!(socket.assigns.user_id_hash)
-    target_door = Dungeon.get_map_tile(player_location, direction)
+    target_door = Dungeon.get_map_tile(player_location, direction) |> Repo.preload(:tile_template)
 
     case apply(Door, String.to_atom(action), [target_door]) do
-      { :ok, results = %{door_location: %{row: _, col: _, tile: _}} } ->
-        broadcast socket, "door_changed", results
+      { :ok, %{door_location: %{row: row, col: col, tile_template: tile_template}} } ->
+        broadcast socket, "door_changed", %{door_location: %{row: row, col: col, tile: DungeonCrawlWeb.SharedView.tile_and_style(tile_template)}}
         {:reply, :ok, socket}
 
       {:invalid} ->

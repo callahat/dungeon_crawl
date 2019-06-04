@@ -18,10 +18,10 @@ defmodule DungeonCrawl.Action.Door do
   defp _try_door(door_location, response) do
     case response do
       {:ok, %{replace: [new_id]}} ->
-        new_tile = TileTemplates.get_tile_template(new_id)
+        new_tile_template = TileTemplates.get_tile_template(new_id)
         door = Dungeon.update_map_tile!(door_location, new_id)
 
-        {:ok, %{door_location: %{row: door.row, col: door.col, tile: new_tile.character}}}
+        {:ok, %{door_location: %{row: door.row, col: door.col, tile_template: new_tile_template}}}
       _ ->
         {:invalid}
     end
