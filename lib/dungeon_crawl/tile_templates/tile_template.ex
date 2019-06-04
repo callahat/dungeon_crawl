@@ -11,6 +11,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :description, :string
     field :name, :string
     field :responders, :string, default: "{}"
+    has_many :map_tiles, DungeonCrawl.Dungeon.MapTile
 
     timestamps()
   end

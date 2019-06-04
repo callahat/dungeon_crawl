@@ -21,6 +21,22 @@ defmodule DungeonCrawlWeb.SharedView do
     Enum.to_list(0..width-1)
     |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{map[{row, col}]}</td>" end ) |> Enum.join("")
   end
+
+  def tile_and_style(tile_template) do
+    {:safe, _tile_and_style(tile_template)}
+  end
+  def _tile_and_style(%{color: nil, background_color: nil} = tile_template) do
+    "<span>#{tile_template.character}</span>"
+  end
+  def _tile_and_style(%{color: nil} = tile_template) do
+    "<span style='background-color: #{tile_template.background_color}'>#{tile_template.character}</span>"
+  end
+  def _tile_and_style(%{background_color: nil} = tile_template) do
+    "<span style='color: #{tile_template.color}'>#{tile_template.character}</span>"
+  end
+  def _tile_and_style(tile_template) do
+    "<span style='color: #{tile_template.color};background-color: #{tile_template.background_color}'>#{tile_template.character}</span>"
+  end
 end
 
 

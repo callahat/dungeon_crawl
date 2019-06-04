@@ -39,7 +39,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
   defp _tile_hydrator(dungeon_id, tiles) do
     tiles
-    |> Enum.map(fn(t) -> %{dungeon_id: dungeon_id, row: t.row, col: t.col, tile: t.tile} end)
+    |> Enum.map(fn(t) -> %{dungeon_id: dungeon_id, row: t.row, col: t.col, tile: t.tile, tile_template_id: t.tile_template_id} end)
   end
 
   def insert_player_location(attrs \\ %{}) do
