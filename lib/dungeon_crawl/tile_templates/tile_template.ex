@@ -2,6 +2,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @color_match ~r/\A(?:[a-z]+|#(?:[\da-f]{3}){1,2})\z/i
+
   alias DungeonCrawl.EventResponder.Parser
 
   schema "tile_templates" do
@@ -21,6 +23,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     tile_template
     |> cast(attrs, [:name, :character, :description, :color, :background_color, :responders])
     |> validate_required([:name, :description])
+    |> validate_format(:color, @color_match)
+    |> validate_format(:background_color, @color_match)
     |> validate_length(:character, min: 1, max: 1)
     |> validate_responders
   end

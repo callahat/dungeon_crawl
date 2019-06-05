@@ -1,1 +1,0 @@
-<%= {:safe, tile_and_style(@tile_template)} %>
