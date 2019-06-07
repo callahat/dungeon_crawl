@@ -93,22 +93,17 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template == TileTemplates.get_tile_template!(tile_template.id)
     end
 
-    test "delete_tile_template/1 deletes the tile_template" do
+    test "delete_tile_template/1 deletes the tile_template if not in use" do
       tile_template = tile_template_fixture()
       assert {:ok, %TileTemplate{}} = TileTemplates.delete_tile_template(tile_template)
       assert_raise Ecto.NoResultsError, fn -> TileTemplates.get_tile_template!(tile_template.id) end
     end
 
-# TODO: Safe delete - mark it logically deleted (still can be used, but doesn't show up unless specifically called for); or don't delete if template is being used.
-#    test "delete_tile_template/1 raises if the tile_template is associated with a map_tile" do
-#      tile_template = tile_template_fixture()
-#      dungeon = insert_stubbed_dungeon(%{}, [%{row: 1, col: 1, tile: "!", tile_template_id: tile_template.id}])
-#      assert {:ok, %TileTemplate{}} = TileTemplates.delete_tile_template(tile_template)
-#      assert [h | _ ] = (dungeon |> Repo.preload(dungeon_map_tiles: [:tile_template])).dungeon_map_tiles 
-#      assert h.tile_template
-#      assert_raise Ecto.NoResultsError, fn -> TileTemplates.get_tile_template!(tile_template.id) end
-#    end
-
+    test "delete_tile_template/1 raises if the tile_template is associated with a map_tile" do
+      tile_template = tile_template_fixture()
+      dungeon = insert_stubbed_dungeon(%{}, [%{row: 1, col: 1, tile: "!", tile_template_id: tile_template.id}])
+      assert {:error, "Cannot delete a tile template that is in use"} = TileTemplates.delete_tile_template(tile_template)
+    end
 
     test "change_tile_template/1 returns a tile_template changeset" do
       tile_template = tile_template_fixture()

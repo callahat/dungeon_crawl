@@ -19,6 +19,7 @@ defmodule DungeonCrawl.Repo.Migrations.CreateTileTemplates do
     alter table(:dungeon_map_tiles) do
       add :tile_template_id, references(:tile_templates, on_delete: :nothing)
     end
+    create index(:dungeon_map_tiles, [:tile_template_id])
 
     flush()
 
@@ -42,8 +43,9 @@ defmodule DungeonCrawl.Repo.Migrations.CreateTileTemplates do
   end
 
   def down do
+    drop index(:dungeon_map_tiles, [:tile_template_id])
     alter table(:dungeon_map_tiles) do
-      drop :tile_template_id
+      remove :tile_template_id
     end
 
     drop table(:tile_templates)

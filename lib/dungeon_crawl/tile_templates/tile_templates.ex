@@ -130,7 +130,11 @@ defmodule DungeonCrawl.TileTemplates do
 
   """
   def delete_tile_template(%TileTemplate{} = tile_template) do
-    Repo.delete(tile_template)
+    if DungeonCrawl.Dungeon.tile_template_reference_count(tile_template.id) == 0 do
+      Repo.delete(tile_template)
+    else
+      {:error, "Cannot delete a tile template that is in use"}
+    end
   end
 
   @doc """

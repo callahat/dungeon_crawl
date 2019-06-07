@@ -17,14 +17,18 @@
     <tr>
       <td><%= tile_template.id %></td>
       <td><%= tile_template.name %></td>
-      <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template) %></pre></td>
+      <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre></td>
       <td><%= tile_template.color %></td>
       <td><%= tile_template.background_color %></td>
 
       <td class="text-right">
         <%= link "Show", to: manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-default btn-xs" %>
         <%= link "Edit", to: manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= if DungeonCrawl.Dungeon.tile_template_reference_count(tile_template) > 0 do
+              link "Delete", to: "#", class: "btn btn-danger btn-xs", title: "Tile template in use", disabled: true
+            else
+              link "Delete", to: manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs"
+            end %>
       </td>
     </tr>
 <% end %>

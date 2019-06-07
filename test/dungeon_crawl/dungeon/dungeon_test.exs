@@ -63,6 +63,16 @@ defmodule DungeonCrawl.DungeonTest do
       assert_raise Ecto.NoResultsError, fn -> Dungeon.get_map!(map.id) end
     end
 
+    test "tile_template_reference_count/1 returns a count of the template being used" do
+      tile_a = insert_tile_template()
+      tile_b = insert_tile_template()
+      insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, tile: tile_a.character},
+                                   %{tile_template_id: tile_a.id, row: 1, col: 2, tile: tile_a.character},
+                                   %{tile_template_id: tile_b.id, row: 1, col: 3, tile: tile_b.character}])
+      assert 2 == Dungeon.tile_template_reference_count(tile_a.id)
+      assert 1 == Dungeon.tile_template_reference_count(tile_b)
+    end
+
     test "change_map/1 returns a map changeset" do
       map = map_fixture()
       assert %Ecto.Changeset{} = Dungeon.change_map(map)
