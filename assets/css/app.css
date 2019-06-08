@@ -22,3 +22,8 @@ pre.dungeon_preview table {
 }
 
 .breadcrumb > li.pull-left + li:before {content: none;}
+
+input#tile_template_character {
+  width: 3em;
+  padding-left: 1.2em;
+}
