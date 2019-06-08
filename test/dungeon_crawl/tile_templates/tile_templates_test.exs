@@ -101,7 +101,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
 
     test "delete_tile_template/1 raises if the tile_template is associated with a map_tile" do
       tile_template = tile_template_fixture()
-      dungeon = insert_stubbed_dungeon(%{}, [%{row: 1, col: 1, tile: "!", tile_template_id: tile_template.id}])
+      insert_stubbed_dungeon(%{}, [%{row: 1, col: 1, tile: "!", tile_template_id: tile_template.id}])
       assert {:error, "Cannot delete a tile template that is in use"} = TileTemplates.delete_tile_template(tile_template)
     end
 
