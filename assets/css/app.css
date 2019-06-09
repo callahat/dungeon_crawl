@@ -6,6 +6,15 @@ pre.dungeon_preview {
   padding: 0.5em;
 }
 
+pre.tile_template_preview {
+  display: inline-block;
+  line-height: 1;
+  padding: 0;
+  border-radius: 0;
+  font-size: 13px;
+  margin: 0;
+}
+
 pre.dungeon_preview table {
   display: inline-block;
   margin: 0;
@@ -13,3 +22,8 @@ pre.dungeon_preview table {
 }
 
 .breadcrumb > li.pull-left + li:before {content: none;}
+
+input#tile_template_character {
+  width: 3em;
+  padding-left: 1.2em;
+}

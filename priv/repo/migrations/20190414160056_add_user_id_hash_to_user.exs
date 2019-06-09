@@ -1,7 +1,8 @@
 defmodule DungeonCrawl.Repo.Migrations.AddUserIdHashToUser do
   use Ecto.Migration
   import Ecto.Query
-  alias DungeonCrawl.{Repo,User}
+  alias DungeonCrawl.Repo
+  alias DungeonCrawl.Account.User
 
   def up do
     alter table(:users) do

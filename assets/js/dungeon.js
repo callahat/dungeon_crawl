@@ -57,7 +57,7 @@ let Dungeon = {
 //      console.log(resp)
 //      console.log(dungeonChannel.params)
       let door_location = resp.door_location
-      document.getElementById(door_location.row + "_" + door_location.col).innerText = door_location.tile
+      document.getElementById(door_location.row + "_" + door_location.col).innerHTML = door_location.tile
     })
 
     dungeonChannel.on("ping", ({count}) => console.log("PING", count))

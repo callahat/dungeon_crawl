@@ -63,6 +63,16 @@ defmodule DungeonCrawl.DungeonTest do
       assert_raise Ecto.NoResultsError, fn -> Dungeon.get_map!(map.id) end
     end
 
+    test "tile_template_reference_count/1 returns a count of the template being used" do
+      tile_a = insert_tile_template()
+      tile_b = insert_tile_template()
+      insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, tile: tile_a.character},
+                                   %{tile_template_id: tile_a.id, row: 1, col: 2, tile: tile_a.character},
+                                   %{tile_template_id: tile_b.id, row: 1, col: 3, tile: tile_b.character}])
+      assert 2 == Dungeon.tile_template_reference_count(tile_a.id)
+      assert 1 == Dungeon.tile_template_reference_count(tile_b)
+    end
+
     test "change_map/1 returns a map changeset" do
       map = map_fixture()
       assert %Ecto.Changeset{} = Dungeon.change_map(map)
@@ -72,15 +82,20 @@ defmodule DungeonCrawl.DungeonTest do
   describe "dungeon_map_tiles" do
     alias DungeonCrawl.Dungeon.MapTile
 
-    @valid_attrs %{tile: "!", row: 15, col: 42}
-    @update_attrs %{tile: "."}
-    @invalid_attrs %{tile: "bad"}
+    @valid_attrs %{row: 15, col: 42}
+    @invalid_attrs %{row: nil}
+
+    def tile_template_fixture() do
+      DungeonCrawl.TileTemplates.create_tile_template %{name: "X", description: "an x", character: "X"}
+    end
 
     def map_tile_fixture(attrs \\ %{}) do
       {:ok, map} = Dungeon.create_map(%{name: "test"})
+      {:ok, tile_template} = tile_template_fixture()
       {:ok, map_tile} =
         Elixir.Map.merge(%MapTile{}, @valid_attrs)
         |> Elixir.Map.merge(%{dungeon_id: map.id})
+        |> Elixir.Map.merge(%{tile_template_id: tile_template.id})
         |> Elixir.Map.merge(attrs)
         |> Repo.insert()
 
@@ -98,7 +113,8 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "create_map_tile/1 with valid data creates a map_tile" do
-      assert {:ok, %MapTile{} = _map_tile} = Dungeon.create_map_tile(@valid_attrs)
+      {:ok, tile_template} = tile_template_fixture()
+      assert {:ok, %MapTile{} = _map_tile} = Dungeon.create_map_tile(Map.put @valid_attrs, :tile_template_id, tile_template.id)
     end
 
     test "create_map_tile/1 with invalid data returns error changeset" do
@@ -107,8 +123,11 @@ defmodule DungeonCrawl.DungeonTest do
 
     test "update_map_tile/2 with valid data updates the map_tile" do
       map_tile = map_tile_fixture()
-      assert {:ok, map_tile} = Dungeon.update_map_tile(map_tile, @update_attrs.tile)
+      {:ok, tile_template} = tile_template_fixture()
+      old_tile_template = map_tile.tile_template_id
+      assert {:ok, map_tile} = Dungeon.update_map_tile(map_tile, tile_template.id)
       assert %MapTile{} = map_tile
+      refute old_tile_template == map_tile.tile_template_id
     end
 
     test "update_map_tile/2 with invalid data returns error changeset" do

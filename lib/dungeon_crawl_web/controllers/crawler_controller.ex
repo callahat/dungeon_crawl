@@ -3,7 +3,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeon
-  alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.DungeonGenerator
   alias Ecto.Multi
 
@@ -28,14 +27,14 @@ defmodule DungeonCrawlWeb.CrawlerController do
     # TODO: revisit multi's and clean this up
     Multi.new
     |> Multi.run(:dungeon, fn(%{}) ->
-        result = Dungeon.generate_map(DungeonGenerator, dungeon_attrs)
+        result = Dungeon.generate_map(@dungeon_generator, dungeon_attrs)
         {:ok, result}
       end)
     |> Multi.run(:player_location, fn(%{dungeon: dungeon_result}) ->
         {_, run_results} = dungeon_result
         dungeon = run_results[:dungeon]
-        empty_floor = Repo.preload(dungeon, :dungeon_map_tiles).dungeon_map_tiles
-                      |> Enum.filter(fn(t) -> t.tile == "." end)
+        empty_floor = Repo.preload(dungeon, dungeon_map_tiles: :tile_template).dungeon_map_tiles
+                      |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
                       |> Enum.random
         result = Player.create_location(%{dungeon_id: dungeon.id,row: empty_floor.row, col: empty_floor.col, user_id_hash: conn.assigns[:user_id_hash]})
         {:ok, result}
@@ -61,7 +60,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   defp assign_player_location(conn, _opts) do
     player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(dungeon: :dungeon_map_tiles)
+                      |> Repo.preload(dungeon: [dungeon_map_tiles: :tile_template])
     conn
     |> assign(:player_location, player_location)
   end

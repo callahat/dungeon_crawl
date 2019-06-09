@@ -22,6 +22,7 @@
               <li><%= link "Log out", to: session_path(@conn, :delete, @current_user), method: "delete" %></li>
               <%= if @current_user.is_admin do %>
               <li><%= link "Users", to: manage_user_path(@conn, :index) %></li>
+              <li><%= link "Tile Templates", to: manage_tile_template_path(@conn, :index) %></li>
               <li><%= link "Dungeons", to: dungeon_path(@conn, :index) %></li>
               <% end %>
             <% else %>

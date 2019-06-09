@@ -11,6 +11,9 @@ defmodule DungeonCrawl.Dungeon do
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.Dungeon.MapTile
 
+  alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.TileTemplates.TileSeeder
+
   @doc """
   Returns the list of dungeons.
 
@@ -84,9 +87,11 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _generate_dungeon_map_tiles(dungeon, dungeon_generator) do
+    tile_mapping = TileSeeder.basic_tiles()
+
     dungeon_generator.generate(dungeon.height, dungeon.width)
     |> Enum.to_list
-    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile: to_string([tile])} end)
+    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile_template_id: tile_mapping[tile].id} end)
   end
 
   @doc """
@@ -171,9 +176,9 @@ defmodule DungeonCrawl.Dungeon do
     get_map_tile!(dungeon_id, row + d_row, col + d_col)
   end
   def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile!(dungeon_id, row, col)
+  def get_map_tile!(id), do: Repo.get!(MapTile, id)
   def get_map_tile!(dungeon_id, row, col, direction), do: get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
   def get_map_tile!(dungeon_id, row, col), do: Repo.get_by!(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
-  def get_map_tile!(id), do: Repo.get!(MapTile, id)
 
   def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
     {d_row, d_col} = _direction_delta(direction)
@@ -223,22 +228,42 @@ defmodule DungeonCrawl.Dungeon do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_map_tile(%MapTile{} = map_tile, new_tile) do
+  def update_map_tile!(%MapTile{} = map_tile, new_tile_id) do
     map_tile
-    |> MapTile.changeset(%{tile: new_tile})
-    |> Repo.update()
-  end
-  def update_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile) do
-    update_map_tile(get_map_tile!(dungeon_id, row, col), new_tile)
-  end
-
-  def update_map_tile!(%MapTile{} = map_tile, new_tile) do
-    map_tile
-    |> MapTile.changeset(%{tile: new_tile})
+    |> MapTile.changeset(%{tile_template_id: new_tile_id})
     |> Repo.update!
   end
-  def update_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile) do
-    update_map_tile!(get_map_tile!(dungeon_id, row, col), new_tile)
+  def update_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile_id) do
+    update_map_tile!(get_map_tile!(dungeon_id, row, col), new_tile_id)
+  end
+
+  def update_map_tile(%MapTile{} = map_tile, new_tile_id) do
+    map_tile
+    |> MapTile.changeset(%{tile_template_id: new_tile_id})
+    |> Repo.update
+  end
+  def update_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile_id) do
+    update_map_tile(get_map_tile!(dungeon_id, row, col), new_tile_id)
+  end
+
+
+  @doc """
+  Returns the number of MapTile that reference a given tile template.
+
+  ## Examples
+
+      iex> tile_template_reference_count(tile_template)
+      4
+
+      iex> tile_template_reference_count(6)
+      0
+
+  """
+  def tile_template_reference_count(%TileTemplate{} = tile_template) do
+    tile_template_reference_count(tile_template.id)
+  end
+  def tile_template_reference_count(tile_template_id) do
+    Repo.one(from mt in MapTile, select: count(mt.id), where: mt.tile_template_id == ^tile_template_id)
   end
 
   @doc """

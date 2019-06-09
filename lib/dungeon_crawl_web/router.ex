@@ -33,6 +33,7 @@ defmodule DungeonCrawlWeb.Router do
 
     resources "/users", ManageUserController
     resources "/dungeons", DungeonController, except: [:edit, :update]
+    resources "/tile_templates", ManageTileTemplateController
   end
 
   # Other scopes may use custom stacks.

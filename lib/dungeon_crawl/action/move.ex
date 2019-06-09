@@ -1,5 +1,8 @@
 defmodule DungeonCrawl.Action.Move do
   alias DungeonCrawl.{Dungeon,Player}
+  alias DungeonCrawl.EventResponder.Parser
+
+  alias DungeonCrawl.Repo
 
   # todo: rename this
   def go(entity_location, destination, entity_module \\ Player) do
@@ -15,10 +18,10 @@ defmodule DungeonCrawl.Action.Move do
   end
 
   defp _valid_move(destination) do
-    case destination.tile do
-      "." -> true
-      "'" -> true
-      _   -> false
+    {:ok, responders} = Parser.parse(Repo.preload(destination,:tile_template).tile_template.responders)
+    case responders[:move] do
+      {:ok} -> true
+      _     -> false
     end
   end
 end
