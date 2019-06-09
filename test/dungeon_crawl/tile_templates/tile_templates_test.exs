@@ -21,6 +21,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
 
     test "list_tile_templates/0 returns all tile_templates" do
       tile_template = tile_template_fixture()
+      assert Enum.count(TileTemplates.list_tile_templates()) == 1
       assert TileTemplates.list_tile_templates() == [tile_template]
     end
 

@@ -23,23 +23,25 @@ defmodule DungeonCrawl.Repo.Migrations.CreateTileTemplates do
 
     flush()
 
-    template_map = DungeonCrawl.TileTemplates.TileSeeder.basic_tiles
+    if Mix.env != :test do
+      template_map = DungeonCrawl.TileTemplates.TileSeeder.basic_tiles
 
-    # Link all the map tiles that aren't already linked
-    counts = Repo.all(MapTile)
-             |> Enum.reduce(%{},fn(mt,acc) -> if template_map[mt.tile] do
-                        Repo.update! MapTile.changeset(mt, %{tile_template_id: template_map[mt.tile].id})
-                        Map.put(acc, mt.tile, if(acc[mt.tile], do: acc[mt.tile]+1, else: 1))
-                      else
-                        Map.put(acc, mt.tile, if(acc[mt.tile], do: acc[mt.tile]+1, else: 1))
-                      end
-             end)
-    counts
-    |> inspect
-    |> IO.puts
+      # Link all the map tiles that aren't already linked
+      counts = Repo.all(MapTile)
+               |> Enum.reduce(%{},fn(mt,acc) -> if template_map[mt.tile] do
+                          Repo.update! MapTile.changeset(mt, %{tile_template_id: template_map[mt.tile].id})
+                          Map.put(acc, mt.tile, if(acc[mt.tile], do: acc[mt.tile]+1, else: 1))
+                        else
+                          Map.put(acc, mt.tile, if(acc[mt.tile], do: acc[mt.tile]+1, else: 1))
+                        end
+               end)
+      counts
+      |> inspect
+      |> IO.puts
 
-    IO.puts "Characters that didn't exist in the template map (if any, add them and rereun seeds)"
-    IO.puts inspect Map.keys(counts) -- Map.keys(template_map)
+      IO.puts "Characters that didn't exist in the template map (if any, add them and rereun seeds)"
+      IO.puts inspect Map.keys(counts) -- Map.keys(template_map)
+    end
   end
 
   def down do
