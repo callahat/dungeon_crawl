@@ -6,7 +6,6 @@ defmodule DungeonCrawl.Dungeon.MapTile do
   schema "dungeon_map_tiles" do
     field :row, :integer
     field :col, :integer
-    field :tile, :string
     belongs_to :dungeon, DungeonCrawl.Dungeon.Map
     belongs_to :tile_template, DungeonCrawl.TileTemplates.TileTemplate
   end
@@ -14,8 +13,7 @@ defmodule DungeonCrawl.Dungeon.MapTile do
   @doc false
   def changeset(map_tile, attrs) do
     map_tile
-    |> cast(attrs, [:row, :col, :tile, :tile_template_id])
-    |> validate_length(:tile, min: 1, max: 1)
-    |> validate_required([:row, :col])
+    |> cast(attrs, [:row, :col, :tile_template_id])
+    |> validate_required([:row, :col, :tile_template_id])
   end
 end
