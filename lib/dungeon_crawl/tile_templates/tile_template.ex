@@ -11,6 +11,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :character, :string
     field :color, :string
     field :description, :string
+    field :deleted_at, :naive_datetime
     field :name, :string
     field :responders, :string, default: "{}"
     has_many :map_tiles, DungeonCrawl.Dungeon.MapTile
@@ -29,6 +30,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     |> validate_responders
   end
 
+  @doc false
   def validate_responders(changeset) do
     responders = get_field(changeset, :responders)
     _validate_responders(changeset, responders)

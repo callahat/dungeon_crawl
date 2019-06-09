@@ -28,6 +28,13 @@
     <%= @tile_template.background_color %>
   </li>
 
+  <%= if @tile_template.deleted_at do %>
+  <li>
+    <strong>Deleted At:</strong>
+    <%= @tile_template.deleted_at %>
+  </li>
+  <% end %>
+
 
 </ul>
 

@@ -74,19 +74,10 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
     assert html_response(conn, 200) =~ "Edit tile template"
   end
 
-  test "deletes chosen resource", %{conn: conn} do
+  test "soft deletes chosen resource", %{conn: conn} do
     target_tile_template = insert_tile_template @valid_attrs
     conn = delete conn, manage_tile_template_path(conn, :delete, target_tile_template)
     assert redirected_to(conn) == manage_tile_template_path(conn, :index)
-    refute Repo.get(TileTemplate, target_tile_template.id)
-  end
-
-  test "does not delete chosen resource if its in use", %{conn: conn} do
-    tile_template = insert_tile_template @valid_attrs
-    insert_stubbed_dungeon(%{}, [%{row: 1, col: 1, tile: "!", tile_template_id: tile_template.id}])
-    conn = delete conn, manage_tile_template_path(conn, :delete, tile_template)
-    assert redirected_to(conn) == manage_tile_template_path(conn, :index)
-    assert Repo.get(TileTemplate, tile_template.id)
-    assert get_flash(conn, :error) == "Cannot delete a tile template that is in use"
+    refute Repo.get!(TileTemplate, target_tile_template.id).deleted_at == nil
   end
 end

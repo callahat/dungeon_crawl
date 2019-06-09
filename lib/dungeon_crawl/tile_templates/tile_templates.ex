@@ -18,7 +18,7 @@ defmodule DungeonCrawl.TileTemplates do
 
   """
   def list_tile_templates do
-    Repo.all(TileTemplate)
+    Repo.all(from t in TileTemplate, where: is_nil(t.deleted_at))
   end
 
   @doc """
@@ -118,7 +118,9 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   @doc """
-  Deletes a TileTemplate.
+  Deletes a TileTemplate. The delete is a soft delete so as to not break anything
+  that may currently be referecing this tile tempalte, including MapTiles
+  as well as parameters in existing responders.
 
   ## Examples
 
@@ -130,11 +132,9 @@ defmodule DungeonCrawl.TileTemplates do
 
   """
   def delete_tile_template(%TileTemplate{} = tile_template) do
-    if DungeonCrawl.Dungeon.tile_template_reference_count(tile_template.id) == 0 do
-      Repo.delete(tile_template)
-    else
-      {:error, "Cannot delete a tile template that is in use"}
-    end
+    change_tile_template(tile_template)
+    |> Ecto.Changeset.put_change(:deleted_at, NaiveDateTime.utc_now)
+    |> Repo.update
   end
 
   @doc """
