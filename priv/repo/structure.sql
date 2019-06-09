@@ -37,7 +37,6 @@ CREATE TABLE public.dungeon_map_tiles (
     "row" integer,
     col integer,
     dungeon_id bigint,
-    tile character varying(255),
     tile_template_id bigint
 );
 
@@ -153,7 +152,8 @@ CREATE TABLE public.tile_templates (
     background_color character varying(255),
     responders character varying(255),
     inserted_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    deleted_at timestamp without time zone
 );
 
 
@@ -302,6 +302,13 @@ CREATE INDEX dungeon_map_tiles_dungeon_id_row_col_index ON public.dungeon_map_ti
 
 
 --
+-- Name: dungeon_map_tiles_tile_template_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX dungeon_map_tiles_tile_template_id_index ON public.dungeon_map_tiles USING btree (tile_template_id);
+
+
+--
 -- Name: player_locations_dungeon_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -320,6 +327,13 @@ CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USIN
 --
 
 CREATE INDEX player_locations_user_id_index ON public.player_locations USING btree (user_id);
+
+
+--
+-- Name: tile_templates_deleted_at_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX tile_templates_deleted_at_index ON public.tile_templates USING btree (deleted_at);
 
 
 --
@@ -372,5 +386,5 @@ ALTER TABLE ONLY public.player_locations
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130);
 
