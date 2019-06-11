@@ -65,5 +65,11 @@ defmodule DungeonCrawl.PlayerTest do
       location = location_fixture()
       assert %Ecto.Changeset{} = Player.change_location(location)
     end
+
+    test "players_in_dungeon/1 returns the number of players id given a dungeon by its id" do
+      location = location_fixture()
+      assert 1 == Player.players_in_dungeon(location.dungeon_id)
+      assert 0 == Player.players_in_dungeon(9999999)
+    end
   end
 end

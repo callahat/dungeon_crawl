@@ -104,4 +104,18 @@ defmodule DungeonCrawl.Player do
   def change_location(%Location{} = location, attrs \\ %{}) do
     Location.changeset(location, attrs)
   end
+
+  @doc """
+  Returns a count of how many players are in a dungeon
+
+  ## Examples
+
+      iex> player_count(103)
+      4
+  """
+  def players_in_dungeon(dungeon_id) do
+    Repo.one(from l in Location,
+             where: l.dungeon_id == ^dungeon_id,
+             select: count(l.id))
+  end
 end
