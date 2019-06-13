@@ -22,4 +22,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     %{?.  => floor, ?#  => wall, ?\s => rock, ?'  => open_door, ?+  => closed_door, ?@  => statue,
       "." => floor, "#" => wall, " " => rock, "'" => open_door, "+" => closed_door, "@" => statue}
   end
+
+  @doc """
+  Seeds the DB with the basic player character tile, returning that record.
+  """
+  def player_character_tile() do
+    TileTemplates.find_or_create_tile_template!(%{character: "@", name: "Player",  description: "Its a player."})
+  end
 end

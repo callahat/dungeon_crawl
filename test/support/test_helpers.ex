@@ -68,9 +68,15 @@ defmodule DungeonCrawlWeb.TestHelpers do
     changes = Map.merge(%{
       row: 3,
       col: 1,
-      user_id_hash: "good_hash"
+      user_id_hash: "good_hash",
     }, attrs)
 
-    DungeonCrawl.Player.create_location!(changes)
+    player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
+
+    map_tile = Map.take(changes, [:dungeon_id, :row, :col])
+               |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
+               |> DungeonCrawl.Dungeon.create_map_tile!()
+
+    DungeonCrawl.Player.create_location!(Map.put(changes, :map_tile_id, map_tile.id))
   end
 end

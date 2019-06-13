@@ -181,7 +181,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
-  Gets a single map_tile.
+  Gets a single map_tile, with the highest z_index for given coordinates and dungeon (ie, the tile thats on top)
 
   Raises `Ecto.NoResultsError` if the Map tile does not exist.
 
@@ -201,7 +201,9 @@ defmodule DungeonCrawl.Dungeon do
   def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile!(dungeon_id, row, col)
   def get_map_tile!(id), do: Repo.get!(MapTile, id)
   def get_map_tile!(dungeon_id, row, col, direction), do: get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
-  def get_map_tile!(dungeon_id, row, col), do: Repo.get_by!(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
+  def get_map_tile!(dungeon_id, row, col) do
+    Repo.one!(_get_map_tile_query(dungeon_id, row, col, 1))
+  end
 
   def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
     {d_row, d_col} = _direction_delta(direction)
@@ -209,7 +211,30 @@ defmodule DungeonCrawl.Dungeon do
   end
   def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile(dungeon_id, row, col)
   def get_map_tile(dungeon_id, row, col, direction), do: get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
-  def get_map_tile(dungeon_id, row, col), do: Repo.get_by(MapTile, %{dungeon_id: dungeon_id, row: row, col: col})
+  def get_map_tile(dungeon_id, row, col) do
+    Repo.one(_get_map_tile_query(dungeon_id, row, col, 1))
+  end
+
+  @doc """
+  Returns an array of map tiles from high to low z_index.
+
+  ## Examples
+
+      iex> get_map_tiles(103, 14, 56)
+      [%MapTile{}, %MapTile{}, ...]
+
+      iex> get_map_tiles(%{dungeon_id: 103, row: 14, col: 56}, "north")
+      []
+  """
+  def get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
+    {d_row, d_col} = _direction_delta(direction)
+    get_map_tiles(dungeon_id, row + d_row, col + d_col)
+  end
+  def get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tiles(dungeon_id, row, col)
+  def get_map_tiles(dungeon_id, row, col, direction), do: get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
+  def get_map_tiles(dungeon_id, row, col) do
+    Repo.all(_get_map_tile_query(dungeon_id, row, col, nil))
+  end
 
   defp _direction_delta(direction) do
     case direction do
@@ -219,6 +244,13 @@ defmodule DungeonCrawl.Dungeon do
       "right" -> { 0,  1}
       _       -> { 0,  0}
     end
+  end
+
+  defp _get_map_tile_query(dungeon_id, row, col, max_results) do
+    from mt in MapTile,
+    where: mt.dungeon_id == ^dungeon_id and mt.row == ^row and mt.col == ^col,
+    order_by: [desc: :z_index],
+    limit: ^max_results
   end
 
   @doc """
@@ -238,6 +270,11 @@ defmodule DungeonCrawl.Dungeon do
     |> MapTile.changeset(attrs)
     |> Repo.insert()
   end
+  def create_map_tile!(attrs \\ %{}) do
+    %MapTile{}
+    |> MapTile.changeset(attrs)
+    |> Repo.insert!()
+  end
 
   @doc """
   Updates a map_tile.
@@ -251,22 +288,22 @@ defmodule DungeonCrawl.Dungeon do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_map_tile!(%MapTile{} = map_tile, new_tile_id) do
+  def update_map_tile!(%MapTile{} = map_tile, attrs) do
     map_tile
-    |> MapTile.changeset(%{tile_template_id: new_tile_id})
+    |> MapTile.changeset(attrs)
     |> Repo.update!
   end
-  def update_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile_id) do
-    update_map_tile!(get_map_tile!(dungeon_id, row, col), new_tile_id)
+  def update_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, attrs) do
+    update_map_tile!(get_map_tile!(dungeon_id, row, col), attrs)
   end
 
-  def update_map_tile(%MapTile{} = map_tile, new_tile_id) do
+  def update_map_tile(%MapTile{} = map_tile, attrs) do
     map_tile
-    |> MapTile.changeset(%{tile_template_id: new_tile_id})
+    |> MapTile.changeset(attrs)
     |> Repo.update
   end
-  def update_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, new_tile_id) do
-    update_map_tile(get_map_tile!(dungeon_id, row, col), new_tile_id)
+  def update_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, attrs) do
+    update_map_tile(get_map_tile!(dungeon_id, row, col), attrs)
   end
 
 

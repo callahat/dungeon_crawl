@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Player.Location do
     field :col, :integer
     field :user_id_hash, :string
     belongs_to :dungeon, DungeonCrawl.Dungeon.Map, foreign_key: :dungeon_id
+    belongs_to :map_tile, DungeonCrawl.Dungeon.MapTile
     belongs_to :user, DungeonCrawl.Account.User
 
     timestamps()
@@ -16,7 +17,7 @@ defmodule DungeonCrawl.Player.Location do
   @doc false
   def changeset(location, attrs) do
     location
-    |> cast(attrs, [:row, :col, :user_id_hash, :dungeon_id])
-    |> validate_required([:row, :col, :user_id_hash, :dungeon_id])
+    |> cast(attrs, [:row, :col, :user_id_hash, :dungeon_id, :map_tile_id])
+    |> validate_required([:row, :col, :user_id_hash, :dungeon_id, :map_tile_id])
   end
 end
