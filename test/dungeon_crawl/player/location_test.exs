@@ -3,8 +3,8 @@ defmodule DungeonCrawl.Player.LocationTest do
 
   alias DungeonCrawl.Player.Location
 
-  @valid_attrs %{col: 42, row: 42, user_id_hash: "some content", dungeon_id: 1}
-  @invalid_attrs Map.merge(@valid_attrs, %{dungeon_id: nil})
+  @valid_attrs %{user_id_hash: "some content", map_tile_id: 1, dungeon_id: 1, row: 1, col: 1}
+  @invalid_attrs Map.merge(@valid_attrs, %{map_tile_id: nil})
 
   test "changeset with valid attributes" do
     changeset = Location.changeset(%Location{}, @valid_attrs)

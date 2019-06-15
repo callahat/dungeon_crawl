@@ -82,9 +82,9 @@ defmodule DungeonCrawl.DungeonTest do
     test "tile_template_reference_count/1 returns a count of the template being used" do
       tile_a = insert_tile_template()
       tile_b = insert_tile_template()
-      insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, tile: tile_a.character},
-                                   %{tile_template_id: tile_a.id, row: 1, col: 2, tile: tile_a.character},
-                                   %{tile_template_id: tile_b.id, row: 1, col: 3, tile: tile_b.character}])
+      insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
+                                   %{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
+                                   %{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}])
       assert 2 == Dungeon.tile_template_reference_count(tile_a.id)
       assert 1 == Dungeon.tile_template_reference_count(tile_b)
     end
@@ -105,8 +105,8 @@ defmodule DungeonCrawl.DungeonTest do
       DungeonCrawl.TileTemplates.create_tile_template %{name: "X", description: "an x", character: "X"}
     end
 
-    def map_tile_fixture(attrs \\ %{}) do
-      {:ok, map} = Dungeon.create_map(%{name: "test"})
+    def map_tile_fixture(attrs \\ %{}, dungeon_id \\ nil) do
+      {:ok, map} = if dungeon_id, do: {:ok, Dungeon.get_map(dungeon_id)}, else: Dungeon.create_map(%{name: "test"})
       {:ok, tile_template} = tile_template_fixture()
       {:ok, map_tile} =
         Elixir.Map.merge(%MapTile{}, @valid_attrs)
@@ -129,8 +129,9 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "create_map_tile/1 with valid data creates a map_tile" do
+      dungeon = insert_stubbed_dungeon()
       {:ok, tile_template} = tile_template_fixture()
-      assert {:ok, %MapTile{} = _map_tile} = Dungeon.create_map_tile(Map.put @valid_attrs, :tile_template_id, tile_template.id)
+      assert {:ok, %MapTile{} = _map_tile} = Dungeon.create_map_tile(Map.merge @valid_attrs, %{dungeon_id: dungeon.id, tile_template_id: tile_template.id})
     end
 
     test "create_map_tile/1 with invalid data returns error changeset" do
@@ -141,7 +142,7 @@ defmodule DungeonCrawl.DungeonTest do
       map_tile = map_tile_fixture()
       {:ok, tile_template} = tile_template_fixture()
       old_tile_template = map_tile.tile_template_id
-      assert {:ok, map_tile} = Dungeon.update_map_tile(map_tile, Map.take(tile_template, [:id]))
+      assert {:ok, map_tile} = Dungeon.update_map_tile(map_tile, %{tile_template_id: tile_template.id})
       assert %MapTile{} = map_tile
       refute old_tile_template == map_tile.tile_template_id
     end
@@ -158,15 +159,15 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "get_map_tile/1 returns a map_tile from the top" do
-      map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row, col: map_tile.col}) == map_tile
       refute Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col})
     end
 
     test "get_map_tile/2 returns a map_tile from the top in the given direction" do
-      map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row+1, col: map_tile.col},   "up") == map_tile
       assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row-1, col: map_tile.col},   "down") == map_tile
       assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row,   col: map_tile.col+1}, "left") == map_tile
@@ -174,15 +175,15 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "get_map_tile/3 returns a map_tile" do
-      map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col) == map_tile
       refute Dungeon.get_map_tile(map_tile.dungeon_id + 1, map_tile.row, map_tile.col)
     end
 
     test "get_map_tile/4 returns a map tile in the given direction" do
-      map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row+1, map_tile.col,   "up") == map_tile
       assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row-1, map_tile.col,   "down") == map_tile
       assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row,   map_tile.col+1, "left") == map_tile
@@ -190,15 +191,15 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "get_map_tiles/1 returns a map_tile from the top" do
-      bottom_tile = map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tiles(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row, col: map_tile.col}) == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col}) == []
     end
 
     test "get_map_tiles/2 returns a map_tile from the top in the given direction" do
-      bottom_tile = map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tiles(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row+1, col: map_tile.col},   "up") == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row-1, col: map_tile.col},   "down") == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row,   col: map_tile.col+1}, "left") == [map_tile, bottom_tile]
@@ -206,15 +207,15 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "get_map_tiles/3 returns a map_tile" do
-      bottom_tile = map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tiles(map_tile.dungeon_id, map_tile.row, map_tile.col) == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(map_tile.dungeon_id + 1, map_tile.row, map_tile.col) == []
     end
 
     test "get_map_tiles/4 returns a map tile in the given direction" do
-      bottom_tile = map_tile_fixture
-      map_tile = map_tile_fixture(%{z_index: 1})
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tiles(map_tile.dungeon_id, map_tile.row+1, map_tile.col,   "up") == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(map_tile.dungeon_id, map_tile.row-1, map_tile.col,   "down") == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(map_tile.dungeon_id, map_tile.row,   map_tile.col+1, "left") == [map_tile, bottom_tile]

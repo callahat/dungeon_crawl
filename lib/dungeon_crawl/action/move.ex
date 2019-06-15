@@ -1,14 +1,15 @@
 defmodule DungeonCrawl.Action.Move do
-  alias DungeonCrawl.{Dungeon,Player}
+  alias DungeonCrawl.Dungeon
   alias DungeonCrawl.EventResponder.Parser
 
   alias DungeonCrawl.Repo
 
   # todo: rename this
-  def go(entity_location, destination, entity_module \\ Player) do
+  def go(entity_map_tile, destination) do
     if _valid_move(destination) do
-      {:ok, new_location} = entity_module.update_location(entity_location, Map.take(destination, [:dungeon_id, :row, :col]))
-      old_location = Dungeon.get_map_tile(Map.take(entity_location, [:dungeon_id, :row, :col]))
+      top_tile = Map.take(destination, [:dungeon_id, :row, :col, :z_index])
+      {:ok, new_location} = Dungeon.update_map_tile(entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
+      old_location = Dungeon.get_map_tile(Map.take(entity_map_tile, [:dungeon_id, :row, :col]))
 
       {:ok, %{new_location: new_location, old_location: old_location}}
     else

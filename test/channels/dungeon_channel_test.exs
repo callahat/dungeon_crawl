@@ -13,8 +13,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
     # set the tile north of player_loc, for testing purposes
     north_tile = basic_tiles[if(tile = config[:up_tile], do: tile, else: ".")]
 
-    dungeon = insert_stubbed_dungeon(%{}, [%{row: @player_row-1, col: @player_col, tile: north_tile.character, tile_template_id: north_tile.id},
-                                           %{row: @player_row, col: @player_col, tile: basic_tiles["."].character, tile_template_id: basic_tiles["."].id}])
+    dungeon = insert_stubbed_dungeon(%{}, [%{row: @player_row-1, col: @player_col, tile_template_id: north_tile.id, z_index: 0},
+                                           %{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0}])
     player_location = insert_player_location(%{dungeon_id: dungeon.id, row: @player_row, col: @player_col})
 
     {:ok, _, socket} =

@@ -7,7 +7,7 @@ defmodule DungeonCrawl.Player.Location do
     field :row, :integer
     field :col, :integer
     field :user_id_hash, :string
-    belongs_to :dungeon, DungeonCrawl.Dungeon.Map, foreign_key: :dungeon_id
+    belongs_to :dungeon, DungeonCrawl.Dungeon.Map
     belongs_to :map_tile, DungeonCrawl.Dungeon.MapTile
     belongs_to :user, DungeonCrawl.Account.User
 
