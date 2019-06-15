@@ -25,10 +25,10 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    player_location = Player.get_location!(socket.assigns.user_id_hash)
-    destination = Dungeon.get_map_tile(player_location, direction)
+    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
+    destination = Dungeon.get_map_tile(player_location.map_tile, direction)
 
-    case Move.go(player_location, destination) do
+    case Move.go(player_location.map_tile, destination) do
       {:ok, %{new_location: new_location, old_location: old_location}} ->
         old = old_location |> Repo.preload(:tile_template)
 

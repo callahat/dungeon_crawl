@@ -114,7 +114,7 @@ defmodule DungeonCrawl.Dungeon do
 
     dungeon_generator.generate(dungeon.height, dungeon.width)
     |> Enum.to_list
-    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile_template_id: tile_mapping[tile].id} end)
+    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile_template_id: tile_mapping[tile].id, z_index: 0} end)
   end
 
   @doc """
