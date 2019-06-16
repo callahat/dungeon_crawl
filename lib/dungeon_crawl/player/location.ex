@@ -6,7 +6,6 @@ defmodule DungeonCrawl.Player.Location do
   schema "player_locations" do
     field :user_id_hash, :string
     belongs_to :map_tile, DungeonCrawl.Dungeon.MapTile
-    belongs_to :user, DungeonCrawl.Account.User
 
     timestamps()
   end

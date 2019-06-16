@@ -49,29 +49,6 @@ defmodule DungeonCrawl.Player do
   end
 
   @doc """
-  Updates a location.
-
-  ## Examples
-
-      iex> update_location(location, %{field: new_value})
-      {:ok, %Location{}}
-
-      iex> update_location(location, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_location(%Location{} = location, attrs) do
-    location
-    |> Location.changeset(attrs)
-    |> Repo.update()
-  end
-  def update_location!(%Location{} = location, attrs) do
-    location
-    |> Location.changeset(attrs)
-    |> Repo.update!()
-  end
-
-  @doc """
   Deletes a Location.
 
   ## Examples
