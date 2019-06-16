@@ -9,7 +9,7 @@ defmodule DungeonCrawl.Repo.Migrations.ChangePlayerLocationToReferenceMapTile do
 
   def up do
     alter table(:player_locations) do
-      add :map_tile_id, references(:dungeon_map_tiles)
+      add :map_tile_id, references(:dungeon_map_tiles, on_delete: :delete_all)
     end
 
     flush()

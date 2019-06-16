@@ -43,8 +43,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "open" or action == "close" do
-    player_location = Player.get_location!(socket.assigns.user_id_hash)
-    target_door = Dungeon.get_map_tile(player_location, direction) |> Repo.preload(:tile_template)
+    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
+    target_door = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
 
     case apply(Door, String.to_atom(action), [target_door]) do
       { :ok, %{door_location: %{row: row, col: col, tile_template: tile_template}} } ->

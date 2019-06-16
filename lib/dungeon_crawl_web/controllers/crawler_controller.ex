@@ -44,7 +44,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
                    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
                    |> DungeonCrawl.Dungeon.create_map_tile!()
 
-        result = Player.create_location(%{dungeon_id: dungeon.id, map_tile_id: map_tile.id, row: empty_floor.row, col: empty_floor.col, user_id_hash: conn.assigns[:user_id_hash]})
+        result = Player.create_location(%{map_tile_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
         {:ok, result}
       end)
     |> Repo.transaction
@@ -67,7 +67,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
                    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
                    |> DungeonCrawl.Dungeon.create_map_tile!()
 
-    Player.create_location(%{dungeon_id: dungeon.id,map_tile_id: map_tile.id,row: empty_floor.row, col: empty_floor.col, user_id_hash: conn.assigns[:user_id_hash]})
+    Player.create_location(%{map_tile_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
     |> case do
       {:ok, %{dungeon: _dungeon}} ->
         conn
@@ -88,7 +88,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   defp assign_player_location(conn, _opts) do
     player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(dungeon: [dungeon_map_tiles: :tile_template])
+                      |> Repo.preload(map_tile: [dungeon: [dungeon_map_tiles: :tile_template]])
     conn
     |> assign(:player_location, player_location)
   end

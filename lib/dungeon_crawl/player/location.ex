@@ -4,10 +4,7 @@ defmodule DungeonCrawl.Player.Location do
 
 
   schema "player_locations" do
-    field :row, :integer
-    field :col, :integer
     field :user_id_hash, :string
-    belongs_to :dungeon, DungeonCrawl.Dungeon.Map
     belongs_to :map_tile, DungeonCrawl.Dungeon.MapTile
     belongs_to :user, DungeonCrawl.Account.User
 
@@ -16,8 +13,12 @@ defmodule DungeonCrawl.Player.Location do
 
   @doc false
   def changeset(location, attrs) do
+    if Map.has_key?(attrs, :row) or Map.has_key?(attrs, :col) or Map.has_key?(attrs, :dungeon_id) do
+      IO.puts inspect attrs
+    end
+
     location
-    |> cast(attrs, [:row, :col, :user_id_hash, :dungeon_id, :map_tile_id])
-    |> validate_required([:row, :col, :user_id_hash, :dungeon_id, :map_tile_id])
+    |> cast(attrs, [:user_id_hash, :map_tile_id])
+    |> validate_required([:user_id_hash, :map_tile_id])
   end
 end

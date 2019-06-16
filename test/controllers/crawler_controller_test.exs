@@ -50,9 +50,10 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
 
   test "player location is set", %{conn: conn} do
     conn = post conn, crawler_path(conn, :create)
-    player_location = Player.get_location!(conn.assigns[:user_id_hash])
+    player_location = Player.get_location!(conn.assigns[:user_id_hash]) |> Repo.preload(:map_tile)
     assert player_location
-    assert player_location.dungeon_id
+    assert player_location.map_tile
+    assert player_location.map_tile.dungeon_id
   end
 
   @tag login_as: "maxheadroom"

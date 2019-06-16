@@ -1,11 +1,12 @@
 defmodule DungeonCrawl.Action.Move do
   alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeon.MapTile
   alias DungeonCrawl.EventResponder.Parser
 
   alias DungeonCrawl.Repo
 
   # todo: rename this
-  def go(entity_map_tile, destination) do
+  def go(%MapTile{} = entity_map_tile, %MapTile{} = destination) do
     if _valid_move(destination) do
       top_tile = Map.take(destination, [:dungeon_id, :row, :col, :z_index])
       {:ok, new_location} = Dungeon.update_map_tile(entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
