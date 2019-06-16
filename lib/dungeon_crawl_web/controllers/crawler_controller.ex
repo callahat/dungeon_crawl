@@ -6,8 +6,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.DungeonGenerator
   alias Ecto.Multi
 
-  plug :assign_player_location when action in [:show, :create]
-  plug :validate_not_crawling  when action in [:create]
+  plug :assign_player_location when action in [:show, :create, :join]
+  plug :validate_not_crawling  when action in [:create, :join]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
 
@@ -69,7 +69,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     Player.create_location(%{map_tile_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
     |> case do
-      {:ok, %{dungeon: _dungeon}} ->
+      {:ok, _} ->
         conn
         |> put_flash(:info, "Dungeon joined successfully.")
         |> redirect(to: crawler_path(conn, :show))
