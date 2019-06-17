@@ -33,5 +33,12 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     assert {:invalid} = Move.go(player_location.map_tile, destination)
   end
+
+  test "moving to something that is not a map tile" do
+    dungeon = insert_stubbed_dungeon()
+    player_location = insert_player_location(%{dungeon_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
+
+    assert {:invalid} = Move.go(player_location.map_tile, nil)
+  end
 end
 

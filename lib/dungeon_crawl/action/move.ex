@@ -18,6 +18,7 @@ defmodule DungeonCrawl.Action.Move do
       {:invalid}
     end
   end
+  def go(%MapTile{} = entity_map_tile, _), do: {:invalid}
 
   defp _valid_move(destination) do
     {:ok, responders} = Parser.parse(Repo.preload(destination,:tile_template).tile_template.responders)
