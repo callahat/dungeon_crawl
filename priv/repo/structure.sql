@@ -102,7 +102,6 @@ ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.dungeons.id;
 CREATE TABLE public.player_locations (
     id bigint NOT NULL,
     user_id_hash character varying(255),
-    user_id bigint,
     inserted_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     map_tile_id bigint
@@ -315,13 +314,6 @@ CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USIN
 
 
 --
--- Name: player_locations_user_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE INDEX player_locations_user_id_index ON public.player_locations USING btree (user_id);
-
-
---
 -- Name: tile_templates_deleted_at_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -367,16 +359,8 @@ ALTER TABLE ONLY public.player_locations
 
 
 --
--- Name: player_locations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.player_locations
-    ADD CONSTRAINT player_locations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-
---
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716);
 
