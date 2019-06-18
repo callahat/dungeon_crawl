@@ -101,6 +101,6 @@ defmodule DungeonCrawl.Player do
              where: m.id == ^dungeon_id,
              left_join: mt in assoc(m, :dungeon_map_tiles),
              left_join: pmt in assoc(mt, :player_locations),
-             select: count(pmt.map_tile_id))
+             select: count(pmt.id))
   end
 end
