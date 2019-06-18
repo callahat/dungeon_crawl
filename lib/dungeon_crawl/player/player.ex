@@ -67,7 +67,7 @@ defmodule DungeonCrawl.Player do
       location
     else 
       Repo.delete!(location.map_tile)
-      Repo.delete!(location)
+      location
     end
   end
   def delete_location!(user_id_hash) do
