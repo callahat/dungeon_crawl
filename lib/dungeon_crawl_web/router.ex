@@ -21,6 +21,7 @@ defmodule DungeonCrawlWeb.Router do
     # TODO: refactor to use the standard resource words
     get "/crawler", CrawlerController, :show
     post "/crawler", CrawlerController, :create
+    post "/crawler/join", CrawlerController, :join
     delete "/crawler", CrawlerController, :destroy
     put  "/crawler", CrawlerController, :act
 

@@ -3,6 +3,14 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
   import DungeonCrawlWeb.SharedView
 
+  test "tile_and_style/1 with nil" do
+    assert tile_and_style(nil) == ""
+  end
+
+  test "tile_and_style/2 with nil" do
+    assert tile_and_style(nil, :safe) == {:safe, ""}
+  end
+
   test "tile_and_style/2 using :safe returns a tuple marked html safe" do
     tile_template = insert_tile_template %{character: "!"}
     assert tile_and_style(tile_template, :safe) == {:safe, "<span>!</span>"}

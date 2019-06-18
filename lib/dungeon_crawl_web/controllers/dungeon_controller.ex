@@ -8,8 +8,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
 
   def index(conn, _params) do
-    dungeons = Dungeon.list_dungeons()
-    render(conn, "index.html", dungeons: dungeons)
+    dungeons_and_counts = Dungeon.list_dungeons_with_player_count()
+    render(conn, "index.html", dungeons_and_counts: dungeons_and_counts)
   end
 
   def new(conn, _params) do

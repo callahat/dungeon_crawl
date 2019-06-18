@@ -37,7 +37,8 @@ CREATE TABLE public.dungeon_map_tiles (
     "row" integer,
     col integer,
     dungeon_id bigint,
-    tile_template_id bigint
+    tile_template_id bigint,
+    z_index integer
 );
 
 
@@ -100,13 +101,10 @@ ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.dungeons.id;
 
 CREATE TABLE public.player_locations (
     id bigint NOT NULL,
-    "row" integer,
-    col integer,
     user_id_hash character varying(255),
-    dungeon_id bigint,
-    user_id bigint,
     inserted_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL
+    updated_at timestamp without time zone NOT NULL,
+    map_tile_id bigint
 );
 
 
@@ -309,24 +307,10 @@ CREATE INDEX dungeon_map_tiles_tile_template_id_index ON public.dungeon_map_tile
 
 
 --
--- Name: player_locations_dungeon_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE INDEX player_locations_dungeon_id_index ON public.player_locations USING btree (dungeon_id);
-
-
---
 -- Name: player_locations_user_id_hash_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
 CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USING btree (user_id_hash);
-
-
---
--- Name: player_locations_user_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE INDEX player_locations_user_id_index ON public.player_locations USING btree (user_id);
 
 
 --
@@ -367,24 +351,16 @@ ALTER TABLE ONLY public.dungeon_map_tiles
 
 
 --
--- Name: player_locations_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: player_locations_map_tile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.player_locations
-    ADD CONSTRAINT player_locations_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id);
-
-
---
--- Name: player_locations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.player_locations
-    ADD CONSTRAINT player_locations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT player_locations_map_tile_id_fkey FOREIGN KEY (map_tile_id) REFERENCES public.dungeon_map_tiles(id) ON DELETE CASCADE;
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716);
 

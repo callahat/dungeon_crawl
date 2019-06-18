@@ -1,6 +1,6 @@
 <pre class="dungeon_preview">
-<table id="dungeon" data-dungeon-id="<%= @player_location.dungeon_id %>">
-<%= {:safe, dungeon_as_table(@player_location) } %>
+<table id="dungeon" data-dungeon-id="<%= @player_location.map_tile.dungeon_id %>">
+<%= {:safe, dungeon_as_table(@player_location.map_tile) } %>
 </table>
 </pre>
 

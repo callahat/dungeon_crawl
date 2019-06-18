@@ -7,5 +7,35 @@
 </div>
 <%= else %>
 Not currently in any dungeon.
+<br/>
 <%= link "Generate a new one", to: crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+
+<br/>
+Or join:
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Dimensions (HxW)</th>
+      <th>Players</th>
+      <th></th>
+    </tr>
+  </thead>
+
+  <tbody>
+<%= for %{dungeon: dungeon, player_count: player_count} <- @dungeons_and_counts do %>
+    <tr>
+      <td><%= dungeon.name %></td>
+      <td><%= dungeon.height %>x<%= dungeon.width %></td>
+      <td><%= player_count %></td>
+
+      <td class="text-right">
+        <%= link "Join", to: crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+      </td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
 <% end %>
