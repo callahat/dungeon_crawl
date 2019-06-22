@@ -194,7 +194,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
-  Gets a single map_tile, with the highest z_index for given coordinates and dungeon (ie, the tile thats on top)
+  Gets a single map_tile, with the highest z_index for given coordinates
 
   Raises `Ecto.NoResultsError` if the Map tile does not exist.
 
@@ -207,23 +207,13 @@ defmodule DungeonCrawl.Dungeon do
       ** (Ecto.NoResultsError)
 
   """
-  def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
-    {d_row, d_col} = _direction_delta(direction)
-    get_map_tile!(dungeon_id, row + d_row, col + d_col)
-  end
   def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile!(dungeon_id, row, col)
   def get_map_tile!(id), do: Repo.get!(MapTile, id)
-  def get_map_tile!(dungeon_id, row, col, direction), do: get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
   def get_map_tile!(dungeon_id, row, col) do
     Repo.one!(_get_map_tile_query(dungeon_id, row, col, 1))
   end
 
-  def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
-    {d_row, d_col} = _direction_delta(direction)
-    get_map_tile(dungeon_id, row + d_row, col + d_col)
-  end
   def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile(dungeon_id, row, col)
-  def get_map_tile(dungeon_id, row, col, direction), do: get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
   def get_map_tile(dungeon_id, row, col) do
     Repo.one(_get_map_tile_query(dungeon_id, row, col, 1))
   end
@@ -236,27 +226,12 @@ defmodule DungeonCrawl.Dungeon do
       iex> get_map_tiles(103, 14, 56)
       [%MapTile{}, %MapTile{}, ...]
 
-      iex> get_map_tiles(%{dungeon_id: 103, row: 14, col: 56}, "north")
+      iex> get_map_tiles(%{dungeon_id: 103, row: 14, col: 56})
       []
   """
-  def get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}, direction) do
-    {d_row, d_col} = _direction_delta(direction)
-    get_map_tiles(dungeon_id, row + d_row, col + d_col)
-  end
   def get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tiles(dungeon_id, row, col)
-  def get_map_tiles(dungeon_id, row, col, direction), do: get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}, direction)
   def get_map_tiles(dungeon_id, row, col) do
     Repo.all(_get_map_tile_query(dungeon_id, row, col, nil))
-  end
-
-  defp _direction_delta(direction) do
-    case direction do
-      "up"    -> {-1,  0}
-      "down"  -> { 1,  0}
-      "left"  -> { 0, -1}
-      "right" -> { 0,  1}
-      _       -> { 0,  0}
-    end
   end
 
   defp _get_map_tile_query(dungeon_id, row, col, max_results) do
