@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.Player
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.Action.{Move,Door}
 
   def join("dungeons:" <> dungeon_id, _payload, socket) do

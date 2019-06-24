@@ -2,16 +2,16 @@ defmodule DungeonCrawl.Action.MoveTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Action.Move
-  alias DungeonCrawl.Dungeon
-  alias DungeonCrawl.Dungeon.MapTile
+  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonInstances.MapTile
 
   test "moving to an empty floor space" do
     floor_tt = insert_tile_template() # floor by default
-    dungeon = insert_stubbed_dungeon()
-    floor_a = Dungeon.create_map_tile!(%{dungeon_id: dungeon.id, row: 1, col: 2, tile_template_id: floor_tt.id})
-    floor_b = Dungeon.create_map_tile!(%{dungeon_id: dungeon.id, row: 1, col: 1, tile_template_id: floor_tt.id})
+    dungeon = insert_stubbed_dungeon_instance()
+    floor_a = Dungeon.create_map_tile!(%{map_instance_id: dungeon.id, row: 1, col: 2, tile_template_id: floor_tt.id})
+    floor_b = Dungeon.create_map_tile!(%{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: floor_tt.id})
 
-    player_location = insert_player_location(%{dungeon_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
+    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
 
     destination = Dungeon.get_map_tile(dungeon.id, 1, 1)
 
@@ -27,16 +27,16 @@ defmodule DungeonCrawl.Action.MoveTest do
   test "moving to a bad space" do
     impassable_floor = insert_tile_template(%{responders: "{}"})
 
-    dungeon = insert_stubbed_dungeon(%{}, [%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0}])
-    player_location = insert_player_location(%{dungeon_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
-    destination = %MapTile{dungeon_id: dungeon.id, row: 1, col: 1, tile_template_id: impassable_floor.id}
+    dungeon = insert_stubbed_dungeon_instance(%{}, [%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0}])
+    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
+    destination = %MapTile{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: impassable_floor.id}
 
     assert {:invalid} = Move.go(player_location.map_tile, destination)
   end
 
   test "moving to something that is not a map tile" do
-    dungeon = insert_stubbed_dungeon()
-    player_location = insert_player_location(%{dungeon_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
+    dungeon = insert_stubbed_dungeon_instance()
+    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
 
     assert {:invalid} = Move.go(player_location.map_tile, nil)
   end

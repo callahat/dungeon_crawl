@@ -8,7 +8,7 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
     field :col, :integer
     field :z_index, :integer, default: 0
 
-    belongs_to :dungeon, DungeonCrawl.DungeonInstances.Dungeon, foreign_key: :map_instance_id
+    belongs_to :dungeon, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_instance_id
     belongs_to :tile_template, DungeonCrawl.TileTemplates.TileTemplate
     has_many :player_locations, DungeonCrawl.Player.Location, foreign_key: :map_tile_instance_id, on_delete: :delete_all
   end

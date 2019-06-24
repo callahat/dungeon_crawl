@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonGenerator
   alias Ecto.Multi
 
@@ -29,22 +30,24 @@ defmodule DungeonCrawlWeb.CrawlerController do
     # TODO: revisit multi's and clean this up
     Multi.new
     |> Multi.run(:dungeon, fn(%{}) ->
-        result = Dungeon.generate_map(@dungeon_generator, dungeon_attrs)
-        {:ok, result}
+        {:ok, run_results} = Dungeon.generate_map(@dungeon_generator, dungeon_attrs)
+        {:ok, run_results[:dungeon]}
       end)
-    |> Multi.run(:player_location, fn(%{dungeon: dungeon_result}) ->
-        {_, run_results} = dungeon_result
-        dungeon = run_results[:dungeon]
+    |> Multi.run(:instance, fn(%{dungeon: dungeon}) ->
+        {:ok, run_results} = DungeonInstances.create_map(dungeon)
+        {:ok, run_results[:dungeon]}
+      end)
+    |> Multi.run(:player_location, fn(%{instance: dungeon}) ->
         empty_floor = Repo.preload(dungeon, dungeon_map_tiles: :tile_template).dungeon_map_tiles
                       |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
                       |> Enum.random
         # todo: move somewhere else
         player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
-        map_tile = Map.take(empty_floor, [:dungeon_id, :row, :col])
+        map_tile = Map.take(empty_floor, [:map_instance_id, :row, :col])
                    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
-                   |> DungeonCrawl.Dungeon.create_map_tile!()
+                   |> DungeonCrawl.DungeonInstances.create_map_tile!()
 
-        result = Player.create_location(%{map_tile_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
+        result = Player.create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
         {:ok, result}
       end)
     |> Repo.transaction
@@ -56,18 +59,18 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
-  def join(conn, %{"dungeon_id" => dungeon_id}) do
-    dungeon = Dungeon.get_map!(dungeon_id)
-    empty_floor = Repo.preload(dungeon, dungeon_map_tiles: :tile_template).dungeon_map_tiles
+  def join(conn, %{"instance_id" => instance_id}) do
+    instance = DungeonInstances.get_map!(instance_id)
+    empty_floor = Repo.preload(instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
                   |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
                   |> Enum.random
         # todo: move somewhere else
         player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
-        map_tile = Map.take(empty_floor, [:dungeon_id, :row, :col])
+        map_tile = Map.take(empty_floor, [:map_instance_id, :row, :col])
                    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
-                   |> DungeonCrawl.Dungeon.create_map_tile!()
+                   |> DungeonCrawl.DungeonInstances.create_map_tile!()
 
-    Player.create_location(%{map_tile_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
+    Player.create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
     |> case do
       {:ok, _} ->
         conn

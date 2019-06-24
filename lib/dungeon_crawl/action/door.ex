@@ -1,15 +1,16 @@
 defmodule DungeonCrawl.Action.Door do
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.EventResponder.Parser
   alias DungeonCrawl.Repo
   alias DungeonCrawl.TileTemplates
 
-  def open(door_location) do
+  def open(%MapTile{} = door_location) do
     {:ok, responders} = Parser.parse(Repo.preload(door_location,:tile_template).tile_template.responders)
     _try_door door_location, responders[:open]
   end
 
-  def close(door_location) do
+  def close(%MapTile{} = door_location) do
     {:ok, responders} = Parser.parse(Repo.preload(door_location,:tile_template).tile_template.responders)
 
     _try_door door_location, responders[:close]
