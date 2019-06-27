@@ -96,6 +96,73 @@ ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.dungeons.id;
 
 
 --
+-- Name: map_instances; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE public.map_instances (
+    id bigint NOT NULL,
+    name character varying(255),
+    width integer,
+    height integer,
+    map_id bigint,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL
+);
+
+
+--
+-- Name: map_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.map_instances_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: map_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.map_instances_id_seq OWNED BY public.map_instances.id;
+
+
+--
+-- Name: map_tile_instances; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE public.map_tile_instances (
+    id bigint NOT NULL,
+    "row" integer,
+    col integer,
+    z_index integer,
+    map_instance_id bigint,
+    tile_template_id bigint
+);
+
+
+--
+-- Name: map_tile_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.map_tile_instances_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: map_tile_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.map_tile_instances_id_seq OWNED BY public.map_tile_instances.id;
+
+
+--
 -- Name: player_locations; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -104,7 +171,8 @@ CREATE TABLE public.player_locations (
     user_id_hash character varying(255),
     inserted_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
-    map_tile_id bigint
+    map_tile_id bigint,
+    map_tile_instance_id bigint
 );
 
 
@@ -227,6 +295,20 @@ ALTER TABLE ONLY public.dungeons ALTER COLUMN id SET DEFAULT nextval('public.dun
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
+ALTER TABLE ONLY public.map_instances ALTER COLUMN id SET DEFAULT nextval('public.map_instances_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.map_tile_instances ALTER COLUMN id SET DEFAULT nextval('public.map_tile_instances_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
 ALTER TABLE ONLY public.player_locations ALTER COLUMN id SET DEFAULT nextval('public.player_locations_id_seq'::regclass);
 
 
@@ -258,6 +340,22 @@ ALTER TABLE ONLY public.dungeon_map_tiles
 
 ALTER TABLE ONLY public.dungeons
     ADD CONSTRAINT dungeons_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: map_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY public.map_instances
+    ADD CONSTRAINT map_instances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: map_tile_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY public.map_tile_instances
+    ADD CONSTRAINT map_tile_instances_pkey PRIMARY KEY (id);
 
 
 --
@@ -307,6 +405,34 @@ CREATE INDEX dungeon_map_tiles_tile_template_id_index ON public.dungeon_map_tile
 
 
 --
+-- Name: map_instances_map_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX map_instances_map_id_index ON public.map_instances USING btree (map_id);
+
+
+--
+-- Name: map_tile_instances_map_instance_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX map_tile_instances_map_instance_id_index ON public.map_tile_instances USING btree (map_instance_id);
+
+
+--
+-- Name: map_tile_instances_tile_template_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX map_tile_instances_tile_template_id_index ON public.map_tile_instances USING btree (tile_template_id);
+
+
+--
+-- Name: player_locations_map_tile_instance_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX player_locations_map_tile_instance_id_index ON public.player_locations USING btree (map_tile_instance_id);
+
+
+--
 -- Name: player_locations_user_id_hash_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -351,6 +477,30 @@ ALTER TABLE ONLY public.dungeon_map_tiles
 
 
 --
+-- Name: map_instances_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.map_instances
+    ADD CONSTRAINT map_instances_map_id_fkey FOREIGN KEY (map_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
+
+
+--
+-- Name: map_tile_instances_map_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.map_tile_instances
+    ADD CONSTRAINT map_tile_instances_map_instance_id_fkey FOREIGN KEY (map_instance_id) REFERENCES public.map_instances(id) ON DELETE CASCADE;
+
+
+--
+-- Name: map_tile_instances_tile_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.map_tile_instances
+    ADD CONSTRAINT map_tile_instances_tile_template_id_fkey FOREIGN KEY (tile_template_id) REFERENCES public.tile_templates(id) ON DELETE CASCADE;
+
+
+--
 -- Name: player_locations_map_tile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -359,8 +509,16 @@ ALTER TABLE ONLY public.player_locations
 
 
 --
+-- Name: player_locations_map_tile_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.player_locations
+    ADD CONSTRAINT player_locations_map_tile_instance_id_fkey FOREIGN KEY (map_tile_instance_id) REFERENCES public.map_tile_instances(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437);
 
