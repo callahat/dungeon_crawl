@@ -72,7 +72,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     Player.create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
     |> case do
-      {:ok, _} ->
+      {:ok, location} ->
+        _broadcast_join(Repo.preload(location, :map_tile))
         conn
         |> put_flash(:info, "Dungeon joined successfully.")
         |> redirect(to: crawler_path(conn, :show))
@@ -102,14 +103,30 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
+  defp _broadcast_join(location) do
+    top = Repo.preload(DungeonInstances.get_map_tile(location.map_tile), :tile_template)
+    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
+                                    "player_joined",
+                                    %{row: top.row, col: top.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(top.tile_template)})
+  end
+
   def destroy(conn, _opts) do
     player_location = Player.get_location(conn.assigns[:user_id_hash])
     
-    Player.delete_location!(player_location)
+    location = Player.delete_location!(player_location)
+
+    _broadcast_leave(location)
 
     conn
     |> put_flash(:info, "Dungeon cleared.")
     |> redirect(to: crawler_path(conn, :show))
+  end
+
+  defp _broadcast_leave(location) do
+    top = Repo.preload(DungeonInstances.get_map_tile(location.map_tile), :tile_template)
+    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
+                                    "player_left",
+                                    %{row: top.row, col: top.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(top.tile_template)})
   end
 
   defp assign_player_location(conn, _opts) do

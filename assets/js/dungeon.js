@@ -59,6 +59,12 @@ let Dungeon = {
       let door_location = resp.door_location
       document.getElementById(door_location.row + "_" + door_location.col).innerHTML = door_location.tile
     })
+    dungeonChannel.on("player_left", (resp) => {
+      document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
+    })
+    dungeonChannel.on("player_joined", (resp) => {
+      document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
+    })
 
     dungeonChannel.on("ping", ({count}) => console.log("PING", count))
 

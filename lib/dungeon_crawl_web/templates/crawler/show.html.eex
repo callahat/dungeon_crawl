@@ -3,7 +3,7 @@
 <pre id="short_comm">Move...</pre>
 <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @player_location.map_tile.dungeon) %>
 <br/>
-<%= link "Clear Dungeon", to: crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Leave Dungeon", to: crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
 </div>
 <%= else %>
 Not currently in any dungeon.
