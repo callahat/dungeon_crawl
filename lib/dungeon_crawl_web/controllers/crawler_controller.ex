@@ -124,9 +124,10 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   defp _broadcast_leave(location) do
     top = Repo.preload(DungeonInstances.get_map_tile(location.map_tile), :tile_template)
+    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top.tile_template), else: ""
     DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
                                     "player_left",
-                                    %{row: top.row, col: top.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(top.tile_template)})
+                                    %{row: location.map_tile.row, col: location.map_tile.col, tile: tile})
   end
 
   defp assign_player_location(conn, _opts) do
