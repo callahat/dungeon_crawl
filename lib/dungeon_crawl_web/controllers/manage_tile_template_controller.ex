@@ -57,10 +57,6 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
         conn
         |> put_flash(:info, "Tile Template deleted successfully.")
         |> redirect(to: manage_tile_template_path(conn, :index))
-      {:error, message} ->
-        conn
-        |> put_flash(:error, "#{message}")
-        |> redirect(to: manage_tile_template_path(conn, :index))
     end
   end
 end

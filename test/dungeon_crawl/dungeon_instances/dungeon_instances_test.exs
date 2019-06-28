@@ -32,7 +32,6 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert {:ok, %Map{}} = DungeonInstances.delete_map(instance)
       assert_raise Ecto.NoResultsError, fn -> DungeonInstances.get_map!(instance.id) end
     end
-
   end
 
   describe "map_tile_instances" do

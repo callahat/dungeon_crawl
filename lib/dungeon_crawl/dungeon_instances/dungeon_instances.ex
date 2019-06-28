@@ -69,19 +69,10 @@ defmodule DungeonCrawl.DungeonInstances do
 
   """
   def delete_map(%Map{} = map) do
-    # The cascade doesn't seem to work down from Map -> MapTile -> locations, so they need deleted manually
-   # _delete_player_locations(map)
     Repo.delete(map)
   end
   def delete_map!(%Map{} = map) do
-   # _delete_player_locations(map)
     Repo.delete!(map)
-  end
-
-  defp _delete_player_locations(%Map{} = map) do
-    Multi.new
-    |> Multi.run(:locations, fn(_) -> {:ok, Repo.preload(map, :locations).locations |> Enum.map(fn(l) -> Repo.delete(l) end)} end)
-    |> Repo.transaction
   end
 
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -199,17 +190,11 @@ defmodule DungeonCrawl.DungeonInstances do
     |> MapTile.changeset(attrs)
     |> Repo.update!
   end
-  def update_map_tile!(%{map_instance_id: map_instance_id, row: row, col: col}, attrs) do
-    update_map_tile!(get_map_tile!(map_instance_id, row, col), attrs)
-  end
 
   def update_map_tile(%MapTile{} = map_tile, attrs) do
     map_tile
     |> MapTile.changeset(attrs)
     |> Repo.update
-  end
-  def update_map_tile(%{map_instance_id: map_instance_id, row: row, col: col}, attrs) do
-    update_map_tile(get_map_tile!(map_instance_id, row, col), attrs)
   end
 
 end
