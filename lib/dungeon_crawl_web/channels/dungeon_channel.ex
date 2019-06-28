@@ -5,10 +5,10 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.Action.{Move,Door}
 
-  def join("dungeons:" <> dungeon_id, _payload, socket) do
-    dungeon_id = String.to_integer(dungeon_id)
+  def join("dungeons:" <> instance_id, _payload, socket) do
+    instance_id = String.to_integer(instance_id)
 
-    {:ok, %{dungeon_id: dungeon_id}, assign(socket, :dungeon_id, dungeon_id)}
+    {:ok, %{instance_id: instance_id}, assign(socket, :instance_id, instance_id)}
   end
 
   def handle_in("ping", payload, socket) do

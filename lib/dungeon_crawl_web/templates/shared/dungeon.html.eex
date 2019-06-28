@@ -1,5 +1,5 @@
 <pre class="dungeon_preview">
-<table id="dungeon" data-dungeon-id="<%= @dungeon.id %>">
+<table id="dungeon" data-instance-id="<%= @dungeon.id %>" data-readonly="<%= @readonly %>">
 <%= {:safe, dungeon_as_table(@dungeon) } %>
 </table>
 </pre>
