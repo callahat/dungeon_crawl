@@ -155,19 +155,63 @@ defmodule DungeonCrawl.Dungeon do
 
   """
   def delete_map(%Map{} = map) do
-    # The cascade doesn't seem to work down from Map -> MapTile -> locations, so they need deleted manually
-    #_delete_player_locations(map)
-    Repo.delete(map)
+    change_map(map, %{deleted_at: NaiveDateTime.utc_now})
+    |> Repo.update
   end
   def delete_map!(%Map{} = map) do
-    #_delete_player_locations(map)
+    change_map(map, %{deleted_at: NaiveDateTime.utc_now})
+    |> Repo.update!
+  end
+
+  @doc """
+  Hard deletes a Map.
+
+  ## Examples
+
+      iex> delete_map(map)
+      {:ok, %Map{}}
+
+      iex> delete_map(map)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def hard_delete_map!(%Map{} = map) do
     Repo.delete!(map)
   end
 
-  defp _delete_player_locations(%Map{} = map) do
-    Multi.new
-    |> Multi.run(:locations, fn(_) -> {:ok, Repo.preload(map, :locations).locations |> Enum.map(fn(l) -> Repo.delete(l) end)} end)
-    |> Repo.transaction
+  @doc """
+  Activates the map for users to join.
+
+  ## Examples
+
+    iex> activate_map(map)
+    {:ok, %Map{}}
+
+    ies> activate_map(map)
+    {:error, %Ecto.Changeset{}}
+  """
+  def activate_map(%Map{} = map) do
+    change_map(map, %{active: true})
+    |> Repo.update
+  end
+
+  @doc """
+  Copies map to a new version for editing/design.
+
+  ## Examples
+
+    iex> new_map_version(map)
+    %Map{}
+  """
+  def new_map_version(%Map{} = map) do
+    {:ok, dungeon} = create_map(Elixir.Map.put(Elixir.Map.take(map, [:name, :height, :width]), :version, map.version + 1))
+    Repo.insert_all(MapTile, _tile_copies(dungeon.id, map))
+    dungeon
+  end
+
+  defp _tile_copies(dungeon_id, map) do
+    Repo.preload(map, :dungeon_map_tiles).dungeon_map_tiles
+    |> Enum.map(fn(tile) -> %{dungeon_id: dungeon_id, row: tile.row, col: tile.col, tile_template_id: tile.tile_template_id, z_index: tile.z_index} end)
   end
 
   @doc """
@@ -179,8 +223,8 @@ defmodule DungeonCrawl.Dungeon do
       %Ecto.Changeset{source: %Map{}}
 
   """
-  def change_map(%Map{} = map) do
-    Map.changeset(map, %{})
+  def change_map(%Map{} = map, changes \\ %{}) do
+    Map.changeset(map, changes)
   end
 
   @doc """
