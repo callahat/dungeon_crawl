@@ -9,7 +9,6 @@ defmodule DungeonCrawl.Dungeon.MapTile do
     field :z_index, :integer, default: 0
     belongs_to :dungeon, DungeonCrawl.Dungeon.Map
     belongs_to :tile_template, DungeonCrawl.TileTemplates.TileTemplate
-    has_many :player_locations, DungeonCrawl.Player.Location, foreign_key: :map_tile_id, on_delete: :delete_all
   end
 
   @doc false

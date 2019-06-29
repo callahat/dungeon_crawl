@@ -1,11 +1,42 @@
 let Dungeon = {
   init(socket, element){ if(!element){ return }
-    let suppressDefaultKeys = [37,38,39,40]
-    let dungeonId = element.getAttribute("data-dungeon-id")
+    let dungeonId = element.getAttribute("data-instance-id")
+    let readonly = element.getAttribute("data-readonly") == "true"
     socket.connect()
 
     let dungeonChannel   = socket.channel("dungeons:" + dungeonId)
 
+    if(!readonly){
+      this.setupWindowListeners(dungeonChannel)
+    }
+
+    dungeonChannel.on("tile_update", (resp) => {
+      let old_location = resp.old_location
+      let new_location = resp.new_location
+      document.getElementById(old_location.row + "_" + old_location.col).innerHTML = old_location.tile
+      document.getElementById(new_location.row + "_" + new_location.col).innerHTML = "@"
+    })
+    dungeonChannel.on("door_changed", (resp) => {
+      let door_location = resp.door_location
+      document.getElementById(door_location.row + "_" + door_location.col).innerHTML = door_location.tile
+    })
+    dungeonChannel.on("player_left", (resp) => {
+      document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
+    })
+    dungeonChannel.on("player_joined", (resp) => {
+      document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
+    })
+
+    dungeonChannel.on("ping", ({count}) => console.log("PING", count))
+
+    dungeonChannel.join()
+      .receive("ok", (resp) => {
+        console.log("joined the dungeons channel!")
+      })
+      .receive("error", resp => console.log("join failed", resp))
+  },
+  setupWindowListeners(dungeonChannel){
+    let suppressDefaultKeys = [37,38,39,40]
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
@@ -43,30 +74,6 @@ let Dungeon = {
           break
       }
     })
-    dungeonChannel.on("tile_update", (resp) => {
-//      console.log("Got tile_update")
-//      console.log(resp)
-//      console.log(dungeonChannel.params)
-      let old_location = resp.old_location
-      let new_location = resp.new_location
-      document.getElementById(old_location.row + "_" + old_location.col).innerHTML = old_location.tile
-      document.getElementById(new_location.row + "_" + new_location.col).innerHTML = "@"
-    })
-    dungeonChannel.on("door_changed", (resp) => {
-//      console.log("Got door_changed")
-//      console.log(resp)
-//      console.log(dungeonChannel.params)
-      let door_location = resp.door_location
-      document.getElementById(door_location.row + "_" + door_location.col).innerHTML = door_location.tile
-    })
-
-    dungeonChannel.on("ping", ({count}) => console.log("PING", count))
-
-    dungeonChannel.join()
-      .receive("ok", (resp) => {
-        console.log("joined the dungeons channel!")
-      })
-      .receive("error", resp => console.log("join failed", resp))
   },
   move(dungeonChannel, direction){
     console.log(direction)

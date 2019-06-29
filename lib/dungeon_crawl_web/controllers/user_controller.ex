@@ -58,10 +58,6 @@ defmodule DungeonCrawlWeb.UserController do
         conn
         |> put_flash(:info, "User deleted successfully.")
         |> redirect(to: page_path(conn, :index))
-      {:error, _} ->
-        conn
-        |> put_flash(:info, "Error deleting user.")
-        |> redirect(to: page_path(conn, :index))
     end
   end
 end

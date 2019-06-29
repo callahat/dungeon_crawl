@@ -1,15 +1,12 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  def dungeon_as_table(player_location) do
-    player_location.dungeon.dungeon_map_tiles
-    |> Enum.reduce(%{}, fn(dmt,acc) -> Map.put(acc, {dmt.row, dmt.col}, dmt.tile_template) end)
-    |> put_player_location(player_location)
-    |> rows(player_location.dungeon.height, player_location.dungeon.width)
-  end
-
-  defp put_player_location(map, player_location) do
-    Map.put(map, {player_location.row, player_location.col}, %{character: :@, color: nil, background_color: nil})
+  def dungeon_as_table(dungeon) do
+    dungeon.dungeon_map_tiles
+    |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
+    |> DungeonCrawl.Repo.preload(:tile_template)
+    |> Enum.reduce(%{}, fn(dmt,acc) -> if Map.has_key?(acc, {dmt.row, dmt.col}), do: acc, else: Map.put(acc, {dmt.row, dmt.col}, dmt.tile_template) end)
+    |> rows(dungeon.height, dungeon.width)
   end
 
   defp rows(map, height, width) do
