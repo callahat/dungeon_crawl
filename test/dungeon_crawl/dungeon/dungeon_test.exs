@@ -39,7 +39,7 @@ defmodule DungeonCrawl.DungeonTest do
              [%{dungeon_id: map.map_id, dungeon: Elixir.Map.put(preloaded_dungeon, :map_instances, [preloaded_map_instances])}]
       p1 = insert_player_location(%{map_instance_id: map.id})
       p2 = insert_player_location(%{map_instance_id: map.id, user_id_hash: "different"})
-      preloaded_map_instances = Elixir.Map.put Enum.random(preloaded_dungeon.map_instances), :locations, [p2,p1]
+      preloaded_map_instances = Elixir.Map.put Enum.random(preloaded_dungeon.map_instances), :locations, [p1,p2]
       assert Dungeon.list_dungeons_with_player_count() ==
              [%{dungeon_id: map.map_id, dungeon: Elixir.Map.put(preloaded_dungeon, :map_instances, [preloaded_map_instances])}]
     end

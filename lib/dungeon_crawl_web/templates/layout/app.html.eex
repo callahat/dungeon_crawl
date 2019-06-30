@@ -23,7 +23,7 @@
               <%= if @current_user.is_admin do %>
               <li><%= link "Users", to: manage_user_path(@conn, :index) %></li>
               <li><%= link "Tile Templates", to: manage_tile_template_path(@conn, :index) %></li>
-              <li><%= link "Dungeons", to: dungeon_path(@conn, :index) %></li>
+              <li><%= link "Dungeons", to: manage_dungeon_path(@conn, :index) %></li>
               <% end %>
             <% else %>
               <li><%= link "Register", to: user_path(@conn, :new) %></li>

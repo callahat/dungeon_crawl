@@ -33,7 +33,7 @@ defmodule DungeonCrawlWeb.Router do
     pipe_through [:browser, :authenticate_user, :verify_user_is_admin]
 
     resources "/users", ManageUserController
-    resources "/dungeons", DungeonController, except: [:edit, :update]
+    resources "/dungeons", ManageDungeonController, except: [:edit, :update]
     resources "/tile_templates", ManageTileTemplateController
   end
 

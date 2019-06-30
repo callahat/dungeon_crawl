@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.DungeonController do
+defmodule DungeonCrawlWeb.ManageDungeonController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Dungeon
@@ -23,7 +23,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, %{dungeon: dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
+        |> redirect(to: manage_dungeon_path(conn, :show, dungeon))
       {:error, :dungeon, changeset, _others} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -31,15 +31,17 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def show(conn, %{"id" => id, "instance_id" => instance_id}) do
     dungeon = Dungeon.get_map!(id) |> Repo.preload([map_instances: [:locations]])
+    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).name, else: "<None>"
     instance = DungeonInstances.get_map!(instance_id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
 
-    render(conn, "show.html", dungeon: dungeon, instance: instance)
+    render(conn, "show.html", dungeon: dungeon, instance: instance, owner_name: owner_name)
   end
 
   def show(conn, %{"id" => id}) do
     dungeon = Dungeon.get_map!(id) |> Repo.preload([map_instances: [:locations], dungeon_map_tiles: [:tile_template]])
+    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).name, else: "<None>"
 
-    render(conn, "show.html", dungeon: dungeon, instance: nil)
+    render(conn, "show.html", dungeon: dungeon, instance: nil, owner_name: owner_name)
   end
 
   def delete(conn, %{"id" => id}) do
@@ -49,6 +51,6 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     conn
     |> put_flash(:info, "Dungeon deleted successfully.")
-    |> redirect(to: dungeon_path(conn, :index))
+    |> redirect(to: manage_dungeon_path(conn, :index))
   end
 end
