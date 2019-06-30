@@ -16,6 +16,7 @@ defmodule DungeonCrawl.Dungeon.Map do
     has_many :dungeon_map_tiles, DungeonCrawl.Dungeon.MapTile, foreign_key: :dungeon_id, on_delete: :delete_all
     has_many :locations, through: [:dungeon_map_tiles, :player_locations], on_delete: :delete_all
     belongs_to :previous_version, DungeonCrawl.Dungeon.Map, foreign_key: :previous_version_id
+    belongs_to :user, DungeonCrawl.Account.User
 
     timestamps()
   end
@@ -23,7 +24,7 @@ defmodule DungeonCrawl.Dungeon.Map do
   @doc false
   def changeset(map, attrs) do
     map
-    |> cast(attrs, [:name,:height,:width,:version,:active,:previous_version_id,:deleted_at])
+    |> cast(attrs, [:name,:height,:width,:version,:active,:previous_version_id,:deleted_at,:user_id])
     |> cast_assoc(:dungeon_map_tiles)
     |> validate_length(:name, max: 32)
     |> validate_required([:name])
