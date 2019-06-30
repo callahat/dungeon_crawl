@@ -76,7 +76,8 @@ CREATE TABLE public.dungeons (
     version integer DEFAULT 1,
     active boolean,
     deleted_at timestamp without time zone,
-    previous_version_id bigint
+    previous_version_id bigint,
+    user_id bigint
 );
 
 
@@ -423,6 +424,13 @@ CREATE INDEX dungeons_deleted_at_index ON public.dungeons USING btree (deleted_a
 
 
 --
+-- Name: dungeons_user_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX dungeons_user_id_index ON public.dungeons USING btree (user_id);
+
+
+--
 -- Name: map_instances_map_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -503,6 +511,14 @@ ALTER TABLE ONLY public.dungeons
 
 
 --
+-- Name: dungeons_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeons
+    ADD CONSTRAINT dungeons_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: map_instances_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -546,5 +562,5 @@ ALTER TABLE ONLY public.player_locations
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337);
 
