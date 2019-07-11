@@ -1,0 +1,20 @@
+<h2><%= @dungeon.name %> (<%= @dungeon.height %>x<%= @dungeon.width %>)</h2>
+<p><b>Owner:</b> <%= @owner_name %></p>
+<p><b>Version:</b> <%= @dungeon.version %> (<%= if @dungeon.active, do: "A", else: "Ina" %>ctive)</p>
+
+<div class="text-center">
+
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true) %>
+
+</div>
+
+
+<%= if @dungeon.active do %>
+<%= link "New Version", to: dungeon_new_version_path(@conn, :new_version, @dungeon), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-info btn-xs" %> |
+<% else %>
+<%= link "Activate", to: dungeon_activate_path(@conn, :activate, @dungeon), method: :put, data: [confirm: "Are you sure?"], class: "btn btn-info btn-xs" %> |
+<%= link "Edit", to: dungeon_path(@conn, :edit, @dungeon) %> |
+<% end %>
+<%= link "Back", to: dungeon_path(@conn, :index) %> |
+<%= link "Delete", to: dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+

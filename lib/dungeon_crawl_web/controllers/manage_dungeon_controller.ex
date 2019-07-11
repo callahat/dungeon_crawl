@@ -30,8 +30,8 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
   end
 
   def show(conn, %{"id" => id, "instance_id" => instance_id}) do
-    dungeon = Dungeon.get_map!(id) |> Repo.preload([map_instances: [:locations]])
-    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).name, else: "<None>"
+    dungeon = Dungeon.get_map!(id) |> Repo.preload([:user, map_instances: [:locations]])
+    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
     instance = DungeonInstances.get_map!(instance_id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
 
     render(conn, "show.html", dungeon: dungeon, instance: instance, owner_name: owner_name)
@@ -39,7 +39,7 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
 
   def show(conn, %{"id" => id}) do
     dungeon = Dungeon.get_map!(id) |> Repo.preload([map_instances: [:locations], dungeon_map_tiles: [:tile_template]])
-    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).name, else: "<None>"
+    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
 
     render(conn, "show.html", dungeon: dungeon, instance: nil, owner_name: owner_name)
   end

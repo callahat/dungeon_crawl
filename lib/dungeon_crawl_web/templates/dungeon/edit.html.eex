@@ -1,0 +1,7 @@
+<h2>Edit dungeon</h2>
+
+<%= render "form.html", changeset: @changeset, generators: nil,
+                        action: dungeon_path(@conn, :update, @dungeon.id) %>
+<p>* changing dimensions may cause the map to lose tiles</p>
+
+<%= link "Back", to: dungeon_path(@conn, :index) %>

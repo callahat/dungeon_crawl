@@ -19,6 +19,7 @@
             <li class="pull-left"><%= link "Dungeon Crawl", to: crawler_path(@conn, :show) %></li>
             <%= if @current_user do %>
               <li><%= link @current_user.username, to: user_path(@conn, :show) %></li>
+              <li><%= link "Edit Dungeons", to: dungeon_path(@conn, :index) %></li>
               <li><%= link "Log out", to: session_path(@conn, :delete, @current_user), method: "delete" %></li>
               <%= if @current_user.is_admin do %>
               <li><%= link "Users", to: manage_user_path(@conn, :index) %></li>
