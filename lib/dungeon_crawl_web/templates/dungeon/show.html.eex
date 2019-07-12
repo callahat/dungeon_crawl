@@ -8,11 +8,8 @@
 
 </div>
 
-
-<%= if @dungeon.active do %>
-<%= link "New Version", to: dungeon_new_version_path(@conn, :new_version, @dungeon), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-info btn-xs" %> |
-<% else %>
-<%= link "Activate", to: dungeon_activate_path(@conn, :activate, @dungeon), method: :put, data: [confirm: "Are you sure?"], class: "btn btn-info btn-xs" %> |
+<%= activate_or_new_version_button @conn, @dungeon %> |
+<%= unless @dungeon.active do %>
 <%= link "Edit", to: dungeon_path(@conn, :edit, @dungeon) %> |
 <% end %>
 <%= link "Back", to: dungeon_path(@conn, :index) %> |

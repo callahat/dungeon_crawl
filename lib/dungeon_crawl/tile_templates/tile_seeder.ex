@@ -10,7 +10,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   def basic_tiles() do
     floor = TileTemplates.find_or_create_tile_template!(%{character: ".", name: "Floor", description: "Just a dusty floor", responders: "{move: {:ok}}"})
     wall  = TileTemplates.find_or_create_tile_template!(%{character: "#", name: "Wall",  description: "A Rough wall"})
-    rock  = TileTemplates.find_or_create_tile_template!(%{character: " ", name: "Rock",  description: "Impassible stone"})
+    rock  = rock_tile()
     statue= TileTemplates.find_or_create_tile_template!(%{character: "@", name: "Statue",  description: "It looks oddly familiar"})
 
     open_door    = TileTemplates.find_or_create_tile_template!(%{character: "'", name: "Open Door", description: "An open door"})
@@ -21,6 +21,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     %{?.  => floor, ?#  => wall, ?\s => rock, ?'  => open_door, ?+  => closed_door, ?@  => statue,
       "." => floor, "#" => wall, " " => rock, "'" => open_door, "+" => closed_door, "@" => statue}
+  end
+
+  @doc """
+  Seeds the DB with the basic player character tile, returning that record.
+  """
+  def rock_tile() do
+    TileTemplates.find_or_create_tile_template!(%{character: " ", name: "Rock",  description: "Impassible stone"})
   end
 
   @doc """

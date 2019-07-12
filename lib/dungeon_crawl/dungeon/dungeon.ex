@@ -89,6 +89,19 @@ defmodule DungeonCrawl.Dungeon do
   def get_map_by(attrs), do: Repo.get_by!(Map, attrs)
 
   @doc """
+  Returns a boolean indicating wether or not the given dungeon has a next version, or is the most current one.
+
+  ## Examples
+
+      iex> next_version_exists?(%Map{})
+      true
+
+      iex> next_version_exists?(%Map{})
+      false
+  """
+  def next_version_exists?(%Map{} = map), do: Repo.one(from m in Map, where: m.previous_version_id == ^map.id, select: count(m.id)) > 0
+
+  @doc """
   Creates a map.
 
   ## Examples
@@ -118,7 +131,7 @@ defmodule DungeonCrawl.Dungeon do
       {:error, "Inactive map"}
   """
   def create_new_map_version(%Map{active: true} = map) do
-    if Repo.one(from m in Map, where: m.previous_version_id == ^map.id, select: count(m.id)) == 0 do
+    unless next_version_exists?(map) do
       Multi.new
       |> Multi.insert(:dungeon, _dungeon_copy_changeset(map))
       |> Multi.run(:dungeon_map_tiles, fn(%{dungeon: dungeon}) ->
@@ -193,9 +206,50 @@ defmodule DungeonCrawl.Dungeon do
 
   """
   def update_map(%Map{} = map, attrs) do
+    case _update_map(map, attrs) do
+      {:ok, updated_map} = result ->
+        _adjust_sizing(map, updated_map)
+        result
+      error_result ->
+        error_result
+    end
+  end
+
+  defp _update_map(%Map{} = map, attrs) do
     map
     |> Map.changeset(attrs)
     |> Repo.update()
+  end
+
+  defp _adjust_sizing(map, updated_map) do
+    # probably should just use the main module looking for the space character. Character isn't index, but since it
+    # is a seed it should have a low id and be found quick
+    empty_tile_template = DungeonCrawl.TileTemplates.TileSeeder.rock_tile()
+    # row, col are zero index
+    # Crop first
+    Repo.delete_all(from dmt in MapTile,
+                    where: dmt.dungeon_id == ^updated_map.id,
+                    where: dmt.col >= ^updated_map.width or dmt.row >= ^updated_map.height )
+    # Empty fill second
+    new_dmts = _dim_list_difference(map, updated_map)
+               |> Enum.map(fn({row,col}) ->
+                             %{dungeon_id: updated_map.id, row: row, col: col, tile_template_id: empty_tile_template.id, z_index: 0}
+                           end)
+    Repo.insert_all MapTile, new_dmts
+  end
+
+  # less efficient to make two lists of dimensions and difference them, but less code than computing
+  defp _dim_list_difference(map, updated_map) do
+    _dim_list(updated_map.width, updated_map.height) -- _dim_list(map.width, map.height)
+  end
+
+  defp _dim_list(width, height) do
+    for row <- Enum.to_list(0..height-1) do
+      for col <- Enum.to_list(0..width-1) do
+        {row, col}
+      end
+    end
+    |> Enum.concat
   end
 
   @doc """
