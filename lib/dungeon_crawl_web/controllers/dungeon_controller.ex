@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.Dungeon.Map
+  alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.DungeonGenerator
   alias DungeonCrawl.EmptyGenerator
 
@@ -46,11 +47,12 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def edit(conn, %{"id" => id}) do
+    tile_templates = TileTemplates.list_tile_templates()
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
     changeset = Dungeon.change_map(dungeon)
     owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).name, else: "<None>"
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset)
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates)
   end
 
   def update(conn, %{"id" => id, "map" => dungeon_params}) do
@@ -58,11 +60,29 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     case Dungeon.update_map(dungeon, dungeon_params) do
       {:ok, dungeon} ->
+        _make_tile_updates(dungeon, dungeon_params["tile_changes"])
+
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
         |> redirect(to: dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset)
+        tile_templates = TileTemplates.list_tile_templates()
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates)
+    end
+  end
+
+  # todo: modify the tile template check to verify use can use the tile template id (ie, not soft deleted, protected, etc
+  defp _make_tile_updates(dungeon, tile_updates) do
+    case Poison.decode(tile_updates) do
+      {:ok, tile_updates} ->
+        tile_updates
+        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"]), 
+                               TileTemplates.get_tile_template(tu["tile_template_id"])] end)
+        |> Enum.reject(fn([d,t]) -> is_nil(d) || is_nil(t) end)
+        |> Enum.map(fn([dmt, tt]) -> Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id}) end)
+
+      {:error, _, _} ->
+        false # noop
     end
   end
 
