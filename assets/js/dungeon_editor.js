@@ -7,10 +7,41 @@ let DungeonEditor = {
 
     this.updateActiveTile({target: document.getElementsByName("paintable_tile_template")[0]})
 
-    document.getElementById("dungeon").addEventListener('mousedown', e => {this.enablePainting(); this.paintTile(e)} );
+    document.getElementById("dungeon").addEventListener('mousedown', e => {
+//      if(e.which == 3 || e.button == 2) {
+        // TODO: stash the details for all the existing tiles somewhere so right clicking can select that tile for painting
+//      } else {
+        this.enablePainting()
+        this.paintTile(e)
+//      }
+    });
     document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintTile(e)} );
+    document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
+    document.getElementById("dungeon").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting()} );
-    //document.getElementById("dungeon").addEventListener('mouseout', e => {this.disablePainting()} );
+
+    // debuggung events
+    /*
+    var events = [
+    'mouseover',
+    //'mousemove',
+    'mouseout',
+    'mouseenter',
+    //'mouseleave',
+    'mousedown',
+    'mouseup',
+    'focus',
+    'blur',
+    'click'
+    ];
+    var report = function(e) {
+             console.log(e.type)
+    }
+
+    for (var i=0; i<events.length; i++) {
+    //document.getElementById("dungeon").addEventListener(events[i], report, false);
+    //  window.addEventListener(events[i], report, false);
+    }*/
 
     var dungeonForm = document.getElementById("dungeon_form");
     if(dungeonForm.addEventListener){
@@ -53,20 +84,28 @@ let DungeonEditor = {
     this.selectedTileHtml = tag.innerHTML
   },
   paintTile(event){
-    if(!this.painting) { return }
-
+    if(!this.painting || this.painted) { return }
     if(event.target.tagName != "SPAN" && event.target.tagName != "TD"){ return }
+    this.painted = true
+
     let map_location = event.target.tagName == "SPAN" ? event.target.parentNode : event.target
 
     if(!map_location) { return } // event picked up on bad element
 
-    map_location.innerHTML = this.selectedTileHtml
+    let old_tile = map_location.children[0]
+
+    var new_tile = document.createElement("span")
+    new_tile.innerHTML = this.selectedTileHtml
+
+    map_location.insertBefore(new_tile, old_tile)
+    map_location.removeChild(old_tile)
     map_location.setAttribute("data-tile-template-id", this.selectedTileId)
     map_location.setAttribute("class", "changed-map-tile")
   },
   selectedTileId: null,
   selectedTileHtml: null,
-  painting: false
+  painting: false,
+  painted: false
 }
 
 export default DungeonEditor
