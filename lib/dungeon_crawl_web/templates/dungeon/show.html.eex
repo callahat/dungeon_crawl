@@ -4,7 +4,7 @@
 
 <div class="text-center">
 
-<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true) %>
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true, with_template_id: false) %>
 
 </div>
 

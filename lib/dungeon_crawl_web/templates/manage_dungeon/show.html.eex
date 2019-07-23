@@ -25,9 +25,9 @@
 
 <div class="text-center">
 <%= if @instance do %>
-<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @instance, readonly: true) %>
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @instance, readonly: true, with_template_id: false) %>
 <% else %>
-<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true) %>
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true, with_template_id: false) %>
 <% end %>
 </div>
 

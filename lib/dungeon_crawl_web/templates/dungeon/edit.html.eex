@@ -7,7 +7,7 @@
 
 <%= render "tile_pallette.html", tile_templates: @tile_templates %>
 
-<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true) %>
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true, with_template_id: true) %>
 </div>
 
 

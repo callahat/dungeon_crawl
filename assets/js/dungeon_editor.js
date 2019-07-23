@@ -2,20 +2,22 @@ let DungeonEditor = {
   init(element){ if(!element){ return }
 
     for(let tile_template of document.getElementsByName("paintable_tile_template")){
-      tile_template.addEventListener('click', e => { this.updateActiveTile(e) });
+      tile_template.addEventListener('click', e => { this.updateActiveTile(e.target) });
     }
 
-    this.updateActiveTile({target: document.getElementsByName("paintable_tile_template")[0]})
+    this.updateActiveTile(document.getElementsByName("paintable_tile_template")[0])
 
     document.getElementById("dungeon").addEventListener('mousedown', e => {
-//      if(e.which == 3 || e.button == 2) {
+      if(e.which == 3 || e.button == 2) {
+        this.disablePainting()
+        this.selectDungeonTile(e)
         // TODO: stash the details for all the existing tiles somewhere so right clicking can select that tile for painting
-//      } else {
+      } else {
         this.enablePainting()
-        this.paintTile(e)
-//      }
+        this.paintEventHandler(e)
+      }
     });
-    document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintTile(e)} );
+    document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintEventHandler(e)} );
     document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting()} );
@@ -51,7 +53,6 @@ let DungeonEditor = {
     }
   },
   submitForm(event){
-    console.log("HERE")
     var map_tile_changes = []
 
     for(let tile_change of Array.from(document.getElementsByClassName("changed-map-tile"))){
@@ -60,20 +61,20 @@ let DungeonEditor = {
 
       map_tile_changes.push({row: row, col: col, tile_template_id: ttid })
     }
-    console.log(map_tile_changes)
     document.getElementById("map_tile_changes").value = JSON.stringify(map_tile_changes)
     //event.preventDefault()
   },
   enablePainting(){
-    console.log("Enabled")
     this.painting = true
   },
   disablePainting(){
-    console.log("Disable")
+    this.lastDraggedCoord = null
     this.painting = false
   },
-  updateActiveTile(event){
-    let tag = event.target.tagName == "SPAN" ? event.target.parentNode : event.target
+  updateActiveTile(target){
+    if(!target) { return }
+
+    let tag = target.tagName == "SPAN" ? target.parentNode : target
 
     document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
     document.getElementById("active_tile_character").innerHTML = tag.innerHTML
@@ -81,31 +82,107 @@ let DungeonEditor = {
     document.getElementById("active_tile_responders").innerText = tag.getAttribute("data-tile-template-responders")
 
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
-    this.selectedTileHtml = tag.innerHTML
+    this.selectedTileHtml = tag.children[0]
   },
-  paintTile(event){
+  selectDungeonTile(event){
+    let map_location = this.getMapLocation(event)
+    if(!map_location) { return } // event picked up on bad element
+    this.painting = false
+
+    let target = [...document.getElementsByName("paintable_tile_template")].find(
+      function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
+
+    this.updateActiveTile(target)
+  },
+  paintEventHandler(event){
     if(!this.painting || this.painted) { return }
-    if(event.target.tagName != "SPAN" && event.target.tagName != "TD"){ return }
-    this.painted = true
 
-    let map_location = event.target.tagName == "SPAN" ? event.target.parentNode : event.target
-
+    let map_location = this.getMapLocation(event)
     if(!map_location) { return } // event picked up on bad element
 
+    this.painted = true
+
+    var targetCoord = map_location.id.split("_").map(c => {return parseInt(c)})
+
+    if(event.shiftKey && event.ctrlKey){
+      this.paintTiles(this.coordsForFill(targetCoord, map_location.getAttribute("data-tile-template-id")))
+    } else if(event.shiftKey){
+      this.paintTiles(this.coordsBetween(this.lastCoord, targetCoord))
+    } else {
+      this.paintTiles(this.coordsBetween(this.lastDraggedCoord, targetCoord))
+    }
+
+    this.lastCoord = this.lastDraggedCoord = targetCoord
+  },
+  paintTiles(coords){
+    for(let coord of coords){
+      this.paintTile(document.getElementById(coord))
+    }
+  },
+  paintTile(map_location){
     let old_tile = map_location.children[0]
 
-    var new_tile = document.createElement("span")
-    new_tile.innerHTML = this.selectedTileHtml
-
-    map_location.insertBefore(new_tile, old_tile)
+    map_location.insertBefore(this.selectedTileHtml.cloneNode(true), old_tile)
     map_location.removeChild(old_tile)
     map_location.setAttribute("data-tile-template-id", this.selectedTileId)
     map_location.setAttribute("class", "changed-map-tile")
   },
+  getMapLocation(event){
+    if(event.target.tagName != "SPAN" && event.target.tagName != "TD"){ 
+      return
+    } else if(event.target.tagName == "SPAN"){ 
+      return(event.target.parentNode)
+    } else {
+      return(event.target)
+    }
+  },
+  coordsBetween(start, end){
+    if(!start) { return [end.join("_")] }
+    let [rowA, colA] = start
+    let [rowB, colB] = end
+
+    let [rowDelta, colDelta] = [rowB - rowA, colB - colA]
+    let steps = Math.max.apply(null, [rowDelta, colDelta].map(d => {return Math.abs(d)} ))
+
+    let coords = []
+
+    for (let step = 1; step <= steps; step++) {
+      coords.push([rowA + Math.round(rowDelta * step / steps), colA + Math.round(colDelta * step / steps)].join("_"))
+    }
+    return coords
+  },
+  coordsForFill(target_coord, tile_template_id){
+    let frontier = [target_coord]
+    let coords = []
+    let e = null
+
+    while(frontier.length > 0){
+      let coord = frontier.pop()
+      coords.push(coord.join("_"))
+
+      for(let candidate of this.adjacentCoords(coord)) {
+        let tileId = candidate.join("_")
+        e = document.getElementById(tileId)
+        if(!(coords.find(c => { return c == tileId }) || frontier.find(c => { return c.join("_") == tileId })) &&
+           !!e && (e.getAttribute("data-tile-template-id") == tile_template_id)){
+          frontier.push(candidate)
+        }
+      }
+    }
+    return coords
+  },
+  adjacentCoords(coord){
+    return [[coord[0] + 1, coord[1]],
+           [coord[0] - 1, coord[1]],
+           [coord[0], coord[1] + 1],
+           [coord[0], coord[1] - 1]]
+  },
   selectedTileId: null,
   selectedTileHtml: null,
   painting: false,
-  painted: false
+  painted: false,
+  lastDraggedCoord: null,
+  lastCoord: null
 }
 
 export default DungeonEditor
