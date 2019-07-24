@@ -1,11 +1,10 @@
 <div class="row">
   <div class="col-md-4">
     <b>Tools</b><br/>
-    <span id="painterToolTab">Painter</span> | <span id="inspectorToolTab">Inspector</span>
     <div id="painterTool" class="visible text-left"">
       <div id="activeTileDetails">
         Active Tile: <span id="active_tile_name">Wall</span><br/>
-        <pre id="active_tile_character" class="tile_template_preview" style="font-size:xx-large;">#</pre>
+        <pre id="active_tile_character" class="tile_template_preview embiggen_most">#</pre>
           <span id="active_tile_description">An impassible wall</span><br/>
         Responders: <span id="active_tile_responders">{}</span>
       </div>
@@ -21,7 +20,7 @@
     <b>Tile Pallette</b>
     <div>
   <%= for tile_template <- @tile_templates do %>
-  <pre class="tile_template_preview"
+  <pre class="tile_template_preview embiggen"
        name="paintable_tile_template"
        title="<%= tile_template.name %>"
        data-tile-template-description="<%= tile_template.description %>"

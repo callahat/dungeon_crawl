@@ -15,7 +15,7 @@
     </div>
     <div class="col-md-1">
       <br/>
-      <pre id="character_preview" class="tile_template_preview" style="font-size:xx-large;"></pre>
+      <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
     </div>
     <div class="col-md-1">
       <br/>
