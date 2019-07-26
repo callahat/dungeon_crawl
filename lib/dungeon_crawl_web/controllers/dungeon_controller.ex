@@ -7,6 +7,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.DungeonGenerator
   alias DungeonCrawl.EmptyGenerator
 
+  plug :authenticate_user
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
@@ -24,7 +25,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def create(conn, %{"map" => dungeon_params}) do
     generator = case dungeon_params["generator"] do
-                  "Rooms" -> DungeonGenerator
+                  "Rooms" -> @dungeon_generator
                   _       -> EmptyGenerator
                 end
 
@@ -39,23 +40,22 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
+  def show(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id) |> Repo.preload([map_instances: [:locations], dungeon_map_tiles: [:tile_template]])
     owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
 
     render(conn, "show.html", dungeon: dungeon, owner_name: owner_name)
   end
 
-  def edit(conn, %{"id" => id}) do
+  def edit(conn, %{"id" => _id}) do
     tile_templates = TileTemplates.list_tile_templates()
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
     changeset = Dungeon.change_map(dungeon)
-    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).name, else: "<None>"
 
     render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates)
   end
 
-  def update(conn, %{"id" => id, "map" => dungeon_params}) do
+  def update(conn, %{"id" => _id, "map" => dungeon_params}) do
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id)
 
     case Dungeon.update_map(dungeon, dungeon_params) do
@@ -86,7 +86,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
+  def delete(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id)
 
     Dungeon.delete_map!(dungeon)
@@ -96,7 +96,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     |> redirect(to: dungeon_path(conn, :index))
   end
 
-  def activate(conn, %{"id" => id}) do
+  def activate(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
     if dungeon.previous_version_id, do: Dungeon.delete_map!(Dungeon.get_map!(dungeon.previous_version_id))
 
@@ -110,7 +110,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def new_version(conn, %{"id" => id}) do
+  def new_version(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
 
     case Dungeon.create_new_map_version(dungeon) do

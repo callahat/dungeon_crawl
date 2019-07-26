@@ -16,12 +16,18 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp cells(map, row, width, true) do
     Enum.to_list(0..width-1)
-    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' data-tile-template-id='#{map[{row, col}].id}'>#{ DungeonCrawlWeb.SharedView.tile_and_style(map[{row, col}]) }</td>" end ) |> Enum.join("")
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' data-tile-template-id='#{maybe_id(map[{row, col}])}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
+    |> Enum.join("")
+  end
+
+  defp maybe_id(space) do
+    if space, do: space.id, else: ""
   end
 
   defp cells(map, row, width, false) do
     Enum.to_list(0..width-1)
-    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ DungeonCrawlWeb.SharedView.tile_and_style(map[{row, col}]) }</td>" end ) |> Enum.join("")
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
+    |> Enum.join("")
   end
 
   def tile_and_style(nil, :safe), do: {:safe, ""}
