@@ -125,7 +125,7 @@ defmodule DungeonCrawl.Dungeon do
   ## Examples
 
       iex> create_new_map_version(%Map{active: true})
-      {:ok, %Map{}}
+      {:ok, %{dungeon: %Map{}}}
 
       iex> create_new_map_version(%Map{active: false})
       {:error, "Inactive map"}
@@ -303,25 +303,6 @@ defmodule DungeonCrawl.Dungeon do
   def activate_map(%Map{} = map) do
     change_map(map, %{active: true})
     |> Repo.update
-  end
-
-  @doc """
-  Copies map to a new version for editing/design.
-
-  ## Examples
-
-    iex> new_map_version(map)
-    %Map{}
-  """
-  def new_map_version(%Map{} = map) do
-    {:ok, dungeon} = create_map(Elixir.Map.put(Elixir.Map.take(map, [:name, :height, :width]), :version, map.version + 1))
-    Repo.insert_all(MapTile, _tile_copies(dungeon.id, map))
-    dungeon
-  end
-
-  defp _tile_copies(dungeon_id, map) do
-    Repo.preload(map, :dungeon_map_tiles).dungeon_map_tiles
-    |> Enum.map(fn(tile) -> %{dungeon_id: dungeon_id, row: tile.row, col: tile.col, tile_template_id: tile.tile_template_id, z_index: tile.z_index} end)
   end
 
   @doc """
