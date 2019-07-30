@@ -49,6 +49,32 @@ defmodule DungeonCrawl.Player do
   end
 
   @doc """
+  Creates a map tile that can be used for player location on an empty floor space tile.
+
+  ## Examples
+
+      iex> create_location_on_empty_space(%DungeonCrawl.DungeonInstances.Map{})
+      {:ok, %Location{}}
+  """
+  def create_location_on_empty_space(%DungeonCrawl.DungeonInstances.Map{} = instance, user_id_hash) do
+    map_tile = _create_map_tile_for_location(instance)
+
+    create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: user_id_hash})
+  end
+
+  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.Map{} = instance) do
+    empty_floor = Repo.preload(instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
+                      |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
+                      |> Enum.random
+
+    player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
+
+    Map.take(empty_floor, [:map_instance_id, :row, :col])
+    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
+    |> DungeonCrawl.DungeonInstances.create_map_tile!()
+  end
+
+  @doc """
   Deletes a Location.
 
   ## Examples

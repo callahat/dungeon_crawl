@@ -38,18 +38,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
         {:ok, run_results} = DungeonInstances.create_map(dungeon)
         {:ok, run_results[:dungeon]}
       end)
-    |> Multi.run(:player_location, fn(%{instance: dungeon}) ->
-        empty_floor = Repo.preload(dungeon, dungeon_map_tiles: :tile_template).dungeon_map_tiles
-                      |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
-                      |> Enum.random
-        # todo: move somewhere else
-        player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
-        map_tile = Map.take(empty_floor, [:map_instance_id, :row, :col])
-                   |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
-                   |> DungeonCrawl.DungeonInstances.create_map_tile!()
-
-        result = Player.create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
-        {:ok, result}
+    |> Multi.run(:player_location, fn(%{instance: instance}) ->
+        Player.create_location_on_empty_space(instance, conn.assigns[:user_id_hash])
       end)
     |> Repo.transaction
     |> case do
@@ -61,16 +51,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
 
   def join(conn, %{"instance_id" => _instance_id}) do
-    empty_floor = Repo.preload(conn.assigns.instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
-                  |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
-                  |> Enum.random
-        # todo: move somewhere else
-        player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
-        map_tile = Map.take(empty_floor, [:map_instance_id, :row, :col])
-                   |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
-                   |> DungeonCrawl.DungeonInstances.create_map_tile!()
-
-    Player.create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
+    Player.create_location_on_empty_space(conn.assigns.instance, conn.assigns[:user_id_hash])
     |> case do
       {:ok, location} ->
         _broadcast_join(Repo.preload(location, :map_tile))
@@ -84,16 +65,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     {:ok, run_results} = DungeonInstances.create_map(conn.assigns.dungeon)
     instance = run_results[:dungeon]
 
-    empty_floor = Repo.preload(instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
-                  |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
-                  |> Enum.random
-        # todo: move somewhere else
-        player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
-        map_tile = Map.take(empty_floor, [:map_instance_id, :row, :col])
-                   |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
-                   |> DungeonCrawl.DungeonInstances.create_map_tile!()
-
-    Player.create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: conn.assigns[:user_id_hash]})
+    Player.create_location_on_empty_space(instance, conn.assigns[:user_id_hash])
     |> case do
       {:ok, _} ->
         conn
