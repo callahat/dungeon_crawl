@@ -98,16 +98,13 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def activate(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
+
     if dungeon.previous_version_id, do: Dungeon.delete_map!(Dungeon.get_map!(dungeon.previous_version_id))
 
-    case Dungeon.update_map(dungeon, %{active: true}) do
-      {:ok, dungeon} ->
-        conn
-        |> put_flash(:info, "Dungeon updated successfully.")
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
-      {:error, changeset} ->
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset)
-    end
+    {:ok, active_dungeon} = Dungeon.update_map(dungeon, %{active: true})
+    conn
+    |> put_flash(:info, "Dungeon updated successfully.")
+    |> redirect(to: dungeon_path(conn, :show, active_dungeon))
   end
 
   def new_version(conn, %{"id" => _id}) do

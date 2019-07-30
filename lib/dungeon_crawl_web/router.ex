@@ -23,7 +23,6 @@ defmodule DungeonCrawlWeb.Router do
     post "/crawler", CrawlerController, :create
     post "/crawler/join", CrawlerController, :join
     delete "/crawler", CrawlerController, :destroy
-    put  "/crawler", CrawlerController, :act
 
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]

@@ -19,6 +19,15 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
+  describe "show without a registered user" do
+    setup [:create_dungeon]
+
+    test "redirects", %{conn: conn, dungeon: dungeon} do
+      conn = get conn, dungeon_path(conn, :show, dungeon)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
   describe "new dungeon without a registered user" do
     test "redirects", %{conn: conn} do
       conn = get conn, dungeon_path(conn, :new)
@@ -68,6 +77,25 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "lists all dungeons", %{conn: conn} do
       conn = get conn, dungeon_path(conn, :index)
       assert html_response(conn, 200) =~ "Listing dungeons"
+    end
+  end
+
+  describe "show with a registered user" do
+    setup [:create_user, :create_dungeon]
+
+    test "renders show", %{conn: conn, dungeon: dungeon} do
+      conn = get conn, dungeon_path(conn, :show, dungeon)
+      assert html_response(conn, 200) =~ dungeon.name
+    end
+  end
+
+  describe "show with a registered user but dungeon belongs to someone else" do
+    setup [:create_user, :create_dungeon]
+
+    test "renders show", %{conn: conn} do
+      dungeon = fixture(:dungeon, insert_user(%{username: "Omer"}).id)
+      conn = get conn, dungeon_path(conn, :show, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
     end
   end
 
@@ -126,6 +154,51 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = delete conn, dungeon_path(conn, :delete, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       refute Repo.get!(Dungeon.Map, dungeon.id).deleted_at == nil
+    end
+  end
+
+  describe "activate dungeon" do
+    setup [:create_user, :create_dungeon]
+
+    test "activtes chosen dungeon", %{conn: conn, dungeon: dungeon} do
+      conn = put conn, dungeon_activate_path(conn, :activate, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      assert Repo.get!(Dungeon.Map, dungeon.id).active
+    end
+
+    test "soft deletes the previous version", %{conn: conn, dungeon: dungeon} do
+      new_map = insert_stubbed_dungeon(%{previous_version_id: dungeon.id, user_id: conn.assigns[:current_user].id})
+      conn = put conn, dungeon_activate_path(conn, :activate, new_map)
+      assert redirected_to(conn) == dungeon_path(conn, :show, new_map)
+      assert Repo.get!(Dungeon.Map, dungeon.id).deleted_at
+      assert Repo.get!(Dungeon.Map, new_map.id).active
+    end
+  end
+
+  describe "new_version dungeon" do
+    setup [:create_user, :create_dungeon]
+
+    test "does not create a new version if dungeon not active", %{conn: conn, dungeon: dungeon} do
+      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      assert get_flash(conn, :error) == "Inactive map"
+    end
+
+    test "does not create a new version if dungeon already has a next version", %{conn: conn, dungeon: dungeon} do
+      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
+      _new_map = insert_stubbed_dungeon(%{previous_version_id: dungeon.id, user_id: conn.assigns[:current_user].id})
+      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      assert get_flash(conn, :error) == "New version already exists"
+    end
+
+    test "creates a new version", %{conn: conn, dungeon: dungeon} do
+      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
+      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
+      new_version = Dungeon.get_map_by(%{previous_version_id: dungeon.id})
+      assert redirected_to(conn) == dungeon_path(conn, :show, new_version)
+      refute Repo.get!(Dungeon.Map, dungeon.id).deleted_at
+      refute Repo.get!(Dungeon.Map, new_version.id).active
     end
   end
   # /With a registered user
