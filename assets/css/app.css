@@ -36,6 +36,8 @@ pre.dungeon_preview table {
   user-select: none;
 }
 
+#dungeon_editor pre.dungeon_preview table td.hilight,
+#dungeon_editor pre.dungeon_preview table td span.hilight,
 #dungeon_editor pre.dungeon_preview table td:hover,
 #dungeon_editor pre.dungeon_preview table td span[style]:hover {
   background-color:orange !important;
@@ -50,4 +52,9 @@ pre.dungeon_preview table {
 input#tile_template_character {
   width: 3em;
   padding-left: 1.2em;
+}
+
+.tile_pallette_group {
+  height: 100px;
+  overflow-y: scroll;
 }

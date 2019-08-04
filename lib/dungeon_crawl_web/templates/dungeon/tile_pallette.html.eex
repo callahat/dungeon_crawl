@@ -1,7 +1,7 @@
 <div class="row">
   <div class="col-md-4">
     <b>Tools</b><br/>
-    <div id="painterTool" class="visible text-left"">
+    <div id="painterTool" class="text-left tile_pallette_group">
       <div id="activeTileDetails">
         Active Tile: <span id="active_tile_name">Wall</span><br/>
         <pre id="active_tile_character" class="tile_template_preview embiggen_most">#</pre>
@@ -9,23 +9,34 @@
         Responders: <span id="active_tile_responders">{}</span>
       </div>
     </div>
-    <div id="inspectorTool" class="hidden">
-      <p>Selected Map Tile</p>
-      <div id="selectedTileDetails">
-      </div>
-    </div>
   </div>
 
   <div class="col-md-8">
-    <b>Tile Pallette</b>
-    <div>
+    <div class="tile_pallette_group">
+      <b>Tile Pallette</b>
+      <br/>
   <%= for tile_template <- @tile_templates do %>
-  <pre class="tile_template_preview embiggen"
-       name="paintable_tile_template"
-       title="<%= tile_template.name %>"
-       data-tile-template-description="<%= tile_template.description %>"
-       data-tile-template-responders="<%= tile_template.responders %>"
-       data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre>
+      <pre class="tile_template_preview embiggen"
+           name="paintable_tile_template"
+           title="<%= tile_template.name %>"
+           data-tile-template-description="<%= tile_template.description %>"
+           data-tile-template-responders="<%= tile_template.responders %>"
+           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre>
+  <% end %>
+
+  <%= if Enum.count(@historic_templates) > 0 do %>
+      <br/>
+      <span><b>Historic Tiles</b> (can no longer be added)</span>
+      <br/>
+    <%= for tile_template <- @historic_templates do %>
+      <pre class="tile_template_preview embiggen"
+           name="paintable_tile_template"
+           title="<%= tile_template.name %>"
+           data-historic-template=true
+           data-tile-template-description="<%= tile_template.description %>"
+           data-tile-template-responders="<%= tile_template.responders %>"
+           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre>
+    <% end %>
   <% end %>
     </div>
   </div>

@@ -60,6 +60,25 @@ defmodule DungeonCrawl.DungeonTest do
       assert Dungeon.get_map!(map.id) == map
     end
 
+    test "list_historic_tile_templates/1 when no historic tiles returns an empty array" do
+      tile_a = insert_tile_template()
+      tile_b = insert_tile_template()
+      map = insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
+                                         %{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
+                                         %{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}])
+      assert Dungeon.list_historic_tile_templates(map) == []
+    end
+
+    test "list_historic_tile_templates/1 returns array of distinct historic tile templates" do
+      tile_a = insert_tile_template()
+      tile_b = insert_tile_template()
+      map = insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
+                                         %{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
+                                         %{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}])
+      {:ok, tile_a} = DungeonCrawl.TileTemplates.delete_tile_template(tile_a)
+      assert Dungeon.list_historic_tile_templates(map) == [tile_a]
+    end
+
     test "next_version_exists?/1 is true if the map has a next version" do
       map = insert_stubbed_dungeon()
       _new_map = insert_stubbed_dungeon(%{previous_version_id: map.id})

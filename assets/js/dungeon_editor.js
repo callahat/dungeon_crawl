@@ -3,6 +3,8 @@ let DungeonEditor = {
 
     for(let tile_template of document.getElementsByName("paintable_tile_template")){
       tile_template.addEventListener('click', e => { this.updateActiveTile(e.target) });
+      window.addEventListener('keydown', e => { this.hilightTiles(e) });
+      window.addEventListener('keyup', e => { this.unHilightTiles(e) });
     }
 
     this.updateActiveTile(document.getElementsByName("paintable_tile_template")[0])
@@ -77,12 +79,17 @@ let DungeonEditor = {
     let tag = target.tagName == "SPAN" ? target.parentNode : target
 
     document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
+
     document.getElementById("active_tile_character").innerHTML = tag.innerHTML
     document.getElementById("active_tile_description").innerText = tag.getAttribute("data-tile-template-description")
     document.getElementById("active_tile_responders").innerText = tag.getAttribute("data-tile-template-responders")
 
+    this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
     this.selectedTileHtml = tag.children[0]
+    if(this.historicTile){
+      document.getElementById("active_tile_name").innerText += " (historic)"
+    }
   },
   selectDungeonTile(event){
     let map_location = this.getMapLocation(event)
@@ -95,6 +102,7 @@ let DungeonEditor = {
     this.updateActiveTile(target)
   },
   paintEventHandler(event){
+    if(this.historicTile) { return }
     if(!this.painting || this.painted) { return }
 
     let map_location = this.getMapLocation(event)
@@ -177,12 +185,38 @@ let DungeonEditor = {
            [coord[0], coord[1] + 1],
            [coord[0], coord[1] - 1]]
   },
+  // Might be easier or more efficient to tweak the CSS for the selector than adding/removing a class
+  hilightTiles(event){
+    if(event.which == 16 && this.hilightable){
+      this.hilightable = false
+
+      let elem = document.querySelectorAll(".tile_template_preview:hover")[0]
+      if(!elem) { return }
+
+      for(let element of document.querySelectorAll('td[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] span')){
+        element.classList.add("hilight");
+      }
+    }
+  },
+  unHilightTiles(event){
+    if(event.which == 16){
+      for(let element of document.querySelectorAll("span.hilight")){
+        element.classList.remove("hilight");
+      }
+      //for(let element of document.getElementsByClassName("hilight")){
+      //  element.classList.remove("hilight");
+      //}
+      this.hilightable = true
+    }
+  },
   selectedTileId: null,
   selectedTileHtml: null,
   painting: false,
   painted: false,
   lastDraggedCoord: null,
-  lastCoord: null
+  lastCoord: null,
+  historicTile: false,
+  hilightable: true
 }
 
 export default DungeonEditor

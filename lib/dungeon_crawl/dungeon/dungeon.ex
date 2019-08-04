@@ -99,6 +99,24 @@ defmodule DungeonCrawl.Dungeon do
   def get_map_by(attrs), do: Repo.get_by!(Map, attrs)
 
   @doc """
+  Returns list of historic (ie, soft deleted) TileTemplates which are present in the dungeon.
+  These not selectable for new dungeon design.
+
+  ## Examples
+
+      iex> list_historic_tile_templates(%Map{})
+      [%TileTemplate{}, ...]
+  """
+  def list_historic_tile_templates(%Map{} = map) do
+    Repo.all(from mt in MapTile,
+             where: mt.dungeon_id == ^map.id,
+             left_join: tt in assoc(mt, :tile_template),
+             where: not is_nil(tt.deleted_at),
+             distinct: true,
+             select: tt)
+  end
+
+  @doc """
   Returns a boolean indicating wether or not the given dungeon has a next version, or is the most current one.
 
   ## Examples

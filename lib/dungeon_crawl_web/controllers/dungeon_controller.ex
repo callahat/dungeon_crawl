@@ -48,11 +48,13 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def edit(conn, %{"id" => _id}) do
-    tile_templates = TileTemplates.list_tile_templates()
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
+    tile_templates = TileTemplates.list_tile_templates()
+    historic_templates = Dungeon.list_historic_tile_templates(dungeon)
+
     changeset = Dungeon.change_map(dungeon)
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates)
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do
