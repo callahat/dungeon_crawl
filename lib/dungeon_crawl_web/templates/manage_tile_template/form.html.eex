@@ -36,6 +36,12 @@
   </div>
 
   <div class="form-group">
+    <%= label f, :public, class: "control-label" %>
+    <%= checkbox f, :public %>
+    <%= error_tag f, :public %>
+  </div>
+
+  <div class="form-group">
     <%= label f, :color, class: "control-label" %>
     <%= text_input f, :color, class: "form-control" %>
     <%= error_tag f, :color %>

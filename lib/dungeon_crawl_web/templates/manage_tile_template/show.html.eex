@@ -4,6 +4,11 @@
 
 <ul>
   <li>
+    <strong>Owner:</strong>
+    <%= @owner_name %>
+  </li>
+
+  <li>
     <strong>Character:</strong>
     <pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(@tile_template, :safe) %></pre>
   </li>
@@ -35,10 +40,31 @@
   </li>
   <% end %>
 
+  <li>
+    <strong>Public:</strong>
+    <%= if @tile_template.public, do: "Yes", else: "No" %>
+  </li>
 
+  <li>
+    <strong>Active:</strong>
+    <%= if @tile_template.active, do: "Yes", else: "No" %>
+  </li>
+
+  <li>
+    <strong>Version:</strong>
+    <%= @tile_template.version %>
+  </li>
+
+  <li>
+    <strong>Responders:</strong>
+    <pre><%= @tile_template.responders %></pre>
+  </li>
 </ul>
 
+<%= activate_or_new_version_button @conn, @tile_template %> |
+<%= unless @tile_template.active do %>
 <%= link "Edit", to: manage_tile_template_path(@conn, :edit, @tile_template) %> |
+<% end %>
 <%= link "Back", to: manage_tile_template_path(@conn, :index) %> |
 <%= link "Delete", to: manage_tile_template_path(@conn, :delete, @tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
 
