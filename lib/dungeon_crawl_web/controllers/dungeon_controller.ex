@@ -68,8 +68,9 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> put_flash(:info, "Dungeon updated successfully.")
         |> redirect(to: dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
+        historic_templates = Dungeon.list_historic_tile_templates(dungeon)
         tile_templates = TileTemplates.list_tile_templates()
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates)
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
     end
   end
 
