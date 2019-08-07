@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
 
   import Plug.Conn, only: [assign: 3]
 
+  alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black"}
@@ -80,4 +81,65 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
     assert redirected_to(conn) == manage_tile_template_path(conn, :index)
     refute Repo.get!(TileTemplate, target_tile_template.id).deleted_at == nil
   end
+
+
+  describe "activate tile_template" do
+#    setup [:create_admin_user, :create_tile_template]
+
+    test "activtes chosen tile_template", %{conn: conn} do
+      target_tile_template = insert_tile_template @valid_attrs
+      conn = put conn, manage_tile_template_activate_path(conn, :activate, target_tile_template)
+      assert redirected_to(conn) == manage_tile_template_path(conn, :show, target_tile_template)
+      assert Repo.get!(TileTemplate, target_tile_template.id).active
+    end
+
+    test "soft deletes the previous version", %{conn: conn} do
+      tile_template = insert_tile_template @valid_attrs
+      new_tile_template = insert_tile_template(%{previous_version_id: tile_template.id, user_id: conn.assigns[:current_user].id})
+      conn = put conn, manage_tile_template_activate_path(conn, :activate, new_tile_template)
+      assert redirected_to(conn) == manage_tile_template_path(conn, :show, new_tile_template)
+      assert Repo.get!(TileTemplate, tile_template.id).deleted_at
+      assert Repo.get!(TileTemplate, new_tile_template.id).active
+    end
+  end
+
+  describe "new_version tile_template" do
+#    setup [:create_admin_user, :create_tile_template]
+
+    test "does not create a new version if tile_template not active", %{conn: conn} do
+      target_tile_template = insert_tile_template @valid_attrs
+      conn = post conn, manage_tile_template_new_version_path(conn, :new_version, target_tile_template)
+      assert redirected_to(conn) == manage_tile_template_path(conn, :show, target_tile_template)
+      assert get_flash(conn, :error) == "Inactive tile template"
+    end
+
+    test "does not create a new version if tile_template already has a next version", %{conn: conn} do
+      target_tile_template = insert_tile_template Map.merge(@valid_attrs, %{active: true})
+      insert_tile_template(%{previous_version_id: target_tile_template.id})
+      conn = post conn, manage_tile_template_new_version_path(conn, :new_version, target_tile_template)
+      assert redirected_to(conn) == manage_tile_template_path(conn, :show, target_tile_template)
+      assert get_flash(conn, :error) == "New version already exists"
+    end
+
+    test "creates a new version", %{conn: conn} do
+      target_tile_template = insert_tile_template Map.merge(@valid_attrs, %{active: true})
+      conn = post conn, manage_tile_template_new_version_path(conn, :new_version, target_tile_template)
+      new_version = Repo.get_by!(TileTemplate, %{previous_version_id: target_tile_template.id})
+      assert redirected_to(conn) == manage_tile_template_path(conn, :show, new_version)
+      refute Repo.get!(TileTemplate, target_tile_template.id).deleted_at
+      refute Repo.get!(TileTemplate, new_version.id).active
+    end
+  end
+
+  
+#  defp create_tile_template(opts) do
+#    tile_template = insert_tile_template(%{user_id: opts.conn.assigns[:current_user].id})
+#    {:ok, conn: opts.conn, tile_template: tile_template}
+#  end
+
+#  defp create_admin_user(_) do
+#    user = insert_user(%{username: "CSwaggins", is_admin: true})
+#    conn = assign(build_conn(), :current_user, user)
+#    {:ok, conn: conn, user: user}
+#  end
 end
