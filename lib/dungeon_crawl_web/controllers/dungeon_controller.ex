@@ -9,6 +9,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   plug :authenticate_user
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version]
+  plug :validate_updateable when action in [:edit, :update]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
 
@@ -134,6 +135,17 @@ defmodule DungeonCrawlWeb.DungeonController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
+      |> redirect(to: dungeon_path(conn, :index))
+      |> halt()
+    end
+  end
+
+  defp validate_updateable(conn, _opts) do
+    if !conn.assigns.dungeon.active do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Cannot edit an active dungeon")
       |> redirect(to: dungeon_path(conn, :index))
       |> halt()
     end

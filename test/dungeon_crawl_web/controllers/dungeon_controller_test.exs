@@ -131,6 +131,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = get conn, dungeon_path(conn, :edit, dungeon)
       assert html_response(conn, 200) =~ "Edit dungeon"
     end
+
+    test "cannot edit active dungeon", %{conn: conn, dungeon: dungeon} do
+      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
+      conn = get conn, dungeon_path(conn, :edit, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Cannot edit an active dungeon"
+    end
   end
 
   describe "update dungeon with a registered user" do
@@ -144,6 +151,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "renders errors when data is invalid", %{conn: conn, dungeon: dungeon} do
       conn = put conn, dungeon_path(conn, :update, dungeon), map: @invalid_attrs, tile_changes: []
       assert html_response(conn, 200) =~ "Edit dungeon"
+    end
+
+    test "cannot update active dungeon", %{conn: conn, dungeon: dungeon} do
+      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
+      conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs, tile_changes: []
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
   end
 
