@@ -1,6 +1,6 @@
 <h2>New tile template</h2>
 
-<%= render "form.html", changeset: @changeset,
+<%= render "form.html", changeset: @changeset, conn: @conn,
                         action: manage_tile_template_path(@conn, :create) %>
 
 <%= link "Back", to: manage_tile_template_path(@conn, :index) %>

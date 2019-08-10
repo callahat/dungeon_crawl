@@ -4,11 +4,20 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  plug :authenticate_user
   plug :assign_tile_template when action in [:show, :edit, :update, :delete, :activate, :new_version]
+  plug :check_if_active when action in [:edit, :update]
   plug :assigns_tile_template_params when action in [:create, :update]
+  plug :strip_user_id_when_invalid when action in [:update]
 
-  def index(conn, _params) do
-    tile_templates = TileTemplates.list_tile_templates
+  def index(conn, params) do
+    tile_templates = cond do
+                       !conn.assigns.current_user.is_admin || params["list"] == "mine" ->
+                         TileTemplates.list_tile_templates(conn.assigns.current_user)
+                       params["list"] == "nil" -> TileTemplates.list_tile_templates(:nouser)
+                       true                    -> TileTemplates.list_tile_templates
+                     end
+
     render(conn, "index.html", tile_templates: tile_templates)
   end
 
@@ -28,20 +37,20 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
+  def show(conn, %{"id" => _id}) do
     tile_template = conn.assigns.tile_template
     owner_name = if tile_template.user_id, do: Repo.preload(tile_template, :user).user.name, else: "<None>"
 
     render(conn, "show.html", tile_template: tile_template, owner_name: owner_name)
   end
 
-  def edit(conn, %{"id" => id}) do
+  def edit(conn, %{"id" => _id}) do
     tile_template = conn.assigns.tile_template
     changeset = TileTemplates.change_tile_template(tile_template)
     render(conn, "edit.html", tile_template: tile_template, changeset: changeset)
   end
 
-  def update(conn, %{"id" => id, "tile_template" => _tile_template_params}) do
+  def update(conn, %{"id" => _id, "tile_template" => _tile_template_params}) do
     tile_template = conn.assigns.tile_template
 
     case TileTemplates.update_tile_template(tile_template, conn.assigns.tile_template_params) do
@@ -54,7 +63,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
+  def delete(conn, %{"id" => _id}) do
     tile_template = conn.assigns.tile_template
 
     case TileTemplates.delete_tile_template(tile_template) do
@@ -91,19 +100,61 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
     end
   end
 
-  # All tile templates accessible to the admin
   defp assign_tile_template(conn, _opts) do
     tile_template =  TileTemplates.get_tile_template!(conn.params["id"])
 
-    conn
-    |> assign(:tile_template, tile_template)
+    if conn.assigns.current_user.is_admin || tile_template.user_id == conn.assigns.current_user.id do
+      conn
+      |> assign(:tile_template, tile_template)
+    else
+      conn
+      |> put_flash(:error, "You do not have access to that")
+      |> redirect(to: manage_tile_template_path(conn, :index))
+      |> halt()
+    end
+  end
+
+  defp check_if_active(conn, _opts) do
+    if conn.assigns.current_user.is_admin || !conn.assigns.tile_template.active do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Cannot edit active tile template")
+      |> redirect(to: manage_tile_template_path(conn, :index))
+      |> halt()
+    end
   end
 
   defp assigns_tile_template_params(conn, _opts) do
+    filtered_params = cond do
+      !conn.assigns.current_user.is_admin ->
+        Map.take(conn.params["tile_template"],
+                 ["name", "character", "description", "color", "background_color", "responders","public"])
+        |> params_with_owner(conn)
+
+      conn.params["self_owned"] == "true" ->
+        conn.params["tile_template"]
+        |> params_with_owner(conn)
+
+      true ->
+        conn.params["tile_template"]
+        |> Map.put("user_id", nil)
+    end
+    
     conn
-    |> assign(:tile_template_params, conn.params["tile_template"])
-# TODO: the below is really for non admins; admins should be able to change whatever.
-#              Map.take(conn.params["tile_template"],
-#                       ["name", "character", "description", "color", "background_color", "responders","version","active","public"]))
+    |> assign(:tile_template_params, filtered_params)
+  end
+
+  defp params_with_owner(params, conn) do
+    Map.put(params, "user_id", conn.assigns.current_user.id)
+  end
+
+  defp strip_user_id_when_invalid(conn, _opts) do
+    if (conn.assigns.tile_template.user_id == nil || conn.assigns.tile_template.user_id == conn.assigns.current_user.id) && 
+        conn.assigns.current_user.is_admin do
+      assign(conn, :tile_template_params, conn.assigns.tile_template_params)
+    else
+      assign(conn, :tile_template_params, Map.delete(conn.assigns.tile_template_params, "user_id"))
+    end
   end
 end

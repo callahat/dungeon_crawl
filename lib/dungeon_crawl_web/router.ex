@@ -29,7 +29,10 @@ defmodule DungeonCrawlWeb.Router do
     resources "/dungeons", DungeonController
       post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
-    
+
+    resources "/tile_templates", ManageTileTemplateController
+      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
+      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
   end
 
   scope "/manage", DungeonCrawlWeb do
@@ -37,9 +40,9 @@ defmodule DungeonCrawlWeb.Router do
 
     resources "/users", ManageUserController
     resources "/dungeons", ManageDungeonController, except: [:edit, :update]
-    resources "/tile_templates", ManageTileTemplateController
-      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
-      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
+#    resources "/tile_templates", ManageTileTemplateController
+#      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
+#      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
   end
 
   # Other scopes may use custom stacks.

@@ -1,5 +1,11 @@
 <h2>Listing tile templates</h2>
 
+<%= if @conn.assigns.current_user.is_admin do %>
+<%= link "All", to: manage_tile_template_path(@conn, :index) %> |
+<%= link "Mine", to: manage_tile_template_path(@conn, :index, %{list: "mine"}) %> |
+<%= link "Unowned", to: manage_tile_template_path(@conn, :index, %{list: "nil"}) %>
+<% end %>
+
 <table class="table">
   <thead>
     <tr>

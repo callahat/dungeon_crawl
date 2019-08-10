@@ -22,6 +22,11 @@ defmodule DungeonCrawl.TileTemplates do
              where: t.user_id == ^user.id,
              where: is_nil(t.deleted_at))
   end
+  def list_tile_templates(:nouser) do
+    Repo.all(from t in TileTemplate,
+             where: is_nil(t.user_id),
+             where: is_nil(t.deleted_at))
+  end
   def list_tile_templates() do
     Repo.all(from t in TileTemplate,
              where: is_nil(t.deleted_at))
