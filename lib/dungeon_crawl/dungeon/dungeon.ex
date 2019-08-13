@@ -281,6 +281,44 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
+  Activates a map.
+
+  ## Examples
+
+      iex> activate_map(map)
+      {:ok, %Map{}}
+
+      iex> activate_map(map)
+      {:error, <error message>}
+
+  """
+  def activate_map(%Map{} = map) do
+    case _inactive_tiles(map) do
+      [] ->
+        if map.previous_version_id, do: delete_map!(get_map!(map.previous_version_id))
+        update_map(map, %{active: true})
+
+      inactive_tile_list ->
+        {:error, "Inactive tiles: #{ Enum.join(_inactive_tiles_error_msgs(inactive_tile_list), ", ") }"}
+    end
+  end
+
+  defp _inactive_tiles(map) do
+    Repo.all(from mt in MapTile,
+             where: mt.dungeon_id == ^map.id,
+             left_join: tt in assoc(mt, :tile_template),
+             where: tt.active == false,
+             group_by: tt.id,
+             select: [tt.name, tt.id, count(tt.id)])
+  end
+
+  defp _inactive_tiles_error_msgs([[name, id, count] | tail]) do
+    [ "#{name} (id: #{id}) #{count} times" | _inactive_tiles_error_msgs(tail) ]
+  end
+
+  defp _inactive_tiles_error_msgs(_empty), do: []
+
+  @doc """
   Deletes a Map.
 
   ## Examples

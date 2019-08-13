@@ -180,6 +180,14 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert Repo.get!(Dungeon.Map, dungeon.id).active
     end
 
+    test "problem activating chosen dungeon", %{conn: conn, dungeon: dungeon} do
+      inactive_tile_template = insert_tile_template(%{name: "INT", active: false})
+      Repo.insert_all(Dungeon.MapTile, [%{dungeon_id: dungeon.id, row: 1, col: 1, tile_template_id: inactive_tile_template.id, z_index: 0}] )
+      conn = put conn, dungeon_activate_path(conn, :activate, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      assert get_flash(conn, :error) == "Inactive tiles: INT (id: #{inactive_tile_template.id}) 1 times"
+    end
+
     test "soft deletes the previous version", %{conn: conn, dungeon: dungeon} do
       new_map = insert_stubbed_dungeon(%{previous_version_id: dungeon.id, user_id: conn.assigns[:current_user].id})
       conn = put conn, dungeon_activate_path(conn, :activate, new_map)

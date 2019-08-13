@@ -50,7 +50,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def edit(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
-    tile_templates = TileTemplates.list_tile_templates()
+    tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
     historic_templates = Dungeon.list_historic_tile_templates(dungeon)
 
     changeset = Dungeon.change_map(dungeon)
@@ -69,8 +69,8 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> put_flash(:info, "Dungeon updated successfully.")
         |> redirect(to: dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
+        tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
-        tile_templates = TileTemplates.list_tile_templates()
         render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
     end
   end
@@ -103,12 +103,17 @@ defmodule DungeonCrawlWeb.DungeonController do
   def activate(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
 
-    if dungeon.previous_version_id, do: Dungeon.delete_map!(Dungeon.get_map!(dungeon.previous_version_id))
+    case Dungeon.activate_map(dungeon) do
+      {:ok, active_dungeon} ->
+        conn
+        |> put_flash(:info, "Dungeon activated.")
+        |> redirect(to: dungeon_path(conn, :show, active_dungeon))
 
-    {:ok, active_dungeon} = Dungeon.update_map(dungeon, %{active: true})
-    conn
-    |> put_flash(:info, "Dungeon updated successfully.")
-    |> redirect(to: dungeon_path(conn, :show, active_dungeon))
+      {:error, message} ->
+        conn
+        |> put_flash(:error, message)
+        |> redirect(to: dungeon_path(conn, :show, dungeon))
+    end
   end
 
   def new_version(conn, %{"id" => _id}) do

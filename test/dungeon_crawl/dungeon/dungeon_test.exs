@@ -147,6 +147,32 @@ defmodule DungeonCrawl.DungeonTest do
       assert map == Dungeon.get_map!(map.id)
     end
 
+    test "activate_map/1 with dungeon activtes dungeon" do
+      map = map_fixture()
+      assert {:ok, activated_map} = Dungeon.activate_map(map)
+      assert activated_map == Dungeon.get_map!(map.id)
+      assert activated_map.active
+    end
+
+    test "activate_map/1 soft deletes the previous version" do
+      map = map_fixture()
+      new_map = map_fixture(%{previous_version_id: map.id})
+      assert {:ok, activated_map} = Dungeon.activate_map(new_map)
+      assert Repo.get!(Map, map.id).deleted_at
+      assert Repo.get!(Map, new_map.id).active
+      assert new_map.id == activated_map.id
+    end
+
+    test "activate_map/1 with dungeon that has inactive tiles returns error message" do
+      tile_a = insert_tile_template(%{name: "ACT", active: true})
+      inactive_tile_template = insert_tile_template(%{name: "INT", active: false})
+      map = insert_stubbed_dungeon(%{}, [%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
+                                         %{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
+                                         %{tile_template_id: inactive_tile_template.id, row: 1, col: 3, z_index: 0}])
+      assert {:error, error_msg} = Dungeon.activate_map(map)
+      assert error_msg == "Inactive tiles: INT (id: #{inactive_tile_template.id}) 1 times"
+    end
+
     test "soft_delete_map/1 soft deletes the map" do
       map = map_fixture()
       assert {:ok, map} = Dungeon.delete_map(map)

@@ -42,11 +42,11 @@ defmodule DungeonCrawl.TileTemplatesTest do
       user = insert_user()
       different_user = insert_user()
       tile_template = tile_template_fixture(%{user_id: user.id})
-      tile_template_fixture(%{user_id: user.id, active: false})
+      inactive_tile_template = tile_template_fixture(%{user_id: user.id, active: false})
       tile_template_fixture(%{user_id: different_user.id})
       public_tile_template = tile_template_fixture(%{user_id: different_user.id, public: true})
       deleted_tile_template_fixture()
-      assert TileTemplates.list_placeable_tile_templates(user) == [tile_template, public_tile_template]
+      assert TileTemplates.list_placeable_tile_templates(user) == %{active: [tile_template, public_tile_template], inactive: [inactive_tile_template]}
     end
 
     test "get_tile_template!/1 returns the tile_template with given id" do

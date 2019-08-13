@@ -33,17 +33,24 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   @doc """
-  Returns a list of tile_templates that can be used for designing a dungeon
+  Returns a map with two keys; :active and :inactive. Each has a list of tile_templates that
+  can be used for designing a dungeon. Note that before activating the dungeon, the inactive tiles
+  should be activated.
 
   ## Examples
 
       iex> list_placeable_tile_templates(%User{})
-      [%TileTemplate{},...]
+      %{active: [%TileTemplate{},...], inactive: [%TileTemplate{},...]}
   """
   def list_placeable_tile_templates(%DungeonCrawl.Account.User{} = user) do
+    %{ active: _list_placeable_tile_templates(user.id, true),
+       inactive: _list_placeable_tile_templates(user.id, false)}
+  end
+
+  defp _list_placeable_tile_templates(user_id, active_or_inactive) do
     Repo.all(from t in TileTemplate,
-             where: t.public or t.user_id == ^user.id,
-             where: t.active == true,
+             where: t.public or t.user_id == ^user_id,
+             where: t.active == ^active_or_inactive,
              where: is_nil(t.deleted_at),
              order_by: :id)
   end
