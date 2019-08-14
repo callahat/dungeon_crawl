@@ -11,7 +11,6 @@ defmodule DungeonCrawl.Account.User do
     field :password_hash, :string
     field :user_id_hash, :string
     field :is_admin, :boolean, default: false
-    has_one :player_location, DungeonCrawl.Player.Location
     has_many :dungeons, DungeonCrawl.Dungeon.Map
 
     timestamps()

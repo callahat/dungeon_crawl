@@ -11,11 +11,11 @@ defmodule DungeonCrawl.EmptyGenerator do
   ?\s - Rock
   """
   def generate(cave_height \\ @cave_height, cave_width \\ @cave_width) do
-    map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
-            Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
-              Map.put map, {row, col}, ?\s
-            end)
-          end)
+    Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
+      Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
+        Map.put map, {row, col}, ?\s
+      end)
+    end)
   end
 
   def stringify(map, cave_width \\ @cave_width) do

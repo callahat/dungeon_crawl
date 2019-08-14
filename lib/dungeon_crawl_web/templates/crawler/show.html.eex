@@ -24,7 +24,7 @@ Or join:
   </thead>
 
   <tbody>
-<%= for %{dungeon: dungeon} = all <- @dungeons do %>
+<%= for %{dungeon: dungeon} <- @dungeons do %>
     <tr>
       <td><%= dungeon.name %></td>
       <td><%= dungeon.height %>x<%= dungeon.width %></td>

@@ -20,14 +20,14 @@ defmodule DungeonCrawlWeb.SharedView do
     |> Enum.join("")
   end
 
-  defp maybe_id(space) do
-    if space, do: space.id, else: ""
-  end
-
   defp cells(map, row, width, false) do
     Enum.to_list(0..width-1)
     |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
     |> Enum.join("")
+  end
+
+  defp maybe_id(space) do
+    if space, do: space.id, else: ""
   end
 
   def tile_and_style(nil, :safe), do: {:safe, ""}
