@@ -6,9 +6,13 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.DungeonGenerator
   alias DungeonCrawl.EmptyGenerator
+  alias DungeonCrawl.Player
+
+  import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
 
   plug :authenticate_user
-  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version]
+  plug :assign_player_location when action in [:show, :index, :test_crawl]
+  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
   plug :validate_updateable when action in [:edit, :update]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
@@ -129,6 +133,23 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> put_flash(:error, message)
         |> redirect(to: dungeon_path(conn, :show, dungeon))
     end
+  end
+
+  def test_crawl(conn, %{"id" => _id}) do
+    if conn.assigns.player_location, do: leave_and_broadcast(conn.assigns.player_location)
+
+    join_and_broadcast(conn.assigns.dungeon, conn.assigns[:user_id_hash])
+
+    conn
+    |> put_flash(:info, "Dungeon joined successfully.")
+    |> redirect(to: crawler_path(conn, :show))
+  end
+
+  defp assign_player_location(conn, _opts) do
+    player_location = Player.get_location(conn.assigns[:user_id_hash])
+                      |> Repo.preload(map_tile: [:dungeon, dungeon: [dungeon_map_tiles: :tile_template]])
+    conn
+    |> assign(:player_location, player_location)
   end
 
   defp assign_dungeon(conn, _opts) do

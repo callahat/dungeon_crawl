@@ -172,7 +172,7 @@ defmodule DungeonCrawl.Dungeon do
     end
   end
 
-  def create_new_map_version(%Map{active: false} = map) do
+  def create_new_map_version(%Map{active: false} = _map) do
     {:error, "Inactive map"}
   end
 
@@ -353,22 +353,6 @@ defmodule DungeonCrawl.Dungeon do
   """
   def hard_delete_map!(%Map{} = map) do
     Repo.delete!(map)
-  end
-
-  @doc """
-  Activates the map for users to join.
-
-  ## Examples
-
-    iex> activate_map(map)
-    {:ok, %Map{}}
-
-    ies> activate_map(map)
-    {:error, %Ecto.Changeset{}}
-  """
-  def activate_map(%Map{} = map) do
-    change_map(map, %{active: true})
-    |> Repo.update
   end
 
   @doc """

@@ -144,4 +144,17 @@ defmodule DungeonCrawl.Player do
              left_join: pmt in assoc(mt, :player_locations),
              select: count(pmt.id))
   end
+
+  @doc """
+  Returns the dungeon of the instance where the player location is.
+  Useful for determining if the player is test crawling an unactivated dungeon.
+
+  ## Examples
+
+      iex> get_dungeon(%Location{})
+      %Dungeon.Map{}
+  """
+  def get_dungeon(%Location{} = location) do
+    Repo.preload(location, [map_tile: [dungeon: :dungeon]]).map_tile.dungeon.dungeon
+  end
 end

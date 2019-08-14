@@ -8,7 +8,7 @@
 
 </div>
 
-<%= activate_or_new_version_button @conn, @dungeon %> |
+<%= activate_or_new_version_button @conn, @dungeon, @conn.assigns.player_location %> |
 <%= unless @dungeon.active do %>
 <%= link "Edit", to: dungeon_path(@conn, :edit, @dungeon) %> |
 <% end %>
