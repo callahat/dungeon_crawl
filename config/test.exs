@@ -21,4 +21,4 @@ config :dungeon_crawl, DungeonCrawl.Repo,
 config :comeonin, :bcrypt_log_rounds, 4
 config :comeonin, :pbkdf2_rounds, 1
 
-config :dungeon_crawl, :generator, DungeonCrawl.DungeonGenerator.TestRooms
+config :dungeon_crawl, :generator, DungeonCrawl.MapGenerators.TestRooms

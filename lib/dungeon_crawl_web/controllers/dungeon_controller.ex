@@ -4,8 +4,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.TileTemplates
-  alias DungeonCrawl.DungeonGenerator
-  alias DungeonCrawl.EmptyGenerator
+  alias DungeonCrawl.MapGenerators.ConnectedRooms
+  alias DungeonCrawl.MapGenerators.Empty
   alias DungeonCrawl.Player
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
@@ -15,7 +15,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
   plug :validate_updateable when action in [:edit, :update]
 
-  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
+  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
   def index(conn, _params) do
     dungeons = Dungeon.list_dungeons(conn.assigns.current_user)
@@ -31,7 +31,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   def create(conn, %{"map" => dungeon_params}) do
     generator = case dungeon_params["generator"] do
                   "Rooms" -> @dungeon_generator
-                  _       -> EmptyGenerator
+                  _       -> Empty
                 end
 
     case Dungeon.generate_map(generator, Elixir.Map.put(dungeon_params, "user_id", conn.assigns.current_user.id), true) do

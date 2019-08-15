@@ -4,7 +4,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonGenerator
+  alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias Ecto.Multi
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
@@ -13,7 +13,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_not_crawling  when action in [:create, :join]
   plug :validate_active_or_owner when action in [:join]
 
-  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || DungeonGenerator
+  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
 #  def index(conn, _params) do
 #    render(conn, "index.html", crawler: crawler)

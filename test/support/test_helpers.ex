@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.MapGenerators.TestRooms
 
   def insert_user(attrs \\ %{}) do
     changes = Map.merge(%{
@@ -51,7 +52,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
       active: true
     }, attrs)
 
-    {:ok, %{dungeon: dungeon}} = DungeonCrawl.Dungeon.generate_map(DungeonCrawl.DungeonGenerator.TestRooms, changes, to_be_edited)
+    {:ok, %{dungeon: dungeon}} = DungeonCrawl.Dungeon.generate_map(TestRooms, changes, to_be_edited)
     dungeon
   end
 

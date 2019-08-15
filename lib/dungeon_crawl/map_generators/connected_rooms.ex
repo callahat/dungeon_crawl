@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.DungeonGenerator do
+defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   @room_min_height  3
   @room_max_height  9
   @room_min_width   5
