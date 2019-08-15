@@ -17,19 +17,4 @@ defmodule DungeonCrawl.MapGenerators.Empty do
       end)
     end)
   end
-
-  def stringify(map, cave_width \\ @cave_width) do
-    map
-    |> _map_to_charlist
-    |> Enum.chunk(cave_width)
-    |> Enum.map(&(to_string(&1)))
-    |> Enum.join("\n")
-  end
-
-  defp _map_to_charlist(map) do
-    map
-    |> Map.to_list
-    |> Enum.sort(fn({k1, _}, {k2, _}) -> k1 < k2 end)
-    |> Enum.map(fn({_, v}) -> v end)
-  end
 end
