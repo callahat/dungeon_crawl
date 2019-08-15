@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias DungeonCrawl.MapGenerators.Empty
+  alias DungeonCrawl.MapGenerators.Labrynth
   alias DungeonCrawl.Player
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
@@ -24,14 +25,15 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def new(conn, _params) do
     changeset = Dungeon.change_map(%Map{})
-    generators = ["Rooms", "Empty Map"]
+    generators = ["Rooms", "Labrynth", "Empty Map"]
     render(conn, "new.html", changeset: changeset, generators: generators)
   end
 
   def create(conn, %{"map" => dungeon_params}) do
     generator = case dungeon_params["generator"] do
-                  "Rooms" -> @dungeon_generator
-                  _       -> Empty
+                  "Rooms"    -> @dungeon_generator
+                  "Labrynth" -> Labrynth
+                  _          -> Empty
                 end
 
     case Dungeon.generate_map(generator, Elixir.Map.put(dungeon_params, "user_id", conn.assigns.current_user.id), true) do
@@ -40,7 +42,7 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: dungeon_path(conn, :show, dungeon))
       {:error, :dungeon, changeset, _others} ->
-        generators = ["Rooms", "Empty Map"]
+        generators = ["Rooms", "Labrynth", "Empty Map"]
         render(conn, "new.html", changeset: changeset, generators: generators)
     end
   end
