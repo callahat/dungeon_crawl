@@ -24,6 +24,28 @@ let DungeonEditor = {
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting()} );
 
+
+    document.getElementById("tile_pallette_tools").addEventListener('click', e => {
+      e.preventDefault()
+      this.toggleActiveToolLink("tile_pallette", "color")
+      this.mode = "tile_painting"
+    });
+
+    document.getElementById("color_tools").addEventListener('click', e => {
+      e.preventDefault()
+      this.toggleActiveToolLink("color", "tile_pallette")
+      this.mode = "color_painting"
+    });
+
+    for(let field of ['tile_color', 'tile_background_color']){
+      document.getElementById(field).addEventListener('change', e => {
+        e.preventDefault()
+        this.updateColorPreviews()
+      });
+    }
+    this.updateColorPreviews()
+
+
     // debuggung events
     /*
     var events = [
@@ -92,35 +114,45 @@ let DungeonEditor = {
     }
   },
   selectDungeonTile(event){
-    let map_location = this.getMapLocation(event)
-    if(!map_location) { return } // event picked up on bad element
-    this.painting = false
+    if(this.mode == "tile_painting") {
+      let map_location = this.getMapLocation(event)
+      if(!map_location) { return } // event picked up on bad element
+      this.painting = false
 
-    let target = [...document.getElementsByName("paintable_tile_template")].find(
-      function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
+      let target = [...document.getElementsByName("paintable_tile_template")].find(
+        function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
 
-    this.updateActiveTile(target)
+      this.updateActiveTile(target)
+    }
   },
   paintEventHandler(event){
-    if(this.historicTile) { return }
     if(!this.painting || this.painted) { return }
 
-    let map_location = this.getMapLocation(event)
-    if(!map_location) { return } // event picked up on bad element
+    if(this.mode == "color_painting") {
+console.log("Implement this, and reuse whats reusable from below for both painting tiles and painting colors")
+// probably pass this.paintTiles or this.colorTiles to a new function that uses a good chunk of the stuff below
+    } else if(this.mode == "tile_painting") {
+      if(this.historicTile) { return }
 
-    this.painted = true
+      let map_location = this.getMapLocation(event)
+      if(!map_location) { return } // event picked up on bad element
 
-    var targetCoord = map_location.id.split("_").map(c => {return parseInt(c)})
+      this.painted = true
 
-    if(event.shiftKey && event.ctrlKey){
-      this.paintTiles(this.coordsForFill(targetCoord, map_location.getAttribute("data-tile-template-id")))
-    } else if(event.shiftKey){
-      this.paintTiles(this.coordsBetween(this.lastCoord, targetCoord))
+      var targetCoord = map_location.id.split("_").map(c => {return parseInt(c)})
+
+      if(event.shiftKey && event.ctrlKey){
+        this.paintTiles(this.coordsForFill(targetCoord, map_location.getAttribute("data-tile-template-id")))
+      } else if(event.shiftKey){
+        this.paintTiles(this.coordsBetween(this.lastCoord, targetCoord))
+      } else {
+        this.paintTiles(this.coordsBetween(this.lastDraggedCoord, targetCoord))
+      }
+
+      this.lastCoord = this.lastDraggedCoord = targetCoord
     } else {
-      this.paintTiles(this.coordsBetween(this.lastDraggedCoord, targetCoord))
+      console.log("UNKNOWN MODE:" + this.mode)
     }
-
-    this.lastCoord = this.lastDraggedCoord = targetCoord
   },
   paintTiles(coords){
     for(let coord of coords){
@@ -209,6 +241,38 @@ let DungeonEditor = {
       this.hilightable = true
     }
   },
+  toggleActiveToolLink(selected, other){
+    let selected_link = document.getElementById(selected + "_tools")
+
+    if(!!selected_link.getAttribute("class").match("inactive")) {
+      let other_link = document.getElementById(other + "_tools"),
+          selected_tools = document.getElementById(selected + "_area"),
+          other_tools = document.getElementById(other + "_area")
+
+      selected_link.classList.add("active")
+      selected_link.classList.remove("inactive")
+      other_link.classList.add("inactive")
+      other_link.classList.remove("active")
+      other_tools.classList.add("hidden")
+      selected_tools.classList.remove("hidden")
+    }
+  },
+  updateColorPreviews(){
+    let color = document.getElementById("tile_color").value;
+    let background_color = document.getElementById("tile_background_color").value;
+
+    if(color == "" && background_color == ""){
+      var style = "";
+    } else if(color != "" && background_color == ""){
+      var style = "color:" + color;
+    } else if(color == "" && background_color != ""){
+      var style = "background-color:" + background_color;
+    } else {
+      var style = "color:" + color + ";background-color:" + background_color;
+    }
+    document.getElementById("tile_color_pre").setAttribute("style", style)
+    document.getElementById("tile_background_color_pre").setAttribute("style", style)
+  },
   selectedTileId: null,
   selectedTileHtml: null,
   painting: false,
@@ -216,7 +280,8 @@ let DungeonEditor = {
   lastDraggedCoord: null,
   lastCoord: null,
   historicTile: false,
-  hilightable: true
+  hilightable: true,
+  mode: "tile_painting"
 }
 
 export default DungeonEditor

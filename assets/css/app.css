@@ -58,3 +58,13 @@ input#tile_template_character {
   height: 100px;
   overflow-y: scroll;
 }
+
+a.pallette_tools.active {
+  font-weight: bold;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.pallette_tools.inactive {
+  font-weight: bold;
+}

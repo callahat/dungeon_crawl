@@ -1,20 +1,28 @@
 <div class="row">
   <div class="col-md-4">
-    <b>Tools</b><br/>
+    <b>Tools</b>
+    <br/>
     <div id="painterTool" class="text-left tile_pallette_group">
-      <div id="activeTileDetails">
+      <a href="#" id="tile_pallette_tools" class="pallette_tools active">Tiles</a> | 
+      <a href="#" id="color_tools" class="pallette_tools inactive">Colors</a>
+      <br/>
+      <div id="tile_pallette_area">
         Active Tile: <span id="active_tile_name">Placeholder</span><br/>
         <pre id="active_tile_character" class="tile_template_preview embiggen_most">?</pre>
           <span id="active_tile_description">This should be replaced with an actual tile by the JS</span><br/>
         Responders: <span id="active_tile_responders">{}</span>
       </div>
+      <div id="color_area" class="hidden">
+        <span><pre class="tile_template_preview embiggen" id="tile_color_pre" title="foreground">F</pre><input id="tile_color" type="text" value="" placeholder="foreground"/></span>
+        <span><pre class="tile_template_preview embiggen" id="tile_background_color_pre" title="background">B</pre><input id="tile_background_color" type="text" value="" placeholder="backround"/></span>
+      </div>
     </div>
   </div>
 
   <div class="col-md-8">
+    <b>Tile Pallette</b>
+    <br/>
     <div class="tile_pallette_group">
-      <b>Tile Pallette</b>
-      <br/>
   <%= for tile_template <- @tile_templates.active do %>
       <pre class="tile_template_preview embiggen"
            name="paintable_tile_template"
