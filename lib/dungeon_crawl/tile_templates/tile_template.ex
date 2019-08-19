@@ -29,10 +29,16 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     tile_template
     |> cast(attrs, [:name, :character, :description, :color, :background_color, :responders,:version,:active,:public,:previous_version_id,:deleted_at,:user_id])
     |> validate_required([:name, :description])
+    |> validate_renderables
+    |> validate_responders
+  end
+
+  @doc false
+  def validate_renderables(changeset) do
+    changeset
     |> validate_format(:color, @color_match)
     |> validate_format(:background_color, @color_match)
     |> validate_length(:character, min: 1, max: 1)
-    |> validate_responders
   end
 
   @doc false
