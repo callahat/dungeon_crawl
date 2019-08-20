@@ -85,11 +85,21 @@ defmodule DungeonCrawlWeb.DungeonController do
   defp _make_tile_updates(dungeon, tile_updates) do
     case Poison.decode(tile_updates) do
       {:ok, tile_updates} ->
+        # TODO: move this to a method in Dungeon
         tile_updates
-        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"]), 
-                               TileTemplates.get_tile_template(tu["tile_template_id"])] end)
-        |> Enum.reject(fn([d,t]) -> is_nil(d) || is_nil(t) end)
-        |> Enum.map(fn([dmt, tt]) -> Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id}) end)
+        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"]),
+                               TileTemplates.get_tile_template(tu["tile_template_id"]),
+                               tu["color"],
+                               tu["background_color"]
+                              ] end)
+        |> Enum.reject(fn([d,t,_,_]) -> is_nil(d) || is_nil(t) end)
+        |> Enum.map(fn([dmt, tt, color, background_color]) ->
+             Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id,
+                                             character: tt.character,
+                                             color: color || tt.color,
+                                             background_color: background_color || tt.background_color
+                                            })
+           end)
 
       {:error, _, _} ->
         false # noop
