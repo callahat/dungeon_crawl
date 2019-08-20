@@ -187,7 +187,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _new_tile_copy(dmt, dungeon_id) do
-    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id])
+    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color])
     |> Elixir.Map.put(:dungeon_id, dungeon_id)
   end
 
@@ -218,7 +218,14 @@ defmodule DungeonCrawl.Dungeon do
 
     dungeon_generator.generate(dungeon.height, dungeon.width)
     |> Enum.to_list
-    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id, row: row, col: col, tile_template_id: tile_mapping[tile].id, z_index: 0} end)
+    |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id,
+                                           row: row,
+                                           col: col,
+                                           tile_template_id: tile_mapping[tile].id,
+                                           z_index: 0,
+                                           character: tile_mapping[tile].character,
+                                           color: tile_mapping[tile].color,
+                                           background_color: tile_mapping[tile].background_color} end)
   end
 
   @doc """

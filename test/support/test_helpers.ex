@@ -76,13 +76,22 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
   defp _tile_hydrator(dungeon_id, tiles) do
     tiles
-    |> Enum.map(fn(t) -> %{dungeon_id: dungeon_id, row: t.row, col: t.col, tile_template_id: t.tile_template_id, z_index: t.z_index} end)
+    |> Enum.map(fn(t) -> %{dungeon_id: dungeon_id,
+                           row: t.row,
+                           col: t.col,
+                           tile_template_id: t.tile_template_id,
+                           z_index: t.z_index,
+                           character: t.character,
+                           color: t.color,
+                           background_color: t.background_color
+                          } end)
   end
 
   def insert_player_map_tile(attrs \\ %{}) do
     changes = Map.merge(%{
       row: 3,
       col: 1,
+      character: "@"
     }, attrs)
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()

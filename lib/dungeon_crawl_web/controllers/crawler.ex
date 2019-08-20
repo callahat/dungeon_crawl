@@ -33,8 +33,8 @@ defmodule DungeonCrawlWeb.Crawler do
   end
 
   defp _broadcast_join_event(location) do
-    top = Repo.preload(DungeonInstances.get_map_tile(location.map_tile), :tile_template)
-    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top.tile_template), else: ""
+    top = DungeonInstances.get_map_tile(location.map_tile)
+    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
     DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
                                     "player_joined",
                                     %{row: top.row, col: top.col, tile: tile})
@@ -56,7 +56,7 @@ defmodule DungeonCrawlWeb.Crawler do
 
   defp _broadcast_leave_event(location) do
     top = Repo.preload(DungeonInstances.get_map_tile(location.map_tile), :tile_template)
-    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top.tile_template), else: ""
+    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
     DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
                                     "player_left",
                                     %{row: location.map_tile.row, col: location.map_tile.col, tile: tile})

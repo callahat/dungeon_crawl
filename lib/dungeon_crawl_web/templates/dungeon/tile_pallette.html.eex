@@ -29,7 +29,7 @@
            title="<%= tile_template.name %>"
            data-tile-template-description="<%= tile_template.description %>"
            data-tile-template-responders="<%= tile_template.responders %>"
-           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre>
+           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
   <% end %>
 
   <%= if Enum.count(@historic_templates) > 0 do %>
@@ -43,7 +43,7 @@
            data-historic-template=true
            data-tile-template-description="<%= tile_template.description %>"
            data-tile-template-responders="<%= tile_template.responders %>"
-           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre>
+           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
     <% end %>
   <% end %>
 
@@ -57,7 +57,7 @@
            title="<%= tile_template.name %>"
            data-tile-template-description="<%= tile_template.description %>"
            data-tile-template-responders="<%= tile_template.responders %>"
-           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre>
+           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
     <% end %>
   <% end %>
     </div>
