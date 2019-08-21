@@ -19,7 +19,7 @@
     </div>
   </div>
 
-  <div class="col-md-8">
+  <div class="col-md-8" id="tile_pallette_objects">
     <b>Tile Pallette</b>
     <br/>
     <div class="tile_pallette_group">
@@ -29,6 +29,8 @@
            title="<%= tile_template.name %>"
            data-tile-template-description="<%= tile_template.description %>"
            data-tile-template-responders="<%= tile_template.responders %>"
+           data-color="<%= tile_template.color %>"
+           data-background-color="<%= tile_template.background_color %>"
            data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
   <% end %>
 
@@ -43,6 +45,8 @@
            data-historic-template=true
            data-tile-template-description="<%= tile_template.description %>"
            data-tile-template-responders="<%= tile_template.responders %>"
+           data-color="<%= tile_template.color %>"
+           data-background-color="<%= tile_template.background_color %>"
            data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
     <% end %>
   <% end %>
@@ -57,9 +61,46 @@
            title="<%= tile_template.name %>"
            data-tile-template-description="<%= tile_template.description %>"
            data-tile-template-responders="<%= tile_template.responders %>"
+           data-color="<%= tile_template.color %>"
+           data-background-color="<%= tile_template.background_color %>"
            data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
     <% end %>
   <% end %>
+    </div>
+  </div>
+
+
+  <div class="col-md-8 hidden" id="color_objects">
+    <b>Color Pallette</b>
+    <br/>
+    <div class="tile_pallette_group">
+    <pre class="color_pallette"><table id="color_pallette"><tr>
+        <%= for c <- ["#000", "#333", "#555", "#666", "#777", "#999", "#AAA", "#CCC", "#DDD", "#FFF"] do %>
+        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
+        <% end %>
+      </tr>
+      <tr>
+        <%= for c <- ["#A00", "#F00", "#F80", "#FF0", "#0F0", "#0FF", "#58F", "#00F", "#80F", "#F0F"] do %>
+        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
+        <% end %>
+      </tr>
+      <tr>
+        <%= for c <- ["#A88", "#F88", "#FB8", "#FFC", "#BFB", "#BFF", "#9BF", "#88F", "#B8F", "#F8F"] do %>
+        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
+        <% end %>
+      </tr>
+      <tr>
+        <%= for c <- ["#A54", "#D54", "#A94", "#AA7", "#6A6", "#6AA", "#56A", "#44A", "#84A", "#A4A"] do %>
+        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
+        <% end %>
+      </tr>
+      <tr>
+        <%= for c <- ["#831", "#B32", "#951", "#882", "#271", "#357", "#236", "#127", "#517", "#716"] do %>
+        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
+        <% end %>
+      </tr>
+
+    </table></pre>
     </div>
   </div>
 </div>

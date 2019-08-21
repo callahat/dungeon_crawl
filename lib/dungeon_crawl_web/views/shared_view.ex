@@ -19,7 +19,7 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp cells(map, row, width, true) do
     Enum.to_list(0..width-1)
-    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' data-tile-template-id='#{maybe_tt_id(map[{row, col}])}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' data-color='#{map[{row, col}].color}' data-background-color='#{map[{row, col}].background_color}' data-tile-template-id='#{maybe_tt_id(map[{row, col}])}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
     |> Enum.join("")
   end
 

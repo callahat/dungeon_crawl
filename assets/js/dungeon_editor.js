@@ -7,13 +7,16 @@ let DungeonEditor = {
       window.addEventListener('keyup', e => { this.unHilightTiles(e) });
     }
 
+    for(let color of document.getElementsByName("paintable_color")){
+      color.addEventListener('mousedown', e => { this.updateActiveColor(e) });
+    }
+
     this.updateActiveTile(document.getElementsByName("paintable_tile_template")[0])
 
     document.getElementById("dungeon").addEventListener('mousedown', e => {
       if(e.which == 3 || e.button == 2) {
         this.disablePainting()
         this.selectDungeonTile(e)
-        // TODO: stash the details for all the existing tiles somewhere so right clicking can select that tile for painting
       } else {
         this.enablePainting()
         this.paintEventHandler(e)
@@ -22,6 +25,7 @@ let DungeonEditor = {
     document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintEventHandler(e)} );
     document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
+    document.getElementById("color_pallette").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting()} );
 
 
@@ -44,7 +48,6 @@ let DungeonEditor = {
       });
     }
     this.updateColorPreviews()
-
 
     // debuggung events
     /*
@@ -82,8 +85,10 @@ let DungeonEditor = {
     for(let tile_change of Array.from(document.getElementsByClassName("changed-map-tile"))){
       let [row, col] = tile_change.getAttribute("id").split("_").map(i => parseInt(i))
       let ttid = parseInt(tile_change.getAttribute("data-tile-template-id"))
+      let color = tile_change.getAttribute("data-color")
+      let background_color = tile_change.getAttribute("data-background-color")
 
-      map_tile_changes.push({row: row, col: col, tile_template_id: ttid })
+      map_tile_changes.push({row: row, col: col, tile_template_id: ttid, color: color, background_color: background_color })
     }
     document.getElementById("map_tile_changes").value = JSON.stringify(map_tile_changes)
     //event.preventDefault()
@@ -109,62 +114,99 @@ let DungeonEditor = {
     this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
     this.selectedTileHtml = tag.children[0]
+    this.selectedTileColor = tag.getAttribute("data-color")
+    this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
     }
   },
-  selectDungeonTile(event){
-    if(this.mode == "tile_painting") {
-      let map_location = this.getMapLocation(event)
-      if(!map_location) { return } // event picked up on bad element
-      this.painting = false
+  updateActiveColor(event){
+    let target = event.target
+    if(!target) { return }
 
+    let tag = target.tagName == "SPAN" ? target.parentNode : target
+    if(event.which == 3 || event.button == 2) {
+      // right click background
+      document.getElementById("tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
+    } else {
+      document.getElementById("tile_color").value = this.selectedColor = tag.getAttribute("data-color")
+    }
+    this.updateColorPreviews()
+  },
+  selectDungeonTile(event){
+    let map_location = this.getMapLocation(event)
+    if(!map_location) { return } // event picked up on bad element
+    this.painting = false
+    this.lastCoord = null
+
+    if(this.mode == "tile_painting") {
       let target = [...document.getElementsByName("paintable_tile_template")].find(
         function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
 
       this.updateActiveTile(target)
+    } else if(this.mode == "color_painting") {
+
+      this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
+      this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
+      this.updateColorPreviews()
+    } else {
+      console.log("UNKNOWN MODE:" + this.mode)
+      return
     }
   },
   paintEventHandler(event){
     if(!this.painting || this.painted) { return }
 
+    //var paintMethod;
     if(this.mode == "color_painting") {
-console.log("Implement this, and reuse whats reusable from below for both painting tiles and painting colors")
-// probably pass this.paintTiles or this.colorTiles to a new function that uses a good chunk of the stuff below
+      var paintMethod = this.colorTile,
+          attributes = ["data-color", "data-background-color","data-tile-template-id"]
     } else if(this.mode == "tile_painting") {
       if(this.historicTile) { return }
-
-      let map_location = this.getMapLocation(event)
-      if(!map_location) { return } // event picked up on bad element
-
-      this.painted = true
-
-      var targetCoord = map_location.id.split("_").map(c => {return parseInt(c)})
-
-      if(event.shiftKey && event.ctrlKey){
-        this.paintTiles(this.coordsForFill(targetCoord, map_location.getAttribute("data-tile-template-id")))
-      } else if(event.shiftKey){
-        this.paintTiles(this.coordsBetween(this.lastCoord, targetCoord))
-      } else {
-        this.paintTiles(this.coordsBetween(this.lastDraggedCoord, targetCoord))
-      }
-
-      this.lastCoord = this.lastDraggedCoord = targetCoord
+      var paintMethod = this.paintTile,
+          attributes = ["data-tile-template-id"]
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
+      return
     }
+
+    let map_location = this.getMapLocation(event)
+    if(!map_location) { return } // event picked up on bad element
+
+    this.painted = true
+
+    var targetCoord = map_location.id.split("_").map(c => {return parseInt(c)})
+
+    if(event.shiftKey && event.ctrlKey){
+      this.paintTiles(this.coordsForFill(targetCoord, map_location, attributes), paintMethod)
+    } else if(event.shiftKey){
+      this.paintTiles(this.coordsBetween(this.lastCoord, targetCoord), paintMethod)
+    } else {
+      this.paintTiles(this.coordsBetween(this.lastDraggedCoord, targetCoord), paintMethod)
+    }
+
+    this.lastCoord = this.lastDraggedCoord = targetCoord
   },
-  paintTiles(coords){
+  paintTiles(coords, paintMethod){
     for(let coord of coords){
-      this.paintTile(document.getElementById(coord))
+      paintMethod(document.getElementById(coord), this)
     }
   },
-  paintTile(map_location){
+  colorTile(map_location, context){
+    let span = map_location.children[0]
+    map_location.setAttribute("data-color", context.selectedColor)
+    map_location.setAttribute("data-background-color", context.selectedBackgroundColor)
+    context.updateColors(span, context.selectedColor, context.selectedBackgroundColor)
+    map_location.setAttribute("class", "changed-map-tile")
+  },
+  paintTile(map_location, context){
     let old_tile = map_location.children[0]
 
-    map_location.insertBefore(this.selectedTileHtml.cloneNode(true), old_tile)
+    map_location.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
     map_location.removeChild(old_tile)
-    map_location.setAttribute("data-tile-template-id", this.selectedTileId)
+    map_location.setAttribute("data-tile-template-id", context.selectedTileId)
+    map_location.setAttribute("data-color", context.selectedTileColor)
+    map_location.setAttribute("data-background-color", context.selectedTileBackgroundColor)
     map_location.setAttribute("class", "changed-map-tile")
   },
   getMapLocation(event){
@@ -191,10 +233,10 @@ console.log("Implement this, and reuse whats reusable from below for both painti
     }
     return coords
   },
-  coordsForFill(target_coord, tile_template_id){
+  coordsForFill(target_coord, map_location, attributes){
     let frontier = [target_coord]
     let coords = []
-    let e = null
+    let el = null
 
     while(frontier.length > 0){
       let coord = frontier.pop()
@@ -202,14 +244,17 @@ console.log("Implement this, and reuse whats reusable from below for both painti
 
       for(let candidate of this.adjacentCoords(coord)) {
         let tileId = candidate.join("_")
-        e = document.getElementById(tileId)
+        el = document.getElementById(tileId)
         if(!(coords.find(c => { return c == tileId }) || frontier.find(c => { return c.join("_") == tileId })) &&
-           !!e && (e.getAttribute("data-tile-template-id") == tile_template_id)){
+           this.sameTileTemplate(el, map_location, attributes)){
           frontier.push(candidate)
         }
       }
     }
     return coords
+  },
+  sameTileTemplate(el, map_location, attributes){
+    return !!el && attributes.reduce(function(acc, attr){ return(acc && el.getAttribute(attr) == map_location.getAttribute(attr)) }, true)
   },
   adjacentCoords(coord){
     return [[coord[0] + 1, coord[1]],
@@ -247,7 +292,9 @@ console.log("Implement this, and reuse whats reusable from below for both painti
     if(!!selected_link.getAttribute("class").match("inactive")) {
       let other_link = document.getElementById(other + "_tools"),
           selected_tools = document.getElementById(selected + "_area"),
-          other_tools = document.getElementById(other + "_area")
+          other_tools = document.getElementById(other + "_area"),
+          selected_pallette = document.getElementById(selected + "_objects"),
+          other_pallette = document.getElementById(other + "_objects")
 
       selected_link.classList.add("active")
       selected_link.classList.remove("inactive")
@@ -255,12 +302,21 @@ console.log("Implement this, and reuse whats reusable from below for both painti
       other_link.classList.remove("active")
       other_tools.classList.add("hidden")
       selected_tools.classList.remove("hidden")
+      other_pallette.classList.add("hidden")
+      selected_pallette.classList.remove("hidden")
     }
   },
   updateColorPreviews(){
     let color = document.getElementById("tile_color").value;
     let background_color = document.getElementById("tile_background_color").value;
 
+    this.selectedBackgroundColor = document.getElementById("tile_background_color").value
+    this.selectedColor = document.getElementById("tile_color").value
+
+    this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
+    this.updateColors(document.getElementById("tile_background_color_pre"), color, background_color)
+  },
+  updateColors(element, color, background_color){
     if(color == "" && background_color == ""){
       var style = "";
     } else if(color != "" && background_color == ""){
@@ -270,18 +326,21 @@ console.log("Implement this, and reuse whats reusable from below for both painti
     } else {
       var style = "color:" + color + ";background-color:" + background_color;
     }
-    document.getElementById("tile_color_pre").setAttribute("style", style)
-    document.getElementById("tile_background_color_pre").setAttribute("style", style)
+    element.setAttribute("style", style)
   },
   selectedTileId: null,
   selectedTileHtml: null,
+  selectedTileColor: null,
+  selectedTileBackgroundColor: null,
   painting: false,
   painted: false,
   lastDraggedCoord: null,
   lastCoord: null,
   historicTile: false,
   hilightable: true,
-  mode: "tile_painting"
+  mode: "tile_painting",
+  selectedColor: null,
+  selectedBackgroundColor: null
 }
 
 export default DungeonEditor
