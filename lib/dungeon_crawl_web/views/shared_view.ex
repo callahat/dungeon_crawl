@@ -19,7 +19,7 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp cells(map, row, width, true) do
     Enum.to_list(0..width-1)
-    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' data-color='#{map[{row, col}].color}' data-background-color='#{map[{row, col}].background_color}' data-tile-template-id='#{maybe_tt_id(map[{row, col}])}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' #{data_attributes(map[{row, col}])}>#{ tile_and_style(map[{row, col}]) }</td>" end )
     |> Enum.join("")
   end
 
@@ -29,8 +29,11 @@ defmodule DungeonCrawlWeb.SharedView do
     |> Enum.join("")
   end
 
-  defp maybe_tt_id(map_tile) do
-    if map_tile, do: map_tile.tile_template_id, else: ""
+  defp data_attributes(nil) do
+    ~s(data-color='' data-background-color='' data-tile-template-id='')
+  end
+  defp data_attributes(mt) do
+    ~s(data-color='#{mt.color}' data-background-color='#{mt.background_color}' data-tile-template-id='#{mt.tile_template_id}')
   end
 
   def tile_and_style(nil, :safe), do: {:safe, ""}
@@ -62,5 +65,4 @@ defmodule DungeonCrawlWeb.SharedView do
     "<span style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</span>"
   end
 end
-
 

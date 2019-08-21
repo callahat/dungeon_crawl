@@ -23,49 +23,21 @@
     <b>Tile Pallette</b>
     <br/>
     <div class="tile_pallette_group">
-  <%= for tile_template <- @tile_templates.active do %>
-      <pre class="tile_template_preview embiggen"
-           name="paintable_tile_template"
-           title="<%= tile_template.name %>"
-           data-tile-template-description="<%= tile_template.description %>"
-           data-tile-template-responders="<%= tile_template.responders %>"
-           data-color="<%= tile_template.color %>"
-           data-background-color="<%= tile_template.background_color %>"
-           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
-  <% end %>
+      <%= tile_template_pres(@tile_templates.active) %>
 
-  <%= if Enum.count(@historic_templates) > 0 do %>
-      <br/>
-      <span><b>Historic Tiles</b> (can no longer be added)</span>
-      <br/>
-    <%= for tile_template <- @historic_templates do %>
-      <pre class="tile_template_preview embiggen"
-           name="paintable_tile_template"
-           title="<%= tile_template.name %>"
-           data-historic-template=true
-           data-tile-template-description="<%= tile_template.description %>"
-           data-tile-template-responders="<%= tile_template.responders %>"
-           data-color="<%= tile_template.color %>"
-           data-background-color="<%= tile_template.background_color %>"
-           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
-    <% end %>
-  <% end %>
+      <%= if Enum.count(@historic_templates) > 0 do %>
+        <br/>
+        <span><b>Historic Tiles</b> (can no longer be added)</span>
+        <br/>
+        <%= tile_template_pres(@historic_templates, :historic) %>
+      <% end %>
 
-  <%= if Enum.count(@tile_templates.inactive) > 0 do %>
-      <br/>
-      <span><b>Inactive Tiles</b> (must be activated before the dungeon can be)</span>
-      <br/>
-    <%= for tile_template <- @tile_templates.inactive do %>
-      <pre class="tile_template_preview embiggen"
-           name="paintable_tile_template"
-           title="<%= tile_template.name %>"
-           data-tile-template-description="<%= tile_template.description %>"
-           data-tile-template-responders="<%= tile_template.responders %>"
-           data-color="<%= tile_template.color %>"
-           data-background-color="<%= tile_template.background_color %>"
-           data-tile-template-id="<%= tile_template.id%>"><%= DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template, :safe) %></pre>
-    <% end %>
-  <% end %>
+      <%= if Enum.count(@tile_templates.inactive) > 0 do %>
+        <br/>
+        <span><b>Inactive Tiles</b> (must be activated before the dungeon can be)</span>
+        <br/>
+        <%= tile_template_pres(@tile_templates.inactive) %>
+      <% end %>
     </div>
   </div>
 
@@ -74,32 +46,12 @@
     <b>Color Pallette</b>
     <br/>
     <div class="tile_pallette_group">
-    <pre class="color_pallette"><table id="color_pallette"><tr>
-        <%= for c <- ["#000", "#333", "#555", "#666", "#777", "#999", "#AAA", "#CCC", "#DDD", "#FFF"] do %>
-        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
-        <% end %>
-      </tr>
-      <tr>
-        <%= for c <- ["#A00", "#F00", "#F80", "#FF0", "#0F0", "#0FF", "#58F", "#00F", "#80F", "#F0F"] do %>
-        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
-        <% end %>
-      </tr>
-      <tr>
-        <%= for c <- ["#A88", "#F88", "#FB8", "#FFC", "#BFB", "#BFF", "#9BF", "#88F", "#B8F", "#F8F"] do %>
-        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
-        <% end %>
-      </tr>
-      <tr>
-        <%= for c <- ["#A54", "#D54", "#A94", "#AA7", "#6A6", "#6AA", "#56A", "#44A", "#84A", "#A4A"] do %>
-        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
-        <% end %>
-      </tr>
-      <tr>
-        <%= for c <- ["#831", "#B32", "#951", "#882", "#271", "#357", "#236", "#127", "#517", "#716"] do %>
-        <td data-color="<%= c %>"><span name="paintable_color" style="background-color: <%= c %>">&nbsp;&nbsp;</span></td>
-        <% end %>
-      </tr>
-
+    <pre class="color_pallette"><table id="color_pallette"
+      ><%= color_tr(["#000", "#333", "#555", "#666", "#777", "#999", "#AAA", "#CCC", "#DDD", "#FFF"]) %>
+       <%= color_tr(["#A00", "#F00", "#F80", "#FF0", "#0F0", "#0FF", "#58F", "#00F", "#80F", "#F0F"]) %>
+       <%= color_tr(["#A88", "#F88", "#FB8", "#FFC", "#BFB", "#BFF", "#9BF", "#88F", "#B8F", "#F8F"]) %>
+       <%= color_tr(["#A54", "#D54", "#A94", "#AA7", "#6A6", "#6AA", "#56A", "#44A", "#84A", "#A4A"]) %>
+       <%= color_tr(["#831", "#B32", "#951", "#882", "#271", "#357", "#236", "#127", "#517", "#716"]) %>
     </table></pre>
     </div>
   </div>

@@ -59,7 +59,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_3'><span style='color: #FFF'>B</span></td>}
   end
 
-  test "dungeon_as_table/2 returns table rows of the dungeon including the tile_template_id" do
+  test "dungeon_as_table/2 returns table rows of the dungeon including the data attributes" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
@@ -69,8 +69,8 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
     rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), true)
 
-    assert rows =~ ~r|<td id='1_1' data-tile-template-id='#{tile_a.id}'><span>A</span></td>|
-    assert rows =~ ~r|<td id='1_2' data-tile-template-id='#{tile_a.id}'><span>A</span></td>|
-    assert rows =~ ~r|<td id='1_3' data-tile-template-id='#{tile_b.id}'><span style='color: #FFF'>B</span></td>|
+    assert rows =~ ~r|<td id='1_1' data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><span>A</span></td>|
+    assert rows =~ ~r|<td id='1_2' data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><span>A</span></td>|
+    assert rows =~ ~r|<td id='1_3' data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}'><span style='color: #FFF'>B</span></td>|
   end
 end
