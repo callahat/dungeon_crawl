@@ -37,20 +37,10 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   def tile_and_style(nil, :safe), do: {:safe, ""}
-  def tile_and_style(%Dungeon.MapTile{} = map_tile, :safe), do: {:safe, _tile_and_style(map_tile)}
-  def tile_and_style(%DungeonInstances.MapTile{} = map_tile, :safe), do: {:safe, _tile_and_style(map_tile)}
+  def tile_and_style(tile, :safe), do: {:safe, _tile_and_style(tile)}
 
   def tile_and_style(nil), do: ""
-  def tile_and_style(%Dungeon.MapTile{} = map_tile), do: _tile_and_style(map_tile)
-  def tile_and_style(%DungeonInstances.MapTile{} = map_tile), do: _tile_and_style(map_tile)
-
-  # splitting these into a new method to make the standard display use a MapTile, but allow using the tile template
-  # in cases where that is valid (ie, when editing/showing tile templates explicitly)
-  def tile_template_and_style(nil, :safe), do: {:safe, ""}
-  def tile_template_and_style(%TileTemplate{} = tile_template, :safe), do: {:safe, _tile_and_style(tile_template)}
-
-  def tile_template_and_style(nil), do: ""
-  def tile_template_and_style(%TileTemplate{} = tile_template), do: _tile_and_style(tile_template)
+  def tile_and_style(tile), do: _tile_and_style(tile)
 
   defp _tile_and_style(%{color: nil, background_color: nil} = map_tile) do
     "<span>#{map_tile.character}</span>"

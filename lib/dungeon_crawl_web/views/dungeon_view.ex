@@ -18,17 +18,17 @@ defmodule DungeonCrawlWeb.DungeonView do
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
     |> Enum.map(fn(tile_template) ->
-"""
-      <pre class="tile_template_preview embiggen"
-           name="paintable_tile_template"
-           title="#{ tile_template.name }"
-           #{ if historic, do: " data-historic-template=true" }
-           data-tile-template-description="#{ tile_template.description }"
-           data-tile-template-responders="#{ tile_template.responders }"
-           data-color="#{ tile_template.color }"
-           data-background-color="#{ tile_template.background_color }"
-           data-tile-template-id="#{ tile_template.id }">#{ DungeonCrawlWeb.SharedView.tile_template_and_style(tile_template) }</pre>
-"""
+         """
+           <pre class="tile_template_preview embiggen"
+                name="paintable_tile_template"
+                title="#{ tile_template.name }"
+                #{ if historic, do: " data-historic-template=true" }
+                data-tile-template-description="#{ tile_template.description }"
+                data-tile-template-responders="#{ tile_template.responders }"
+                data-color="#{ tile_template.color }"
+                data-background-color="#{ tile_template.background_color }"
+                data-tile-template-id="#{ tile_template.id }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
+         """
        end)
     |> Enum.join("\n")
     |> _make_it_safe()
