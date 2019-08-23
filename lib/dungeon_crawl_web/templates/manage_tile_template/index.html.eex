@@ -1,5 +1,11 @@
 <h2>Listing tile templates</h2>
 
+<%= if @conn.assigns.current_user.is_admin do %>
+<%= link "All", to: manage_tile_template_path(@conn, :index) %> |
+<%= link "Mine", to: manage_tile_template_path(@conn, :index, %{list: "mine"}) %> |
+<%= link "Unowned", to: manage_tile_template_path(@conn, :index, %{list: "nil"}) %>
+<% end %>
+
 <table class="table">
   <thead>
     <tr>
@@ -9,6 +15,9 @@
       <th>Color</th>
       <th>B.Color</th>
       <th>Use Count</th>
+      <th title="Public">P</th>
+      <th title="Active">A</th>
+      <th title="Version">V</th>
 
       <th></th>
     </tr>
@@ -22,10 +31,14 @@
       <td><%= tile_template.color %></td>
       <td><%= tile_template.background_color %></td>
       <td><%= DungeonCrawl.Dungeon.tile_template_reference_count(tile_template) %></td>
+      <td><%= if tile_template.public, do: "Y", else: "N" %></td>
+      <td><%= if tile_template.active, do: "Y", else: "N" %></td>
+      <td><%= tile_template.version %></td>
 
       <td class="text-right">
+        <%= activate_or_new_version_button(@conn, tile_template) %>
         <%= link "Show", to: manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-default btn-xs" %>
+        <%= unless tile_template.active, do: link "Edit", to: manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-default btn-xs" %>
         <%= link "Delete", to: manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
       </td>
     </tr>

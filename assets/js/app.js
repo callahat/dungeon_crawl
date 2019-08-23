@@ -21,8 +21,9 @@ import "phoenix_html"
 import socket from "./socket"
 import Dungeon from "./dungeon"
 import TileTemplatePreview from "./tile_template_preview"
+import DungeonEditor from "./dungeon_editor"
 
 Dungeon.init(socket, document.getElementById("dungeon"))
 TileTemplatePreview.init(document.getElementById("character_preview"))
 TileTemplatePreview.init(document.getElementById("character_preview_small"))
-
+DungeonEditor.init(document.getElementById("dungeon_editor"))

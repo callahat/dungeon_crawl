@@ -6,7 +6,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
   describe "tile_templates" do
     alias DungeonCrawl.TileTemplates.TileTemplate
 
-    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black"}
+    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black", active: true}
     @update_attrs %{color: "puce", character: "█"}
     @invalid_attrs %{name: "", character: "BIG"}
 
@@ -23,16 +23,47 @@ defmodule DungeonCrawl.TileTemplatesTest do
       TileTemplates.delete_tile_template(tile_template_fixture(attrs))
     end
 
+    test "list_tile_templates/1 returns all tile_templates owned by the given user" do
+      user = insert_user()
+      different_user = insert_user()
+      tile_template = tile_template_fixture(%{user_id: user.id})
+      tile_template_fixture(%{user_id: different_user.id})
+      deleted_tile_template_fixture()
+      assert TileTemplates.list_tile_templates(user) == [tile_template]
+    end
+
     test "list_tile_templates/0 returns all tile_templates" do
       tile_template = tile_template_fixture()
       deleted_tile_template_fixture()
       assert TileTemplates.list_tile_templates() == [tile_template]
     end
 
+    test "list_placeable_tile_templates/1 returns all tile_templates placeable for the given user" do
+      user = insert_user()
+      different_user = insert_user()
+      tile_template = tile_template_fixture(%{user_id: user.id})
+      inactive_tile_template = tile_template_fixture(%{user_id: user.id, active: false})
+      tile_template_fixture(%{user_id: different_user.id})
+      public_tile_template = tile_template_fixture(%{user_id: different_user.id, public: true})
+      deleted_tile_template_fixture()
+      assert TileTemplates.list_placeable_tile_templates(user) == %{active: [tile_template, public_tile_template], inactive: [inactive_tile_template]}
+    end
+
     test "get_tile_template!/1 returns the tile_template with given id" do
       tile_template = tile_template_fixture()
       assert TileTemplates.get_tile_template!(tile_template.id) == tile_template
       assert TileTemplates.get_tile_template(tile_template.id) == tile_template
+    end
+
+    test "next_version_exists?/1 is true if the tile_template has a next version" do
+      tile_template = tile_template_fixture()
+      tile_template_fixture(%{previous_version_id: tile_template.id})
+      assert TileTemplates.next_version_exists?(tile_template)
+    end
+
+    test "next_version_exists?/1 is false if the tile_template does not have a next version" do
+      tile_template = tile_template_fixture()
+      refute TileTemplates.next_version_exists?(tile_template)
     end
 
     test "create_tile_template/1 with valid data creates a tile_template" do
@@ -54,6 +85,26 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert "Problem parsing - junk" in errors_on(changeset).responders
       assert "should be at most 1 character(s)" in errors_on(changeset).character
       assert %{responders: ["Problem parsing - junk"], character: ["should be at most 1 character(s)"]} = errors_on(changeset)
+    end
+
+    test "create_new_tile_template_version/1 does not create a new version of an inactive tile_template" do
+      tile_template = tile_template_fixture(%{active: false})
+      assert {:error, "Inactive tile template"} = TileTemplates.create_new_tile_template_version(tile_template)
+    end
+
+    test "create_new_tile_template_version/1 creates a new version" do
+      tile_template = tile_template_fixture(%{active: true})
+      assert {:ok, new_tile_template} = TileTemplates.create_new_tile_template_version(tile_template)
+      assert new_tile_template.version == tile_template.version + 1
+      refute new_tile_template.active
+      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :responders]) ==
+             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :responders])
+    end
+
+    test "create_new_tile_template_version/1 does not create a new version if the next one exists" do
+      tile_template = tile_template_fixture(%{active: true})
+      tile_template_fixture(%{previous_version_id: tile_template.id})
+      assert {:error, "New version already exists"} = TileTemplates.create_new_tile_template_version(tile_template)
     end
 
     test "find_or_create_tile_template/1 finds existing tile_template" do

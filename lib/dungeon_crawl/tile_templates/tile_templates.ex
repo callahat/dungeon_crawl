@@ -17,8 +17,42 @@ defmodule DungeonCrawl.TileTemplates do
       [%TileTemplate{}, ...]
 
   """
-  def list_tile_templates do
-    Repo.all(from t in TileTemplate, where: is_nil(t.deleted_at))
+  def list_tile_templates(%DungeonCrawl.Account.User{} = user) do
+    Repo.all(from t in TileTemplate,
+             where: t.user_id == ^user.id,
+             where: is_nil(t.deleted_at))
+  end
+  def list_tile_templates(:nouser) do
+    Repo.all(from t in TileTemplate,
+             where: is_nil(t.user_id),
+             where: is_nil(t.deleted_at))
+  end
+  def list_tile_templates() do
+    Repo.all(from t in TileTemplate,
+             where: is_nil(t.deleted_at))
+  end
+
+  @doc """
+  Returns a map with two keys; :active and :inactive. Each has a list of tile_templates that
+  can be used for designing a dungeon. Note that before activating the dungeon, the inactive tiles
+  should be activated.
+
+  ## Examples
+
+      iex> list_placeable_tile_templates(%User{})
+      %{active: [%TileTemplate{},...], inactive: [%TileTemplate{},...]}
+  """
+  def list_placeable_tile_templates(%DungeonCrawl.Account.User{} = user) do
+    %{ active: _list_placeable_tile_templates(user.id, true),
+       inactive: _list_placeable_tile_templates(user.id, false)}
+  end
+
+  defp _list_placeable_tile_templates(user_id, active_or_inactive) do
+    Repo.all(from t in TileTemplate,
+             where: t.public or t.user_id == ^user_id,
+             where: t.active == ^active_or_inactive,
+             where: is_nil(t.deleted_at),
+             order_by: :id)
   end
 
   @doc """
@@ -37,6 +71,21 @@ defmodule DungeonCrawl.TileTemplates do
   """
   def get_tile_template(id),  do: Repo.get(TileTemplate, id)
   def get_tile_template!(id), do: Repo.get!(TileTemplate, id)
+
+  @doc """
+  Returns a boolean indicating wether or not the given tile template has a next version, or is the most current one.
+
+  ## Examples
+
+      iex> next_version_exists?(%TileTemplate{})
+      true
+
+      iex> next_version_exists?(%TileTemplate{})
+      false
+  """
+  def next_version_exists?(%TileTemplate{} = template) do
+    Repo.one(from t in TileTemplate, where: t.previous_version_id == ^template.id, select: count(t.id)) > 0
+  end
 
   @doc """
   Creates a tile_template.
@@ -59,6 +108,39 @@ defmodule DungeonCrawl.TileTemplates do
     %TileTemplate{}
     |> TileTemplate.changeset(attrs)
     |> Repo.insert!()
+  end
+
+  @doc """
+  Creates a new version of an active tile template. Returns an error if there exists a next version already.
+
+  ## Examples
+
+      iex> create_new_tile_template_version(%TileTemplate{active: true})
+      {:ok, %{dungeon: %TileTemplate{}}}
+
+      iex> create_new_tile_template_version(%TileTemplate{active: false})
+      {:error, "Inactive tile template"}
+  """
+  def create_new_tile_template_version(%TileTemplate{active: true} = tile_template) do
+    unless next_version_exists?(tile_template) do
+      _tile_template_copy_changeset(tile_template)
+      |> Repo.insert()
+    else
+      {:error, "New version already exists"}
+    end
+  end
+
+  def create_new_tile_template_version(%TileTemplate{active: false}) do
+    {:error, "Inactive tile template"}
+  end
+
+  defp _tile_template_copy_changeset(tile_template) do
+    with old_attrs     <- Elixir.Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :responders]),
+         version_attrs <- %{version: tile_template.version+1, previous_version_id: tile_template.id},
+         new_attrs     <- Elixir.Map.merge(old_attrs, version_attrs)
+    do
+      TileTemplate.changeset(%TileTemplate{}, new_attrs)
+    end
   end
 
   @doc """

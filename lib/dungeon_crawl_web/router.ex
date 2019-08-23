@@ -23,18 +23,27 @@ defmodule DungeonCrawlWeb.Router do
     post "/crawler", CrawlerController, :create
     post "/crawler/join", CrawlerController, :join
     delete "/crawler", CrawlerController, :destroy
-    put  "/crawler", CrawlerController, :act
 
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
+    resources "/dungeons", DungeonController
+      post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
+      put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
+      post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl
+
+    resources "/tile_templates", ManageTileTemplateController
+      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
+      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
   end
 
   scope "/manage", DungeonCrawlWeb do
     pipe_through [:browser, :authenticate_user, :verify_user_is_admin]
 
     resources "/users", ManageUserController
-    resources "/dungeons", DungeonController, except: [:edit, :update]
-    resources "/tile_templates", ManageTileTemplateController
+    resources "/dungeons", ManageDungeonController, except: [:edit, :update]
+#    resources "/tile_templates", ManageTileTemplateController
+#      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
+#      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
   end
 
   # Other scopes may use custom stacks.

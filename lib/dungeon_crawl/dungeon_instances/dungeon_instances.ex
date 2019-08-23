@@ -53,7 +53,9 @@ defmodule DungeonCrawl.DungeonInstances do
 
   defp _map_tile_instances(map_instance_id, %Dungeon.Map{} = map) do
     Repo.preload(map, :dungeon_map_tiles).dungeon_map_tiles
-    |> Enum.map(fn(mt) -> Elixir.Map.merge(%{map_instance_id: map_instance_id}, Elixir.Map.take(mt, [:row, :col, :z_index, :tile_template_id])) end)
+    |> Enum.map(fn(mt) ->
+         Elixir.Map.merge(%{map_instance_id: map_instance_id},
+                            Elixir.Map.take(mt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color])) end)
   end
 
   @doc """

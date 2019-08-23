@@ -1,0 +1,14 @@
+<h2>Edit dungeon</h2>
+
+<%= render "form.html", changeset: @changeset, generators: nil,
+                        action: dungeon_path(@conn, :update, @dungeon.id) %>
+
+<div class="text-center" id="dungeon_editor">
+
+<%= render "tile_pallette.html", tile_templates: @tile_templates, historic_templates: @historic_templates %>
+
+<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true, with_template_id: true) %>
+</div>
+
+
+<%= link "Back", to: dungeon_path(@conn, :index) %>

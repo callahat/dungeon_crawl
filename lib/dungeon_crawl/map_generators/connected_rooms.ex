@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.DungeonGenerator do
+defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   @room_min_height  3
   @room_max_height  9
   @room_min_width   5
@@ -37,14 +37,6 @@ defmodule DungeonCrawl.DungeonGenerator do
 
     _generate(map, cave_height, cave_width, round(cave_height * cave_width / 3) + @iterations)
     |> _replace_corners
-  end
-
-  def stringify(map, cave_width \\ @cave_width) do
-    map
-    |> _map_to_charlist
-    |> Enum.chunk(cave_width)
-    |> Enum.map(&(to_string(&1)))
-    |> Enum.join("\n")
   end
 
   defp _generate(map, _cave_height, _cave_width, 0), do: map
@@ -93,13 +85,6 @@ defmodule DungeonCrawl.DungeonGenerator do
   defp _replace_tile_at(map, col, row, new_tile) do
     # IO.puts "#{col} #{row} #{[new_tile]}"
     Map.put(map, {row, col}, new_tile)
-  end
-
-  defp _map_to_charlist(map) do
-    map
-    |> Map.to_list
-    |> Enum.sort(fn({k1, _}, {k2, _}) -> k1 < k2 end)
-    |> Enum.map(fn({_, v}) -> v end)
   end
 
   defp _replace_corners(map) when is_map(map), do: _replace_corners(map,Map.keys(map))
