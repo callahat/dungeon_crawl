@@ -19,7 +19,7 @@ defmodule DungeonCrawl.Repo.Migrations.AddStateColumns do
             "WHERE responders LIKE '%open: {:ok%'"
     execute "UPDATE tile_templates " <>
             " SET state = 'blocking: false, open: true' " <>
-            "WHERE responders LIKE '%open: {:ok%' and state IS NULL"
+            "WHERE responders LIKE '%close: {:ok%' and state IS NULL"
     execute "UPDATE tile_templates " <>
             " SET state = 'blocking: false' " <>
             "WHERE responders LIKE '%move: {:ok%' and state IS NULL"
