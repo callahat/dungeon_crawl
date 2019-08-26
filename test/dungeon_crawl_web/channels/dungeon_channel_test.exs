@@ -15,9 +15,9 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     map_instance = insert_stubbed_dungeon_instance(%{},
       [Map.merge(%{row: @player_row-1, col: @player_col, tile_template_id: north_tile.id, z_index: 0},
-                 Map.take(north_tile, [:character,:color,:background_color])),
+                 Map.take(north_tile, [:character,:color,:background_color,:state])),
        Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
-                 Map.take(basic_tiles["."], [:character,:color,:background_color]))])
+                 Map.take(basic_tiles["."], [:character,:color,:background_color,:state]))])
     player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col})
                       |> Repo.preload(:map_tile)
 

@@ -1,9 +1,6 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.{Dungeon,DungeonInstances}
-  alias DungeonCrawl.TileTemplates.TileTemplate
-
   def dungeon_as_table(dungeon, with_template_id \\ false) do
     dungeon.dungeon_map_tiles
     |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)

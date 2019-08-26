@@ -1,9 +1,7 @@
 defmodule DungeonCrawl.Action.Move do
   alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.DungeonInstances.MapTile
-  alias DungeonCrawl.EventResponder.Parser
-
-  alias DungeonCrawl.Repo
+  alias DungeonCrawl.TileState.Parser
 
   # todo: rename this
   def go(%MapTile{} = entity_map_tile, %MapTile{} = destination) do
@@ -21,10 +19,7 @@ defmodule DungeonCrawl.Action.Move do
   def go(_, _), do: {:invalid}
 
   defp _valid_move(destination) do
-    {:ok, responders} = Parser.parse(Repo.preload(destination,:tile_template).tile_template.responders)
-    case responders[:move] do
-      {:ok} -> true
-      _     -> false
-    end
+    {:ok, state} = Parser.parse(destination.state)
+    !state[:blocking]
   end
 end

@@ -59,6 +59,11 @@
     <strong>Responders:</strong>
     <pre><%= @tile_template.responders %></pre>
   </li>
+
+  <li>
+    <strong>State:</strong>
+    <pre><%= @tile_template.state %></pre>
+  </li>
 </ul>
 
 <%= activate_or_new_version_button @conn, @tile_template %> |

@@ -20,7 +20,7 @@ defmodule DungeonCrawl.Action.Door do
     case response do
       {:ok, %{replace: [new_id]}} ->
         new_tile_template = TileTemplates.get_tile_template(new_id)
-        door = Dungeon.update_map_tile!(door_location, %{tile_template_id: new_id, character: new_tile_template.character})
+        door = Dungeon.update_map_tile!(door_location, %{tile_template_id: new_id, character: new_tile_template.character, state: new_tile_template.state})
 
         {:ok, %{door_location: %{row: door.row, col: door.col, map_tile: door}}}
       _ ->
