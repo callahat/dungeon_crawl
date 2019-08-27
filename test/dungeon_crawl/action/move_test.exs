@@ -25,12 +25,12 @@ defmodule DungeonCrawl.Action.MoveTest do
   end
 
   test "moving to a bad space" do
-    impassable_floor = insert_tile_template(%{responders: "{}"})
+    impassable_floor = insert_tile_template(%{responders: "{}", state: "blocking: true"})
 
     dungeon = insert_stubbed_dungeon_instance(%{},
-      [Map.merge(%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0}, Map.take(impassable_floor, [:character,:color,:background_color]))])
+      [Map.merge(%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0}, Map.take(impassable_floor, [:character,:color,:background_color,:state]))])
     player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
-    destination = %MapTile{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: impassable_floor.id}
+    destination = %MapTile{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: impassable_floor.id, state: impassable_floor.state}
 
     assert {:invalid} = Move.go(player_location.map_tile, destination)
   end

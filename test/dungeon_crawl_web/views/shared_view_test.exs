@@ -48,9 +48,9 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
-            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color])),
-             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color])),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color]))])
+            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state])),
+             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state])),
+             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color, :state]))])
 
     rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles))
 
@@ -63,9 +63,9 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
-            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color])),
-             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color])),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color]))])
+            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state])),
+             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state])),
+             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color, :state]))])
 
     rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), true)
 

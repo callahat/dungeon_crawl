@@ -22,7 +22,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
       name: "Floor",
       description: "A dusty floor",
       character: ".",
-      responders: "{move: {:ok}}"
+      responders: "{move: {:ok}}",
+      state: "blocking: false"
     }, attrs)
 
     {:ok, tile_template} = TileTemplates.create_tile_template(changes)
@@ -33,8 +34,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
     open_door = insert_tile_template(%{name: "open_door", character: "'"})
     closed_door = insert_tile_template(%{name: "open_door", character: "+"})
 
-    {:ok, open_door}   = TileTemplates.update_tile_template(open_door, %{responders: "{move: {:ok}, close: {:ok, replace: [#{closed_door.id}]}}"})
-    {:ok, closed_door} = TileTemplates.update_tile_template(closed_door, %{responders: "{open: {:ok, replace: [#{open_door.id}]}}"})
+    {:ok, open_door}   = TileTemplates.update_tile_template(open_door, %{responders: "{move: {:ok}, close: {:ok, replace: [#{closed_door.id}]}}", state: "blocking: false, open: true"})
+    {:ok, closed_door} = TileTemplates.update_tile_template(closed_door, %{responders: "{open: {:ok, replace: [#{open_door.id}]}}", state: "blocking: true, open: false"})
     {open_door, closed_door}
   end
 
@@ -83,7 +84,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
                            z_index: t.z_index,
                            character: t.character,
                            color: t.color,
-                           background_color: t.background_color
+                           background_color: t.background_color,
+                           state: t.state
                           } end)
   end
 
@@ -91,7 +93,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
     changes = Map.merge(%{
       row: 3,
       col: 1,
-      character: "@"
+      character: "@",
+      state: "blocking: true"
     }, attrs)
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
