@@ -15,7 +15,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :deleted_at, :naive_datetime
     field :name, :string
     field :public, :boolean, default: false
-    field :responders, :string, default: "{}"
+    field :script, :string, default: ""
     field :state, :string
     field :version, :integer, default: 1
     has_many :map_tiles, DungeonCrawl.Dungeon.MapTile
@@ -28,7 +28,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   @doc false
   def changeset(tile_template, attrs) do
     tile_template
-    |> cast(attrs, [:name, :character, :description, :color, :background_color, :responders,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
+    |> cast(attrs, [:name, :character, :description, :color, :background_color, :script,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
     |> validate_required([:name, :description])
     |> validate_renderables
     |> validate_responders

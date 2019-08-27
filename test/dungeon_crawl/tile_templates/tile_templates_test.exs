@@ -6,7 +6,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
   describe "tile_templates" do
     alias DungeonCrawl.TileTemplates.TileTemplate
 
-    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black", active: true}
+    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black", active: true, state: "blocking: true", script: ""}
     @update_attrs %{color: "puce", character: "█"}
     @invalid_attrs %{name: "", character: "BIG"}
 
@@ -73,19 +73,20 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template.color == "red"
       assert tile_template.description == "A big capital X"
       assert tile_template.name == "A Big X"
-      assert tile_template.responders == "{}"
+      assert tile_template.script == ""
     end
 
     test "create_tile_template/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = TileTemplates.create_tile_template(@invalid_attrs)
     end
 
-    test "create_tile_template/1 with bad responders" do
-      assert {:error, changeset} = TileTemplates.create_tile_template(Map.merge(@valid_attrs, %{responders: "junk", character: "BIG"}))
-      assert "Problem parsing - junk" in errors_on(changeset).responders
-      assert "should be at most 1 character(s)" in errors_on(changeset).character
-      assert %{responders: ["Problem parsing - junk"], character: ["should be at most 1 character(s)"]} = errors_on(changeset)
-    end
+#TODO: once the script parser is ready
+#    test "create_tile_template/1 with bad script" do
+#      assert {:error, changeset} = TileTemplates.create_tile_template(Map.merge(@valid_attrs, %{script: "junk", character: "BIG"}))
+#      assert "Problem parsing - junk" in errors_on(changeset).script
+#      assert "should be at most 1 character(s)" in errors_on(changeset).character
+#      assert %{script: ["Problem parsing - junk"], character: ["should be at most 1 character(s)"]} = errors_on(changeset)
+#    end
 
     test "create_new_tile_template_version/1 does not create a new version of an inactive tile_template" do
       tile_template = tile_template_fixture(%{active: false})
@@ -97,8 +98,8 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert {:ok, new_tile_template} = TileTemplates.create_new_tile_template_version(tile_template)
       assert new_tile_template.version == tile_template.version + 1
       refute new_tile_template.active
-      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :responders]) ==
-             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :responders])
+      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script]) ==
+             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script])
     end
 
     test "create_new_tile_template_version/1 does not create a new version if the next one exists" do
@@ -129,7 +130,8 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template.color == "red"
       assert tile_template.description == "A big capital X"
       assert tile_template.name == "A Big X"
-      assert tile_template.responders == "{}"
+      assert tile_template.state == "blocking: true"
+      assert tile_template.script == ""
     end
 
     test "find_or_create_tile_template/1 with invalid data returns error changeset" do

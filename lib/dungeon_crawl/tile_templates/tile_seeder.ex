@@ -8,7 +8,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   as the key, and the existing or created tile template record as the value.
   """
   def basic_tiles() do
-    floor = TileTemplates.find_or_create_tile_template!(%{character: ".", name: "Floor", description: "Just a dusty floor", responders: "{move: {:ok}}", state: "blocking: false"})
+    floor = TileTemplates.find_or_create_tile_template!(%{character: ".", name: "Floor", description: "Just a dusty floor", state: "blocking: false"})
     wall  = TileTemplates.find_or_create_tile_template!(%{character: "#", name: "Wall",  description: "A Rough wall", state: "blocking: true"})
     rock  = rock_tile()
     statue= TileTemplates.find_or_create_tile_template!(%{character: "@", name: "Statue",  description: "It looks oddly familiar", state: "blocking: true"})
@@ -16,8 +16,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     open_door    = TileTemplates.find_or_create_tile_template!(%{character: "'", name: "Open Door", description: "An open door", state: "blocking: false, open: true"})
     closed_door  = TileTemplates.find_or_create_tile_template!(%{character: "+", name: "Closed Door", description: "A closed door", state: "blocking: true, open: false"})
 
-    open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{responders: "{move: {:ok}, close: {:ok, replace: [#{closed_door.id}]}}"})
-    closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{responders: "{open: {:ok, replace: [#{open_door.id}]}}"})
+    open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{script: ":CLOSE\n#BECOME TTID:#{closed_door.id}"})
+    closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{script: ":OPEN\n#BECOME TTID:#{open_door.id}"})
 
     %{?.  => floor, ?#  => wall, ?\s => rock, ?'  => open_door, ?+  => closed_door, ?@  => statue,
       "." => floor, "#" => wall, " " => rock, "'" => open_door, "+" => closed_door, "@" => statue}

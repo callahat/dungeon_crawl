@@ -22,8 +22,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
       name: "Floor",
       description: "A dusty floor",
       character: ".",
-      responders: "{move: {:ok}}",
-      state: "blocking: false"
+      state: "blocking: false",
+      script: ""
     }, attrs)
 
     {:ok, tile_template} = TileTemplates.create_tile_template(changes)
@@ -32,10 +32,10 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
   def insert_openable_closable_tile_template_pair() do
     open_door = insert_tile_template(%{name: "open_door", character: "'"})
-    closed_door = insert_tile_template(%{name: "open_door", character: "+"})
+    closed_door = insert_tile_template(%{name: "closed_door", character: "+"})
 
-    {:ok, open_door}   = TileTemplates.update_tile_template(open_door, %{responders: "{move: {:ok}, close: {:ok, replace: [#{closed_door.id}]}}", state: "blocking: false, open: true"})
-    {:ok, closed_door} = TileTemplates.update_tile_template(closed_door, %{responders: "{open: {:ok, replace: [#{open_door.id}]}}", state: "blocking: true, open: false"})
+    {:ok, open_door}   = TileTemplates.update_tile_template(open_door, %{script: ":CLOSE\n#BECOME TTID:#{closed_door.id}", state: "blocking: false, open: true"})
+    {:ok, closed_door} = TileTemplates.update_tile_template(closed_door, %{script: ":OPEN\n#BECOME TTID:#{open_door.id}", state: "blocking: true, open: false"})
     {open_door, closed_door}
   end
 
@@ -85,7 +85,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
                            character: t.character,
                            color: t.color,
                            background_color: t.background_color,
-                           state: t.state
+                           state: t.state,
+                           script: t.script
                           } end)
   end
 
@@ -94,7 +95,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
       row: 3,
       col: 1,
       character: "@",
-      state: "blocking: true"
+      state: "blocking: true",
+      script: ""
     }, attrs)
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()

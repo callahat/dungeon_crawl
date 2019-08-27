@@ -62,15 +62,15 @@
   </div>
 
   <div class="form-group">
-    <%= label f, :responders, class: "control-label" %>
-    <%= text_input f, :responders, class: "form-control" %>
-    <%= error_tag f, :responders %>
-  </div>
-
-  <div class="form-group">
     <%= label f, :state, class: "control-label" %>
     <%= text_input f, :state, class: "form-control" %>
     <%= error_tag f, :state %>
+  </div>
+
+  <div class="form-group">
+    <%= label f, :script, class: "control-label" %>
+    <%= text_input f, :script, class: "form-control" %>
+    <%= error_tag f, :script %>
   </div>
 
   <div class="form-group">

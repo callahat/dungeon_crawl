@@ -56,13 +56,13 @@
   </li>
 
   <li>
-    <strong>Responders:</strong>
-    <pre><%= @tile_template.responders %></pre>
+    <strong>State:</strong>
+    <pre><%= @tile_template.state %></pre>
   </li>
 
   <li>
-    <strong>State:</strong>
-    <pre><%= @tile_template.state %></pre>
+    <strong>Script:</strong>
+    <pre><%= @tile_template.script %></pre>
   </li>
 </ul>
 

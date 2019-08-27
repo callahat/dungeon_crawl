@@ -66,11 +66,11 @@ defmodule DungeonCrawl.DungeonTest do
       tile_b = insert_tile_template()
       map = insert_stubbed_dungeon(%{},
               [Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
-                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
                Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
-                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
                Elixir.Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0},
-                                Elixir.Map.take(tile_b, [:character, :color, :background_color, :state]))])
+                                Elixir.Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
       assert Dungeon.list_historic_tile_templates(map) == []
     end
 
@@ -79,11 +79,11 @@ defmodule DungeonCrawl.DungeonTest do
       tile_b = insert_tile_template()
       map = insert_stubbed_dungeon(%{},
               [Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
-                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
                Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
-                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
                Elixir.Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0},
-                                Elixir.Map.take(tile_b, [:character, :color, :background_color, :state]))])
+                                Elixir.Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
       {:ok, tile_a} = DungeonCrawl.TileTemplates.delete_tile_template(tile_a)
       assert Dungeon.list_historic_tile_templates(map) == [tile_a]
     end
@@ -119,9 +119,9 @@ defmodule DungeonCrawl.DungeonTest do
 
       assert %Map{} = new_map
       old_tiles = Repo.preload(map, :dungeon_map_tiles).dungeon_map_tiles
-                  |> Enum.map(fn(t) -> Elixir.Map.take(t, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state]) end)
+                  |> Enum.map(fn(t) -> Elixir.Map.take(t, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script]) end)
       new_tiles = Repo.preload(new_map, :dungeon_map_tiles).dungeon_map_tiles
-                  |> Enum.map(fn(t) -> Elixir.Map.take(t, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state]) end)
+                  |> Enum.map(fn(t) -> Elixir.Map.take(t, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script]) end)
       assert old_tiles == new_tiles
     end
 
@@ -179,11 +179,11 @@ defmodule DungeonCrawl.DungeonTest do
       tile_b = insert_tile_template(%{name: "INT", active: false})
       map = insert_stubbed_dungeon(%{},
               [Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
-                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
                Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
-                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
                Elixir.Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0},
-                                Elixir.Map.take(tile_b, [:character, :color, :background_color, :state]))])
+                                Elixir.Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
 
       assert {:error, error_msg} = Dungeon.activate_map(map)
       assert error_msg == "Inactive tiles: INT (id: #{tile_b.id}) 1 times"
@@ -209,11 +209,11 @@ defmodule DungeonCrawl.DungeonTest do
       tile_b = insert_tile_template()
       insert_stubbed_dungeon(%{},
         [Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
-                          Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                          Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
          Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0},
-                          Elixir.Map.take(tile_a, [:character, :color, :background_color, :state])),
+                          Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
          Elixir.Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0},
-                          Elixir.Map.take(tile_b, [:character, :color, :background_color, :state]))])
+                          Elixir.Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
 
       assert 2 == Dungeon.tile_template_reference_count(tile_a.id)
       assert 1 == Dungeon.tile_template_reference_count(tile_b)

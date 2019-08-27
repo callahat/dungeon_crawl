@@ -15,6 +15,7 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
     field :color, :string
 
     field :state, :string
+    field :script, :string, default: ""
 
     belongs_to :dungeon, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_instance_id
     belongs_to :tile_template, DungeonCrawl.TileTemplates.TileTemplate
@@ -24,7 +25,7 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
   @doc false
   def changeset(map_tile_instance, attrs) do
     map_tile_instance
-    |> cast(attrs, [:row, :col, :map_instance_id, :tile_template_id, :z_index, :character, :color, :background_color, :state])
+    |> cast(attrs, [:row, :col, :map_instance_id, :tile_template_id, :z_index, :character, :color, :background_color, :state, :script])
     |> validate_required([:row, :col, :map_instance_id, :tile_template_id, :z_index])
     |> TileTemplate.validate_renderables
   end
