@@ -1,9 +1,10 @@
 defmodule DungeonCrawl.Scripting.Command do
-# TODO: implement more of this when actually using it
+# TODO: implement more of this when something actually using it. might make sense to allow it to modify parts of the program.
+
   @doc """
   Replace a tiles information.
   """
-  def become(%{tile: tile, new_attrs: new_attrs}) do
+  def become(%{object: tile, params: new_attrs}) do
     {
       :tile_update,
       Dungeon.update_map_tile!(tile, Map.take(new_attrs, [:character, :color, :background_color, :state, :script]))
@@ -33,6 +34,10 @@ defmodule DungeonCrawl.Scripting.Command do
       "<"  -> state_element <  value
       ">"  -> state_element >  value
     end
+  end
+
+  def noop do
+    { :noop }
   end
 
   # TODO: might not need to actually call this here

@@ -1,7 +1,5 @@
 defmodule DungeonCrawl.Scripting.Parser do
-  defmodule Program do
-    defstruct status: :dead, pc: 1, instructions: %{}, labels: %{}, locked: false
-  end
+  alias DungeonCrawl.Scripting.Program
 
   @doc """
   Parses a valid object script into a valid set of instructions,
@@ -89,9 +87,10 @@ defmodule DungeonCrawl.Scripting.Parser do
     with %{"label" => label} <- Regex.named_captures(~r/\A(?<label>[A-Z\d_]+)\z/i, String.trim(line)),
          line_number <- Enum.count(program.instructions) + 1,
          existing_labels <- program.labels[label] || [],
-         updated_labels <- existing_labels ++ [%{line_number => :active}] do
+         updated_labels <- existing_labels ++ [[line_number, true]] do
       # No need to add the label; its a noop anyway
-      {:ok, %{program | labels: updated_labels}}
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:noop, line]), 
+                        labels: Map.put(program.labels, label, updated_labels)}}
     else
       _ ->
         {:error, "Invalid label: `#{line}`", program}
@@ -187,10 +186,10 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _normalize_conditional(param) do
     case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>.+?)((?<op>!=|==|<=|>=|<|>)(?<value>.+))?$/i, String.trim(param)) do
       %{"neg" => "", "state_element" => state_element, "op" => "", "value" => ""} ->
-        [:check_state, String.trim(state_element)]
+        ["", :check_state, String.trim(state_element)]
 
       %{"neg" => "", "state_element" => state_element, "op" => op, "value" => value} ->
-        [:check_state, String.trim(state_element), op, _cast_param(value)]
+        ["", :check_state, String.trim(state_element), op, _cast_param(value)]
 
       %{"neg" => _, "state_element" => state_element, "op" => "", "value" => ""} ->
         ["!", :check_state, String.trim(state_element)]

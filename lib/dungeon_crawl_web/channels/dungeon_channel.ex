@@ -53,4 +53,9 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         {:reply, {:error, %{msg: "Cannot #{action} that"}}, socket}
     end
   end
+
+  # Helper wrapper for broadcasting
+  def broadcast_event(socket, event, payload) do
+    broadcast socket, event, payload
+  end
 end
