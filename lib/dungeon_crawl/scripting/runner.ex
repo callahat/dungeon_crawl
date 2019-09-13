@@ -16,7 +16,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   def run(%{program: program, object: object, socket: socket}) do
     case program.status do
       :alive ->
-        [command, params] = program.intructions[program.pc]
+        [command, params] = program.instructions[program.pc]
         # TODO: this case may get its own module later as the number of commands grow
         program = case command do
           :noop ->
@@ -24,8 +24,8 @@ defmodule DungeonCrawl.Scripting.Runner do
 
           :become ->
             # TODO: make this more generic
-            door = Dungeon.update_map_tile!(object, Map.take(params, [:character, :color, :background_color, :state, :script]))
-            broadcast socket, "door_changed", %{door_location: %{row: door.row, col: door.col, map_tile: door}
+            door = DungeonCrawl.DungeonInstances.update_map_tile!(object, apply(Map, :take, params ++ [[:character, :color, :background_color, :state, :script]]))
+            broadcast socket, "door_changed", %{door_location: %{row: door.row, col: door.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}
             program
 
           :jump_if ->
