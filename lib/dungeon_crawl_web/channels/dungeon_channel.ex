@@ -40,21 +40,25 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "open" or action == "close" do
+  def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "OPEN" or action == "CLOSE" do
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
     target_door = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
 
-    case apply(Door, String.to_atom(action), [target_door]) do
-      { :ok, %{door_location: %{row: row, col: col, map_tile: door}} } ->
-        broadcast socket, "door_changed", %{door_location: %{row: row, col: col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}
-        {:reply, :ok, socket}
+    # TODO: eventually grab the running program and have it try the label instead of this.
+    # Once its more of a step (instead of run everything til a halt condition) it might be better to have the runner return
+    # information such as events to broadcast (instead of broadcasting the event itself)
+    script = target_door.script
+    {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
 
-      {:invalid} ->
-        {:reply, {:error, %{msg: "Cannot #{action} that"}}, socket}
+    if prog.labels[action] do
+      DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_door, socket: socket.topic, label: action}
+      {:reply, :ok, socket}
+    else
+      {:reply, {:error, %{msg: "Cannot #{action} that"}}, socket}
     end
   end
 
-  # Helper wrapper for broadcasting
+  # Helper wrapper for broadcasting from outside the module
   def broadcast_event(socket, event, payload) do
     broadcast socket, event, payload
   end

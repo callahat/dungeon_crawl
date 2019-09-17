@@ -83,10 +83,10 @@ let Dungeon = {
     document.getElementById("short_comm").innerText = "Moving..."
   },
   open(dungeonChannel, direction){
-    this._useDoor(dungeonChannel, direction, "open")
+    this._useDoor(dungeonChannel, direction, "OPEN")
   },
   close(dungeonChannel, direction){
-    this._useDoor(dungeonChannel, direction, "close")
+    this._useDoor(dungeonChannel, direction, "CLOSE")
   },
   _useDoor(dungeonChannel, direction, action){
     let payload = {direction: direction, action: action}

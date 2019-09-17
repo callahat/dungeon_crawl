@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   Run the program until encountering a stop marker. Returns the final state of the program.
   """
   def run(%{program: program, object: object, label: label, socket: socket}) do
-    with [[next_pc, _]] <- program.labels[label] |> Enum.filter(fn([l,a]) -> a end) |> Enum.take(1),
+    with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([l,a]) -> a end) |> Enum.take(1),
          program = %{program | pc: next_pc} do
       run(%{program: program, object: object, socket: socket})
     else
