@@ -1,3 +1,4 @@
+# !!!!!! Right now this is not used. Might delete later idk
 defmodule DungeonCrawl.Scripting.Command do
 # TODO: implement more of this when something actually using it. might make sense to allow it to modify parts of the program.
 

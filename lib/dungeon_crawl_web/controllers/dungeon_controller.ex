@@ -97,7 +97,9 @@ defmodule DungeonCrawlWeb.DungeonController do
              Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id,
                                              character: tt.character,
                                              color: color || tt.color,
-                                             background_color: background_color || tt.background_color
+                                             background_color: background_color || tt.background_color,
+                                             state: tt.state,
+                                             script: tt.script
                                             })
            end)
 

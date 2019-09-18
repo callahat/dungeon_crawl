@@ -69,7 +69,7 @@
 
   <div class="form-group">
     <%= label f, :script, class: "control-label" %>
-    <%= text_input f, :script, class: "form-control" %>
+    <%= textarea f, :script, class: "form-control" %>
     <%= error_tag f, :script %>
   </div>
 

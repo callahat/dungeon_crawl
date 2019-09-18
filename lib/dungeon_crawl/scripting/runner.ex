@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.TileState
 
   @doc """
   Run the program until encountering a stop marker. Returns the final state of the program.
@@ -52,12 +53,28 @@ defmodule DungeonCrawl.Scripting.Runner do
 
           :end_script ->
             %{program | status: :idle, pc: 0}
-            
+
           :text ->
             if params != [""] do
               # TODO: probably allow this to be refined by whomever the message is for
               broadcast socket, "shout", Enum.join(params, "\n")
             end
+            program
+
+          :change_state ->
+            {:ok, state} = TileState.Parser.parse(object.state)
+            [var, op, value] = params
+            new_val = case op do
+                        "++" -> state[var] + 1
+                        "--" -> state[var] - 1
+                        "="  -> value
+                        "+=" -> state[var] + value
+                        "-=" -> state[var] - value
+                        "/=" -> state[var] / value
+                        "*=" -> state[var] * value
+                      end
+            state = Map.put(state, var, new_val) |> TileState.Parser.stringify
+            DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})
             program
         end
         # increment program counter, check for end of program

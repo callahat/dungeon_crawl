@@ -53,4 +53,11 @@ defmodule DungeonCrawl.TileState.Parser do
       true -> param # just a string
     end
   end
+
+  def stringify(state_map) do
+    state_map
+    |> Map.to_list
+    |> Enum.map(fn({k,v}) -> "#{k}: #{v}" end)
+    |> Enum.join(", ")
+  end
 end

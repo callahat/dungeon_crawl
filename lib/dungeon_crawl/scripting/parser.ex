@@ -100,6 +100,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _parse_state_change(element, program) do
     with state_element <- String.trim(String.downcase(element)),
          %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
+         element = String.to_atom(element),
          {:ok, op, value} <- _parse_state_setting(setting),
          line_number <- Enum.count(program.instructions) + 1 do
       {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:change_state, [element, op, value]]) } }
@@ -143,7 +144,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _parse_params(nil), do: []
   defp _parse_params(params) do
-    if _using_kwargs?(params), do: _parse_kwarg_params(params), else: _parse_list_params(params)
+    if _using_kwargs?(params), do: [_parse_kwarg_params(params)], else: _parse_list_params(params)
   end
 
   defp _parse_list_params(params) do
