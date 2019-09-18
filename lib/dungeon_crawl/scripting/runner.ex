@@ -1,7 +1,7 @@
 defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.TileState
-
+import Logger
   @doc """
   Run the program until encountering a stop marker. Returns the final state of the program.
   """
@@ -18,48 +18,55 @@ defmodule DungeonCrawl.Scripting.Runner do
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]
+Logger.info "Running:"
+Logger.info inspect command
+Logger.info inspect params
+Logger.info inspect object.state
         # TODO: this case may get its own module later as the number of commands grow
-        program = case command do
+        {program, object} = case command do
           :noop ->
-            program
+            {program, object}
 
           :become ->
             # TODO: make this more generic
             door = DungeonCrawl.DungeonInstances.update_map_tile!(object, apply(Map, :take, params ++ [[:character, :color, :background_color, :state, :script]]))
             broadcast socket, "door_changed", %{door_location: %{row: door.row, col: door.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}
-            program
+            {program, door}
 
           :jump_if ->
+            {:ok, object_state} = DungeonCrawl.TileState.Parser.parse(object.state)
             [[neg, _command, var, op, value], label] = params
             check = case op do
-                      "!=" -> object.state[var] != value
-                      "==" -> object.state[var] == value
-                      "<=" -> object.state[var] <= value
-                      ">=" -> object.state[var] >= value
-                      "<"  -> object.state[var] <  value
-                      ">"  -> object.state[var] >  value
+                      "!=" -> object_state[var] != value
+                      "==" -> object_state[var] == value
+                      "<=" -> object_state[var] <= value
+                      ">=" -> object_state[var] >= value
+                      "<"  -> object_state[var] <  value
+                      ">"  -> object_state[var] >  value
+                      _    -> !!object_state[var]
                     end
+
            if if(neg == "!", do: !check, else: check) do
              # first active matching label
-             with [[line_number, _]] <- object.labels[label] |> Enum.filter(fn([l,a]) -> !a end) |> Enum.take(1) do
-               %{program | pc: line_number}
+             with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([l,a]) -> a end) |> Enum.take(1) do
+               {%{program | pc: line_number}, object}
              else
                # no valid label to jump to
-               [] -> program
+               [] -> {program, object}
              end
            else
-             program
+             {program, object}
            end
 
           :end_script ->
-            %{program | status: :idle, pc: 0}
+            {%{program | status: :idle, pc: 0}, object}
 
           :text ->
             if params != [""] do
               # TODO: probably allow this to be refined by whomever the message is for
-              broadcast socket, "shout", Enum.join(params, "\n")
+              broadcast socket, "shout", %{ text: Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n") }
             end
-            program
+            {program, object}
 
           :change_state ->
             {:ok, state} = TileState.Parser.parse(object.state)
@@ -74,8 +81,8 @@ defmodule DungeonCrawl.Scripting.Runner do
                         "*=" -> state[var] * value
                       end
             state = Map.put(state, var, new_val) |> TileState.Parser.stringify
-            DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})
-            program
+
+            {program, DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})}
         end
         # increment program counter, check for end of program
         program = %{program | pc: program.pc + 1}

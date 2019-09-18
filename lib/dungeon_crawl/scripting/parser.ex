@@ -178,7 +178,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
-      Regex.match?(~r/^(not |! ?)?@.+?(!=|==|<=|>=|<|>).+$/i, param) -> _normalize_conditional(param)
+      Regex.match?(~r/^(not |! ?)?@.+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
       true -> param # just a string
     end
   end
@@ -187,16 +187,16 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _normalize_conditional(param) do
     case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>.+?)((?<op>!=|==|<=|>=|<|>)(?<value>.+))?$/i, String.trim(param)) do
       %{"neg" => "", "state_element" => state_element, "op" => "", "value" => ""} ->
-        ["", :check_state, String.trim(state_element)]
+        ["", :check_state, String.trim(state_element) |> String.to_atom(), "==", true]
 
       %{"neg" => "", "state_element" => state_element, "op" => op, "value" => value} ->
-        ["", :check_state, String.trim(state_element), op, _cast_param(value)]
+        ["", :check_state, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
 
       %{"neg" => _, "state_element" => state_element, "op" => "", "value" => ""} ->
-        ["!", :check_state, String.trim(state_element)]
+        ["!", :check_state, String.trim(state_element) |> String.to_atom(), "==", true]
 
       %{"neg" => _, "state_element" => state_element, "op" => op, "value" => value} ->
-        ["!", :check_state, String.trim(state_element), op, _cast_param(value)]
+        ["!", :check_state, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
     end
   end
 end
