@@ -40,16 +40,16 @@ defmodule DungeonCrawlWeb.SharedView do
   def tile_and_style(tile), do: _tile_and_style(tile)
 
   defp _tile_and_style(%{color: nil, background_color: nil} = map_tile) do
-    "<span>#{map_tile.character}</span>"
+    "<div>#{map_tile.character}</div>"
   end
   defp _tile_and_style(%{color: nil} = map_tile) do
-    "<span style='background-color: #{map_tile.background_color}'>#{map_tile.character}</span>"
+    "<div style='background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
   end
   defp _tile_and_style(%{background_color: nil} = map_tile) do
-    "<span style='color: #{map_tile.color}'>#{map_tile.character}</span>"
+    "<div style='color: #{map_tile.color}'>#{map_tile.character}</div>"
   end
   defp _tile_and_style(map_tile) do
-    "<span style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</span>"
+    "<div style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
   end
 end
 

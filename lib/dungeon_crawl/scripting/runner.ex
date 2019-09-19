@@ -31,7 +31,11 @@ Logger.info inspect object.state
           :become ->
             # TODO: make this more generic
             door = DungeonCrawl.DungeonInstances.update_map_tile!(object, apply(Map, :take, params ++ [[:character, :color, :background_color, :state, :script]]))
-            message = ["door_changed", %{door_location: %{row: door.row, col: door.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}]
+            message = ["tile_changes",
+                       %{tiles: [
+                           Map.put(Map.take(door, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(door))
+                       ]}]
+
             { %{program | broadcasts: [message | program.broadcasts] }, door}
 
           :jump_if ->

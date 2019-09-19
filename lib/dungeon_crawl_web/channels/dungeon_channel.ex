@@ -30,8 +30,12 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     case Move.go(player_location.map_tile, destination) do
       {:ok, %{new_location: new_location, old_location: old}} ->
-        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]),
-                                           old_location: %{row: old.row, col: old.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(old)}}
+        broadcast socket,
+                  "tile_changes",
+                  %{tiles: [
+                     Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
+                     Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
+                    ]}
 
       {:invalid} ->
         :ok
