@@ -50,11 +50,26 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     script = target_door.script
     {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
 
-    if prog.labels[action] do
-      DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_door, socket: socket.topic, label: action}
-      {:reply, :ok, socket}
-    else
-      {:reply, {:error, %{msg: "Cannot #{action} that"}}, socket}
+    %{program: prog, object: target_door} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_door, label: action}
+
+    _handle_broadcasts(socket, prog.broadcasts)
+    {:reply, _reply_payload(prog.responses), socket}
+  end
+
+  defp _handle_broadcasts(socket, []), do: nil
+  defp _handle_broadcasts(socket, [[event, payload] | broadcasts]) do
+    _handle_broadcasts(socket, broadcasts)
+    broadcast socket, event, payload
+  end
+
+  defp _reply_payload([]), do: :ok
+  defp _reply_payload([response | responses]) do
+    case _reply_payload(responses) do
+      {:error, %{msg: msgs}} ->
+        {:error, %{msg: "#{msgs}; #{response}"}}
+
+      _ ->
+        {:error, %{msg: response}}
     end
   end
 

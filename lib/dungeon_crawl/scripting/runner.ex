@@ -5,16 +5,17 @@ import Logger
   @doc """
   Run the program until encountering a stop marker. Returns the final state of the program.
   """
-  def run(%{program: program, object: object, label: label, socket: socket}) do
+  def run(%{program: program, object: object, label: label}) do
     with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([l,a]) -> a end) |> Enum.take(1),
          program = %{program | pc: next_pc} do
-      run(%{program: program, object: object, socket: socket})
+      run(%{program: program, object: object})
     else
-      _ -> run(%{program: program, object: object, socket: socket})
+      _ ->
+        %{program: %{program | responses: [ "Cannot #{label} that" | program.responses]}, object: object}
     end
   end
 
-  def run(%{program: program, object: object, socket: socket}) do
+  def run(%{program: program, object: object}) do
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]
@@ -30,8 +31,8 @@ Logger.info inspect object.state
           :become ->
             # TODO: make this more generic
             door = DungeonCrawl.DungeonInstances.update_map_tile!(object, apply(Map, :take, params ++ [[:character, :color, :background_color, :state, :script]]))
-            broadcast socket, "door_changed", %{door_location: %{row: door.row, col: door.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}
-            {program, door}
+            message = ["door_changed", %{door_location: %{row: door.row, col: door.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}]
+            { %{program | broadcasts: [message | program.broadcasts] }, door}
 
           :jump_if ->
             {:ok, object_state} = DungeonCrawl.TileState.Parser.parse(object.state)
@@ -64,9 +65,11 @@ Logger.info inspect object.state
           :text ->
             if params != [""] do
               # TODO: probably allow this to be refined by whomever the message is for
-              broadcast socket, "shout", %{ text: Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n") }
+              message = [ Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n") ]
+              {%{program | responses: [ message | program.responses] }, object}
+            else
+              {program, object}
             end
-            {program, object}
 
           :change_state ->
             {:ok, state} = TileState.Parser.parse(object.state)
@@ -87,21 +90,17 @@ Logger.info inspect object.state
         # increment program counter, check for end of program
         program = %{program | pc: program.pc + 1}
         if program.pc > Enum.count(program.instructions) do
-          %{program | pc: 0, status: :idle}
+          %{program: %{program | pc: 0, status: :idle}, object: object}
         else
           # for now keep running, later just return program state
-          run(%{program: program, object: object, socket: socket})
+          run(%{program: program, object: object})
         end
 
       :idle ->
-        %{program: program}
+        %{program: program, object: object}
 
       :dead ->
-        %{program: nil}
+        %{program: nil, object: object}
     end
-  end
-
-  defp broadcast(socket, event, payload) do
-    DungeonCrawlWeb.Endpoint.broadcast! socket, event, payload
   end
 end
