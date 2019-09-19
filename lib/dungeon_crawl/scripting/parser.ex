@@ -134,6 +134,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       "become"       -> {:ok, :become}
       "end"          -> {:ok, :end_script}
       "if"           -> {:ok, :jump_if}
+      "die"          -> {:ok, :die}
 
       bad_command -> {:error, "Unknown command: `#{bad_command}`"}
     end

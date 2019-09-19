@@ -11,7 +11,7 @@ import Logger
       run(%{program: program, object: object})
     else
       _ ->
-        %{program: %{program | responses: [ "Cannot #{label} that" | program.responses]}, object: object}
+        %{program: %{program | responses: [ "Label not in script: #{label}" | program.responses]}, object: object}
     end
   end
 
@@ -86,6 +86,10 @@ Logger.info inspect object.state
             state = Map.put(state, var, new_val) |> TileState.Parser.stringify
 
             {program, DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})}
+
+          :die ->
+            object = DungeonCrawl.DungeonInstances.update_map_tile!(object, %{script: ""})
+            {%{program | status: :dead, pc: 0}, object}
         end
         # increment program counter, check for end of program
         program = %{program | pc: program.pc + 1}
@@ -100,7 +104,7 @@ Logger.info inspect object.state
         %{program: program, object: object}
 
       :dead ->
-        %{program: nil, object: object}
+        %{program: program, object: object}
     end
   end
 end

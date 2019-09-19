@@ -78,9 +78,11 @@ let Dungeon = {
   move(dungeonChannel, direction){
     console.log(direction)
     let payload = {direction: direction}
+    document.getElementById("short_comm").innerText = "Moving..."
+    dungeonChannel.push("step", payload)
+                  .receive("error", resp => document.getElementById("short_comm").innerHTML = resp.msg)
     dungeonChannel.push("move", payload)
                   .receive("error", e => console.log(e))
-    document.getElementById("short_comm").innerText = "Moving..."
   },
   open(dungeonChannel, direction){
     this._useDoor(dungeonChannel, direction, "OPEN")

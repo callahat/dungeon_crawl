@@ -50,10 +50,29 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     script = target_door.script
     {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
 
-    %{program: prog, object: target_door} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_door, label: action}
+    if prog.labels[action] do
+      %{program: prog, object: target_door} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_door, label: action}
+      _handle_broadcasts(socket, prog.broadcasts)
+      {:reply, _reply_payload(prog.responses), socket}
+    else
+      {:reply, {:error, %{msg: "Cannot #{String.downcase(action)} that"}}, socket}
+    end
+  end
 
-    _handle_broadcasts(socket, prog.broadcasts)
-    {:reply, _reply_payload(prog.responses), socket}
+  def handle_in("step", %{"direction" => direction}, socket) do
+    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
+    target_tile = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
+
+    script = target_tile.script
+    {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
+
+    if prog.labels["TOUCH"] do
+      %{program: prog, object: target_tile} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_tile, label: "TOUCH"}
+      _handle_broadcasts(socket, prog.broadcasts)
+      {:reply, _reply_payload(prog.responses), socket}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp _handle_broadcasts(socket, []), do: nil
