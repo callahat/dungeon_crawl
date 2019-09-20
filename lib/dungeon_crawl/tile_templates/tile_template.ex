@@ -4,7 +4,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
 
   @color_match ~r/\A(?:[a-z]+|#(?:[\da-f]{3}){1,2})\z/i
 
-  alias DungeonCrawl.EventResponder.Parser
+  alias DungeonCrawl.Scripting
+  alias DungeonCrawl.TileState
 
   schema "tile_templates" do
     field :active, :boolean, default: false
@@ -31,7 +32,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     |> cast(attrs, [:name, :character, :description, :color, :background_color, :script,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
     |> validate_required([:name, :description])
     |> validate_renderables
-    |> validate_responders
+    |> validate_script
+    |> validate_state
   end
 
   @doc false
@@ -43,16 +45,30 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_responders(changeset) do
-    responders = get_field(changeset, :responders)
-    _validate_responders(changeset, responders)
+  def validate_script(changeset) do
+    script = get_field(changeset, :script)
+    _validate_script(changeset, script)
   end
 
-  defp _validate_responders(changeset, nil), do: changeset
-  defp _validate_responders(changeset, responders) do
-    case Parser.parse(responders) do
-      {:error, message, bad_part} -> add_error(changeset, :responders, "#{message} - #{bad_part}")
+  defp _validate_script(changeset, nil), do: changeset
+  defp _validate_script(changeset, script) do
+    case Scripting.Parser.parse(script) do
+      {:error, message, program} -> add_error(changeset, :script, "#{message} - near line #{Enum.count(program.instructions) + 1}")
       {:ok, _}                    -> changeset
+    end
+  end
+
+  @doc false
+  def validate_state(changeset) do
+    state = get_field(changeset, :state)
+    _validate_state(changeset, state)
+  end
+
+  defp _validate_state(changeset, nil), do: changeset
+  defp _validate_state(changeset, state) do
+    case TileState.Parser.parse(state) do
+      {:error, message} -> add_error(changeset, :state, message)
+      {:ok, _}          -> changeset
     end
   end
 end
