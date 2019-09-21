@@ -56,39 +56,45 @@ defmodule DungeonCrawl.DungeonChannelTest do
   @tag up_tile: "."
   test "move broadcasts a tile_update if its a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
-    assert_broadcast "tile_update", %{new_location: %{col: 1, row: 2}, old_location: %{col: 1, row: 3, tile: "<span>.</span>"}}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div>.</div>"}]}
   end
 
   @tag up_tile: "#"
   test "move broadcasts nothing if its not a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
-    refute_broadcast "tile_update", _anything_really
+    refute_broadcast "tile_changes", _anything_really
   end
 
   # TODO: refactor the underlying model/channel methods into more testable concerns
   @tag up_tile: "+"
   test "use_door with a valid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "open"}
+    ref = push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
     assert_reply ref, :ok, %{}
-    assert_broadcast "door_changed", %{door_location: %{row: _, col: _, tile: "<span>'</span>"}}
+    assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>'</div>"}]}
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["'"].id
+    assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["'"].character
+    assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["'"].script
+    assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["'"].state
 
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "close"}
+    ref = push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
     assert_reply ref, :ok, %{}
-    assert_broadcast "door_changed", %{door_location: %{row: _, col: _, tile: "<span>+</span>"}}
+    assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>+</div>"}]}
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["+"].id
+    assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["+"].character
+    assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["+"].script
+    assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["+"].state
   end
 
   @tag up_tile: "."
   test "use_door with an invalid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "open"}
+    ref = push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
     assert_reply ref, :error, %{msg: "Cannot open that"}
-    refute_broadcast "door_changed", _
+    refute_broadcast "tile_changes", _
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
 
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "close"}
+    ref = push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
     assert_reply ref, :error, %{msg: "Cannot close that"}
-    refute_broadcast "door_changed", _
+    refute_broadcast _, _
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
   end
 end

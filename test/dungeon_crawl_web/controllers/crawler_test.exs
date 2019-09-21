@@ -19,8 +19,8 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     
     assert %Player.Location{} = location = Repo.preload(Crawler.join_and_broadcast(instance, "itsmehash"), :map_tile)
 
-    assert_broadcast "player_joined", payload
-    assert %{row: location.map_tile.row, col: location.map_tile.col, tile: "<span>@</span>"} == payload
+    assert_broadcast "tile_changes", payload
+    assert %{tiles: [%{row: location.map_tile.row, col: location.map_tile.col, rendering: "<div>@</div>"}]} == payload
   end
 
   test "leave_and_broadcast" do
@@ -34,7 +34,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     
     assert %Player.Location{} = location = Repo.preload(Crawler.leave_and_broadcast(location), :map_tile)
 
-    assert_broadcast "player_left", payload
-    assert %{row: location.map_tile.row, col: location.map_tile.col, tile: "<span>.</span>"} == payload
+    assert_broadcast "tile_changes", payload
+    assert %{tiles: [%{row: location.map_tile.row, col: location.map_tile.col, rendering: "<div>.</div>"}]} == payload
   end
 end

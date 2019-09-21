@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.DungeonInstances, as: Dungeon
-  alias DungeonCrawl.Action.{Move,Door}
+  alias DungeonCrawl.Action.{Move}
 
   def join("dungeons:" <> instance_id, _payload, socket) do
     instance_id = String.to_integer(instance_id)
@@ -64,7 +64,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
 
     if prog.labels[action] do
-      %{program: prog, object: target_tile} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_tile, label: action}
+      %{program: prog, object: _target_tile} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_tile, label: action}
       _handle_broadcasts(socket, prog.broadcasts)
       {:reply, _reply_payload(prog.responses), socket}
     else
@@ -72,7 +72,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     end
   end
 
-  defp _handle_broadcasts(socket, []), do: nil
+  defp _handle_broadcasts(_socket, []), do: nil
   defp _handle_broadcasts(socket, [[event, payload] | broadcasts]) do
     _handle_broadcasts(socket, broadcasts)
     broadcast socket, event, payload

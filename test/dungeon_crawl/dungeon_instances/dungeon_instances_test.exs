@@ -23,6 +23,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
     defp _map_tile_details(dungeon) do
       Repo.preload(dungeon, :dungeon_map_tiles).dungeon_map_tiles
       |> Enum.map(fn(mt) -> Elixir.Map.take(mt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script]) end)
+      |> Enum.sort
     end
 
     test "delete_map/1 deletes a dungeon instance" do
