@@ -54,6 +54,18 @@ defmodule DungeonCrawl.TileState.Parser do
     end
   end
 
+  @doc """
+  Turns a state map into a comma delimited string of <key>: <value> pairs.
+  Returns a string.
+
+    ## Examples
+
+      iex> Parser.stringify(%{blocking: true})
+      "blocking: true"
+
+      iex> Parser.stringify(%{blocking: true, open: false, name: "Wall"})
+      "blocking: true, name: Wall, open: false"
+  """
   def stringify(state_map) do
     state_map
     |> Map.to_list

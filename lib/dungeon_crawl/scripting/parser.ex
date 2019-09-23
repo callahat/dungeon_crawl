@@ -27,13 +27,15 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   #end - stops the program until it receives a message that it can process.
 
+  <no prefix> - this is treated as text that can be displayed to a player.
+
   ## Examples
 
-      iex> Parser.parse(~s/:open\n#become TTID:5/)
-      {:ok, %Program{}}
+    iex> Parser.parse(~s/#become character: 4/)
+    {:ok, %Program{broadcasts: [], instructions: %{1 => [:become, [%{character: 4}]]}, labels: %{}, locked: false, pc: 1, responses: [], status: :alive}}
 
-      iex> Parser.parse(~s/#fakecommand/)
-      {:error, "Unknown command: `fakecommand`", %Program{}}
+    iex> Parser.parse(~s/#fakecommand/)
+    {:error, "Unknown command: `fakecommand`", %Program{}}
   """
   def parse(nil), do: {:ok, %Program{}}
   def parse(""),  do: {:ok, %Program{}}
