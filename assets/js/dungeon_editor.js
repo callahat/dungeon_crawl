@@ -103,7 +103,7 @@ let DungeonEditor = {
   updateActiveTile(target){
     if(!target) { return }
 
-    let tag = target.tagName == "SPAN" ? target.parentNode : target
+    let tag = target.tagName == "DIV" ? target.parentNode : target
 
     document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
 
@@ -193,10 +193,10 @@ let DungeonEditor = {
     }
   },
   colorTile(map_location, context){
-    let span = map_location.children[0]
+    let div = map_location.children[0]
     map_location.setAttribute("data-color", context.selectedColor)
     map_location.setAttribute("data-background-color", context.selectedBackgroundColor)
-    context.updateColors(span, context.selectedColor, context.selectedBackgroundColor)
+    context.updateColors(div, context.selectedColor, context.selectedBackgroundColor)
     map_location.setAttribute("class", "changed-map-tile")
   },
   paintTile(map_location, context){
@@ -210,9 +210,9 @@ let DungeonEditor = {
     map_location.setAttribute("class", "changed-map-tile")
   },
   getMapLocation(event){
-    if(event.target.tagName != "SPAN" && event.target.tagName != "TD"){ 
+    if(event.target.tagName != "DIV" && event.target.tagName != "TD"){
       return
-    } else if(event.target.tagName == "SPAN"){ 
+    } else if(event.target.tagName == "DIV"){
       return(event.target.parentNode)
     } else {
       return(event.target)
@@ -270,14 +270,14 @@ let DungeonEditor = {
       let elem = document.querySelectorAll(".tile_template_preview:hover")[0]
       if(!elem) { return }
 
-      for(let element of document.querySelectorAll('td[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] span')){
+      for(let element of document.querySelectorAll('td[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] div')){
         element.classList.add("hilight");
       }
     }
   },
   unHilightTiles(event){
     if(event.which == 16){
-      for(let element of document.querySelectorAll("span.hilight")){
+      for(let element of document.querySelectorAll("div.hilight")){
         element.classList.remove("hilight");
       }
       //for(let element of document.getElementsByClassName("hilight")){
