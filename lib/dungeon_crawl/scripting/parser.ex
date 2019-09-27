@@ -74,7 +74,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
   
   defp _parse_command(line, program) do
-    with %{"command" => command} <- match = Regex.named_captures(~r/\A(?<command>[A-Z\d_]+)(?: (?<params>.+))?\z/i, String.trim(line)),
+    with %{"command" => command} <- match = Regex.named_captures(~r/\A(?<command>.+?)(?: (?<params>.+))?\z/i, String.trim(line)),
          params <- _parse_params(match["params"]),
          line_number <- Enum.count(program.instructions) + 1,
          {:ok, sendable_command} <- _sendable_command(command) do
@@ -121,14 +121,15 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _handle_text(text, program) do
-    with line_number = Enum.count(program.instructions),
-         [:text, preceeding_text] <- program.instructions[line_number] do
-      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, preceeding_text ++ [text] ]) } }
-    else
-      _ ->
+    # TODO: might make more sense to roll up multiline text commands in the runner to keep parsing errors able to get the right line number
+    #with line_number = Enum.count(program.instructions),
+    #     [:text, preceeding_text] <- program.instructions[line_number] do
+    #  {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, preceeding_text ++ [text] ]) } }
+    #else
+    #  _ ->
         line_number = Enum.count(program.instructions) + 1
         {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, [text] ]) } }
-    end
+    #end
   end
 
   defp _sendable_command(command) do
