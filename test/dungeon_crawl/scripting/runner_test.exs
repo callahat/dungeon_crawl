@@ -2,6 +2,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Scripting.Parser
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
 
   describe "run" do
@@ -156,7 +157,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       {:ok, program} = Parser.parse(script)
       stubbed_object = %{state: ""}
 
-      %{object: _, program: run_program} = Runner.run(%{program: program, object: stubbed_object, label: "HERE"})
+      %{object: _, program: run_program} = Runner.run(%{program: %{program | status: :idle}, object: stubbed_object, label: "HERE"})
       assert run_program.responses == ["After label"]
     end
 
@@ -171,6 +172,22 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
 
       %{object: _, program: run_program} = Runner.run(%{program: program, object: stubbed_object, label: "NOT_A_REAL_LABEL"})
       assert run_program.responses == ["Label not in script: NOT_A_REAL_LABEL"]
+    end
+
+    test "when program is idle" do
+      program = %Program{status: :idle, pc: 2}
+      stubbed_object = %{state: ""}
+      %{object: object, program: run_program} = Runner.run(%{program: program, object: stubbed_object})
+      assert program == run_program
+      assert object  == stubbed_object
+    end
+
+    test "when program is dead" do
+      program = %Program{status: :dead, pc: 2}
+      stubbed_object = %{state: ""}
+      %{object: object, program: run_program} = Runner.run(%{program: program, object: stubbed_object})
+      assert program == run_program
+      assert object  == stubbed_object
     end
   end
 end

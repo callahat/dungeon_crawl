@@ -1,14 +1,13 @@
 defmodule DungeonCrawl.Scripting.Runner do
-  alias DungeonCrawl.Scripting.Maths
-  alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.Scripting.Command
+
 require Logger
   @doc """
   Run the program until encountering a stop marker. Returns the final state of the program.
   """
   def run(%{program: program, object: object, label: label}) do
     with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
-         program = %{program | pc: next_pc} do
+         program = %{program | pc: next_pc, status: :alive} do
       run(%{program: program, object: object})
     else
       _ ->
@@ -24,61 +23,8 @@ Logger.info "Running:"
 Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object.state
-        # TODO: this case may get its own module later as the number of commands grow
-        {program, object} = case command do
-          :noop ->
-            {program, object}
+        %{program: program, object: object} = apply(Command, command, [%{program: program, object: object, params: params}])
 
-          :become ->
-            # TODO: make this more generic
-            door = DungeonCrawl.DungeonInstances.update_map_tile!(object, apply(Map, :take, params ++ [[:character, :color, :background_color, :state, :script, :tile_template_id]]))
-            message = ["tile_changes",
-                       %{tiles: [
-                           Map.put(Map.take(door, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(door))
-                       ]}]
-
-            { %{program | broadcasts: [message | program.broadcasts] }, door}
-
-          :if ->
-            {:ok, state} = DungeonCrawl.TileState.Parser.parse(object.state)
-            [[neg, _command, var, op, value], label] = params
-
-            if Maths.check(neg, state[var], op, value) do
-              # first active matching label
-              with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
-                {%{program | pc: line_number}, object}
-              else
-                # no valid label to jump to
-                [] -> {program, object}
-              end
-            else
-              {program, object}
-            end
-
-          :end ->
-            {%{program | status: :idle, pc: -1}, object}
-
-          :text ->
-            if params != [""] do
-              # TODO: probably allow this to be refined by whomever the message is for
-              message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")
-              {%{program | responses: [ message | program.responses] }, object}
-            else
-              {program, object}
-            end
-
-          :change_state ->
-            {:ok, state} = TileState.Parser.parse(object.state)
-            [var, op, value] = params
-
-            state = Map.put(state, var, Maths.calc(state[var], op, value)) |> TileState.Parser.stringify
-
-            {program, DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})}
-
-          :die ->
-            object = DungeonCrawl.DungeonInstances.update_map_tile!(object, %{script: ""})
-            {%{program | status: :dead, pc: -1}, object}
-        end
         # increment program counter, check for end of program
         program = %{program | pc: program.pc + 1}
         if program.pc > Enum.count(program.instructions) do

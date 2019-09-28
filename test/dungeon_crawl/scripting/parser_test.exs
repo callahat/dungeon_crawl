@@ -39,12 +39,12 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #BECOME TTID:#{tile_template.id}
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
-      assert program == %Program{instructions: %{1 => [:end, [""]],
+      assert program == %Program{instructions: %{1 => [:halt, [""]],
                                                  2 => [:noop, "TOUCH"],
                                                  3 => [:if, [["", :check_state, :open, "==", true], "ALREADY_OPEN"]],
                                                  4 => [:become, [%{character: "'", color: "white"}]],
                                                  5 => [:text, ["The door creaks open"]],
-                                                 6 => [:end, [""]],
+                                                 6 => [:halt, [""]],
                                                  7 => [:noop, "ALREADY_OPEN"],
                                                  8 => [:text, ["Door is already open."]],
                                                  9 => [:text, ["Can't open it anymore."]],
@@ -80,7 +80,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #FAKE_COMMAND
                Doesnt parse to here
                """
-      assert {:error, "Unknown command: `fake_command`", program = %Program{}} = Parser.parse(script)
+      assert {:error, "Unknown command: `FAKE_COMMAND`", program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{},
                                  status: :dead,
                                  pc: 1,
@@ -96,7 +96,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                :$blabel 
                """
       assert {:error, "Invalid label: `$blabel`", program = %Program{}} = Parser.parse(script)
-      assert program == %Program{instructions: %{1 => [:end, [""]]},
+      assert program == %Program{instructions: %{1 => [:halt, [""]]},
                                  status: :dead,
                                  pc: 1,
                                  labels: %{},

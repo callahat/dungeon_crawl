@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.Scripting.Parser do
+  alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Program
 
   @doc """
@@ -133,13 +134,10 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _sendable_command(command) do
-    case String.downcase(command) do
-      "become"       -> {:ok, :become}
-      "end"          -> {:ok, :end}
-      "if"           -> {:ok, :if}
-      "die"          -> {:ok, :die}
-
-      bad_command -> {:error, "Unknown command: `#{bad_command}`"}
+    if script_command = Command.get_command(command) do
+      {:ok, script_command}
+    else
+      {:error, "Unknown command: `#{command}`"}
     end
   end
 
