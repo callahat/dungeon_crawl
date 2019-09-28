@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.Scripting.Runner do
+  alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.TileState
 require Logger
@@ -39,29 +40,20 @@ Logger.info inspect object.state
             { %{program | broadcasts: [message | program.broadcasts] }, door}
 
           :if ->
-            {:ok, object_state} = DungeonCrawl.TileState.Parser.parse(object.state)
+            {:ok, state} = DungeonCrawl.TileState.Parser.parse(object.state)
             [[neg, _command, var, op, value], label] = params
-            check = case op do
-                      "!=" -> object_state[var] != value
-                      "==" -> object_state[var] == value
-                      "<=" -> object_state[var] <= value
-                      ">=" -> object_state[var] >= value
-                      "<"  -> object_state[var] <  value
-                      ">"  -> object_state[var] >  value
-                      _    -> !!object_state[var]
-                    end
 
-           if if(neg == "!", do: !check, else: check) do
-             # first active matching label
-             with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
-               {%{program | pc: line_number}, object}
-             else
-               # no valid label to jump to
-               [] -> {program, object}
-             end
-           else
-             {program, object}
-           end
+            if Maths.check(neg, state[var], op, value) do
+              # first active matching label
+              with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
+                {%{program | pc: line_number}, object}
+              else
+                # no valid label to jump to
+                [] -> {program, object}
+              end
+            else
+              {program, object}
+            end
 
           :end ->
             {%{program | status: :idle, pc: -1}, object}
@@ -78,16 +70,8 @@ Logger.info inspect object.state
           :change_state ->
             {:ok, state} = TileState.Parser.parse(object.state)
             [var, op, value] = params
-            new_val = case op do
-                        "++" -> state[var] + 1
-                        "--" -> state[var] - 1
-                        "="  -> value
-                        "+=" -> state[var] + value
-                        "-=" -> state[var] - value
-                        "/=" -> state[var] / value
-                        "*=" -> state[var] * value
-                      end
-            state = Map.put(state, var, new_val) |> TileState.Parser.stringify
+
+            state = Map.put(state, var, Maths.calc(state[var], op, value)) |> TileState.Parser.stringify
 
             {program, DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})}
 
