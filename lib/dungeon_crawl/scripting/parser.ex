@@ -135,8 +135,8 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _sendable_command(command) do
     case String.downcase(command) do
       "become"       -> {:ok, :become}
-      "end"          -> {:ok, :end_script}
-      "if"           -> {:ok, :jump_if}
+      "end"          -> {:ok, :end}
+      "if"           -> {:ok, :if}
       "die"          -> {:ok, :die}
 
       bad_command -> {:error, "Unknown command: `#{bad_command}`"}

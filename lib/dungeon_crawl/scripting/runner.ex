@@ -1,12 +1,12 @@
 defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.TileState
-import Logger
+require Logger
   @doc """
   Run the program until encountering a stop marker. Returns the final state of the program.
   """
   def run(%{program: program, object: object, label: label}) do
-    with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([l,a]) -> a end) |> Enum.take(1),
+    with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
          program = %{program | pc: next_pc} do
       run(%{program: program, object: object})
     else
@@ -38,7 +38,7 @@ Logger.info inspect object.state
 
             { %{program | broadcasts: [message | program.broadcasts] }, door}
 
-          :jump_if ->
+          :if ->
             {:ok, object_state} = DungeonCrawl.TileState.Parser.parse(object.state)
             [[neg, _command, var, op, value], label] = params
             check = case op do
@@ -53,7 +53,7 @@ Logger.info inspect object.state
 
            if if(neg == "!", do: !check, else: check) do
              # first active matching label
-             with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([l,a]) -> a end) |> Enum.take(1) do
+             with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
                {%{program | pc: line_number}, object}
              else
                # no valid label to jump to
@@ -63,13 +63,13 @@ Logger.info inspect object.state
              {program, object}
            end
 
-          :end_script ->
-            {%{program | status: :idle, pc: 0}, object}
+          :end ->
+            {%{program | status: :idle, pc: -1}, object}
 
           :text ->
             if params != [""] do
               # TODO: probably allow this to be refined by whomever the message is for
-              message = [ Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n") ]
+              message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")
               {%{program | responses: [ message | program.responses] }, object}
             else
               {program, object}
@@ -93,7 +93,7 @@ Logger.info inspect object.state
 
           :die ->
             object = DungeonCrawl.DungeonInstances.update_map_tile!(object, %{script: ""})
-            {%{program | status: :dead, pc: 0}, object}
+            {%{program | status: :dead, pc: -1}, object}
         end
         # increment program counter, check for end of program
         program = %{program | pc: program.pc + 1}
