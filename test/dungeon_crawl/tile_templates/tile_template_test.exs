@@ -3,8 +3,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
 
   alias DungeonCrawl.TileTemplates.TileTemplate
 
-  @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "#F00", background_color: "black", responders: nil}
-  @invalid_attrs %{name: "", character: "BIG"}
+  @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "#F00", background_color: "black", responders: nil, script: nil}
+  @invalid_attrs %{name: "", character: "BIG", script: "#NOCOMMAND", state: "badstate"}
 
   test "changeset with valid attributes" do
     changeset = TileTemplate.changeset(%TileTemplate{}, @valid_attrs)

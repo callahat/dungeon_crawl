@@ -40,14 +40,14 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   end
 
   # TODO: add single door using states
-  def solo_door() do
+  def solo_door(character \\ "+", state \\ "blocking: true, open: false") do
     create_with_defaults!(%{
-      character: "+",
+      character: character,
       color: "black",
       background_color: "lightgray",
       name: "Basic Door",
       description: "A basic door, it opens and closes",
-      state: "blocking: true, open: false",
+      state: state,
       script: """
               #END
               :CLOSE

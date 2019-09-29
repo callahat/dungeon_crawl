@@ -88,9 +88,4 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         {:error, %{msg: response}}
     end
   end
-
-  # Helper wrapper for broadcasting from outside the module
-  def broadcast_event(socket, event, payload) do
-    broadcast socket, event, payload
-  end
 end

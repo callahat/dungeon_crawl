@@ -3,12 +3,17 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   alias DungeonCrawlWeb.DungeonChannel
   alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileSeeder
 
   @player_row 3
   @player_col 1
 
   setup config do
-    basic_tiles = DungeonCrawl.TileTemplates.TileSeeder.basic_tiles()
+    message_tile = TileTemplates.create_tile_template!(
+                     Map.merge(%{name: "message", description: "test", script: "#END\n:TOUCH\nJust a tile\nwith line o text"},
+                               %{active: true, public: true}))
+    basic_tiles = Map.put TileSeeder.basic_tiles(), "message_tile", message_tile
 
     # set the tile north of player_loc, for testing purposes
     north_tile = basic_tiles[if(tile = config[:up_tile], do: tile, else: ".")]
@@ -47,6 +52,11 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_push "broadcast", %{"some" => "data"}
   end
 
+#  test "can broadcase outside", %{socket: socket, player_location: pl} do
+#    DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{Repo.preload(pl, :map_tile).map_tile.map_instance_id}", "something", %{"some" => "data"}
+#    assert_broadcast "something", %{"some" => "data"}
+#  end
+
   @tag up_tile: "."
   test "move replies with status ok", %{socket: socket} do
     ref = push socket, "move", %{"direction" => "up"}
@@ -63,6 +73,20 @@ defmodule DungeonCrawl.DungeonChannelTest do
   test "move broadcasts nothing if its not a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
     refute_broadcast "tile_changes", _anything_really
+  end
+
+  @tag up_tile: "."
+  test "step does not reply if nothing happens", %{socket: socket} do
+    ref = push socket, "step", %{"direction" => "up"}
+    refute_reply ref, _, _
+    refute_broadcast _any_event, _any_payload
+  end
+
+  @tag up_tile: "message_tile"
+  test "step replies with messages", %{socket: socket} do
+    ref = push socket, "step", %{"direction" => "up"}
+    assert_reply ref, :error, %{msg: "Just a tile; with line o text"}
+    refute_broadcast _any_event, _any_payload
   end
 
   # TODO: refactor the underlying model/channel methods into more testable concerns
