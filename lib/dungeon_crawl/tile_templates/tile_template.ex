@@ -54,7 +54,14 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   defp _validate_script(changeset, script) do
     case Scripting.Parser.parse(script) do
       {:error, message, program} -> add_error(changeset, :script, "#{message} - near line #{Enum.count(program.instructions) + 1}")
-      {:ok, _}                    -> changeset
+      {:ok, program}             -> _validate_program(changeset, program)
+    end
+  end
+
+  defp _validate_program(changeset, program) do
+    case Scripting.ProgramValidator.validate(program) do
+      {error, messages, program} -> add_error(changeset, :script, Enum.join(messages, "\n"))
+      {:ok, _}                   -> changeset
     end
   end
 

@@ -51,7 +51,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def become(%{program: program, object: object, params: params}) do
     object = DungeonCrawl.DungeonInstances.update_map_tile!(
                object,
-               apply(Map, :take, params ++ [[:character, :color, :background_color, :state, :script, :tile_template_id]]))
+               Map.take(Enum.fetch!(params,0), [:character, :color, :background_color, :state, :script, :tile_template_id]))
 
     message = ["tile_changes",
                %{tiles: [
