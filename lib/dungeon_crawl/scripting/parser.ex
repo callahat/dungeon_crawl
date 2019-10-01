@@ -175,9 +175,10 @@ defmodule DungeonCrawl.Scripting.Parser do
     cond do
       # TODO: May want to do this another way, or validate input on script creation. Maybe a second pass scan that looks for
       # bad objects that current user does not have access to add
-      Regex.match?(~r/^TTID:\d+$/, param) ->
-        ttid = String.slice(param,5..-1)
-        Map.put(DungeonCrawl.TileTemplates.get_tile_template!(ttid), :tile_template_id, ttid)
+      Regex.match?(~r/^TTID:\d+$/, param) -> {:ttid, String.slice(param,5..-1) |> String.to_integer}
+        # this lead to an infinite loop
+        # ttid = String.slice(param,5..-1)
+        # Map.put(DungeonCrawl.TileTemplates.get_tile_template!(ttid), :tile_template_id, ttid)
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)

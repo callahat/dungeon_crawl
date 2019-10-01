@@ -49,7 +49,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  8 => [:text, ["Door is already open."]],
                                                  9 => [:text, ["Can't open it anymore."]],
                                                  10 => [:change_state, [:counter, "+=", 1]],
-                                                 11 => [:become, [Map.put(tile_template, :tile_template_id, "#{tile_template.id}")]]
+                                                 11 => [:become, [{:ttid, tile_template.id}]]
                                                  },
                                  status: :alive,
                                  pc: 1,

@@ -20,4 +20,10 @@ defmodule DungeonCrawlWeb.ManageTileTemplateView do
            class: "btn btn-info btn-xs"
     end
   end
+
+  def error_pre_tag(form, field) do
+    if error = form.errors[field] do
+      content_tag :pre, translate_error(error), class: "help-block"
+    end
+  end
 end

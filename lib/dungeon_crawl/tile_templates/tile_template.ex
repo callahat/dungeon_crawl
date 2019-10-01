@@ -32,7 +32,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     |> cast(attrs, [:name, :character, :description, :color, :background_color, :script,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
     |> validate_required([:name, :description])
     |> validate_renderables
-    |> validate_script
+    |> validate_script(tile_template) # seems like an clumsy way to get a user just to validate a TTID in a script
     |> validate_state
   end
 
@@ -45,23 +45,22 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_script(changeset) do
+  def validate_script(changeset, tile_template) do
     script = get_field(changeset, :script)
-    _validate_script(changeset, script)
+    _validate_script(changeset, script, tile_template)
   end
 
-  defp _validate_script(changeset, nil), do: changeset
-  defp _validate_script(changeset, script) do
+  defp _validate_script(changeset, nil, _), do: changeset
+  defp _validate_script(changeset, script, tile_template) do
     case Scripting.Parser.parse(script) do
       {:error, message, program} -> add_error(changeset, :script, "#{message} - near line #{Enum.count(program.instructions) + 1}")
-      {:ok, program}             -> _validate_program(changeset, program)
+      {:ok, program}             -> _validate_program(changeset, changeset.changes[:user_id] || tile_template.user_id, program)
     end
   end
-
-  defp _validate_program(changeset, program) do
-    case Scripting.ProgramValidator.validate(program) do
-      {error, messages, program} -> add_error(changeset, :script, Enum.join(messages, "\n"))
-      {:ok, _}                   -> changeset
+  defp _validate_program(changeset, user_id, program) do
+    case Scripting.ProgramValidator.validate(program, user_id && DungeonCrawl.Account.get_user(user_id)) do
+      {:error, messages, _program} -> add_error(changeset, :script, Enum.join(messages, "\n"))
+      {:ok, _}                     -> changeset
     end
   end
 

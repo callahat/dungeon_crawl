@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.TileState
+  alias DungeonCrawl.TileTemplates
 
   @doc """
   Returns the script command for given name. If the name has no corresponding command, then nil is returned.
@@ -48,10 +49,18 @@ defmodule DungeonCrawl.Scripting.Command do
     %{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>$</div>"}]}] ]},
       object: updated_object }
   """
-  def become(%{program: program, object: object, params: params}) do
+  def become(%{program: program, object: object, params: [{:ttid, ttid}]}) do
+    new_attrs = Map.take(TileTemplates.get_tile_template!(ttid), [:character, :color, :background_color, :state, :script])
+    _become(%{program: program, object: object}, Map.put(new_attrs, :tile_template_id, ttid))
+  end
+  def become(%{program: program, object: object, params: [params]}) do
+    new_attrs = Map.take(params, [:character, :color, :background_color, :state, :script, :tile_template_id])
+    _become(%{program: program, object: object}, new_attrs)
+  end
+  def _become(%{program: program, object: object}, new_attrs) do
     object = DungeonCrawl.DungeonInstances.update_map_tile!(
                object,
-               Map.take(Enum.fetch!(params,0), [:character, :color, :background_color, :state, :script, :tile_template_id]))
+               new_attrs)
 
     message = ["tile_changes",
                %{tiles: [
