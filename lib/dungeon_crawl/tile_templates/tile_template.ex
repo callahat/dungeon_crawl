@@ -4,7 +4,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
 
   @color_match ~r/\A(?:[a-z]+|#(?:[\da-f]{3}){1,2})\z/i
 
-  alias DungeonCrawl.EventResponder.Parser
+  alias DungeonCrawl.Scripting
+  alias DungeonCrawl.TileState
 
   schema "tile_templates" do
     field :active, :boolean, default: false
@@ -15,7 +16,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :deleted_at, :naive_datetime
     field :name, :string
     field :public, :boolean, default: false
-    field :responders, :string, default: "{}"
+    field :script, :string, default: ""
     field :state, :string
     field :version, :integer, default: 1
     has_many :map_tiles, DungeonCrawl.Dungeon.MapTile
@@ -28,10 +29,11 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   @doc false
   def changeset(tile_template, attrs) do
     tile_template
-    |> cast(attrs, [:name, :character, :description, :color, :background_color, :responders,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
+    |> cast(attrs, [:name, :character, :description, :color, :background_color, :script,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
     |> validate_required([:name, :description])
     |> validate_renderables
-    |> validate_responders
+    |> validate_script(tile_template) # seems like an clumsy way to get a user just to validate a TTID in a script
+    |> validate_state
   end
 
   @doc false
@@ -43,16 +45,36 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_responders(changeset) do
-    responders = get_field(changeset, :responders)
-    _validate_responders(changeset, responders)
+  def validate_script(changeset, tile_template) do
+    script = get_field(changeset, :script)
+    _validate_script(changeset, script, tile_template)
   end
 
-  defp _validate_responders(changeset, nil), do: changeset
-  defp _validate_responders(changeset, responders) do
-    case Parser.parse(responders) do
-      {:error, message, bad_part} -> add_error(changeset, :responders, "#{message} - #{bad_part}")
-      {:ok, _}                    -> changeset
+  defp _validate_script(changeset, nil, _), do: changeset
+  defp _validate_script(changeset, script, tile_template) do
+    case Scripting.Parser.parse(script) do
+      {:error, message, program} -> add_error(changeset, :script, "#{message} - near line #{Enum.count(program.instructions) + 1}")
+      {:ok, program}             -> _validate_program(changeset, changeset.changes[:user_id] || tile_template.user_id, program)
+    end
+  end
+  defp _validate_program(changeset, user_id, program) do
+    case Scripting.ProgramValidator.validate(program, user_id && DungeonCrawl.Account.get_user(user_id)) do
+      {:error, messages, _program} -> add_error(changeset, :script, Enum.join(messages, "\n"))
+      {:ok, _}                     -> changeset
+    end
+  end
+
+  @doc false
+  def validate_state(changeset) do
+    state = get_field(changeset, :state)
+    _validate_state(changeset, state)
+  end
+
+  defp _validate_state(changeset, nil), do: changeset
+  defp _validate_state(changeset, state) do
+    case TileState.Parser.parse(state) do
+      {:error, message} -> add_error(changeset, :state, message)
+      {:ok, _}          -> changeset
     end
   end
 end

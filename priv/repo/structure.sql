@@ -42,7 +42,8 @@ CREATE TABLE public.dungeon_map_tiles (
     "character" character varying(255),
     color character varying(255),
     background_color character varying(255),
-    state character varying(255)
+    state character varying(255),
+    script character varying(2048)
 );
 
 
@@ -152,7 +153,8 @@ CREATE TABLE public.map_tile_instances (
     "character" character varying(255),
     color character varying(255),
     background_color character varying(255),
-    state character varying(255)
+    state character varying(255),
+    script character varying(2048)
 );
 
 
@@ -229,7 +231,6 @@ CREATE TABLE public.tile_templates (
     description character varying(255),
     color character varying(255),
     background_color character varying(255),
-    responders character varying(255),
     inserted_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
     deleted_at timestamp without time zone,
@@ -238,7 +239,8 @@ CREATE TABLE public.tile_templates (
     active boolean,
     public boolean,
     previous_version_id bigint,
-    state character varying(255)
+    state character varying(255),
+    script character varying(2048)
 );
 
 
@@ -606,5 +608,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207);
 

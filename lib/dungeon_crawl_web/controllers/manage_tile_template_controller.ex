@@ -129,7 +129,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
     filtered_params = cond do
       !conn.assigns.current_user.is_admin ->
         Map.take(conn.params["tile_template"],
-                 ["name", "character", "description", "color", "background_color", "responders","public", "state"])
+                 ["name", "character", "description", "color", "background_color", "public", "state", "script"])
         |> params_with_owner(conn)
 
       conn.params["self_owned"] == "true" ->

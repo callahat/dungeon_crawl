@@ -187,7 +187,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _new_tile_copy(dmt, dungeon_id) do
-    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state])
+    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script])
     |> Elixir.Map.put(:dungeon_id, dungeon_id)
   end
 
@@ -226,7 +226,8 @@ defmodule DungeonCrawl.Dungeon do
                                            character: tile_mapping[tile].character,
                                            color: tile_mapping[tile].color,
                                            background_color: tile_mapping[tile].background_color,
-                                           state: tile_mapping[tile].state} end)
+                                           state: tile_mapping[tile].state,
+                                           script: tile_mapping[tile].script} end)
   end
 
   @doc """
@@ -276,7 +277,8 @@ defmodule DungeonCrawl.Dungeon do
                                               character: empty_tile_template.character,
                                               color: empty_tile_template.color,
                                               background_color: empty_tile_template.background_color,
-                                              state: empty_tile_template.state} end)
+                                              state: empty_tile_template.state,
+                                              script: empty_tile_template.script} end)
     Repo.insert_all MapTile, new_dmts
   end
 

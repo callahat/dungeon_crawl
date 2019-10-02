@@ -10,22 +10,19 @@ let Dungeon = {
       this.setupWindowListeners(dungeonChannel)
     }
 
-    dungeonChannel.on("tile_update", (resp) => {
-      let old_location = resp.old_location
-      let new_location = resp.new_location
-      document.getElementById(old_location.row + "_" + old_location.col).innerHTML = old_location.tile
-      document.getElementById(new_location.row + "_" + new_location.col).innerHTML = "@"
+    dungeonChannel.on("tile_changes", (resp) => {
+      let location;
+      for(let tile of resp.tiles){
+        document.getElementById(tile.row + "_" + tile.col).innerHTML = tile.rendering
+      }
     })
-    dungeonChannel.on("door_changed", (resp) => {
-      let door_location = resp.door_location
-      document.getElementById(door_location.row + "_" + door_location.col).innerHTML = door_location.tile
-    })
-    dungeonChannel.on("player_left", (resp) => {
-      document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
-    })
-    dungeonChannel.on("player_joined", (resp) => {
-      document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
-    })
+    // These could be used to announce something, but the tile updating has been consolidated
+    //dungeonChannel.on("player_left", (resp) => {
+    //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
+    //})
+    //dungeonChannel.on("player_joined", (resp) => {
+    //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
+    //})
 
     dungeonChannel.on("ping", ({count}) => console.log("PING", count))
 
@@ -78,15 +75,17 @@ let Dungeon = {
   move(dungeonChannel, direction){
     console.log(direction)
     let payload = {direction: direction}
+    document.getElementById("short_comm").innerText = "Moving..."
+    dungeonChannel.push("step", payload)
+                  .receive("error", resp => document.getElementById("short_comm").innerHTML = resp.msg)
     dungeonChannel.push("move", payload)
                   .receive("error", e => console.log(e))
-    document.getElementById("short_comm").innerText = "Moving..."
   },
   open(dungeonChannel, direction){
-    this._useDoor(dungeonChannel, direction, "open")
+    this._useDoor(dungeonChannel, direction, "OPEN")
   },
   close(dungeonChannel, direction){
-    this._useDoor(dungeonChannel, direction, "close")
+    this._useDoor(dungeonChannel, direction, "CLOSE")
   },
   _useDoor(dungeonChannel, direction, action){
     let payload = {direction: direction, action: action}

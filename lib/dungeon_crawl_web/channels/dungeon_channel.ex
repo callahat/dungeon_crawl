@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.DungeonInstances, as: Dungeon
-  alias DungeonCrawl.Action.{Move,Door}
+  alias DungeonCrawl.Action.{Move}
 
   def join("dungeons:" <> instance_id, _payload, socket) do
     instance_id = String.to_integer(instance_id)
@@ -30,8 +30,12 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     case Move.go(player_location.map_tile, destination) do
       {:ok, %{new_location: new_location, old_location: old}} ->
-        broadcast socket, "tile_update", %{new_location: Map.take(new_location, [:row, :col]),
-                                           old_location: %{row: old.row, col: old.col, tile: DungeonCrawlWeb.SharedView.tile_and_style(old)}}
+        broadcast socket,
+                  "tile_changes",
+                  %{tiles: [
+                     Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
+                     Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
+                    ]}
 
       {:invalid} ->
         :ok
@@ -40,17 +44,48 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "open" or action == "close" do
+  def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "OPEN" or action == "CLOSE" do
+    _player_action_helper(
+      %{"direction" => direction, "action" => action},
+      {:reply, {:error, %{msg: "Cannot #{String.downcase(action)} that"}}, socket},
+      socket)
+  end
+
+  def handle_in("step", %{"direction" => direction}, socket) do
+    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, {:noreply, socket}, socket)
+  end
+
+  defp _player_action_helper(%{"direction" => direction, "action" => action}, no_label_response, socket) do
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    target_door = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
+    target_tile = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
 
-    case apply(Door, String.to_atom(action), [target_door]) do
-      { :ok, %{door_location: %{row: row, col: col, map_tile: door}} } ->
-        broadcast socket, "door_changed", %{door_location: %{row: row, col: col, tile: DungeonCrawlWeb.SharedView.tile_and_style(door)}}
-        {:reply, :ok, socket}
+    # TODO: eventually grab the running program and have it try the label instead of this.
+    script = target_tile.script
+    {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
 
-      {:invalid} ->
-        {:reply, {:error, %{msg: "Cannot #{action} that"}}, socket}
+    if prog.labels[action] do
+      %{program: prog, object: _target_tile} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_tile, label: action}
+      _handle_broadcasts(socket, prog.broadcasts)
+      {:reply, _reply_payload(prog.responses), socket}
+    else
+      no_label_response
+    end
+  end
+
+  defp _handle_broadcasts(_socket, []), do: nil
+  defp _handle_broadcasts(socket, [[event, payload] | broadcasts]) do
+    _handle_broadcasts(socket, broadcasts)
+    broadcast socket, event, payload
+  end
+
+  defp _reply_payload([]), do: :ok
+  defp _reply_payload([response | responses]) do
+    case _reply_payload(responses) do
+      {:error, %{msg: msgs}} ->
+        {:error, %{msg: "#{msgs}; #{response}"}}
+
+      _ ->
+        {:error, %{msg: response}}
     end
   end
 end

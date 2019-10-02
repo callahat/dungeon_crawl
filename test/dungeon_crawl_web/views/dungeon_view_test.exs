@@ -30,16 +30,16 @@ defmodule DungeonCrawlWeb.DungeonViewTest do
     tt1 = insert_tile_template(%{character: "1"})
     tt2 = insert_tile_template(%{character: "2"})
     assert {:safe, pres} = DungeonView.tile_template_pres([tt1,tt2])
-    assert pres =~ ~r|<pre.*?><span>1</span></pre>|s
-    assert pres =~ ~r|<pre.*?><span>2</span></pre>|s
+    assert pres =~ ~r|<pre.*?><div>1</div></pre>|s
+    assert pres =~ ~r|<pre.*?><div>2</div></pre>|s
   end
 
   test "tile_template_pres/2 returns safely the pre tiles for the given tile templates with the historic flag" do
     tt1 = insert_tile_template(%{character: "1"})
     tt2 = insert_tile_template(%{character: "2"})
     assert {:safe, pres} = DungeonView.tile_template_pres([tt1,tt2], true)
-    assert pres =~ ~r|<pre.*?data-historic-template=true.*?><span>1</span></pre>|s
-    assert pres =~ ~r|<pre.*?data-historic-template=true.*?><span>2</span></pre>|s
+    assert pres =~ ~r|<pre.*?data-historic-template=true.*?><div>1</div></pre>|s
+    assert pres =~ ~r|<pre.*?data-historic-template=true.*?><div>2</div></pre>|s
   end
 
   test "color_tr/1 returns safely a table row where the cells are the colors given" do
