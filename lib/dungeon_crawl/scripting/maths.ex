@@ -4,8 +4,10 @@ defmodule DungeonCrawl.Scripting.Maths do
   Returns various math operations on two operands given an operator.
   The second operand is a placeholder for some operators (such as ++ or --)
 
-  For certain operators, it will return a true or false value.
-  For an unknown operator, the truthiness of the first operand will be returned.
+  When there is a binary operation and one of the operands is not an integer or float,
+  then that operand will be assumed as zero.
+
+  When dividing by zero, the first operand is returned instead.
 
   ## Examples
 
@@ -24,11 +26,14 @@ defmodule DungeonCrawl.Scripting.Maths do
     iex> Maths.calc(4, "*=", 4)
     16
   """
+  def calc(_a, "=", b),    do: b
+  def calc(a, op, b) when not is_integer(a) and not is_float(a), do: calc(0, op, b)
   def calc(a, "++", _),    do: a + 1
   def calc(a, "--", _),    do: a - 1
-  def calc(_a, "=", b),    do: b
+  def calc(a, op, b) when not is_integer(b) and not is_float(b), do: calc(a, op, 0)
   def calc(a, "+=", b),    do: a + b
   def calc(a, "-=", b),    do: a - b
+  def calc(a, "/=", 0),    do: a # no dividing by zero
   def calc(a, "/=", b),    do: a / b
   def calc(a, "*=", b),    do: a * b
 
