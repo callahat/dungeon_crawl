@@ -20,7 +20,7 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.get_command("not_real")
     nil
   """
-  def get_command(name) when is_binary(name), do: get_command(String.downcase(name) |> String.to_atom())
+  def get_command(name) when is_binary(name), do: get_command(String.downcase(name) |> String.trim() |> String.to_atom())
   def get_command(name) do
     case name do
       :become       -> :become

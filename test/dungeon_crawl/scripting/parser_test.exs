@@ -134,5 +134,33 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                  responses: []}
     end
 
+    test "varous KWARGS for the BECOME command" do
+      # Character as whitespace
+      valid_kwargs "#BECOME character:  ", %{character: " "}
+      valid_kwargs "#BECOME character:  , color: red", %{character: " ", color: "red"}
+      valid_kwargs "#BECOME character:  , color: red, background_color: blue", %{character: " ", color: "red", background_color: "blue"}
+
+      # Character as a comma
+      valid_kwargs "#BECOME character: ,", %{character: ","}
+      valid_kwargs "#BECOME character: ,, color: red ", %{character: ",", color: "red"}
+      valid_kwargs "#BECOME character: ,, color: red, background_color: blue", %{character: ",", color: "red", background_color: "blue"}
+
+      # Bad inputs
+      invalid_kwargs "#BECOME character: "
+      invalid_kwargs "#BECOME character: x,color: red"
+      invalid_kwargs "#BECOME character:,"
+      invalid_kwargs "#BECOME character: ,,"
+      invalid_kwargs "#BECOME character: ,, color: red,"
+    end
+
+    defp valid_kwargs script, expected_map do
+      assert {:ok, %Program{instructions: %{1 => [:become, params]}}} = Parser.parse(script)
+      assert params == [expected_map]
+    end
+
+    defp invalid_kwargs script do
+      assert {:ok, %Program{instructions: %{1 => [:become, params]}}} = Parser.parse(script)
+      assert is_list(params)
+    end
   end
 end

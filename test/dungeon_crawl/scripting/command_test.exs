@@ -27,7 +27,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "get_command/1" do
-    assert Command.get_command("BECOME") == :become
+    assert Command.get_command(" BECOME  ") == :become
     assert Command.get_command(:become) == :become
     assert Command.get_command(:change_state) == :change_state
     assert Command.get_command(:die) == :die

@@ -40,10 +40,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       _validate(program, instructions, ["Line #{line_no}: BECOME command references a TTID that you can't use `#{ttid}`" | errors], user)
     end
   end
-  defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
+  defp _validate(program, [ {line_no, [ :become, [params] ]} | instructions], errors, user) when is_map(params) do
     dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
     settable_fields = [:character, :color, :background_color, :state, :script, :tile_template_id]
-    changeset =  TileTemplate.changeset(dummy_template, Map.take(Enum.fetch!(params,0), settable_fields))
+    changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
 
     if changeset.errors == [] do
       _validate(program, instructions, errors, user)
@@ -60,6 +60,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
       _validate(program, instructions, ["Line #{line_no}: BECOME command has errors: `#{error_messages}`" | errors], user)
     end
+  end
+  defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
   end
 
   defp _validate(program, [ {line_no, [ :if, [_condition, label] ]} | instructions], errors, user) do

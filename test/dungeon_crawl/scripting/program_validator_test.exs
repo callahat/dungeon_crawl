@@ -26,6 +26,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #IF @thing, NOLABEL
     #BECOME TTID:#{ttid}
     #BECOME TTID:#{ttid2}
+    #BECOME character:  , color:red
     """
   end
 
@@ -49,11 +50,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
-               "Line 6: BECOME command references a TTID that you can't use `#{tt.id}`"],
+               "Line 6: BECOME command references a TTID that you can't use `#{tt.id}`",
+               "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`"],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
-               "Line 5: IF command references nonexistant label `NOLABEL`"],
+               "Line 5: IF command references nonexistant label `NOLABEL`",
+               "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`"],
               program} == ProgramValidator.validate(program, admin)
     end
   end

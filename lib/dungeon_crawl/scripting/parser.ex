@@ -22,7 +22,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   :close
 
   # - command, ie
-  #become
+  #become <kwargs>
 
   #if <condition>, <label>
 
@@ -41,7 +41,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   def parse(nil), do: {:ok, %Program{}}
   def parse(""),  do: {:ok, %Program{}}
   def parse(script_string) do
-    case _parse_script(String.split(String.trim(script_string), "\n"), %Program{}) do
+    case _parse_script(String.split(String.replace_trailing(script_string, "\n", ""), "\n"), %Program{}) do
       {:ok, program} ->
         {:ok, %{program | status: :alive } }
 
@@ -73,9 +73,9 @@ defmodule DungeonCrawl.Scripting.Parser do
         _handle_text(line, program)
     end
   end
-  
+
   defp _parse_command(line, program) do
-    with %{"command" => command} <- match = Regex.named_captures(~r/\A(?<command>.+?)(?: (?<params>.+))?\z/i, String.trim(line)),
+    with %{"command" => command} <- match = Regex.named_captures(~r/\A(?<command>[^ ]+?)(?: (?<params>.+))?\z/i, line),
          params <- _parse_params(match["params"]),
          line_number <- Enum.count(program.instructions) + 1,
          {:ok, sendable_command} <- _sendable_command(command) do
@@ -96,7 +96,7 @@ defmodule DungeonCrawl.Scripting.Parser do
                         labels: Map.put(program.labels, label, updated_labels)}}
     else
       _ ->
-        {:error, "Invalid label: `#{line}`", program}
+        {:error, "Invalid label: `#{String.trim(line)}`", program}
     end
   end
 
@@ -142,7 +142,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _using_kwargs?(nil), do: []
-  defp _using_kwargs?(params), do: Regex.match?(~r/^([a-z_]+:\s.+?)(,\s?[a-z_]+:\s.+?)*$/i, params)
+  defp _using_kwargs?(params), do: Regex.match?(~r/^([a-z_]+:\s(,|[^,]+?))(,\s[a-z_]+:\s(,|[^,]+))*$/i, params)
 
   defp _parse_params(nil), do: []
   defp _parse_params(params) do
@@ -159,12 +159,23 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _parse_kwarg_params(param) do
     param
-    |> String.split(",")
-    |> Enum.map(fn(kw) ->
-         String.split(kw, ": ")
-         |> Enum.map(&(String.trim(&1)))
-       end)
+    |> _split_kwarg_pairs()
     |> Enum.reduce(%{}, fn([key,val], acc) -> Map.put(acc, _format_keyword(key), _cast_param(val)) end)
+  end
+
+  def _split_kwarg_pairs(params, pairs \\ [])
+  def _split_kwarg_pairs("", pairs) do
+    pairs |> Enum.reverse
+  end
+  def _split_kwarg_pairs(params, pairs) do
+    with [_, slag, key, value] <- Regex.run(~r/^(([a-z_]+):\s(,|[^,]+?))(?:,\s[a-z_]+:\s(?:,|[^,]+))*$/, params) do
+      value = if(nil == Regex.run(~r/[^\s]/, value), do: " ", else: String.trim(value))
+      String.replace_leading(params, slag, "")
+      |> String.replace(~r/^\s*,\s*/, "")
+      |> _split_kwarg_pairs([ [key, value] | pairs ])
+    else
+      nil -> nil
+    end
   end
 
   defp _format_keyword(key) do
