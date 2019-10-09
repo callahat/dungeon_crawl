@@ -13,7 +13,7 @@ defmodule DungeonCrawlWeb.ManageUserControllerTest do
       conn = assign(build_conn(), :current_user, user)
       {:ok, conn: conn, user: user}
     else
-      :ok
+      {:ok, conn: conn}
     end
   end
 

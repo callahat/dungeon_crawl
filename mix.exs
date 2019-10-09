@@ -4,14 +4,14 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.2",
+     elixir: "~> 1.9",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: [
-       "coveralls": :test,
+       coveralls: :test,
        "coveralls.detail": :test,
        "coveralls.post": :test,
        "coveralls.html": :test
@@ -59,6 +59,6 @@ defmodule DungeonCrawl.Mixfile do
   defp aliases do
     ["ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
      "ecto.reset": ["ecto.drop", "ecto.setup"],
-     "test": ["ecto.create --quiet", "ecto.migrate", "test"]]
+     test: ["ecto.create --quiet", "ecto.migrate", "test"]]
   end
 end
