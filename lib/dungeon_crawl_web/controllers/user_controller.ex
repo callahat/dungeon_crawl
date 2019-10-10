@@ -16,7 +16,7 @@ defmodule DungeonCrawlWeb.UserController do
       {:ok, _user} ->
         conn
         |> put_flash(:info, "User created successfully.")
-        |> redirect(to: page_path(conn, :index))
+        |> redirect(to: Routes.page_path(conn, :index))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -44,7 +44,7 @@ defmodule DungeonCrawlWeb.UserController do
       {:ok, _} ->
         conn
         |> put_flash(:info, "User updated successfully.")
-        |> redirect(to: user_path(conn, :show))
+        |> redirect(to: Routes.user_path(conn, :show))
       {:error, changeset} ->
         render(conn, "edit.html", user: user, changeset: changeset)
     end
@@ -57,7 +57,7 @@ defmodule DungeonCrawlWeb.UserController do
       {:ok, _} ->
         conn
         |> put_flash(:info, "User deleted successfully.")
-        |> redirect(to: page_path(conn, :index))
+        |> redirect(to: Routes.page_path(conn, :index))
     end
   end
 end

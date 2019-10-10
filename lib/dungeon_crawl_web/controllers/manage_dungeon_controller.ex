@@ -23,7 +23,7 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
       {:ok, %{dungeon: dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-        |> redirect(to: manage_dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.manage_dungeon_path(conn, :show, dungeon))
       {:error, :dungeon, changeset, _others} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -51,6 +51,6 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
 
     conn
     |> put_flash(:info, "Dungeon deleted successfully.")
-    |> redirect(to: manage_dungeon_path(conn, :index))
+    |> redirect(to: Routes.manage_dungeon_path(conn, :index))
   end
 end

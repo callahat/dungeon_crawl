@@ -215,7 +215,7 @@ defmodule DungeonCrawl.TileTemplates do
   """
   def delete_tile_template(%TileTemplate{} = tile_template) do
     change_tile_template(tile_template)
-    |> Ecto.Changeset.put_change(:deleted_at, NaiveDateTime.utc_now)
+    |> Ecto.Changeset.put_change(:deleted_at, NaiveDateTime.truncate(NaiveDateTime.utc_now, :second))
     |> Repo.update
   end
 

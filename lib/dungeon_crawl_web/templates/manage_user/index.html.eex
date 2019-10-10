@@ -20,13 +20,13 @@
       <td><%= user.is_admin %></td>
 
       <td class="text-right">
-        <%= link "Show", to: manage_user_path(@conn, :show, user), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: manage_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: manage_user_path(@conn, :delete, user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= link "Show", to: Routes.manage_user_path(@conn, :show, user), class: "btn btn-default btn-xs" %>
+        <%= link "Edit", to: Routes.manage_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
+        <%= link "Delete", to: Routes.manage_user_path(@conn, :delete, user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
       </td>
     </tr>
 <% end %>
   </tbody>
 </table>
 
-<%= link "New user", to: manage_user_path(@conn, :new) %>
+<%= link "New user", to: Routes.manage_user_path(@conn, :new) %>

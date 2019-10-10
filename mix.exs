@@ -25,26 +25,29 @@ defmodule DungeonCrawl.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [mod: {DungeonCrawl.Application, []},
-     applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
-                    :phoenix_ecto, :postgrex, :comeonin]]
+#     applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
+#                    :phoenix_ecto, :postgrex, :comeonin]]
+      extra_applications: [:logger, :runtime_tools]]
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "web", "test/support"]
-  defp elixirc_paths(_),     do: ["lib", "web"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_),     do: ["lib"]
 
   # Specifies your project dependencies.
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.3.4"},
-     {:phoenix_pubsub, "~> 1.0"},
-     {:phoenix_ecto, "~> 3.0"},
+    [{:phoenix, "~> 1.4.10"},
+     {:phoenix_pubsub, "~> 1.1"},
+     {:phoenix_ecto, "~> 4.0"},
+     {:ecto_sql, "~> 3.0"},
      {:postgrex, ">= 0.0.0"},
-     {:phoenix_html, "~> 2.6"},
-     {:phoenix_live_reload, "~> 1.0", only: :dev},
+     {:phoenix_html, "~> 2.11"},
+     {:phoenix_live_reload, "~> 1.2", only: :dev},
      {:gettext, "~> 0.11"},
-     {:plug_cowboy, "~> 1.0"},
+     {:jason, "~> 1.0"},
+     {:plug_cowboy, "~> 2.0"},
      {:comeonin, "~> 2.0"},
      {:excoveralls, "~> 0.10", only: :test}
     ]

@@ -1,6 +1,6 @@
 <h2>New user</h2>
 
 <%= render "form.html", changeset: @changeset,
-                        action: user_path(@conn, :create) %>
+                        action: Routes.user_path(@conn, :create) %>
 
-<%= link "Back", to: page_path(@conn, :index) %>
+<%= link "Back", to: Routes.page_path(@conn, :index) %>

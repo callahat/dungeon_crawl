@@ -1,9 +1,9 @@
 <h2>Listing tile templates</h2>
 
 <%= if @conn.assigns.current_user.is_admin do %>
-<%= link "All", to: manage_tile_template_path(@conn, :index) %> |
-<%= link "Mine", to: manage_tile_template_path(@conn, :index, %{list: "mine"}) %> |
-<%= link "Unowned", to: manage_tile_template_path(@conn, :index, %{list: "nil"}) %>
+<%= link "All", to: Routes.manage_tile_template_path(@conn, :index) %> |
+<%= link "Mine", to: Routes.manage_tile_template_path(@conn, :index, %{list: "mine"}) %> |
+<%= link "Unowned", to: Routes.manage_tile_template_path(@conn, :index, %{list: "nil"}) %>
 <% end %>
 
 <table class="table">
@@ -37,13 +37,13 @@
 
       <td class="text-right">
         <%= activate_or_new_version_button(@conn, tile_template) %>
-        <%= link "Show", to: manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-default btn-xs" %>
-        <%= unless tile_template.active, do: link "Edit", to: manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= link "Show", to: Routes.manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-default btn-xs" %>
+        <%= unless tile_template.active, do: link "Edit", to: Routes.manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-default btn-xs" %>
+        <%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
       </td>
     </tr>
 <% end %>
   </tbody>
 </table>
 
-<%= link "New tile template", to: manage_tile_template_path(@conn, :new) %>
+<%= link "New tile template", to: Routes.manage_tile_template_path(@conn, :new) %>

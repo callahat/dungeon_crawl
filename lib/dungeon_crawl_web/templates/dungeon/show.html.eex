@@ -10,8 +10,8 @@
 
 <%= activate_or_new_version_button @conn, @dungeon, @conn.assigns.player_location %> |
 <%= unless @dungeon.active do %>
-<%= link "Edit", to: dungeon_path(@conn, :edit, @dungeon) %> |
+<%= link "Edit", to: Routes.dungeon_path(@conn, :edit, @dungeon) %> |
 <% end %>
-<%= link "Back", to: dungeon_path(@conn, :index) %> |
-<%= link "Delete", to: dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Back", to: Routes.dungeon_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
 

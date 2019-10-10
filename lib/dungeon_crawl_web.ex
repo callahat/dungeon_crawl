@@ -34,7 +34,7 @@ defmodule DungeonCrawl.Web do
       import Ecto
       import Ecto.Query
 
-      import DungeonCrawlWeb.Router.Helpers
+      alias DungeonCrawlWeb.Router.Helpers, as: Routes
       import DungeonCrawlWeb.Gettext
       import DungeonCrawlWeb.Auth, only: [authenticate_user: 2]
     end
@@ -51,7 +51,7 @@ defmodule DungeonCrawl.Web do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
-      import DungeonCrawlWeb.Router.Helpers
+      alias DungeonCrawlWeb.Router.Helpers, as: Routes
       import DungeonCrawlWeb.ErrorHelpers
       import DungeonCrawlWeb.Gettext
     end

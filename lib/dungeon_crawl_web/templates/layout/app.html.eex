@@ -8,7 +8,7 @@
     <meta name="author" content="">
 
     <title>Hello DungeonCrawl!</title>
-    <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+    <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/app.css") %>">
   </head>
 
   <body>
@@ -16,19 +16,19 @@
       <header class="header">
         <nav role="navigation">
           <ul class="breadcrumb text-right">
-            <li class="pull-left"><%= link "Dungeon Crawl", to: crawler_path(@conn, :show) %></li>
+            <li class="pull-left"><%= link "Dungeon Crawl", to: Routes.crawler_path(@conn, :show) %></li>
             <%= if @current_user do %>
-              <li><%= link @current_user.username, to: user_path(@conn, :show) %></li>
-              <li><%= link "Edit Dungeons", to: dungeon_path(@conn, :index) %></li>
-              <li><%= link "Tile Templates", to: manage_tile_template_path(@conn, :index) %></li>
-              <li><%= link "Log out", to: session_path(@conn, :delete, @current_user), method: "delete" %></li>
+              <li><%= link @current_user.username, to: Routes.user_path(@conn, :show) %></li>
+              <li><%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index) %></li>
+              <li><%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index) %></li>
+              <li><%= link "Log out", to: Routes.session_path(@conn, :delete, @current_user), method: "delete" %></li>
               <%= if @current_user.is_admin do %>
-              <li><%= link "Users", to: manage_user_path(@conn, :index) %></li>
-              <li><%= link "Dungeons", to: manage_dungeon_path(@conn, :index) %></li>
+              <li><%= link "Users", to: Routes.manage_user_path(@conn, :index) %></li>
+              <li><%= link "Dungeons", to: Routes.manage_dungeon_path(@conn, :index) %></li>
               <% end %>
             <% else %>
-              <li><%= link "Register", to: user_path(@conn, :new) %></li>
-              <li><%= link "Log in", to: session_path(@conn, :new) %></li>
+              <li><%= link "Register", to: Routes.user_path(@conn, :new) %></li>
+              <li><%= link "Log in", to: Routes.session_path(@conn, :new) %></li>
             <% end %>
           </ul>
         </nav>
@@ -44,6 +44,6 @@
 
     </div> <!-- /container -->
     <script>window.userToken = "<%= assigns[:user_token] %>"</script>
-    <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+    <script src="<%= Routes.static_path(@conn, "/js/app.js") %>"></script>
   </body>
 </html>

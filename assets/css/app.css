@@ -1,4 +1,5 @@
 /* This file is for your main application css. */
+@import "./phoenix.css";
 
 pre.dungeon_preview {
   display: inline-block;

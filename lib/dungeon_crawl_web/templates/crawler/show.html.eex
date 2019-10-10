@@ -3,12 +3,12 @@
 <pre id="short_comm">Move...</pre>
 <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @player_location.map_tile.dungeon, readonly: false, with_template_id: false) %>
 <br/>
-<%= link "Leave Dungeon", to: crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Leave Dungeon", to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
 </div>
-<%= else %>
+<% else %>
 Not currently in any dungeon.
 <br/>
-<%= link "Generate and go solo", to: crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
 
 <br/>
 <br/>
@@ -35,7 +35,7 @@ Or join:
             <td><%= instance.locations |> Enum.count %></td>
             <td>
               <span class="pull-right">
-                <%= link "Join", to: crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+                <%= link "Join", to: Routes.crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
               </span>
             </td>
           </tr>
@@ -43,7 +43,7 @@ Or join:
           <tr>
             <td colspan=100%>
               <span class="pull-right">
-                <%= link "Join New Instance", to: crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+                <%= link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
               </span>
             </td>
           <tr>
