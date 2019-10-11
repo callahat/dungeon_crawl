@@ -5,7 +5,7 @@ defmodule DungeonCrawl.MapGenerators.Utils do
   def stringify(map, cave_width) do
     map
     |> _map_to_charlist
-    |> Enum.chunk(cave_width)
+    |> Enum.chunk_every(cave_width)
     |> Enum.map(&(to_string(&1)))
     |> Enum.join("\n")
   end

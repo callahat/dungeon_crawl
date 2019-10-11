@@ -1,6 +1,6 @@
 <h2>Edit tile template</h2>
 
 <%= render "form.html", changeset: @changeset, conn: @conn,
-                        action: manage_tile_template_path(@conn, :update, @tile_template) %>
+                        action: Routes.manage_tile_template_path(@conn, :update, @tile_template) %>
 
-<%= link "Back", to: manage_tile_template_path(@conn, :index) %>
+<%= link "Back", to: Routes.manage_tile_template_path(@conn, :index) %>

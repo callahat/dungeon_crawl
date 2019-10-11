@@ -12,7 +12,7 @@ defmodule DungeonCrawl.Account.UserTest do
     changeset = User.changeset(%User{}, attrs)
 
     assert {:error, changeset} = Repo.insert(changeset)
-    assert {:username, {"has already been taken", []}} in changeset.errors
+    assert {:username, {"has already been taken", [constraint: :unique, constraint_name: "users_username_index"]}} in changeset.errors
   end
 
   test "changeset with valid attributes" do
@@ -34,7 +34,7 @@ defmodule DungeonCrawl.Account.UserTest do
   test "registration_changeset password must be 6 characters long" do
     attrs = Map.put(@valid_attrs, :password, "a")
     changeset = User.registration_changeset(%User{}, attrs)
-    assert {:password, {"should be at least %{count} character(s)", count: 6, validation: :length, min: 6}} in changeset.errors
+    assert {:password, {"should be at least %{count} character(s)", count: 6, validation: :length, kind: :min, type: :string}} in changeset.errors
   end
 
   test "registration_changeset with valid attrs hashes password" do

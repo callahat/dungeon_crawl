@@ -14,7 +14,7 @@
   </tr>
   <%= for instance <- @dungeon.map_instances do %>
   <tr>
-    <td><%= link instance.id, to: manage_dungeon_path(@conn, :show, @dungeon, instance_id: instance.id) %></td>
+    <td><%= link instance.id, to: Routes.manage_dungeon_path(@conn, :show, @dungeon, instance_id: instance.id) %></td>
     <td><%= Enum.count(instance.locations) %></td>
   </tr>
   <% end %>
@@ -31,4 +31,4 @@
 <% end %>
 </div>
 
-<%= link "Back", to: manage_dungeon_path(@conn, :index) %>
+<%= link "Back", to: Routes.manage_dungeon_path(@conn, :index) %>

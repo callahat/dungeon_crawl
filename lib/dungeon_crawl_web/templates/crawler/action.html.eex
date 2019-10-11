@@ -1,6 +1,6 @@
 <h2>New crawler</h2>
 
 <%= render "form.html", changeset: @changeset,
-                        action: crawler_path(@conn, :create) %>
+                        action: Routes.crawler_path(@conn, :create) %>
 
-<%= link "Back", to: crawler_path(@conn, :index) %>
+<%= link "Back", to: Routes.crawler_path(@conn, :index) %>

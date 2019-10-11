@@ -32,15 +32,15 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     # TODO: revisit multi's and clean this up
     Multi.new
-    |> Multi.run(:dungeon, fn(%{}) ->
+    |> Multi.run(:dungeon, fn(_repo, %{}) ->
         {:ok, run_results} = Dungeon.generate_map(@dungeon_generator, dungeon_attrs)
         {:ok, run_results[:dungeon]}
       end)
-    |> Multi.run(:instance, fn(%{dungeon: dungeon}) ->
+    |> Multi.run(:instance, fn(_repo, %{dungeon: dungeon}) ->
         {:ok, run_results} = DungeonInstances.create_map(dungeon)
         {:ok, run_results[:dungeon]}
       end)
-    |> Multi.run(:player_location, fn(%{instance: instance}) ->
+    |> Multi.run(:player_location, fn(_repo, %{instance: instance}) ->
         Player.create_location_on_empty_space(instance, conn.assigns[:user_id_hash])
       end)
     |> Repo.transaction
@@ -48,7 +48,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
       {:ok, %{dungeon: _dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-        |> redirect(to: crawler_path(conn, :show))
+        |> redirect(to: Routes.crawler_path(conn, :show))
     end
   end
 
@@ -57,7 +57,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     conn
     |> put_flash(:info, "Dungeon joined successfully.")
-    |> redirect(to: crawler_path(conn, :show))
+    |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
   def join(conn, %{"dungeon_id" => _dungeon_id}) do
@@ -65,14 +65,14 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     conn
     |> put_flash(:info, "Dungeon joined successfully.")
-    |> redirect(to: crawler_path(conn, :show))
+    |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
   def destroy(conn, _opts) do
     location = Player.get_location(conn.assigns[:user_id_hash])
 
     dungeon = Player.get_dungeon(location)
-    post_leave_path = if dungeon.active, do: crawler_path(conn, :show), else: dungeon_path(conn, :show, dungeon)
+    post_leave_path = if dungeon.active, do: Routes.crawler_path(conn, :show), else: Routes.dungeon_path(conn, :show, dungeon)
 
     leave_and_broadcast(location)
 
@@ -94,7 +94,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     else
       conn
       |> put_flash(:info, "Already crawling dungeon")
-      |> redirect(to: crawler_path(conn, :show))
+      |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
     end
   end
@@ -109,7 +109,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     else
       conn
       |> put_flash(:error, "Cannot join that dungeon")
-      |> redirect(to: crawler_path(conn, :show))
+      |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
     end
   end
@@ -123,7 +123,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     else
       conn
       |> put_flash(:error, "Cannot join that instance")
-      |> redirect(to: crawler_path(conn, :show))
+      |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
     end
   end

@@ -21,13 +21,13 @@
 
       <td class="text-right">
         <%= activate_or_new_version_button(@conn, dungeon, @conn.assigns.player_location) %>
-        <%= link "Show", to: dungeon_path(@conn, :show, dungeon), class: "btn btn-default btn-xs" %>
-        <%= unless dungeon.active, do: link "Edit", to: dungeon_path(@conn, :edit, dungeon), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= link "Show", to: Routes.dungeon_path(@conn, :show, dungeon), class: "btn btn-default btn-xs" %>
+        <%= unless dungeon.active, do: link "Edit", to: Routes.dungeon_path(@conn, :edit, dungeon), class: "btn btn-default btn-xs" %>
+        <%= link "Delete", to: Routes.dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
       </td>
     </tr>
 <% end %>
   </tbody>
 </table>
 
-<%= link "New dungeon", to: dungeon_path(@conn, :new) %>
+<%= link "New dungeon", to: Routes.dungeon_path(@conn, :new) %>

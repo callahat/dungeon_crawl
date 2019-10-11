@@ -27,7 +27,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
                       |> Repo.preload(:map_tile)
 
     {:ok, _, socket} =
-      socket("user_id_hash", %{user_id_hash: player_location.user_id_hash})
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
       |> subscribe_and_join(DungeonChannel, "dungeons:#{map_instance.id}")
 
     {:ok, socket: socket, player_location: player_location, basic_tiles: basic_tiles}

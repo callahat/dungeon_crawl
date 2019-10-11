@@ -40,7 +40,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, %{dungeon: dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, :dungeon, changeset, _others} ->
         generators = ["Rooms", "Labrynth", "Empty Map"]
         render(conn, "new.html", changeset: changeset, generators: generators)
@@ -73,7 +73,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
         tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
@@ -83,7 +83,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   # todo: modify the tile template check to verify use can use the tile template id (ie, not soft deleted, protected, etc
   defp _make_tile_updates(dungeon, tile_updates) do
-    case Poison.decode(tile_updates) do
+    case Jason.decode(tile_updates) do
       {:ok, tile_updates} ->
         # TODO: move this to a method in Dungeon
         tile_updates
@@ -115,7 +115,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     conn
     |> put_flash(:info, "Dungeon deleted successfully.")
-    |> redirect(to: dungeon_path(conn, :index))
+    |> redirect(to: Routes.dungeon_path(conn, :index))
   end
 
   def activate(conn, %{"id" => _id}) do
@@ -125,12 +125,12 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, active_dungeon} ->
         conn
         |> put_flash(:info, "Dungeon activated.")
-        |> redirect(to: dungeon_path(conn, :show, active_dungeon))
+        |> redirect(to: Routes.dungeon_path(conn, :show, active_dungeon))
 
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
     end
   end
 
@@ -141,11 +141,11 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, %{dungeon: new_dungeon_version}} ->
         conn
         |> put_flash(:info, "New dungeon version created successfully.")
-        |> redirect(to: dungeon_path(conn, :show, new_dungeon_version))
+        |> redirect(to: Routes.dungeon_path(conn, :show, new_dungeon_version))
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
     end
   end
 
@@ -156,7 +156,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     conn
     |> put_flash(:info, "Dungeon joined successfully.")
-    |> redirect(to: crawler_path(conn, :show))
+    |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
   defp assign_player_location(conn, _opts) do
@@ -175,7 +175,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: dungeon_path(conn, :index))
+      |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
   end
@@ -186,7 +186,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     else
       conn
       |> put_flash(:error, "Cannot edit an active dungeon")
-      |> redirect(to: dungeon_path(conn, :index))
+      |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
   end

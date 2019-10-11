@@ -318,6 +318,15 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
       assert get_flash(conn, :error) == "New version already exists"
     end
 
+    test "does not create a new version if tile_template is corrupted", %{conn: conn} do
+      target_tile_template = insert_tile_template Map.merge(@valid_attrs, %{active: true})
+
+      {:ok, target_tile_template} = Repo.update(Ecto.Changeset.cast(target_tile_template, %{script: "#BECOME character: corrupt"}, [:script]))
+      conn = post conn, manage_tile_template_new_version_path(conn, :new_version, target_tile_template)
+      assert redirected_to(conn) == manage_tile_template_path(conn, :show, target_tile_template)
+      assert get_flash(conn, :error) == "Error creating new version."
+    end
+
     test "creates a new version", %{conn: conn} do
       target_tile_template = insert_tile_template Map.merge(@valid_attrs, %{active: true})
       conn = post conn, manage_tile_template_new_version_path(conn, :new_version, target_tile_template)
