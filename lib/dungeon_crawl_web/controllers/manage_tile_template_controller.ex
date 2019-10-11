@@ -93,6 +93,11 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
         conn
         |> put_flash(:info, "New tile template version created successfully.")
         |> redirect(to: Routes.manage_tile_template_path(conn, :show, new_tile_template_version))
+      {:error, _ = %Ecto.Changeset{}} ->
+        # Getting here probably if the original is corrupt; ie, invalid script or something.
+        conn
+        |> put_flash(:error, "Error creating new version.")
+        |> redirect(to: Routes.manage_tile_template_path(conn, :show, tile_template))
       {:error, message} ->
         conn
         |> put_flash(:error, message)
