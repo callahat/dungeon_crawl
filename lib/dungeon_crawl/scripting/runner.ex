@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Scripting.Runner do
 require Logger
   @doc """
   Run the program one cycle. Returns the next state of the program.
+  One cycle being until it hits a stop or wait condition.
   """
   def run(%{program: program, object: object, label: label}) do
     with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
@@ -30,7 +31,7 @@ Logger.info inspect object.state
         if program.pc > Enum.count(program.instructions) do
           %{program: %{program | pc: 0, status: :idle}, object: object}
         else
-          %{program: program, object: object}
+          run(%{program: program, object: object})
         end
 
       :wait ->

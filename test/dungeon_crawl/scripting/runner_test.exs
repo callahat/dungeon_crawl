@@ -15,7 +15,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_object = %{state: ""}
 
       %{object: _, program: run_program} = Runner.run(%{program: program, object: stubbed_object})
-      %{object: _, program: run_program} = Runner.run(%{program: run_program, object: stubbed_object})
+#      %{object: _, program: run_program} = Runner.run(%{program: run_program, object: stubbed_object})
       assert run_program.responses == ["Line Two", "Line One"]
 
       %{object: _, program: run_program} = Runner.run(%{program: %{program | pc: 2}, object: stubbed_object})
@@ -32,7 +32,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_object = %{state: ""}
 
       %{object: _, program: run_program} = Runner.run(%{program: %{program | status: :idle}, object: stubbed_object, label: "HERE"})
-      %{object: _, program: run_program} = Runner.run(%{program: run_program, object: stubbed_object})
+#      %{object: _, program: run_program} = Runner.run(%{program: run_program, object: stubbed_object})
       assert run_program.responses == ["After label"]
     end
 
