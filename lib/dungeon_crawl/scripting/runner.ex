@@ -23,7 +23,9 @@ require Logger
 Logger.info "Running:"
 Logger.info inspect command
 Logger.info inspect params
+Logger.info inspect object
 Logger.info inspect object.state
+Logger.info inspect object && object.state
         %{program: program, object: object} = apply(Command, command, [%{program: program, object: object, params: params}])
 
         # increment program counter, check for end of program

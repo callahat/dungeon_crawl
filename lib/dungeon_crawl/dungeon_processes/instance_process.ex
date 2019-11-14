@@ -1,0 +1,152 @@
+defmodule DungeonCrawl.DungeonInstances.InstanceProcess do
+  use GenServer, restart: :temporary
+
+  require Logger
+
+  alias DungeonCrawl.Scripting
+  alias DungeonCrawl.Scripting.Program
+
+  ## Client API
+
+  @timeout 1000
+
+  @doc """
+  Starts the instance process.
+  """
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  @doc """
+  Initializes the dungeon map instance and starts the programs.
+  """
+  def load_map(instance, map_tiles) do
+    # Start programs for now, later load everything
+    # When everything is loaded, the object in the program context will be replaced with a reference to the map tile
+    # stored by the instance_process.
+    map_tiles
+    |> Enum.each( fn(map_tile) ->
+         case Scripting.Parser.parse(map_tile.script) do
+           {:ok, program} ->
+             unless program.status == :dead do
+               GenServer.cast(instance, {:start_program, {map_tile.id, %{program: program, object: map_tile, event_sender: nil} }})
+             end
+           other ->
+             Logger.warn """
+                         Possible corrupt script for map tile instance: #{inspect map_tile}
+                         Not :ok response: #{inspect other}
+                         """
+         end
+       end )
+  end
+
+  @doc """
+  Starts the scheduler
+  """
+  def start_scheduler(instance) do
+    Process.send_after(instance, :perform_actions, @timeout)
+  end
+
+  @doc """
+  Inspect the state
+  """
+  def inspect_state(instance) do
+    GenServer.call(instance, {:inspect})
+  end
+
+  ## Defining GenServer Callbacks
+
+  @impl true
+  def init(:ok) do
+    # TODO: add these later when the whole instance is stored in the genserver instead of retrieved from Repo
+    #map_by_ids = %{}
+    #map_by_coords = %{} # along with row, col, zindex, just has a map id
+    active_programs = %{} # map_id associated with program
+    {:ok, {active_programs}}
+  end
+
+  @impl true
+  def handle_call({:inspect}, _from, state) do
+    {:reply, state, state}
+  end
+
+  @impl true
+  def handle_cast({:start_program, {map_tile_id, program_context}}, {program_contexts}) do
+IO.puts "start prog"
+IO.puts inspect map_tile_id
+IO.puts inspect program_context
+IO.puts inspect program_contexts
+    if Map.has_key?(program_contexts, map_tile_id) do
+      # already a running program for that tile id, or there is no map tile for that id
+      {:noreply, {program_contexts}}
+    else
+      {:noreply, {Map.put(program_contexts, map_tile_id, program_context) }}
+    end
+  end
+
+  @impl true
+  def handle_cast({:send_event, {tile_id, event, sender = %DungeonCrawl.Player.Location{}}}, {program_contexts}) do
+    case program_contexts do
+      %{^tile_id => %{program: program, object: object}} ->
+        updated_program_context = Scripting.Runner.run(%{program: program, object: object, label: event})
+                                  |> Map.put(:event_sender, sender)
+                                  |> _handle_broadcasting()
+        {:noreply, { Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender)) }}
+
+      _ ->
+        {:noreply, {program_contexts}}
+    end
+  end
+
+  @impl true
+  def handle_info(:perform_actions, {program_contexts}) do
+IO.puts "ticK"
+IO.puts inspect program_contexts
+    updated_program_contexts = _cycle_programs(program_contexts)
+    #_schedule()
+
+    {:noreply, {updated_program_contexts}}
+  end
+
+  defp _schedule do
+IO.puts "SHEDULED"
+    Process.send_after(self(), :perform_actions, @timeout)
+  end
+
+  defp _cycle_programs(program_contexts) when is_map(program_contexts) do
+    program_contexts
+    |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
+    |> _cycle_programs()
+    |> Map.new(fn [k,v] -> {k,v} end)
+  end
+
+  defp _cycle_programs([]), do: []
+  defp _cycle_programs([[line, program_context] | program_contexts]) do
+    updated_program_context = Scripting.Runner.run(program_context)
+                              |> Map.put(:event_sender, program_context.event_sender)
+                              |> _handle_broadcasting()
+
+    [ [line, updated_program_context] | _cycle_programs(program_contexts) ]
+  end
+
+  defp _cycle_programs(args) do
+    IO.puts "not sure what these args are"
+    IO.puts inspect args
+    args
+  end
+
+  defp _handle_broadcasting(program_context) do
+    _handle_broadcasts(program_context.program.broadcasts, "dungeons:#{program_context.object.map_instance_id}")
+    _handle_broadcasts(program_context.program.responses, program_context.event_sender)
+
+    %{ program_context | program: %{ program_context.program | responses: [], broadcasts: [] } }
+  end
+
+  defp _handle_broadcasts([ [event, payload] | messages], socket) when is_binary(socket) do
+    DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
+  end
+  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.Player.Location{}) do
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
+  end
+  defp _handle_broadcasts(_, _), do: nil
+end

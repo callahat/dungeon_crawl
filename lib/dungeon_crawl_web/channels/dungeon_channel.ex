@@ -5,6 +5,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.Action.{Move}
 
+  # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
+  # and evesdrop on broadcasts?
   def join("dungeons:" <> instance_id, _payload, socket) do
     instance_id = String.to_integer(instance_id)
 
