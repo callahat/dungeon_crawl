@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.DungeonInstances.InstanceProcess do
+defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   use GenServer, restart: :temporary
 
   require Logger
