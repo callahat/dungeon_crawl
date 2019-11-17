@@ -2,6 +2,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   use GenServer
 
   alias DungeonCrawl.DungeonProcesses.{InstanceProcess,Supervisor}
+  alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.Repo
 
   ## Client API
 
@@ -48,10 +50,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs}}
     else
-      {:ok, pid} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
-      ref = Process.monitor(pid)
+      {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
+      InstanceProcess.load_map(instance_process,
+                               Repo.preload(DungeonInstances.get_map(instance_id), :dungeon_map_tiles).dungeon_map_tiles)
+      ref = Process.monitor(instance_process)
       refs = Map.put(refs, ref, instance_id)
-      instance_ids = Map.put(instance_ids, instance_id, pid)
+      instance_ids = Map.put(instance_ids, instance_id, instance_process)
       {:noreply, {instance_ids, refs}}
     end
   end

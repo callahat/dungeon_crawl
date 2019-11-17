@@ -91,7 +91,11 @@ IO.puts inspect program_contexts
         updated_program_context = Scripting.Runner.run(%{program: program, object: object, label: event})
                                   |> Map.put(:event_sender, sender)
                                   |> _handle_broadcasting()
-        {:noreply, { Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender)) }}
+        if updated_program_context.program.status do
+          {:noreply, { Map.delete(program_contexts, tile_id) }}
+        else
+          {:noreply, { Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender)) }}
+        end
 
       _ ->
         {:noreply, {program_contexts}}
@@ -100,8 +104,8 @@ IO.puts inspect program_contexts
 
   @impl true
   def handle_info(:perform_actions, {program_contexts}) do
-IO.puts "ticK"
-IO.puts inspect program_contexts
+#IO.puts "ticK"
+#IO.puts inspect program_contexts
     updated_program_contexts = _cycle_programs(program_contexts)
     #_schedule()
 
@@ -109,7 +113,6 @@ IO.puts inspect program_contexts
   end
 
   defp _schedule do
-IO.puts "SHEDULED"
     Process.send_after(self(), :perform_actions, @timeout)
   end
 
@@ -126,7 +129,11 @@ IO.puts "SHEDULED"
                               |> Map.put(:event_sender, program_context.event_sender)
                               |> _handle_broadcasting()
 
-    [ [line, updated_program_context] | _cycle_programs(program_contexts) ]
+    if updated_program_context.program.status == :dead do
+      [ _cycle_programs(program_contexts) ]
+    else
+      [ [line, updated_program_context] | _cycle_programs(program_contexts) ]
+    end
   end
 
   defp _cycle_programs(args) do
