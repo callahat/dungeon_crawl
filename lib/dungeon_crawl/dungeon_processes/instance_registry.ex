@@ -17,10 +17,27 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   @doc """
   Looks up the instance pid for `instance_id` stored in `server`.
 
-  Returns `{:ok, pid}` if the instance exists, `:error` otherwise.
+  Returns `{:ok, pid}` if the instance exists, `:error` otherwise
   """
   def lookup(server, instance_id) do
     GenServer.call(server, {:lookup, instance_id})
+  end
+
+
+  @doc """
+  Looks up or creates the instance pid for `instance_id` stored in `server`.
+
+  Returns `{:ok, pid}`.
+  """
+  def lookup_or_create(server, instance_id) do
+    case GenServer.call(server, {:lookup, instance_id}) do
+      :error ->
+        create(server, instance_id)
+        GenServer.call(server, {:lookup, instance_id})
+
+      {:ok, pid} ->
+        {:ok, pid}
+    end
   end
 
   @doc """
@@ -53,6 +70,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
       {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
       InstanceProcess.load_map(instance_process,
                                Repo.preload(DungeonInstances.get_map(instance_id), :dungeon_map_tiles).dungeon_map_tiles)
+      InstanceProcess.start_scheduler(instance_process)
       ref = Process.monitor(instance_process)
       refs = Map.put(refs, ref, instance_id)
       instance_ids = Map.put(instance_ids, instance_id, instance_process)

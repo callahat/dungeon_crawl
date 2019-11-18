@@ -54,6 +54,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     GenServer.call(instance, {:inspect})
   end
 
+  @doc """
+  Send an event to a tile/program.
+  """
+  def send_event(instance, tile_id, event, sender) do
+    GenServer.cast(instance, {:send_event, {tile_id, event, sender}})
+  end
+
+  @doc """
+  Check is a tile/program responds to an event
+  """
+  def responds_to_event?(instance, tile_id, event) do
+    GenServer.call(instance, {:responds_to_event?, {tile_id, event}})
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -68,6 +82,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_call({:inspect}, _from, state) do
     {:reply, state, state}
+  end
+
+  @impl true
+  def handle_call({:responds_to_event?, {tile_id, event}}, _from, {program_contexts}) do
+    with %{^tile_id => %{program: program}} <- program_contexts,
+         labels <- program.labels[event],
+         true <- is_list(labels) do
+      {:reply, Enum.any?(labels, fn([_, active]) -> active end), {program_contexts}}
+    else
+      _ ->
+        {:reply, false, {program_contexts}}
+    end
   end
 
   @impl true
@@ -91,7 +117,7 @@ IO.puts inspect program_contexts
         updated_program_context = Scripting.Runner.run(%{program: program, object: object, label: event})
                                   |> Map.put(:event_sender, sender)
                                   |> _handle_broadcasting()
-        if updated_program_context.program.status do
+        if updated_program_context.program.status == :dead do
           {:noreply, { Map.delete(program_contexts, tile_id) }}
         else
           {:noreply, { Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender)) }}
@@ -151,9 +177,11 @@ IO.puts inspect program_contexts
 
   defp _handle_broadcasts([ [event, payload] | messages], socket) when is_binary(socket) do
     DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
+    _handle_broadcasts(messages, socket)
   end
   defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.Player.Location{}) do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
+    _handle_broadcasts(messages, player_location)
   end
   defp _handle_broadcasts(_, _), do: nil
 end

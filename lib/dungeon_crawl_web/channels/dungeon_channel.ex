@@ -4,6 +4,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   alias DungeonCrawl.Player
   alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.Action.{Move}
+  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
 
   # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
   # and evesdrop on broadcasts?
@@ -49,29 +51,26 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "OPEN" or action == "CLOSE" do
     _player_action_helper(
       %{"direction" => direction, "action" => action},
-      {:reply, {:error, %{msg: "Cannot #{String.downcase(action)} that"}}, socket},
+      "Cannot #{String.downcase(action)} that",
       socket)
   end
 
   def handle_in("step", %{"direction" => direction}, socket) do
-    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, {:noreply, socket}, socket)
+    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
   end
 
-  defp _player_action_helper(%{"direction" => direction, "action" => action}, no_label_response, socket) do
+  defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
     target_tile = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
 
-    # TODO: eventually grab the running program and have it try the label instead of this.
-    script = target_tile.script
-    {:ok, prog} = DungeonCrawl.Scripting.Parser.parse script
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
 
-    if prog.labels[action] do
-      %{program: prog, object: _target_tile} = DungeonCrawl.Scripting.Runner.run %{program: prog, object: target_tile, label: action}
-      _handle_broadcasts(socket, prog.broadcasts)
-      {:reply, _reply_payload(prog.responses), socket}
-    else
-      no_label_response
+    InstanceProcess.send_event(instance, target_tile.id, action, player_location)
+
+    if !InstanceProcess.responds_to_event?(instance, target_tile.id, action) && unhandled_event_message do
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
     end
+    {:noreply, socket}
   end
 
   defp _handle_broadcasts(_socket, []), do: nil

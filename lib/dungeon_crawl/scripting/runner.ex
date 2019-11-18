@@ -12,7 +12,7 @@ require Logger
       run(%{program: program, object: object})
     else
       _ ->
-        %{program: %{program | responses: [ "Label not in script: #{label}" | program.responses]}, object: object}
+        %{program: program, object: object}
     end
   end
 
