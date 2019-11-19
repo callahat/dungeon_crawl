@@ -12,6 +12,9 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   def join("dungeons:" <> instance_id, _payload, socket) do
     instance_id = String.to_integer(instance_id)
 
+    # make sure the instance is up and running
+    InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, instance_id)
+
     {:ok, %{instance_id: instance_id}, assign(socket, :instance_id, instance_id)}
   end
 
