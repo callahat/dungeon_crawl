@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scripting.Command do
   The various scripting commands available to a program.
   """
 
+  alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.TileState
   alias DungeonCrawl.TileTemplates
@@ -67,8 +68,14 @@ defmodule DungeonCrawl.Scripting.Command do
                    Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
                ]}]
 
-    %{ program: %{program | broadcasts: [message | program.broadcasts] },
-       object: object}
+    if Map.has_key?(new_attrs, :script) do
+      {:ok, new_program} = Scripting.Parser.parse(new_attrs.script)
+      %{ program: %{new_program | broadcasts: [message | program.broadcasts], responses: program.responses, status: :idle },
+         object: object}
+    else
+      %{ program: %{program | broadcasts: [message | program.broadcasts] },
+         object: object}
+    end
   end
 
   @doc """
