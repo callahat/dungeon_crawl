@@ -75,21 +75,4 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     end
     {:noreply, socket}
   end
-
-  defp _handle_broadcasts(_socket, []), do: nil
-  defp _handle_broadcasts(socket, [[event, payload] | broadcasts]) do
-    _handle_broadcasts(socket, broadcasts)
-    broadcast socket, event, payload
-  end
-
-  defp _reply_payload([]), do: :ok
-  defp _reply_payload([response | responses]) do
-    case _reply_payload(responses) do
-      {:error, %{msg: msgs}} ->
-        {:error, %{msg: "#{msgs}; #{response}"}}
-
-      _ ->
-        {:error, %{msg: response}}
-    end
-  end
 end

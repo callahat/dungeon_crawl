@@ -83,25 +83,35 @@ defmodule DungeonCrawl.DungeonChannelTest do
   end
 
   @tag up_tile: "message_tile"
-  test "step replies with messages", %{socket: socket} do
-    ref = push socket, "step", %{"direction" => "up"}
-    assert_reply ref, :error, %{msg: "Just a tile; with line o text"}
+  test "step replies with messages", %{socket: socket, player_location: player_location} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "step", %{"direction" => "up"}
+
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "message",
+        payload: %{message: "Just a tile"}}
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "message",
+        payload: %{message: "with line o text"}}
     refute_broadcast _any_event, _any_payload
   end
 
   # TODO: refactor the underlying model/channel methods into more testable concerns
   @tag up_tile: "+"
   test "use_door with a valid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
-    assert_reply ref, :ok, %{}
+    push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
+
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>'</div>"}]}
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["'"].id
     assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["'"].character
     assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["'"].script
     assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["'"].state
 
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
-    assert_reply ref, :ok, %{}
+    push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
+
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>+</div>"}]}
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["+"].id
     assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["+"].character
@@ -111,14 +121,25 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "."
   test "use_door with an invalid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
-    assert_reply ref, :error, %{msg: "Cannot open that"}
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
+
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "message",
+        payload: %{message: "Cannot open that"}}
     refute_broadcast "tile_changes", _
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
 
-    ref = push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
-    assert_reply ref, :error, %{msg: "Cannot close that"}
-    refute_broadcast _, _
+    push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
+
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "message",
+        payload: %{message: "Cannot close that"}}
+
+    refute_broadcast "tile_changes", _
     assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
   end
 end

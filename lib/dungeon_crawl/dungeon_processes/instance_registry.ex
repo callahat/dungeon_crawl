@@ -23,7 +23,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     GenServer.call(server, {:lookup, instance_id})
   end
 
-
   @doc """
   Looks up or creates the instance pid for `instance_id` stored in `server`.
 

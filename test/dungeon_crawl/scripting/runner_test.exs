@@ -36,19 +36,6 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       assert run_program.responses == ["After label"]
     end
 
-    test "when given a nonexistent label returns the program with a helpful message in the responses" do
-      script = """
-               B4 label
-               :HERE
-               After label
-               """
-      {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: ""}
-
-      %{object: _, program: run_program} = Runner.run(%{program: program, object: stubbed_object, label: "NOT_A_REAL_LABEL"})
-      assert run_program.responses == ["Label not in script: NOT_A_REAL_LABEL"]
-    end
-
     test "when program is idle it runs nothing and just returns the program and object" do
       program = %Program{status: :idle, pc: 2}
       stubbed_object = %{state: ""}

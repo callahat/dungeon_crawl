@@ -98,10 +98,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_cast({:start_program, {map_tile_id, program_context}}, {program_contexts}) do
-IO.puts "start prog"
-IO.puts inspect map_tile_id
-IO.puts inspect program_context
-IO.puts inspect program_contexts
+#IO.puts "start prog"
+#IO.puts inspect map_tile_id
+#IO.puts inspect program_context
+#IO.puts inspect program_contexts
     if Map.has_key?(program_contexts, map_tile_id) do
       # already a running program for that tile id, or there is no map tile for that id
       {:noreply, {program_contexts}}
