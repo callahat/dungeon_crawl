@@ -50,6 +50,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.take(updated_map_tile, [:character, :color]) == %{character: "~", color: "puce"}
   end
 
+  test "BECOME a ttid" do
+    program = program_fixture()
+    map_tile = map_tile_fixture()
+    squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK"})
+    params = [{:ttid, squeaky_door.id}]
+
+    %{object: updated_map_tile, program: program} = Command.become(%{program: program, object: map_tile, params: params})
+
+    refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
+    assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
+    assert program.status == :idle
+    assert %{1 => [:halt, [""]],
+             2 => [:noop, "TOUCH"],
+             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+  end
+
   test "CHANGE_STATE" do
     program = program_fixture()
     map_tile = map_tile_fixture(%{state: "one: 100, add: 8"})
@@ -112,6 +128,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "NOOP" do
+    program = program_fixture()
+    stubbed_object = %{state: "thing: true"}
+    assert %{object: stubbed_object, program: program} == Command.noop(%{program: program, object: stubbed_object})
   end
 
   test "text" do

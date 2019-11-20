@@ -32,8 +32,16 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_object = %{state: ""}
 
       %{object: _, program: run_program} = Runner.run(%{program: %{program | status: :idle}, object: stubbed_object, label: "HERE"})
-#      %{object: _, program: run_program} = Runner.run(%{program: run_program, object: stubbed_object})
       assert run_program.responses == ["After label"]
+    end
+
+    test "when given a label but no label matches" do
+      script = "No label"
+      {:ok, program} = Parser.parse(script)
+      stubbed_object = %{state: ""}
+
+      assert %{object: stubbed_object, program: %{program | status: :idle}} == 
+             Runner.run(%{program: %{program | status: :idle}, object: stubbed_object, label: "TOUCH"})
     end
 
     test "when program is idle it runs nothing and just returns the program and object" do
