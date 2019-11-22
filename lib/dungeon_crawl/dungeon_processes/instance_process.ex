@@ -55,17 +55,17 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Send an event to a tile/program.
-  """
-  def send_event(instance, tile_id, event, sender) do
-    GenServer.cast(instance, {:send_event, {tile_id, event, sender}})
-  end
-
-  @doc """
   Check is a tile/program responds to an event
   """
   def responds_to_event?(instance, tile_id, event) do
     GenServer.call(instance, {:responds_to_event?, {tile_id, event}})
+  end
+
+  @doc """
+  Send an event to a tile/program.
+  """
+  def send_event(instance, tile_id, event, sender) do
+    GenServer.cast(instance, {:send_event, {tile_id, event, sender}})
   end
 
   ## Defining GenServer Callbacks
@@ -98,10 +98,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_cast({:start_program, {map_tile_id, program_context}}, {program_contexts}) do
-#IO.puts "start prog"
-#IO.puts inspect map_tile_id
-#IO.puts inspect program_context
-#IO.puts inspect program_contexts
     if Map.has_key?(program_contexts, map_tile_id) do
       # already a running program for that tile id, or there is no map tile for that id
       {:noreply, {program_contexts}}
@@ -133,7 +129,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 #IO.puts "ticK"
 #IO.puts inspect program_contexts
     updated_program_contexts = _cycle_programs(program_contexts)
-    #_schedule()
+    _schedule()
 
     {:noreply, {updated_program_contexts}}
   end
@@ -142,6 +138,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     Process.send_after(self(), :perform_actions, @timeout)
   end
 
+  @doc """
+  Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
+  will be broadcast. Typically this will only be called by the scheduler.
+  """
   defp _cycle_programs(program_contexts) when is_map(program_contexts) do
     program_contexts
     |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
