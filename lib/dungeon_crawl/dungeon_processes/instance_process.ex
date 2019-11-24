@@ -4,7 +4,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   require Logger
 
   alias DungeonCrawl.Scripting
-  alias DungeonCrawl.Scripting.Program
 
   ## Client API
 
@@ -126,8 +125,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_info(:perform_actions, {program_contexts}) do
-#IO.puts "ticK"
-#IO.puts inspect program_contexts
     updated_program_contexts = _cycle_programs(program_contexts)
     _schedule()
 
@@ -160,12 +157,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     else
       [ [line, updated_program_context] | _cycle_programs(program_contexts) ]
     end
-  end
-
-  defp _cycle_programs(args) do
-    IO.puts "not sure what these args are"
-    IO.puts inspect args
-    args
   end
 
   defp _handle_broadcasting(program_context) do

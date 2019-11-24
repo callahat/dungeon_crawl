@@ -69,7 +69,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
   end
 
-  test "removes bucket on crash", %{instance_registry: instance_registry} do
+  test "removes instance on crash", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
     InstanceRegistry.create(instance_registry, instance.id)
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)

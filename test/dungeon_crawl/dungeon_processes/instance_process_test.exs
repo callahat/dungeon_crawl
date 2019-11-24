@@ -3,6 +3,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   import ExUnit.CaptureLog
 
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -18,7 +19,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     InstanceProcess.load_map(instance_process, [map_tile])
 
-    %{instance_process: instance_process, map_tile_id: map_tile.id}
+    %{instance_process: instance_process, map_tile_id: map_tile.id, map_instance: map_instance}
   end
 
   test "load_map", %{instance_process: instance_process, map_tile_id: map_tile_id} do
@@ -95,7 +96,45 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert { %{} } = InstanceProcess.inspect_state(instance_process)
   end
 
-#  test "send_events", %{instance_process: instance_process} do
-#    Process.send(instance, :perform_actions)
-#  end
+  test "perform_actions", %{instance_process: instance_process, map_instance: map_instance} do
+    dungeon_channel = "dungeons:#{map_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+
+    tt = insert_tile_template()
+
+    map_tiles = [
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
+        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white"},
+        %{id: 123, character: "O", row: 1, col: 4, z_index: 0}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel}
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: red'>O</div>"}]}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>M</div>"}]}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div style='color: white'>M</div>"}]}}
+    # These were either idle or had no script
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            payload: %{tiles: [%{row: 1, col: 1}]}}
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            payload: %{tiles: [%{row: 1, col: 4}]}}
+  end
 end
