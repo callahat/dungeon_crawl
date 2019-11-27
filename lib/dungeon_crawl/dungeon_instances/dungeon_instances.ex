@@ -146,6 +146,10 @@ defmodule DungeonCrawl.DungeonInstances do
       "down"  -> { 1,  0}
       "left"  -> { 0, -1}
       "right" -> { 0,  1}
+      "north" -> {-1,  0}
+      "south" -> { 1,  0}
+      "west"  -> { 0, -1}
+      "east"  -> { 0,  1}
       _       -> { 0,  0}
     end
   end

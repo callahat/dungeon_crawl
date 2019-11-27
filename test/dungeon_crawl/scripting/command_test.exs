@@ -1,8 +1,10 @@
 defmodule DungeonCrawl.Scripting.CommandTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
+  alias DungeonCrawl.Scripting.Program
 
   def map_tile_fixture(attrs \\ %{}) do
     impassable_floor = insert_tile_template(attrs)
@@ -128,6 +130,79 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  defp _setup_move_test do
+    tt = insert_tile_template(%{state: "blocking: false"})
+
+    insert_stubbed_dungeon_instance(
+      %{},
+      [%MapTile{character: ".", row: 1, col: 1, z_index: 0, tile_template_id: tt.id},
+       %MapTile{character: ".", row: 1, col: 2, z_index: 0, tile_template_id: tt.id},
+       %MapTile{character: "c", row: 1, col: 2, z_index: 1, tile_template_id: tt.id}])
+  end
+
+  test "MOVE with one param" do
+    _setup_move_test()
+
+    mover = DungeonCrawl.Repo.get_by(MapTile, %{row: 1, col: 2, z_index: 1})
+
+    # Successful
+    assert %{program: updated_program, object: updated_object} = Command.move(%{program: %Program{}, object: mover, params: ["left"]})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = updated_program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object
+
+    # Unsuccessful (but its a try and move that does not keep trying)
+    assert %{program: updated_program, object: updated_object2} = Command.move(%{program: %Program{}, object: updated_object, params: ["down"]})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = updated_program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object2
+  end
+
+  test "MOVE with two params" do
+    _setup_move_test()
+
+    mover = DungeonCrawl.Repo.get_by(MapTile, %{row: 1, col: 2, z_index: 1})
+
+    assert %{program: updated_program, object: updated_object} = Command.move(%{program: %Program{}, object: mover, params: ["left", true]})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = updated_program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object
+
+    # Unsuccessful
+    assert %{program: updated_program, object: updated_object2} = Command.move(%{program: %Program{}, object: updated_object, params: ["down", true]})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 0 # decremented so when runner increments the PC it will still be the current move command
+           } = updated_program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object2
   end
 
   test "NOOP" do

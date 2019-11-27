@@ -66,12 +66,14 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
     target_tile = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
 
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    if target_tile do
+      {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
 
-    InstanceProcess.send_event(instance, target_tile.id, action, player_location)
+      InstanceProcess.send_event(instance, target_tile.id, action, player_location)
 
-    if !InstanceProcess.responds_to_event?(instance, target_tile.id, action) && unhandled_event_message do
-      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
+      if !InstanceProcess.responds_to_event?(instance, target_tile.id, action) && unhandled_event_message do
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
+      end
     end
     {:noreply, socket}
   end

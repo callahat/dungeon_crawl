@@ -8,7 +8,8 @@ defmodule DungeonCrawl.Action.Move do
     if _valid_move(destination) do
       top_tile = Map.take(destination, [:map_instance_id, :row, :col, :z_index])
       {:ok, new_location} = Dungeon.update_map_tile(entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
-      old_location = Dungeon.get_map_tile(Map.take(entity_map_tile, [:map_instance_id, :row, :col]))
+      old_location_top_tile = Dungeon.get_map_tile(Map.take(entity_map_tile, [:map_instance_id, :row, :col]))
+      old_location = if old_location_top_tile, do: old_location_top_tile, else: Map.merge(%MapTile{}, Map.take(entity_map_tile, [:row, :col]))
 
       {:ok, %{new_location: new_location, old_location: old_location}}
     else

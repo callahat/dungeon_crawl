@@ -14,6 +14,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #END
     :MORE
     thing is true
+    #MOVE south, true
     """
   end
 
@@ -27,6 +28,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #BECOME TTID:#{ttid}
     #BECOME TTID:#{ttid2}
     #BECOME character:  , color:red
+    #MOVE banana, true
+    #MOVE north, false
+    #MOVE south
+    #MOVE hotpockets
     """
   end
 
@@ -51,12 +56,16 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
                "Line 6: BECOME command references a TTID that you can't use `#{tt.id}`",
-               "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`"],
+               "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`",
+               "Line 9: MOVE command references invalid direction `banana`",
+               "Line 12: MOVE command references invalid direction `hotpockets`"],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
-               "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`"],
+               "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`",
+               "Line 9: MOVE command references invalid direction `banana`",
+               "Line 12: MOVE command references invalid direction `hotpockets`"],
               program} == ProgramValidator.validate(program, admin)
     end
   end

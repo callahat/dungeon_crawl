@@ -60,20 +60,25 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {instance_ids, _} = state
     {:reply, Map.fetch(instance_ids, instance_id), state}
   end
-
+require Logger
   @impl true
   def handle_cast({:create, instance_id}, {instance_ids, refs}) do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs}}
     else
-      {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
-      InstanceProcess.load_map(instance_process,
-                               Repo.preload(DungeonInstances.get_map(instance_id), :dungeon_map_tiles).dungeon_map_tiles)
-      InstanceProcess.start_scheduler(instance_process)
-      ref = Process.monitor(instance_process)
-      refs = Map.put(refs, ref, instance_id)
-      instance_ids = Map.put(instance_ids, instance_id, instance_process)
-      {:noreply, {instance_ids, refs}}
+      with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
+        {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
+        InstanceProcess.load_map(instance_process,
+                                 Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles)
+        InstanceProcess.start_scheduler(instance_process)
+        ref = Process.monitor(instance_process)
+        refs = Map.put(refs, ref, instance_id)
+        instance_ids = Map.put(instance_ids, instance_id, instance_process)
+        {:noreply, {instance_ids, refs}}
+      else
+        _ -> Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
+        {:noreply, {instance_ids, refs}}
+      end
     end
   end
 

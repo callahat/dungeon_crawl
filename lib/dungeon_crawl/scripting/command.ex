@@ -3,6 +3,8 @@ defmodule DungeonCrawl.Scripting.Command do
   The various scripting commands available to a program.
   """
 
+  alias DungeonCrawl.Action.Move
+  alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.TileState
@@ -29,6 +31,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :die          -> :die
       :end          -> :halt
       :if           -> :if
+      :move         -> :move
       :noop         -> :noop
       :text         -> :text
 
@@ -148,11 +151,68 @@ defmodule DungeonCrawl.Scripting.Command do
     [[neg, _command, var, op, value], label] = params
 
     # first active matching label
-    with [[line_number, _]] <- program.labels[label] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
+    with labels when not is_nil(labels) <- program.labels[label],
+         [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
          true <- Maths.check(neg, state[var], op, value) do
       %{ program: %{program | pc: line_number}, object: object}
     else
       _ -> %{program: program, object: object}
+    end
+  end
+
+  @doc """
+  Moves the associated map tile/object based in the direction given by the first parameter.
+  If the second parameter is `true` then the command will retry until the object is able
+  to complete the move (unless the program also responds to THUD). When `false` (or not present)
+  it will attempt once, and then move on with the next instruction.
+
+  If the movement is invalid, the `pc` will be set to the location of the `THUD` label if an active one exists.
+
+  Valid directions:
+  n - North (up)
+  s - South (down)
+  e - East (right)
+  w - West (left)
+  i - Idle (no movement)
+
+  ## Examples
+
+    iex> Command.move(%{program: %Program{}, object: object, params: ["n", true]})
+    %{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def move(%{program: program, object: object, params: ["idle", _]}) do
+    %{ program: %{program | status: :wait, wait_cycles: 5 },
+       object: object}
+  end
+  def move(%{program: program, object: object, params: [direction]}) do
+    move(%{program: program, object: object, params: [direction, false]})
+  end
+  def move(%{program: program, object: object, params: [direction, retry_until_successful]}) do
+    destination = Dungeon.get_map_tile(object, direction)
+
+    case Move.go(object, destination) do
+      {:ok, %{new_location: new_location, old_location: old}} ->
+
+        message = ["tile_changes",
+               %{tiles: [
+                     Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
+                     Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
+               ]}]
+
+        %{ program: %{program | broadcasts: [message | program.broadcasts], status: :wait, wait_cycles: 5 },
+           object: new_location}
+      {:invalid} ->
+        with labels when not is_nil(labels) <- program.labels["THUD"],
+             [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
+          %{ program: %{program | pc: line_number}, object: object}
+        else
+          _ ->
+            if retry_until_successful do
+              %{program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5}, object: object}
+            else
+              %{program: %{program | status: :wait, wait_cycles: 5}, object: object}
+            end
+        end
     end
   end
 

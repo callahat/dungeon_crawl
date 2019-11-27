@@ -7,7 +7,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   ## Client API
 
-  @timeout 1000
+  @timeout 100
 
   @doc """
   Starts the instance process.

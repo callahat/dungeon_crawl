@@ -37,6 +37,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                Can't open it anymore.
                @counter += 1
                #BECOME TTID:#{tile_template.id}
+               #MOVE south, true
+               #MOVE east
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -49,7 +51,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  8 => [:text, ["Door is already open."]],
                                                  9 => [:text, ["Can't open it anymore."]],
                                                  10 => [:change_state, [:counter, "+=", 1]],
-                                                 11 => [:become, [{:ttid, tile_template.id}]]
+                                                 11 => [:become, [{:ttid, tile_template.id}]],
+                                                 12 => [:move, ["south", true]],
+                                                 13 => [:move, ["east"]]
                                                  },
                                  status: :alive,
                                  pc: 1,

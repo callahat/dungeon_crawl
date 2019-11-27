@@ -73,6 +73,18 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:move, [direction] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:move, [direction, false] ]} | instructions], errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:move, [direction, _] ]} | instructions], errors, user) do
+    if ["north", "south", "west", "east", "up", "down", "left", "right", "idle"] |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: MOVE command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
   defp _validate(program, [ _nothing_to_validate | instructions], errors, user) do
     _validate(program, instructions, errors, user)
   end

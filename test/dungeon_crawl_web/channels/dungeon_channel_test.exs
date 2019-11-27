@@ -69,6 +69,14 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div>.</div>"}]}
   end
 
+  @tag up_tile: "."
+  test "move broadcasts a tile_update if its a valid move when starting location only had the tile that moved", %{socket: socket} do
+    Repo.get_by(Dungeon.MapTile, %{row: @player_row, col: @player_col, z_index: 0})
+    |> Repo.delete!
+    push socket, "move", %{"direction" => "up"}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div></div>"}]}
+  end
+
   @tag up_tile: "#"
   test "move broadcasts nothing if its not a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
@@ -77,6 +85,15 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "."
   test "step does not reply if nothing happens", %{socket: socket} do
+    ref = push socket, "step", %{"direction" => "up"}
+    refute_reply ref, _, _
+    refute_broadcast _any_event, _any_payload
+  end
+
+  @tag up_tile: "."
+  test "step does not reply if there is no tile", %{socket: socket} do
+    Repo.get_by(Dungeon.MapTile, %{row: @player_row-1, col: @player_col})
+    |> Repo.delete!
     ref = push socket, "step", %{"direction" => "up"}
     refute_reply ref, _, _
     refute_broadcast _any_event, _any_payload
