@@ -60,6 +60,17 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     # the scheduler
   end
 
+  test "remove", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_dungeon_instance()
+    InstanceRegistry.create(instance_registry, instance.id)
+    assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
+
+    # seems to take a quick micro second for the cast to be done
+    InstanceRegistry.remove(instance_registry, instance.id)
+    :timer.sleep 1
+    assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
+  end
+
   test "removes instances on exit", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
     InstanceRegistry.create(instance_registry, instance.id)

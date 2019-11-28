@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   use GenServer
 
+  require Logger
+
   alias DungeonCrawl.DungeonProcesses.{InstanceProcess,Supervisor}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Repo
@@ -46,6 +48,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     GenServer.cast(server, {:create, instance_id})
   end
 
+  def remove(server, instance_id) do
+    GenServer.cast(server, {:remove, instance_id})
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -60,7 +66,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {instance_ids, _} = state
     {:reply, Map.fetch(instance_ids, instance_id), state}
   end
-require Logger
+
   @impl true
   def handle_cast({:create, instance_id}, {instance_ids, refs}) do
     if Map.has_key?(instance_ids, instance_id) do
@@ -80,6 +86,12 @@ require Logger
         {:noreply, {instance_ids, refs}}
       end
     end
+  end
+
+  @impl true
+  def handle_cast({:remove, instance_id}, {instance_ids, refs}) do
+    if Map.has_key?(instance_ids, instance_id), do: GenServer.stop(Map.fetch!(instance_ids, instance_id), :shutdown)
+    {:noreply, {instance_ids, refs}}
   end
 
   @impl true

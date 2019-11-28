@@ -53,6 +53,11 @@ defmodule DungeonCrawlWeb.Crawler do
   """
   def leave_and_broadcast(%Player.Location{} = location) do
     deleted_location = Player.delete_location!(location)
+
+    if Player.players_in_dungeon(%{instance_id: deleted_location.map_tile.map_instance_id}) == 0 do
+      DungeonCrawl.DungeonProcesses.InstanceRegistry.remove(DungeonInstanceRegistry, deleted_location.map_tile.map_instance_id)
+    end
+
     _broadcast_leave_event(deleted_location)
     deleted_location
   end
