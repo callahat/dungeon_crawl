@@ -26,7 +26,7 @@ import Player from "./player"
 import TileTemplatePreview from "./tile_template_preview"
 import DungeonEditor from "./dungeon_editor"
 
-Dungeon.init(socket, document.getElementById("dungeon"))
+Dungeon.init(socket, document.getElementById("dungeon_instance"))
 Player.init(socket, document.getElementById("player"))
 TileTemplatePreview.init(document.getElementById("character_preview"))
 TileTemplatePreview.init(document.getElementById("character_preview_small"))

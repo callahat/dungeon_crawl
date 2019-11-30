@@ -17,6 +17,10 @@ let Player = {
         console.log("joined the players channel!")
       })
       .receive("error", resp => console.log("join failed", resp))
+
+    window.addEventListener('beforeunload', (event) => {
+      socket.disconnect()
+    })
   }
 }
 
