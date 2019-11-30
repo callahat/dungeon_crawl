@@ -169,11 +169,11 @@ defmodule DungeonCrawl.Scripting.Command do
   If the movement is invalid, the `pc` will be set to the location of the `THUD` label if an active one exists.
 
   Valid directions:
-  n - North (up)
-  s - South (down)
-  e - East (right)
-  w - West (left)
-  i - Idle (no movement)
+  north - up
+  south - down
+  east  - right
+  west  - left
+  idle  - no movement
 
   ## Examples
 

@@ -60,6 +60,15 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     # the scheduler
   end
 
+  @tag capture_log: true
+  test "create safely handles a dungeon instance that does not exist in the DB", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_dungeon_instance()
+    DungeonCrawl.DungeonInstances.delete_map!(instance)
+    log = ExUnit.CaptureLog.capture_log(fn -> InstanceRegistry.create(instance_registry, instance.id); :timer.sleep 1 end)
+    assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
+    assert log =~ "Got a CREATE cast for #{instance.id} but its already been cleared"
+   end
+
   test "remove", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
     InstanceRegistry.create(instance_registry, instance.id)

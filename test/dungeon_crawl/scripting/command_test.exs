@@ -172,6 +172,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 1
            } = updated_program
     assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object2
+
+    # Idle
+    assert %{program: updated_program, object: updated_object3} = Command.move(%{program: %Program{}, object: updated_object2, params: ["idle"]})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = updated_program
+    assert updated_object2 = updated_object3
   end
 
   test "MOVE with two params" do
@@ -203,6 +212,28 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 0 # decremented so when runner increments the PC it will still be the current move command
            } = updated_program
     assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object2
+  end
+
+  test "MOVE into something blocking (or a nil square) triggers a THUD event" do
+    _setup_move_test()
+
+    mover = DungeonCrawl.Repo.get_by(MapTile, %{row: 1, col: 2, z_index: 1})
+
+    program = program_fixture("""
+                              #MOVE south
+                              #END
+                              #END
+                              :THUD
+                              #BECOME character: X
+                              """)
+
+    assert %{program: updated_program, object: updated_object} = Command.move(%{program: program, object: mover, params: ["south", true]})
+
+    assert %{status: :alive,
+             wait_cycles: 0,
+             broadcasts: [],
+             pc: 4
+           } = updated_program
   end
 
   test "NOOP" do
