@@ -69,11 +69,23 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   ## Defining GenServer Callbacks
 
+  # Possible future state
+  # The state of the GenServer is a tuple of three:
+  # 1st - Map of tile id (key) to %Program{} (value) for all living programs
+  # 2nd - Representation of the entire map. The first element of the tuple 
+  #       is a map with tile id (key) and the entire instance %MapTile{} (value).
+  #       The second element of the tuple is also a map, but indexes tile id (value)
+  #       by the row, col, and z_index (key)
+  # 3rd - boolean representing if the scheduler is running or not. If not, the
+  #       process is in an "idle" state. Otherwise, the process is "active" and
+  #       checks all the running programs for activity every XXX ms
+
   @impl true
   def init(:ok) do
-    # TODO: add these later when the whole instance is stored in the genserver instead of retrieved from Repo
-    #map_by_ids = %{}
-    #map_by_coords = %{} # along with row, col, zindex, just has a map id
+    #map = {
+    #        %{},
+    #        %{} # along with row, col, zindex, just has a map id
+    #      }
     active_programs = %{} # map_id associated with program
     {:ok, {active_programs}}
   end
