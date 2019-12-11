@@ -168,16 +168,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_cast({:register_map_tile, {map_tile}}, {program_contexts, {by_id, by_coords} = map}) do
     if Map.has_key?(by_id, map_tile.id) do
-      # already a running program for that tile id, or there is no map tile for that id
+      # Tile already registered
       {:noreply, {program_contexts, map}}
     else
-      by_id = Map.put(by_id, map_tile.id, map_tile)
-      z_indexes = case Map.fetch(by_coords, {map_tile.row, map_tile.col}) do
-                    {:ok, z_index_map} -> Map.put(z_index_map, map_tile.z_index, map_tile.id)
-                    _                  -> %{map_tile.z_index => map_tile.id}
-                  end
-      by_coords = Map.put(by_coords, {map_tile.row, map_tile.col}, z_indexes)
-      {:noreply, {program_contexts, {by_id, by_coords}}}
+      z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
+
+      if Map.has_key?(z_index_map, map_tile.z_index) do
+        # don't overwrite and add the tile if there's already one registered there
+        {:noreply, {program_contexts, map}}
+      else
+        by_id = Map.put(by_id, map_tile.id, map_tile)
+        by_coords = Map.put(by_coords, {map_tile.row, map_tile.col},
+                            Map.put(z_index_map, map_tile.z_index, map_tile.id))
+        {:noreply, {program_contexts, {by_id, by_coords}}}
+      end
     end
   end
 

@@ -39,9 +39,9 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
 
     # the instance map is loaded
-    assert {programs} = InstanceProcess.inspect_state(instance_process)
+    assert {programs, {_, _} } = InstanceProcess.inspect_state(instance_process)
     assert programs == %{map_tile.id => %{
-                                           object: map_tile,
+                                           object: Map.put(map_tile, :parsed_state, %{blocking: true}),
                                            program: %Program{broadcasts: [],
                                                              instructions: %{1 => [:halt, [""]],
                                                                              2 => [:noop, "TOUCH"],
