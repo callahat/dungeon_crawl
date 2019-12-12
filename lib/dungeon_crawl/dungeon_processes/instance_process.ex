@@ -21,9 +21,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   Initializes the dungeon map instance and starts the programs.
   """
   def load_map(instance, map_tiles) do
-    # Start programs for now, later load everything
-    # When everything is loaded, the object in the program context will be replaced with a reference to the map tile
-    # stored by the instance_process.
     map_tiles
     |> Enum.each( fn(map_tile) ->
          map_tile = case TileState.Parser.parse(map_tile.state) do
@@ -91,6 +88,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Gets the tile for the given row, col coordinates one away in the given direction.
+  If there are many tiles there, the tile with the highest (top) z_index is returned.
+  """
+  def get_tile(instance, row, col, direction) do
+    {d_row, d_col} = _direction_delta(direction)
+    get_tile(instance, row + d_row, col + d_col)
+  end
+
+  @doc """
   Updates the given map_tile.
   """
   def update_tile(instance, tile_id, attrs) do
@@ -138,16 +144,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_call({:get_map_tile, {tile_id}}, _from, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_call({:get_map_tile, {tile_id}}, _from, {program_contexts, {by_id, _by_coords} = map}) do
     {:reply, by_id[tile_id], {program_contexts, map}}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {row, col}}, _from, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_call({:get_map_tile, {row, col}}, _from, {program_contexts, {_by_id, by_coords} = map}) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
-         [{z_index, top_tile}] <- Map.to_list(tiles)
-                                  |> Enum.sort(fn({a,_},{b,_}) -> b > a end)
-                                  |> Enum.take(1) do
+         [{_z_index, top_tile}] <- Map.to_list(tiles)
+                                   |> Enum.sort(fn({a,_},{b,_}) -> b > a end)
+                                   |> Enum.take(1) do
       {:reply, top_tile, {program_contexts, map}}
     else
       _ ->
@@ -205,19 +211,28 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_cast({:update_map_tile, {tile_id, new_attributes}}, {program_contexts, {by_id, by_coords} = map}) do
-    updated_tile = by_id[tile_id] |> Map.merge(new_attributes)
+    updated_tile = by_id[tile_id] |> Map.merge(new_attributes) |> Map.merge(%{id: tile_id}) #cannot update the ID
+
     old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
-    by_ids = Map.put(by_id, tile_id, updated_tile)
 
-    by_coords = if updated_tile_coords != old_tile_coords do
-                   _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
-                   |> _put_coord(Map.take(old_tile_coords, [:row, :col, :z_index]), tile_id)
-                else
-                  by_coords
-                end
 
-    {:noreply, {program_contexts, {by_id, by_coords}}}
+    if updated_tile_coords != old_tile_coords do
+      z_index_map = by_coords[{updated_tile_coords.row, updated_tile_coords.col}] || %{}
+
+      if Map.has_key?(z_index_map, updated_tile_coords.z_index) do
+        # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
+        {:noreply, {program_contexts, map}}
+      else
+        by_id = Map.put(by_id, tile_id, updated_tile)
+        by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
+                    |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), tile_id)
+        {:noreply, {program_contexts, {by_id, by_coords}}}
+      end
+    else
+      by_id = Map.put(by_id, tile_id, updated_tile)
+      {:noreply, {program_contexts, {by_id, by_coords}}}
+    end
   end
 
   @impl true
@@ -232,10 +247,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     Process.send_after(self(), :perform_actions, @timeout)
   end
 
-  @doc """
-  Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
-  will be broadcast. Typically this will only be called by the scheduler.
-  """
+  #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
+  #will be broadcast. Typically this will only be called by the scheduler.
   defp _cycle_programs(program_contexts) when is_map(program_contexts) do
     program_contexts
     |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
@@ -289,4 +302,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     Map.put(by_coords, {row, col}, z_indexes)
   end
 
+  @directions %{
+    "up"    => {-1,  0},
+    "down"  => { 1,  0},
+    "left"  => { 0, -1},
+    "right" => { 0,  1},
+    "north" => {-1,  0},
+    "south" => { 1,  0},
+    "west"  => { 0, -1},
+    "east"  => { 0,  1}
+  }
+
+  @no_direction { 0,  0}
+
+  defp _direction_delta(direction) do
+    @directions[direction] || @no_direction
+  end
 end

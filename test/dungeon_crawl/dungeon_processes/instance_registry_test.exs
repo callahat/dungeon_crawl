@@ -27,7 +27,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert {:ok, instance_process} == InstanceRegistry.lookup_or_create(instance_registry, instance.id)
   end
 
-  test "create", %{instance_registry: instance_registry} do
+  test "create/2", %{instance_registry: instance_registry} do
     button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
     instance = insert_stubbed_dungeon_instance(%{},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
@@ -56,15 +56,28 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                           event_sender: nil
                                         }
                        }
-    # the scheduler should be started too. Not sure a good way to test this via this spec. It will be apparent though if
-    # the scheduler
+  end
+
+  test "create/3", %{instance_registry: instance_registry} do
+    map_tile = %{id: 999, map_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: "", script: ""}
+
+    dungeon_map_tiles = [map_tile]
+
+    assert :ok = InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles)
+    assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, map_tile.map_instance_id)
+
+    # the instance map is loaded
+    assert { programs, {by_ids , by_coords} } = InstanceProcess.inspect_state(instance_process)
+    assert by_ids == %{map_tile.id => Map.put(map_tile, :parsed_state, %{})}
+    assert by_coords ==  %{ {map_tile.row, map_tile.col} => %{map_tile.z_index => map_tile.id} }
+    assert programs == %{}
   end
 
   @tag capture_log: true
   test "create safely handles a dungeon instance that does not exist in the DB", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
     DungeonCrawl.DungeonInstances.delete_map!(instance)
-    log = ExUnit.CaptureLog.capture_log(fn -> InstanceRegistry.create(instance_registry, instance.id); :timer.sleep 1 end)
+    log = ExUnit.CaptureLog.capture_log(fn -> InstanceRegistry.create(instance_registry, instance.id); :timer.sleep 2 end)
     assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
     assert log =~ "Got a CREATE cast for #{instance.id} but its already been cleared"
    end

@@ -137,4 +137,40 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 4}]}}
   end
+
+  test "get_tile/2 gets a tile by its id", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert %MapTile{id: map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, map_tile_id)
+  end
+
+  test "get_tile/3 gets the top tile for the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1)
+  end
+
+  test "get_tile/3 gets nil if no tiles at the given coordinates", %{instance_process: instance_process} do
+    refute InstanceProcess.get_tile(instance_process, -1, -1)
+  end
+
+  test "get_tile/4 gets the top tile in the direction from the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1, "here")
+  end
+
+  test "update_tile/3", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{id: 11111, character: "X", row: 1, col: 1})
+    assert %MapTile{id: ^map_tile_id, character: "X", row: 1, col: 1, map_instance_id: m_id} = InstanceProcess.get_tile(instance_process, map_tile_id)
+
+    # Move to an empty space
+    assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{character: "Y", row: 2, col: 3})
+    assert %MapTile{id: ^map_tile_id, character: "Y", row: 2, col: 3} = InstanceProcess.get_tile(instance_process, map_tile_id)
+
+    # Move ontop of another tile
+    another_map_tile = %MapTile{id: -3, character: "O", row: 5, col: 6, z_index: 0, map_instance_id: m_id}
+    InstanceProcess.load_map(instance_process, [another_map_tile])
+
+    # Won't move to the same z_index
+    assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{row: 5, col: 6})
+    assert %MapTile{id: ^map_tile_id, character: "Y", row: 2, col: 3, z_index: 0} = InstanceProcess.get_tile(instance_process, map_tile_id)
+    assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{row: 5, col: 6, z_index: 1})
+    assert %MapTile{id: ^map_tile_id, character: "Y", row: 5, col: 6, z_index: 1} = InstanceProcess.get_tile(instance_process, map_tile_id)
+    assert %MapTile{id: -3, character: "O", row: 5, col: 6, z_index: 0} = InstanceProcess.get_tile(instance_process, another_map_tile.id)
+  end
 end
