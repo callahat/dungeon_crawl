@@ -53,9 +53,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   Ensures there is a instance associated with the given `instance_id` in `server`,
   and populates it with the array of dungeon_map_tiles.
   Does not create the instance if there's already one with that `instance_id`.
+  If instance_id is nil, an available one will be assigned, and injected into
+  all the `dungeon_map_tiles`. Returns the `instance_id`.
   """
   def create(server, instance_id, dungeon_map_tiles) do
-    GenServer.cast(server, {:create, instance_id, dungeon_map_tiles})
+    GenServer.call(server, {:create, instance_id, dungeon_map_tiles})
   end
 
   @doc """
@@ -81,25 +83,32 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   end
 
   @impl true
+  def handle_call({:create, nil, dungeon_map_tiles}, _from, {instance_ids, refs}) do
+    instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
+    dungeon_map_tiles = Enum.map(dungeon_map_tiles, fn(dmt) -> Map.put(dmt, :map_instance_id, instance_id) end)
+    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs})}
+  end
+
+  @impl true
+  def handle_call({:create, instance_id, dungeon_map_tiles}, _from, {instance_ids, refs}) do
+    if Map.has_key?(instance_ids, instance_id) do
+      {:noreply, {instance_ids, refs}}
+    else
+      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs})}
+    end
+  end
+
+  @impl true
   def handle_cast({:create, instance_id}, {instance_ids, refs}) do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs}}
     else
       with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
-        _create_instance(instance_id, Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles, {instance_ids, refs})
+        {:noreply, _create_instance(instance_id, Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles, {instance_ids, refs})}
       else
         _ -> Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
         {:noreply, {instance_ids, refs}}
       end
-    end
-  end
-
-  @impl true
-  def handle_cast({:create, instance_id, dungeon_map_tiles}, {instance_ids, refs}) do
-    if Map.has_key?(instance_ids, instance_id) do
-      {:noreply, {instance_ids, refs}}
-    else
-      _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs})
     end
   end
 
@@ -128,6 +137,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)
     instance_ids = Map.put(instance_ids, instance_id, instance_process)
-    {:noreply, {instance_ids, refs}}
+    {instance_ids, refs}
   end
 end

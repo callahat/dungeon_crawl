@@ -63,7 +63,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
     dungeon_map_tiles = [map_tile]
 
-    assert :ok = InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles)
+    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles)
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, map_tile.map_instance_id)
 
     # the instance map is loaded
@@ -71,6 +71,13 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert by_ids == %{map_tile.id => Map.put(map_tile, :parsed_state, %{})}
     assert by_coords ==  %{ {map_tile.row, map_tile.col} => %{map_tile.z_index => map_tile.id} }
     assert programs == %{}
+
+    # if no instance_id is given, it gets an available id and returns it
+    assert instance_id = InstanceRegistry.create(instance_registry, nil, dungeon_map_tiles)
+    refute instance_id == map_tile.map_instance_id
+    assert {:ok, instance_process2} = InstanceRegistry.lookup(instance_registry, instance_id)
+    assert { programs, {by_ids , by_coords} } = InstanceProcess.inspect_state(instance_process2)
+    assert by_ids == %{map_tile.id => Map.merge(map_tile, %{map_instance_id: instance_id, parsed_state: %{}})}
   end
 
   @tag capture_log: true
