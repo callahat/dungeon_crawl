@@ -2,7 +2,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.DungeonChannel
-  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileSeeder
 
@@ -71,8 +72,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "."
   test "move broadcasts a tile_update if its a valid move when starting location only had the tile that moved", %{socket: socket} do
-    Repo.get_by(Dungeon.MapTile, %{row: @player_row, col: @player_col, z_index: 0})
-    |> Repo.delete!
+    Instances.delete_map_tile(Repo.get_by(DungeonInstances.MapTile, %{row: @player_row, col: @player_col, z_index: 0}))
     push socket, "move", %{"direction" => "up"}
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div></div>"}]}
   end
@@ -92,7 +92,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "."
   test "step does not reply if there is no tile", %{socket: socket} do
-    Repo.get_by(Dungeon.MapTile, %{row: @player_row-1, col: @player_col})
+    Repo.get_by(DungeonInstances.MapTile, %{row: @player_row-1, col: @player_col})
     |> Repo.delete!
     ref = push socket, "step", %{"direction" => "up"}
     refute_reply ref, _, _
@@ -122,18 +122,18 @@ defmodule DungeonCrawl.DungeonChannelTest do
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
 
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>'</div>"}]}
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["'"].id
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["'"].character
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["'"].script
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["'"].state
+    assert Instances.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["'"].id
+    assert Instances.get_map_tile(_player_location_north(player_location)).character == basic_tiles["'"].character
+    assert Instances.get_map_tile(_player_location_north(player_location)).script == basic_tiles["'"].script
+    assert Instances.get_map_tile(_player_location_north(player_location)).state == basic_tiles["'"].state
 
     push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
 
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>+</div>"}]}
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["+"].id
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["+"].character
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["+"].script
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["+"].state
+    assert Instances.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["+"].id
+    assert Instances.get_map_tile(_player_location_north(player_location)).character == basic_tiles["+"].character
+    assert Instances.get_map_tile(_player_location_north(player_location)).script == basic_tiles["+"].script
+    assert Instances.get_map_tile(_player_location_north(player_location)).state == basic_tiles["+"].state
   end
 
   @tag up_tile: "."
@@ -147,7 +147,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
         event: "message",
         payload: %{message: "Cannot open that"}}
     refute_broadcast "tile_changes", _
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
+    assert Instances.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
 
     push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
 
@@ -157,6 +157,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
         payload: %{message: "Cannot close that"}}
 
     refute_broadcast "tile_changes", _
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
+    assert Instances.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
   end
 end

@@ -83,8 +83,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   the tile with the highest (top) z_index is returned.
   """
   def get_tile(instance, row, col) do
-    tile_id = GenServer.call(instance, {:get_map_tile, {row, col}})
-    get_tile(instance, tile_id)
+    GenServer.call(instance, {:get_map_tile, {row, col}})
   end
 
   @doc """
@@ -97,10 +96,32 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Gets the tiles for the given row, col coordinates.
+  """
+  def get_tiles(instance, row, col) do
+    GenServer.call(instance, {:get_map_tiles, {row, col}})
+  end
+
+  @doc """
+  Gets the tiles for the given row, col coordinates one away in the given direction.
+  """
+  def get_tiles(instance, row, col, direction) do
+    {d_row, d_col} = _direction_delta(direction)
+    get_tiles(instance, row + d_row, col + d_col)
+  end
+
+  @doc """
   Updates the given map_tile.
   """
   def update_tile(instance, tile_id, attrs) do
     GenServer.cast(instance, {:update_map_tile, {tile_id, attrs}})
+  end
+
+  @doc """
+  Deletes the given map tile.
+  """
+  def delete_tile(instance, tile_id) do
+    GenServer.cast(instance, {:delete_map_tile, {tile_id}})
   end
 
   ## Defining GenServer Callbacks
@@ -145,19 +166,34 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_call({:get_map_tile, {tile_id}}, _from, {program_contexts, {by_id, _by_coords} = map}) do
+IO.puts "GET MAP TILE"
+IO.puts inspect by_id[tile_id]
     {:reply, by_id[tile_id], {program_contexts, map}}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {row, col}}, _from, {program_contexts, {_by_id, by_coords} = map}) do
+  def handle_call({:get_map_tile, {row, col}}, _from, {program_contexts, {by_id, by_coords} = map}) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          [{_z_index, top_tile}] <- Map.to_list(tiles)
-                                   |> Enum.sort(fn({a,_},{b,_}) -> b > a end)
+                                   |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
                                    |> Enum.take(1) do
-      {:reply, top_tile, {program_contexts, map}}
+      {:reply, by_id[top_tile], {program_contexts, map}}
     else
       _ ->
         {:reply, nil, {program_contexts, map}}
+    end
+  end
+
+  @impl true
+  def handle_call({:get_map_tiles, {row, col}}, _from, {program_contexts, {by_id, by_coords} = map}) do
+    with tiles when is_map(tiles) <- by_coords[{row, col}],
+         tiles <- Map.to_list(tiles)
+                  |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
+                  |> Enum.map(fn({_, tile_id}) -> by_id[tile_id] end) do
+      {:reply, tiles, {program_contexts, map}}
+    else
+      _ ->
+        {:reply, [], {program_contexts, map}}
     end
   end
 
@@ -178,7 +214,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       {:noreply, {program_contexts, map}}
     else
       z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
-
       if Map.has_key?(z_index_map, map_tile.z_index) do
         # don't overwrite and add the tile if there's already one registered there
         {:noreply, {program_contexts, map}}
@@ -193,11 +228,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_cast({:send_event, {tile_id, event, sender = %DungeonCrawl.Player.Location{}}}, {program_contexts, map}) do
+IO.puts "HERE"
     case program_contexts do
       %{^tile_id => %{program: program, object: object}} ->
+IO.puts "now here"
         updated_program_context = Scripting.Runner.run(%{program: program, object: object, label: event})
                                   |> Map.put(:event_sender, sender)
                                   |> _handle_broadcasting()
+IO.puts "Made it here?"
         if updated_program_context.program.status == :dead do
           {:noreply, { Map.delete(program_contexts, tile_id), map}}
         else
@@ -231,6 +269,22 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       end
     else
       by_id = Map.put(by_id, tile_id, updated_tile)
+      {:noreply, {program_contexts, {by_id, by_coords}}}
+    end
+  end
+
+  @impl true
+  def handle_cast({:delete_map_tile, {map_tile_id}}, {program_contexts, {by_id, by_coords} = map}) do
+    program_contexts = Map.delete(program_contexts, map_tile_id)
+
+    map_tile = by_id[map_tile_id]
+
+    if map_tile do
+      z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
+      by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
+      by_id = Map.delete(by_id, map_tile_id)
+      {:noreply, {program_contexts, {by_id, by_coords}}}
+    else
       {:noreply, {program_contexts, {by_id, by_coords}}}
     end
   end
@@ -270,9 +324,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _handle_broadcasting(program_context) do
+IO.puts "handle those broadcases?"
     _handle_broadcasts(program_context.program.broadcasts, "dungeons:#{program_context.object.map_instance_id}")
+IO.puts "Handle those respones?"
     _handle_broadcasts(program_context.program.responses, program_context.event_sender)
-
+IO.puts "Done broadcastin"
     %{ program_context | program: %{ program_context.program | responses: [], broadcasts: [] } }
   end
 

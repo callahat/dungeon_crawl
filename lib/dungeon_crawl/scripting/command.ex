@@ -4,7 +4,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
 
   alias DungeonCrawl.Action.Move
-  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.TileState
@@ -62,10 +62,13 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(%{program: program, object: object}, new_attrs)
   end
   def _become(%{program: program, object: object}, new_attrs) do
-    object = DungeonCrawl.DungeonInstances.update_map_tile!(
+IO.puts "IN BECOME"
+IO.puts inspect object
+IO.puts inspect new_attrs
+    object = Instances.update_map_tile(
                object,
                new_attrs)
-
+IO.puts "INSTANCE UPDATED"
     message = ["tile_changes",
                %{tiles: [
                    Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
@@ -108,7 +111,7 @@ defmodule DungeonCrawl.Scripting.Command do
     state = Map.put(state, var, Maths.calc(state[var] || 0, op, value)) |> TileState.Parser.stringify
 
     %{program: program,
-      object: DungeonCrawl.DungeonInstances.update_map_tile!(object, %{state: state})}
+      object: Instances.update_map_tile(object, %{state: state})}
   end
 
   @doc """
@@ -121,7 +124,7 @@ defmodule DungeonCrawl.Scripting.Command do
       object: %{ object | script: ""} }
   """
   def die(%{program: program, object: object}) do
-    object = DungeonCrawl.DungeonInstances.update_map_tile!(object, %{script: ""})
+    object = Instances.update_map_tile(object, %{script: ""})
     %{program: %{program | status: :dead, pc: -1},
       object: object}
   end
@@ -188,7 +191,7 @@ defmodule DungeonCrawl.Scripting.Command do
     move(%{program: program, object: object, params: [direction, false]})
   end
   def move(%{program: program, object: object, params: [direction, retry_until_successful]}) do
-    destination = Dungeon.get_map_tile(object, direction)
+    destination = Instances.get_map_tile(object, direction)
 
     case Move.go(object, destination) do
       {:ok, %{new_location: new_location, old_location: old}} ->

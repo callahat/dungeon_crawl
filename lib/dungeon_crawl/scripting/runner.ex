@@ -26,8 +26,14 @@ Logger.info inspect params
 Logger.info inspect object
 Logger.info inspect object.state
 Logger.info inspect object && object.state
+IO.puts "Running:"
+IO.puts inspect command
+IO.puts inspect params
+IO.puts inspect object
+IO.puts inspect object.state
+IO.puts inspect object && object.state
         %{program: program, object: object} = apply(Command, command, [%{program: program, object: object, params: params}])
-
+IO.puts "command applied"
         # increment program counter, check for end of program
         program = %{program | pc: program.pc + 1}
         if program.pc > Enum.count(program.instructions) do

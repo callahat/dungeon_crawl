@@ -1,6 +1,8 @@
 defmodule DungeonCrawlWeb.Crawler do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
 
@@ -22,7 +24,7 @@ defmodule DungeonCrawlWeb.Crawler do
   def join_and_broadcast(%DungeonInstances.Map{} = where, user_id_hash) do
     {:ok, location} = Player.create_location_on_empty_space(where, user_id_hash)
 
-     _broadcast_join_event(Repo.preload(location, [map_tile: :tile_template]))
+     _broadcast_join_event(Repo.preload(location, :map_tile))
      location
   end
 
@@ -33,7 +35,7 @@ defmodule DungeonCrawlWeb.Crawler do
   end
 
   defp _broadcast_join_event(location) do
-    top = DungeonInstances.get_map_tile(location.map_tile)
+    top = Instances.create_map_tile(location.map_tile)
     tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
 #                                    "player_joined",
@@ -52,18 +54,20 @@ defmodule DungeonCrawlWeb.Crawler do
       %Player.Location{}
   """
   def leave_and_broadcast(%Player.Location{} = location) do
+    Instances.delete_map_tile(Repo.preload(location, :map_tile).map_tile)
     deleted_location = Player.delete_location!(location)
 
+    _broadcast_leave_event(deleted_location)
+
     if Player.players_in_dungeon(%{instance_id: deleted_location.map_tile.map_instance_id}) == 0 do
-      DungeonCrawl.DungeonProcesses.InstanceRegistry.remove(DungeonInstanceRegistry, deleted_location.map_tile.map_instance_id)
+      InstanceRegistry.remove(DungeonInstanceRegistry, deleted_location.map_tile.map_instance_id)
     end
 
-    _broadcast_leave_event(deleted_location)
     deleted_location
   end
 
   defp _broadcast_leave_event(location) do
-    top = DungeonInstances.get_map_tile(location.map_tile)
+    top = Instances.get_map_tile(location.map_tile)
     tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
 #                                    "player_left",

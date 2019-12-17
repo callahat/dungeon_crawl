@@ -120,6 +120,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
 
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, _reason}, {instance_ids, refs}) do
+IO.puts "NOOO"
+IO.puts inspect _reason
     {instance_id, refs} = Map.pop(refs, ref)
     instance_ids = Map.delete(instance_ids, instance_id)
     {:noreply, {instance_ids, refs}}

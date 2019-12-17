@@ -154,6 +154,23 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1, "here")
   end
 
+# get tiles
+
+  test "get_tiles/3 gets the top tile for the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert [map_tile] = InstanceProcess.get_tiles(instance_process, 1, 1)
+    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = map_tile
+  end
+
+  test "get_tiles/3 gets emtpy array if no tiles at the given coordinates", %{instance_process: instance_process} do
+    assert [] == InstanceProcess.get_tiles(instance_process, -1, -1)
+  end
+
+  test "get_tiles/4 gets the top tile in the direction from the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert [map_tile] = InstanceProcess.get_tiles(instance_process, 1, 1, "here")
+    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = map_tile
+  end
+# end get tiles
+
   test "update_tile/3", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{id: 11111, character: "X", row: 1, col: 1})
     assert %MapTile{id: ^map_tile_id, character: "X", row: 1, col: 1, map_instance_id: m_id} = InstanceProcess.get_tile(instance_process, map_tile_id)
@@ -172,5 +189,19 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{row: 5, col: 6, z_index: 1})
     assert %MapTile{id: ^map_tile_id, character: "Y", row: 5, col: 6, z_index: 1} = InstanceProcess.get_tile(instance_process, map_tile_id)
     assert %MapTile{id: -3, character: "O", row: 5, col: 6, z_index: 0} = InstanceProcess.get_tile(instance_process, another_map_tile.id)
+  end
+
+  test "delete_tile/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    assert { programs, {by_id, by_coord} } = InstanceProcess.inspect_state(instance_process)
+    assert programs[map_tile_id]
+    assert by_id[map_tile_id]
+    assert %{ {1, 1} => %{ 0 => ^map_tile_id} } = by_coord
+    
+    assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id)
+    refute InstanceProcess.get_tile(instance_process, map_tile_id)
+    assert { programs, {by_id, by_coord} } = InstanceProcess.inspect_state(instance_process)
+    refute programs[map_tile_id]
+    refute by_id[map_tile_id]
+    assert %{ {1, 1} => %{} } = by_coord
   end
 end

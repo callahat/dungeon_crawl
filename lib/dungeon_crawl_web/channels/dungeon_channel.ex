@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.Player
-  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Action.{Move}
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
@@ -33,9 +33,10 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    destination = Dungeon.get_map_tile(player_location.map_tile, direction)
+    player_tile = Instances.get_map_tile(player_location.map_tile)
+    destination = Instances.get_map_tile(player_location.map_tile, direction)
 
-    case Move.go(player_location.map_tile, destination) do
+    case Move.go(player_tile, destination) do
       {:ok, %{new_location: new_location, old_location: old}} ->
         broadcast socket,
                   "tile_changes",
@@ -64,11 +65,11 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    target_tile = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
+    target_tile = Instances.get_map_tile(player_location.map_tile, direction)
 
     if target_tile do
       {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-
+IO.puts inspect instance
       InstanceProcess.send_event(instance, target_tile.id, action, player_location)
 
       if !InstanceProcess.responds_to_event?(instance, target_tile.id, action) && unhandled_event_message do

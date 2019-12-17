@@ -5,15 +5,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Program
-
-  def map_tile_fixture(attrs \\ %{}) do
-    impassable_floor = insert_tile_template(attrs)
-    
-    dungeon = insert_stubbed_dungeon_instance(%{},
-      [Map.merge(%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0},
-                 Map.take(impassable_floor, [:character,:color,:background_color,:state,:script]))])
-    DungeonCrawl.DungeonInstances.get_map_tile! dungeon.id, 1, 2
-  end
+  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.DungeonProcesses.Instances
 
   def program_fixture(script \\ nil) do
     script = script ||
@@ -42,8 +35,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME" do
+    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}]
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
+
     program = program_fixture()
-    map_tile = map_tile_fixture()
+
     params = [%{character: "~", color: "puce"}]
 
     %{object: updated_map_tile, program: _program} = Command.become(%{program: program, object: map_tile, params: params})
@@ -53,8 +50,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME a ttid" do
+    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}]
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
+
     program = program_fixture()
-    map_tile = map_tile_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK"})
     params = [{:ttid, squeaky_door.id}]
 
@@ -69,8 +69,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "CHANGE_STATE" do
+    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"}]
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
     program = program_fixture()
-    map_tile = map_tile_fixture(%{state: "one: 100, add: 8"})
 
     %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:add, "+=", 1]})
     assert updated_map_tile.state == "add: 9, one: 100"
@@ -81,8 +83,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "DIE" do
+    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"}]
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
     program = program_fixture()
-    map_tile = map_tile_fixture(%{script: "it does soemthing and this is a fake script"})
 
     %{object: updated_map_tile, program: program} = Command.die(%{program: program, object: map_tile})
 
@@ -132,20 +136,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.pc == 1
   end
 
-  defp _setup_move_test do
-    tt = insert_tile_template(%{state: "blocking: false"})
-
-    insert_stubbed_dungeon_instance(
-      %{},
-      [%MapTile{character: ".", row: 1, col: 1, z_index: 0, tile_template_id: tt.id},
-       %MapTile{character: ".", row: 1, col: 2, z_index: 0, tile_template_id: tt.id},
-       %MapTile{character: "c", row: 1, col: 2, z_index: 1, tile_template_id: tt.id}])
-  end
-
   test "MOVE with one param" do
-    _setup_move_test()
+    dungeon_map_tiles = [
+       %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0},
+       %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0},
+       %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}]
 
-    mover = DungeonCrawl.Repo.get_by(MapTile, %{row: 1, col: 2, z_index: 1})
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+
+    mover = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
 
     # Successful
     assert %{program: updated_program, object: updated_object} = Command.move(%{program: %Program{}, object: mover, params: ["left"]})
@@ -184,9 +183,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "MOVE with two params" do
-    _setup_move_test()
+    dungeon_map_tiles = [
+       %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0},
+       %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0},
+       %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}]
 
-    mover = DungeonCrawl.Repo.get_by(MapTile, %{row: 1, col: 2, z_index: 1})
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+
+    mover = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
 
     assert %{program: updated_program, object: updated_object} = Command.move(%{program: %Program{}, object: mover, params: ["left", true]})
     assert %{status: :wait,
@@ -215,9 +219,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "MOVE into something blocking (or a nil square) triggers a THUD event" do
-    _setup_move_test()
+    dungeon_map_tiles = [
+       %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0},
+       %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0},
+       %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}]
 
-    mover = DungeonCrawl.Repo.get_by(MapTile, %{row: 1, col: 2, z_index: 1})
+    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+
+    mover = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
 
     program = program_fixture("""
                               #MOVE south
