@@ -5,6 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.TileState
+  alias DungeonCrawl.DungeonProcesses.Instances
 
   ## Client API
 
@@ -139,12 +140,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def init(:ok) do
-    map = {
-            %{}, # MapId => Map Record
-            %{}  # {row, col} -> Ordered array of map id's
-          }
-    active_programs = %{} # map_id associated with program
-    {:ok, {active_programs, map}}
+#    map = {
+#            %{}, # MapId => Map Record
+#            %{}  # {row, col} -> Ordered array of map id's
+#          }
+#    active_programs = %{} # map_id associated with program
+    {:ok, %Instances{}}
   end
 
   @impl true
@@ -153,81 +154,81 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_call({:responds_to_event?, {tile_id, event}}, _from, {program_contexts, map}) do
+  def handle_call({:responds_to_event?, {tile_id, event}}, _from, %Instances{program_contexts: program_contexts} = state) do
     with %{^tile_id => %{program: program}} <- program_contexts,
          labels <- program.labels[event],
          true <- is_list(labels) do
-      {:reply, Enum.any?(labels, fn([_, active]) -> active end), {program_contexts, map}}
+      {:reply, Enum.any?(labels, fn([_, active]) -> active end), state}
     else
       _ ->
-        {:reply, false, {program_contexts, map}}
+        {:reply, false, state}
     end
   end
 
   @impl true
-  def handle_call({:get_map_tile, {tile_id}}, _from, {program_contexts, {by_id, _by_coords} = map}) do
+  def handle_call({:get_map_tile, {tile_id}}, _from, %Instances{map_by_ids: by_id} = state) do
 IO.puts "GET MAP TILE"
 IO.puts inspect by_id[tile_id]
-    {:reply, by_id[tile_id], {program_contexts, map}}
+    {:reply, by_id[tile_id], state}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {row, col}}, _from, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_call({:get_map_tile, {row, col}}, _from, %Instances{map_by_ids: by_id, map_by_coords: by_coords} = state) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          [{_z_index, top_tile}] <- Map.to_list(tiles)
                                    |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
                                    |> Enum.take(1) do
-      {:reply, by_id[top_tile], {program_contexts, map}}
+      {:reply, by_id[top_tile], state}
     else
       _ ->
-        {:reply, nil, {program_contexts, map}}
+        {:reply, nil, state}
     end
   end
 
   @impl true
-  def handle_call({:get_map_tiles, {row, col}}, _from, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_call({:get_map_tiles, {row, col}}, _from, %Instances{map_by_ids: by_id, map_by_coords: by_coords} = state) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          tiles <- Map.to_list(tiles)
                   |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
                   |> Enum.map(fn({_, tile_id}) -> by_id[tile_id] end) do
-      {:reply, tiles, {program_contexts, map}}
+      {:reply, tiles, state}
     else
       _ ->
-        {:reply, [], {program_contexts, map}}
+        {:reply, [], state}
     end
   end
 
   @impl true
-  def handle_cast({:start_program, {map_tile_id, program_context}}, {program_contexts, map}) do
+  def handle_cast({:start_program, {map_tile_id, program_context}}, %Instances{program_contexts: program_contexts} = state) do
     if Map.has_key?(program_contexts, map_tile_id) do
       # already a running program for that tile id, or there is no map tile for that id
-      {:noreply, {program_contexts, map}}
+      {:noreply, state}
     else
-      {:noreply, {Map.put(program_contexts, map_tile_id, program_context), map}}
+      {:noreply, %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context)}}
     end
   end
 
   @impl true
-  def handle_cast({:register_map_tile, {map_tile}}, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_cast({:register_map_tile, {map_tile}}, %Instances{map_by_ids: by_id, map_by_coords: by_coords} = state) do
     if Map.has_key?(by_id, map_tile.id) do
       # Tile already registered
-      {:noreply, {program_contexts, map}}
+      {:noreply, state}
     else
       z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
       if Map.has_key?(z_index_map, map_tile.z_index) do
         # don't overwrite and add the tile if there's already one registered there
-        {:noreply, {program_contexts, map}}
+        {:noreply, state}
       else
         by_id = Map.put(by_id, map_tile.id, map_tile)
         by_coords = Map.put(by_coords, {map_tile.row, map_tile.col},
                             Map.put(z_index_map, map_tile.z_index, map_tile.id))
-        {:noreply, {program_contexts, {by_id, by_coords}}}
+        {:noreply, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords }}
       end
     end
   end
 
   @impl true
-  def handle_cast({:send_event, {tile_id, event, sender = %DungeonCrawl.Player.Location{}}}, {program_contexts, map}) do
+  def handle_cast({:send_event, {tile_id, event, sender = %DungeonCrawl.Player.Location{}}}, %Instances{program_contexts: program_contexts} = state) do
 IO.puts "HERE"
     case program_contexts do
       %{^tile_id => %{program: program, object: object}} ->
@@ -237,18 +238,18 @@ IO.puts "now here"
                                   |> _handle_broadcasting()
 IO.puts "Made it here?"
         if updated_program_context.program.status == :dead do
-          {:noreply, { Map.delete(program_contexts, tile_id), map}}
+          {:noreply, %Instances{ state | program_contexts: Map.delete(program_contexts, tile_id)}}
         else
-          {:noreply, { Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender)), map}}
+          {:noreply, %Instances{ state | program_contexts: Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender))}}
         end
 
       _ ->
-        {:noreply, {program_contexts, map}}
+        {:noreply, state}
     end
   end
 
   @impl true
-  def handle_cast({:update_map_tile, {tile_id, new_attributes}}, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_cast({:update_map_tile, {tile_id, new_attributes}}, %Instances{map_by_ids: by_id, map_by_coords: by_coords} = state) do
     updated_tile = by_id[tile_id] |> Map.merge(new_attributes) |> Map.merge(%{id: tile_id}) #cannot update the ID
 
     old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
@@ -260,21 +261,21 @@ IO.puts "Made it here?"
 
       if Map.has_key?(z_index_map, updated_tile_coords.z_index) do
         # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
-        {:noreply, {program_contexts, map}}
+        {:noreply, state}
       else
         by_id = Map.put(by_id, tile_id, updated_tile)
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), tile_id)
-        {:noreply, {program_contexts, {by_id, by_coords}}}
+        {:noreply, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords }}
       end
     else
       by_id = Map.put(by_id, tile_id, updated_tile)
-      {:noreply, {program_contexts, {by_id, by_coords}}}
+      {:noreply, %Instances{ state | map_by_ids: by_id }}
     end
   end
 
   @impl true
-  def handle_cast({:delete_map_tile, {map_tile_id}}, {program_contexts, {by_id, by_coords} = map}) do
+  def handle_cast({:delete_map_tile, {map_tile_id}}, %Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords} = state) do
     program_contexts = Map.delete(program_contexts, map_tile_id)
 
     map_tile = by_id[map_tile_id]
@@ -283,18 +284,18 @@ IO.puts "Made it here?"
       z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
-      {:noreply, {program_contexts, {by_id, by_coords}}}
+      {:noreply, %Instances{ program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords }}
     else
-      {:noreply, {program_contexts, {by_id, by_coords}}}
+      {:noreply, state}
     end
   end
 
   @impl true
-  def handle_info(:perform_actions, {program_contexts, map}) do
+  def handle_info(:perform_actions, %Instances{program_contexts: program_contexts} = state) do
     updated_program_contexts = _cycle_programs(program_contexts)
     _schedule()
 
-    {:noreply, {updated_program_contexts, map}}
+    {:noreply, %Instances{ state | program_contexts: updated_program_contexts}}
   end
 
   defp _schedule do

@@ -22,3 +22,5 @@ config :comeonin, :bcrypt_log_rounds, 4
 config :comeonin, :pbkdf2_rounds, 1
 
 config :dungeon_crawl, :generator, DungeonCrawl.MapGenerators.TestRooms
+
+config :ex_unit, :assert_receive_timeout, 300

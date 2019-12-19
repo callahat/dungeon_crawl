@@ -5,6 +5,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
@@ -30,7 +31,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
 
     # Starts the program(s) for the tiles, no script nothing done for that tile.
-    assert { programs, {by_id, by_coord} } = InstanceProcess.inspect_state(instance_process)
+    assert %Instances{ program_contexts: programs,
+                       map_by_ids: by_id,
+                       map_by_coords: by_coord } = InstanceProcess.inspect_state(instance_process)
     assert %{^map_tile_id => %{event_sender: nil,
                        object: %MapTile{},
                        program: %Program{status: :alive}},
@@ -41,13 +44,17 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     # Does not load a program overtop an already running program for that map_tile id
     assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: map_tile_id, script: "#DIE"}])
-    assert { programs, {by_id, by_coord} } == InstanceProcess.inspect_state(instance_process)
+    assert %Instances{ program_contexts: programs,
+                       map_by_ids: by_id,
+                       map_by_coords: by_coord } == InstanceProcess.inspect_state(instance_process)
 
     # Does not load a corrupt script (edge case - corrupt script shouldnt even get into the DB, and logs a warning
     assert capture_log(fn ->
              assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: 123, script: "#NOT_A_REAL_COMMAND"}])
            end) =~ ~r/Possible corrupt script for map tile instance:/
-    assert { programs, {by_id, by_coord} } == InstanceProcess.inspect_state(instance_process)
+    assert %Instances{ program_contexts: programs,
+                       map_by_ids: by_id,
+                       map_by_coords: by_coord } == InstanceProcess.inspect_state(instance_process)
   end
 
   test "start_scheduler", %{instance_process: instance_process} do
@@ -56,7 +63,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "inspect_state returns a listing of running programs", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert { programs, {_, _} } = InstanceProcess.inspect_state(instance_process)
+    assert %Instances{ program_contexts: programs,
+                       map_by_ids: _,
+                       map_by_coords: _ } = InstanceProcess.inspect_state(instance_process)
     assert %{^map_tile_id => %{event_sender: nil,
                        object: %MapTile{},
                        program: %Program{status: :alive}}
@@ -75,16 +84,22 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
-    { %{^map_tile_id => %{program: program} }, {_, _} } = InstanceProcess.inspect_state(instance_process)
+    %Instances{ program_contexts: %{^map_tile_id => %{program: program} },
+                map_by_ids: _,
+                map_by_coords: _ } = InstanceProcess.inspect_state(instance_process)
 
     # noop if it tile doesnt have a program
     InstanceProcess.send_event(instance_process, 111, "TOUCH", player_location)
-    { %{^map_tile_id => %{program: same_program} }, {_, _} } = InstanceProcess.inspect_state(instance_process)
+    %Instances{ program_contexts: %{^map_tile_id => %{program: same_program} },
+                map_by_ids: _,
+                map_by_coords: _ } = InstanceProcess.inspect_state(instance_process)
     assert program == same_program
 
     # it does something
     InstanceProcess.send_event(instance_process, map_tile_id, "TOUCH", player_location)
-    { %{^map_tile_id => %{program: updated_program} }, {_, _} } = InstanceProcess.inspect_state(instance_process)
+    %Instances{ program_contexts: %{^map_tile_id => %{program: updated_program} },
+                map_by_ids: _,
+                map_by_coords: _ } = InstanceProcess.inspect_state(instance_process)
     refute program == updated_program
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
@@ -93,7 +108,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     # prunes the program if died during the run of the label
     InstanceProcess.send_event(instance_process, map_tile_id, "TERMINATE", player_location)
-    assert { %{}, {_, _} } = InstanceProcess.inspect_state(instance_process)
+    %Instances{ program_contexts: %{} ,
+                map_by_ids: _,
+                map_by_coords: _ } = InstanceProcess.inspect_state(instance_process)
   end
 
   test "perform_actions", %{instance_process: instance_process, map_instance: map_instance} do
@@ -192,14 +209,18 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "delete_tile/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert { programs, {by_id, by_coord} } = InstanceProcess.inspect_state(instance_process)
+    %Instances{ program_contexts: programs, 
+                map_by_ids: by_id,
+                map_by_coords: by_coord } = InstanceProcess.inspect_state(instance_process)
     assert programs[map_tile_id]
     assert by_id[map_tile_id]
     assert %{ {1, 1} => %{ 0 => ^map_tile_id} } = by_coord
     
     assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id)
     refute InstanceProcess.get_tile(instance_process, map_tile_id)
-    assert { programs, {by_id, by_coord} } = InstanceProcess.inspect_state(instance_process)
+    %Instances{ program_contexts: programs,
+                map_by_ids: by_id,
+                map_by_coords: by_coord } = InstanceProcess.inspect_state(instance_process)
     refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 1} => %{} } = by_coord

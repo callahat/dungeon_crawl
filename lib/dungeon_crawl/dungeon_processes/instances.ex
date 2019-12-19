@@ -1,8 +1,9 @@
 defmodule DungeonCrawl.DungeonProcesses.Instances do
   @moduledoc """
-  The instances context. This wraps InstanceRegistry lookups and InstanceProcess methods
-  for convenience.
+  The instances context.
   """
+
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}
 
   alias DungeonCrawl.DungeonProcesses.{InstanceRegistry,InstanceProcess}
 
