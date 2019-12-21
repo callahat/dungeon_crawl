@@ -7,9 +7,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}
 
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry,InstanceProcess}
   alias DungeonCrawl.TileState
   alias DungeonCrawl.Scripting
+  alias DungeonCrawl.Scripting.Runner
 
   require Logger
 
@@ -81,14 +81,15 @@ IO.puts "HERE"
     case program_contexts do
       %{^map_tile_id => %{program: program, object: object}} ->
 IO.puts "now here"
-        updated_program_context = Scripting.Runner.run(%{program: program, object: object, label: event})
+        %Runner{program: program, object: object, state: state} = Scripting.Runner.run(%Runner{program: program, object: object, state: state}, event)
                                   |> Map.put(:event_sender, sender)
                                   |> handle_broadcasting()
 IO.puts "Made it here?"
-        if updated_program_context.program.status == :dead do
+        if program.status == :dead do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
         else
-          %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, Map.put(updated_program_context, :event_sender, sender))}
+          updated_program_context = %{program: program, object: object, event_sender: sender}
+          %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, updated_program_context)}
         end
 
       _ ->
@@ -106,7 +107,6 @@ IO.puts "Made it here?"
                  _            -> map_tile
                end
     {map_tile, state} = _register_map_tile(state, map_tile)
-
     case Scripting.Parser.parse(map_tile.script) do
      {:ok, program} ->
        unless program.status == :dead do
@@ -199,13 +199,10 @@ IO.puts "Made it here?"
   @doc """
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
-  def handle_broadcasting(program_context) do
-IO.puts "handle those broadcases?"
-    _handle_broadcasts(program_context.program.broadcasts, "dungeons:#{program_context.object.map_instance_id}")
-IO.puts "Handle those respones?"
-    _handle_broadcasts(program_context.program.responses, program_context.event_sender)
-IO.puts "Done broadcastin"
-    %{ program_context | program: %{ program_context.program | responses: [], broadcasts: [] } }
+  def handle_broadcasting(runner_context) do
+    _handle_broadcasts(runner_context.program.broadcasts, "dungeons:#{runner_context.object.map_instance_id}")
+    _handle_broadcasts(runner_context.program.responses, runner_context.event_sender)
+    %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end
 
   defp _handle_broadcasts([ [event, payload] | messages], socket) when is_binary(socket) do

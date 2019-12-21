@@ -10,6 +10,10 @@ defmodule DungeonCrawl.InstanceProcessTest do
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
 
+  # A lot of these tests are semi redundant, as the code that actually modifies the state lives
+  # in the Instances module. Testing this also effectively hits the Instances code,
+  # which also has its own set of similar tests.
+
   setup do
     {:ok, instance_process} = InstanceProcess.start_link([])
     tt = insert_tile_template()
@@ -24,8 +28,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "load_map", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    map_tile_with_script = %MapTile{id: 236, character: "O", row: 1, col: 1, z_index: 0, script: "#BECOME color: red"}
-    map_tiles = [%MapTile{id: 123, character: "O", row: 1, col: 2, z_index: 0},
+    map_tile_with_script = %MapTile{id: 236, character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"}
+    map_tiles = [%MapTile{id: 123, character: "O", row: 1, col: 1, z_index: 0},
                  map_tile_with_script]
 
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
@@ -44,14 +48,6 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     # Does not load a program overtop an already running program for that map_tile id
     assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: map_tile_id, script: "#DIE"}])
-    assert %Instances{ program_contexts: programs,
-                       map_by_ids: by_id,
-                       map_by_coords: by_coord } == InstanceProcess.inspect_state(instance_process)
-
-    # Does not load a corrupt script (edge case - corrupt script shouldnt even get into the DB, and logs a warning
-    assert capture_log(fn ->
-             assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: 123, script: "#NOT_A_REAL_COMMAND"}])
-           end) =~ ~r/Possible corrupt script for map tile instance:/
     assert %Instances{ program_contexts: programs,
                        map_by_ids: by_id,
                        map_by_coords: by_coord } == InstanceProcess.inspect_state(instance_process)

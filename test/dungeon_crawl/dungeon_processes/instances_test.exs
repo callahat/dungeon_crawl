@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   use DungeonCrawl.DataCase
 
+  import ExUnit.CaptureLog
+
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -130,6 +132,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # returns the existing tile if it already exists by id
     assert {^new_map_tile, ^state} = Instances.create_map_tile(state, Map.put(new_map_tile, :character, "O"))
     assert %{id: 1, character: "M"} = new_map_tile
+
+    # Does not load a corrupt script (edge case - corrupt script shouldnt even get into the DB, and logs a warning
+    map_tile_bad_script = %MapTile{row: 1, col: 4, id: 123, script: "#NOT_A_REAL_COMMAND"}
+    assert capture_log(fn ->
+             assert {map_tile, updated_state} = Instances.create_map_tile(state, map_tile_bad_script)
+             assert %Instances{ program_contexts: %{},
+                                map_by_ids: %{1 => Map.put(new_map_tile, :parsed_state, %{}),
+                                              123 => Map.put(map_tile_bad_script, :parsed_state, %{})},
+                                map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}} } == updated_state
+           end) =~ ~r/Possible corrupt script for map tile instance:/
   end
 
   test "update_map_tile/2 updates the map tile", %{state: state} do
