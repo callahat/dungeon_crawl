@@ -8,7 +8,7 @@ defmodule DungeonCrawl.Action.Move do
     if _valid_move(destination) do
       top_tile = Map.take(destination, [:map_instance_id, :row, :col, :z_index])
       {new_location, state} = Instances.update_map_tile(state, entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
-      {old_location_top_tile, state} = Instances.get_map_tile(state, Map.take(entity_map_tile, [:map_instance_id, :row, :col]))
+      old_location_top_tile = Instances.get_map_tile(state, Map.take(entity_map_tile, [:row, :col]))
       old_location = if old_location_top_tile, do: old_location_top_tile, else: Map.merge(%MapTile{}, Map.take(entity_map_tile, [:row, :col]))
       {:ok, %{new_location: new_location, old_location: old_location}, state}
     else
@@ -16,7 +16,7 @@ defmodule DungeonCrawl.Action.Move do
       {:invalid}
     end
   end
-  def go(_, _), do: {:invalid}
+  def go(_, _, %Instances{} = state), do: {:invalid}
 
   defp _valid_move(destination) do
     {:ok, state} = Parser.parse(destination.state)

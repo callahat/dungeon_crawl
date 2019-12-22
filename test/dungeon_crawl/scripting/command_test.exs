@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.Instances
 
@@ -27,7 +28,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:change_state) == :change_state
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
-    assert Command.get_command(:if) == :if
+    assert Command.get_command(:if) == :jump_if
     assert Command.get_command(:noop) == :noop
     assert Command.get_command(:text) == :text
 
@@ -35,30 +36,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME" do
-    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}]
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
-
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
-
     params = [%{character: "~", color: "puce"}]
 
-    %{object: updated_map_tile, program: _program} = Command.become(%{program: program, object: map_tile, params: params})
+    %Runner{object: updated_map_tile, state: state} = Command.become(%Runner{program: program, object: map_tile, state: state}, params)
 
-    refute Map.take(map_tile, [:character, :color]) == %{character: "~", color: "puce"}
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
     assert Map.take(updated_map_tile, [:character, :color]) == %{character: "~", color: "puce"}
   end
 
   test "BECOME a ttid" do
-    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}]
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
-
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK"})
     params = [{:ttid, squeaky_door.id}]
 
-    %{object: updated_map_tile, program: program} = Command.become(%{program: program, object: map_tile, params: params})
+    %Runner{object: updated_map_tile, program: program, state: state} = Command.become(%Runner{program: program, object: map_tile, state: state}, params)
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
 
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
@@ -69,27 +64,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "CHANGE_STATE" do
-    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"}]
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"})
     program = program_fixture()
 
-    %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:add, "+=", 1]})
+    %Runner{object: updated_map_tile, state: state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:add, "+=", 1])
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
     assert updated_map_tile.state == "add: 9, one: 100"
-    %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:one, "=", 432]})
+    %Runner{object: updated_map_tile, state: state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:one, "=", 432])
     assert updated_map_tile.state == "add: 8, one: 432"
-    %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:new, "+=", 1]})
+    %Runner{object: updated_map_tile, state: _state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:new, "+=", 1])
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
   end
 
   test "DIE" do
-    dungeon_map_tiles = [%MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"}]
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-    map_tile = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
 
-    %{object: updated_map_tile, program: program} = Command.die(%{program: program, object: map_tile})
-
+    %Runner{object: updated_map_tile, program: program, state: state} = Command.die(%Runner{program: program, object: map_tile, state: state})
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
     assert program.status == :dead
     assert program.pc == -1
     assert updated_map_tile.script == ""
@@ -99,55 +91,50 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     program = program_fixture()
     stubbed_object = %{state: ""}
 
-    %{object: _, program: program} = Command.halt(%{program: program, object: stubbed_object})
+    %Runner{object: updated_map_tile, program: program, state: state} = Command.halt(%Runner{program: program, object: stubbed_object})
     assert program.status == :idle
     assert program.pc == -1
   end
 
-  test "IF when state check is TRUE" do
+  test "JUMP_IF when state check is TRUE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
     params = [["", :check_state, :thing, "", ""], "TOUCH"]
 
-    %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
+    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
     assert program.status == :alive
     assert program.pc == 3
   end
 
-  test "IF when state check is FALSE" do
+  test "JUMP_IF when state check is FALSE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
     params = [["!", :check_state, :thing, "", ""], "TOUCH"]
 
     assert program.status == :alive
-    %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
+    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
     assert program.status == :alive
     assert program.pc == 1
   end
 
-  test "IF when state check is TRUE but no active label" do
+  test "JUMP_IF when state check is TRUE but no active label" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
     params = [["!", :check_state, :thing, "", ""], "TOUCH"]
 
     program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
-    %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
+    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
     assert program.status == :alive
     assert program.pc == 1
   end
 
   test "MOVE with one param" do
-    dungeon_map_tiles = [
-       %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0},
-       %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0},
-       %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}]
-
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-
-    mover = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
     # Successful
-    assert %{program: updated_program, object: updated_object} = Command.move(%{program: %Program{}, object: mover, params: ["left"]})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["left"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [[
@@ -160,39 +147,34 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                   }
                 ]],
              pc: 1
-           } = updated_program
-    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful (but its a try and move that does not keep trying)
-    assert %{program: updated_program, object: updated_object2} = Command.move(%{program: %Program{}, object: updated_object, params: ["down"]})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1
-           } = updated_program
-    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object2
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Idle
-    assert %{program: updated_program, object: updated_object3} = Command.move(%{program: %Program{}, object: updated_object2, params: ["idle"]})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1
-           } = updated_program
-    assert updated_object2 = updated_object3
+           } = program
+    assert updated_object2 = mover
   end
 
   test "MOVE with two params" do
-    dungeon_map_tiles = [
-       %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0},
-       %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0},
-       %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}]
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-
-    mover = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
-
-    assert %{program: updated_program, object: updated_object} = Command.move(%{program: %Program{}, object: mover, params: ["left", true]})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["left", true])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [[
@@ -205,28 +187,23 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                   }
                 ]],
              pc: 1
-           } = updated_program
-    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful
-    assert %{program: updated_program, object: updated_object2} = Command.move(%{program: %Program{}, object: updated_object, params: ["down", true]})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down", true])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 0 # decremented so when runner increments the PC it will still be the current move command
-           } = updated_program
-    assert %{row: 1, col: 1, character: "c", z_index: 1} = updated_object2
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
   end
 
   test "MOVE into something blocking (or a nil square) triggers a THUD event" do
-    dungeon_map_tiles = [
-       %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0},
-       %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0},
-       %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}]
-
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
-
-    mover = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
     program = program_fixture("""
                               #MOVE south
@@ -236,26 +213,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                               #BECOME character: X
                               """)
 
-    assert %{program: updated_program, object: updated_object} = Command.move(%{program: program, object: mover, params: ["south", true]})
+    %Runner{program: program} = Command.move(%Runner{program: program, object: mover, state: state}, ["south", true])
 
     assert %{status: :alive,
              wait_cycles: 0,
              broadcasts: [],
              pc: 4
-           } = updated_program
+           } = program
   end
 
   test "NOOP" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
-    assert %{object: stubbed_object, program: program} == Command.noop(%{program: program, object: stubbed_object})
+    runner_state = %Runner{object: stubbed_object, program: program}
+    assert runner_state == Command.noop(runner_state)
   end
 
   test "text" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
 
-    %{object: _, program: program} = Command.text(%{program: program, object: stubbed_object, params: ["I am just a simple text."]})
+    %Runner{program: program} = Command.text(%Runner{program: program, object: stubbed_object}, ["I am just a simple text."])
     assert program.responses == ["I am just a simple text."]
     assert program.status == :alive
     assert program.pc == 1

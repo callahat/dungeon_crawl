@@ -43,7 +43,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
                                                  2 => [:noop, "TOUCH"],
-                                                 3 => [:if, [["", :check_state, :open, "==", true], "ALREADY_OPEN"]],
+                                                 3 => [:jump_if, [["", :check_state, :open, "==", true], "ALREADY_OPEN"]],
                                                  4 => [:become, [%{character: "'", color: "white"}]],
                                                  5 => [:text, ["The door creaks open"]],
                                                  6 => [:halt, [""]],
