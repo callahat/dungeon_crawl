@@ -11,63 +11,56 @@ defmodule DungeonCrawl.Action.MoveTest do
     floor_b           = %MapTile{id: 998, row: 1, col: 1, z_index: 0, character: "."}
 
     player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
+
+    {floor_a, state} = Instances.create_map_tile(%Instances{}, floor_a)
+    {floor_b, state} = Instances.create_map_tile(state, floor_b)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
+
     dungeon_map_tiles = [floor_a, floor_b, player_location]
 
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    destination =     Instances.get_map_tile(state, %{row: 1, col: 1})
 
-    [player_location, floor_a] = Instances.get_map_tiles(%{map_instance_id: instance_id, row: 1, col: 2})
-    destination =     Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 1})
-
-    assert {:ok, %{new_location: new_location, old_location: old_location}} = Move.go(player_location, destination)
+    assert {:ok, %{new_location: new_location, old_location: old_location}, state} = Move.go(player_location, destination, state)
     assert %MapTile{row: 1, col: 2, character: ".", z_index: 0} = old_location
 
     assert %MapTile{row: 1, col: 1, z_index: 1} = new_location
-    assert Instances.get_map_tiles(%{map_instance_id: instance_id, row: 1, col: 2}) == [floor_a]
-    assert Instances.get_map_tiles(%{map_instance_id: instance_id, row: 1, col: 1}) == [new_location,
-                                                                                        destination]
+    assert Instances.get_map_tiles(state, %{row: 1, col: 2}) == [floor_a]
+    assert Instances.get_map_tiles(state, %{row: 1, col: 1}) == [new_location,
+                                                                 destination]
   end
 
   test "moving to an empty floor space from a non map tile" do
     floor_b           = %MapTile{id: 998, row: 1, col: 1, z_index: 0, character: "."}
     player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
-    dungeon_map_tiles = [floor_b, player_location]
 
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    {floor_b, state} = Instances.create_map_tile(%Instances{}, floor_b)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
 
-    player_location = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
-    destination =     Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 1})
-
-    assert {:ok, %{new_location: new_location, old_location: old_location}} = Move.go(player_location, destination)
+    assert {:ok, %{new_location: new_location, old_location: old_location}, state} = Move.go(player_location, floor_b, state)
     assert %MapTile{id: nil,  row: 1, col: 2, character: nil} = old_location
     assert %MapTile{id: 1000, row: 1, col: 1, character: "@"} = new_location
-    assert Instances.get_map_tiles(%{map_instance_id: instance_id, row: 1, col: 2}) == []
-    assert Instances.get_map_tiles(%{map_instance_id: instance_id, row: 1, col: 1}) ==
+    assert Instances.get_map_tiles(state, %{row: 1, col: 2}) == []
+    assert Instances.get_map_tiles(state, %{row: 1, col: 1}) ==
              [new_location,
-              destination]
+              floor_b]
   end
 
   test "moving to a bad space" do
     wall              = %MapTile{id: 997, row: 1, col: 1, z_index: 0, character: "#", state: "blocking: true"}
     player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
-    dungeon_map_tiles = [wall, player_location]
 
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    {wall, state} = Instances.create_map_tile(%Instances{}, wall)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
 
-    player_location = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
-    destination =     Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 1})
-
-    assert {:invalid} = Move.go(player_location, destination)
+    assert {:invalid} = Move.go(player_location, wall, state)
   end
 
   test "moving to something that is not a map tile" do
     player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
-    dungeon_map_tiles = [player_location]
 
-    instance_id = InstanceRegistry.create(DungeonInstanceRegistry, nil, dungeon_map_tiles)
+    {player_location, state} = Instances.create_map_tile(%Instances{}, player_location)
 
-    player_location = Instances.get_map_tile(%{map_instance_id: instance_id, row: 1, col: 2})
-
-    assert {:invalid} = Move.go(player_location, nil)
+    assert {:invalid} = Move.go(player_location, nil, state)
   end
 end
 
