@@ -31,13 +31,17 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
+  # TODO: Move "move" to instance process Genserver call, below might allow race conditions.
   def handle_in("move", %{"direction" => direction}, socket) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    instance_state = InstanceProcess.get_state(instance)
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    player_tile = Instances.get_map_tile(player_location.map_tile)
-    destination = Instances.get_map_tile(player_location.map_tile, direction)
+    player_tile = Instances.get_map_tile(instance_state, player_location.map_tile)
+    destination = Instances.get_map_tile(instance_state, player_location.map_tile, direction)
 
-    case Move.go(player_tile, destination) do
-      {:ok, %{new_location: new_location, old_location: old}} ->
+    case Move.go(player_tile, destination, instance_state) do
+      {:ok, %{new_location: new_location, old_location: old}, instance_state} ->
+        InstanceProcess.set_state(instance, instance_state)
         broadcast socket,
                   "tile_changes",
                   %{tiles: [
@@ -64,12 +68,13 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    instance_state = InstanceProcess.get_state(instance)
+
     player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    target_tile = Instances.get_map_tile(player_location.map_tile, direction)
+    target_tile = Instances.get_map_tile(instance_state, player_location.map_tile, direction)
 
     if target_tile do
-      {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-IO.puts inspect instance
       InstanceProcess.send_event(instance, target_tile.id, action, player_location)
 
       if !InstanceProcess.responds_to_event?(instance, target_tile.id, action) && unhandled_event_message do

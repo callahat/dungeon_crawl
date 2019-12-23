@@ -38,8 +38,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @doc """
   Inspect the state
   """
-  def inspect_state(instance) do
-    GenServer.call(instance, {:inspect})
+  def get_state(instance) do
+    GenServer.call(instance, {:get_state})
+  end
+
+  @doc """
+  Set the state
+  """
+  def set_state(instance, %Instances{} = state) do
+    GenServer.call(instance, {:set_state, state})
   end
 
   @doc """
@@ -115,7 +122,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_call({:inspect}, _from, state) do
+  def handle_call({:get_state}, _from, state) do
+    {:reply, state, state}
+  end
+
+  @impl true
+  def handle_call({:set_state, state}, _from, _old_state) do
     {:reply, state, state}
   end
 
