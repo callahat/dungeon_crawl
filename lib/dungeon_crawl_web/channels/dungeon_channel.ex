@@ -35,9 +35,9 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   def handle_in("move", %{"direction" => direction}, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     instance_state = InstanceProcess.get_state(instance)
-    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    player_tile = Instances.get_map_tile(instance_state, player_location.map_tile)
-    destination = Instances.get_map_tile(instance_state, player_location.map_tile, direction)
+    player_location = Player.get_location!(socket.assigns.user_id_hash)
+    player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+    destination = Instances.get_map_tile(instance_state, player_tile, direction)
 
     case Move.go(player_tile, destination, instance_state) do
       {:ok, %{new_location: new_location, old_location: old}, instance_state} ->
@@ -71,8 +71,9 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     instance_state = InstanceProcess.get_state(instance)
 
-    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    target_tile = Instances.get_map_tile(instance_state, player_location.map_tile, direction)
+    player_location = Player.get_location!(socket.assigns.user_id_hash)
+    player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+    target_tile = Instances.get_map_tile(instance_state, player_tile, direction)
 
     if target_tile do
       InstanceProcess.send_event(instance, target_tile.id, action, player_location)
