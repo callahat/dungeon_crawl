@@ -35,20 +35,20 @@ defmodule DungeonCrawlWeb.Crawler do
     join_and_broadcast(instance, user_id_hash)
   end
 
-  # TODO: fix potential race condition
   defp _broadcast_join_event(location) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
-    instance_state = InstanceProcess.get_state(instance)
-
-    {top, instance_state} = Instances.create_map_tile(instance_state, location.map_tile)
-    InstanceProcess.set_state(instance, instance_state)
-    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
+    
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      {top, instance_state} = Instances.create_map_tile(instance_state, location.map_tile)
+      tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
 #                                    "player_joined",
 #                                    %{row: top.row, col: top.col, tile: tile})
-    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
-                                    "tile_changes",
-                                    %{ tiles: [%{row: top.row, col: top.col, rendering: tile}] })
+      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
+                                      "tile_changes",
+                                      %{ tiles: [%{row: top.row, col: top.col, rendering: tile}] })
+      {tile, instance_state}
+    end)
   end
 
   @doc """
@@ -62,13 +62,14 @@ defmodule DungeonCrawlWeb.Crawler do
   def leave_and_broadcast(%Player.Location{} = location) do
     map_tile = Repo.preload(location, :map_tile).map_tile
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_tile.map_instance_id)
-    instance_state = InstanceProcess.get_state(instance)
+    deleted_location = InstanceProcess.run_with(instance, fn (instance_state) ->
+      {_, instance_state} = Instances.delete_map_tile(instance_state, map_tile)
+      deleted_location = Player.delete_location!(location)
 
-    {_, instance_state} = Instances.delete_map_tile(instance_state, map_tile)
-    InstanceProcess.set_state(instance, instance_state)
-    deleted_location = Player.delete_location!(location)
+      _broadcast_leave_event(instance_state, deleted_location)
 
-    _broadcast_leave_event(deleted_location)
+      {deleted_location, instance_state}
+    end)
 
     if Player.players_in_dungeon(%{instance_id: deleted_location.map_tile.map_instance_id}) == 0 do
       InstanceRegistry.remove(DungeonInstanceRegistry, deleted_location.map_tile.map_instance_id)
@@ -77,10 +78,7 @@ defmodule DungeonCrawlWeb.Crawler do
     deleted_location
   end
 
-  # TODO: fix potential race condition
-  defp _broadcast_leave_event(location) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
-    instance_state = InstanceProcess.get_state(instance)
+  defp _broadcast_leave_event(instance_state, location) do
     top = Instances.get_map_tile(instance_state, location.map_tile)
     tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",

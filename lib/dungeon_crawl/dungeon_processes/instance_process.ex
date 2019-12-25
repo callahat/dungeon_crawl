@@ -43,13 +43,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Set the state
-  """
-  def set_state(instance, %Instances{} = state) do
-    GenServer.call(instance, {:set_state, state})
-  end
-
-  @doc """
   Check is a tile/program responds to an event
   """
   def responds_to_event?(instance, tile_id, event) do
@@ -114,6 +107,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     GenServer.cast(instance, {:delete_map_tile, {tile_id}})
   end
 
+  @doc """
+  Runs the given function in the context of the instance process.
+  Expects the function passed in to take one parameter; `instance_state`.
+  The function should return a tuple containing the return value for `run_with` and
+  the modified state for the first and second tuple members respectively.
+  """
+  def run_with(instance, func) when is_function(func) do
+    GenServer.call(instance, {:run_with, {func}})
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -123,11 +126,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_call({:get_state}, _from, state) do
-    {:reply, state, state}
-  end
-
-  @impl true
-  def handle_call({:set_state, state}, _from, _old_state) do
     {:reply, state, state}
   end
 
@@ -165,6 +163,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_call({:get_map_tiles, {row, col, direction}}, _from, %Instances{} = state) do
     map_tiles = Instances.get_map_tiles(state, %{row: row, col: col}, direction)
     {:reply, map_tiles, state}
+  end
+
+  @impl true
+  def handle_call({:run_with, {function}}, _from, %Instances{} = state) when is_function(function) do
+    {return_value, state} = function.(state)
+    {:reply, return_value, state}
   end
 
   @impl true
