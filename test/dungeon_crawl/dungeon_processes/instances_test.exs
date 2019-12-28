@@ -150,16 +150,19 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     assert {updated_tile, updated_state} = Instances.update_map_tile(state, map_tile, new_attributes)
     assert Map.merge(map_tile, %{row: 2, col: 2, character: "M"}) == updated_tile
+    assert %{dirty_ids: %{999 => %{character: "M", col: 2, row: 2}}} = updated_state
   end
 
   test "update_tile/3", %{state: state} do
     map_tile_id = 999
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{id: 11111, character: "X", row: 1, col: 1})
     assert %{id: ^map_tile_id, character: "X", row: 1, col: 1} = state.map_by_ids[map_tile_id]
+    assert %{dirty_ids: %{999 => %{character: "X", row: 1, col: 1}}} = state
 
     # Move to an empty space
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{character: "Y", row: 2, col: 3})
-    assert %{id: ^map_tile_id, character: "Y", row: 2, col: 3} = state.map_by_ids[map_tile_id]
+    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 2, col: 3})
+    assert %{id: ^map_tile_id, character: "X", row: 2, col: 3} = state.map_by_ids[map_tile_id]
+    assert %{dirty_ids: %{999 => %{character: "X", row: 2, col: 3}}} = state
 
     # Move ontop of another tile
     another_map_tile = %MapTile{id: -3, character: "O", row: 5, col: 6, z_index: 0}
@@ -167,10 +170,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     # Won't move to the same z_index
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 5, col: 6})
-    assert %MapTile{id: ^map_tile_id, character: "Y", row: 2, col: 3, z_index: 0} = state.map_by_ids[map_tile_id]
+    assert %MapTile{id: ^map_tile_id, character: "X", row: 2, col: 3, z_index: 0} = state.map_by_ids[map_tile_id]
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 5, col: 6, z_index: 1})
-    assert %MapTile{id: ^map_tile_id, character: "Y", row: 5, col: 6, z_index: 1} = state.map_by_ids[map_tile_id]
+    assert %MapTile{id: ^map_tile_id, character: "X", row: 5, col: 6, z_index: 1} = state.map_by_ids[map_tile_id]
     assert %MapTile{id: -3, character: "O", row: 5, col: 6, z_index: 0} = state.map_by_ids[-3]
+
+    # Move the new tile
+    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{character: "M"})
+    assert %{dirty_ids: %{999 => %{character: "X", row: 5, col: 6, z_index: 1}, -3 => %{character: "M"}}} = state
   end
 
   test "delete_map_tile/1 deletes the map tile", %{state: state} do
@@ -188,7 +195,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute state.map_by_ids[map_tile_id]
     %Instances{ program_contexts: programs,
                 map_by_ids: by_id,
-                map_by_coords: by_coord } = state
+                map_by_coords: by_coord,
+                dirty_ids: %{^map_tile_id => :deleted} } = state
     refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 2} => %{} } = by_coord

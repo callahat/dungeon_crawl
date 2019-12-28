@@ -4,7 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}
 
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileState
@@ -100,6 +100,7 @@ IO.puts "Made it here?"
   @doc """
   Creates the given map tile in the parent instance state if it does not already exist.
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
+  Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   """
   def create_map_tile(%Instances{} = state, map_tile) do
     map_tile = case TileState.Parser.parse(map_tile.state) do
@@ -154,10 +155,16 @@ IO.puts "Made it here?"
   Updates the given map tile in the parent instance process, and returns the updated tile and new state
   """
   def update_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: map_tile_id}, new_attributes) do
-    updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes) |> Map.merge(%{id: map_tile_id}) #cannot update the ID
+    new_attributes = Map.delete(new_attributes, :id)
+    previous_update = state.dirty_ids[map_tile_id] || %{}
+
+    updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes)
 
     old_tile_coords = Map.take(by_id[map_tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
+
+    by_id = Map.put(by_id, map_tile_id, updated_tile)
+    dirty_ids = Map.put(state.dirty_ids, map_tile_id, Map.merge(previous_update, new_attributes))
 
     if updated_tile_coords != old_tile_coords do
       z_index_map = by_coords[{updated_tile_coords.row, updated_tile_coords.col}] || %{}
@@ -166,14 +173,12 @@ IO.puts "Made it here?"
         # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
         {nil, state}
       else
-        by_id = Map.put(by_id, map_tile_id, updated_tile)
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), map_tile_id)
-        {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords }}
+        {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids }}
       end
     else
-      by_id = Map.put(by_id, map_tile_id, updated_tile)
-      {updated_tile, %Instances{ state | map_by_ids: by_id }}
+      {updated_tile, %Instances{ state | map_by_ids: by_id, dirty_ids: dirty_ids }}
     end
   end
 
@@ -183,6 +188,7 @@ IO.puts "Made it here?"
   """
   def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: map_tile_id}) do
     program_contexts = Map.delete(program_contexts, map_tile_id)
+    dirty_ids = Map.put(state.dirty_ids, map_tile_id, :deleted)
 
     map_tile = by_id[map_tile_id]
 
@@ -190,7 +196,7 @@ IO.puts "Made it here?"
       z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
-      {map_tile, %Instances{ program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords }}
+      {map_tile, %Instances{ program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids }}
     else
       {nil, state}
     end

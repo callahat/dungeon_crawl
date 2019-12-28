@@ -6,10 +6,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonInstances.MapTile
 
   ## Client API
 
   @timeout 100
+  @db_update_timeout 5000
 
   @doc """
   Starts the instance process.
@@ -33,6 +35,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
+    Process.send_after(instance, :write_db, @db_update_timeout)
   end
 
   @doc """
@@ -198,13 +201,35 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_info(:perform_actions, %Instances{program_contexts: program_contexts} = state) do
     {updated_program_contexts, state} = _cycle_programs(program_contexts, state)
-    _schedule()
+    Process.send_after(self(), :perform_actions, @timeout)
 
     {:noreply, %Instances{ state | program_contexts: updated_program_contexts}}
   end
 
-  defp _schedule do
-    Process.send_after(self(), :perform_actions, @timeout)
+  @impl true
+  def handle_info(:write_db, %Instances{dirty_ids: dirty_ids} = state) do
+    # :deleted
+    # :updated
+    {deletes, updates} = dirty_ids
+                         |> Map.to_list
+                         |> Enum.split_with(fn({_, event}) -> event == :deleted end)
+                         |> Enum.map(fn(items) ->
+                              Enum.map(fn({id,_}) -> id end)
+                            end)
+
+    updates = updates -- deletes
+
+    deletes |> DungeonInstances.delete_map_tiles()
+
+    updates
+    |> Enum.map(fn(updated_id) ->
+         MapTile.changeset(Instances.get_map_tile_by_id(%MapTile{id: updated_id}), dirty_ids[updated_id])
+       end)
+    |> DungeonInstances.update_map_tiles()
+
+    Process.send_after(self(), :write_db, @db_update_timeout)
+
+    {:noreply, %Instances{ state | dirty_ids: %{}}}
   end
 
   #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player

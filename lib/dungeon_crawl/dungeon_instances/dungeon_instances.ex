@@ -107,4 +107,42 @@ defmodule DungeonCrawl.DungeonInstances do
     |> Repo.insert!()
   end
 
+  @doc """
+  Updates the given map tiles.
+
+  ## Examples
+
+      iex> update_map_tiles([<map tile changeset>, <map tile changeset>, ...])
+      {3, nil}
+
+  """
+  def update_map_tiles(map_tile_changesets) do
+    Multi.new
+    |> Multi.run(:map_tile_updates, fn(_repo, %{}) ->
+        result = map_tile_changesets
+                 |> Enum.chunk_every(1_000,1_000,[])
+                 |> Enum.reduce(0, fn(chunked_changesets, acc) ->
+                     Enum.reduce(chunked_changesets, 0, fn(map_tile_changeset, acc) ->
+                       Repo.update(map_tile_changeset)
+                       1 + acc
+                      end )
+                    end )
+        {:ok, result}
+      end)
+    |> Repo.transaction()
+  end
+
+  @doc """
+  Deletes the given map tiles.
+
+  ## Examples
+
+      iex> delete_map_tiles([map_tile_id_1, map_tile_id_2, ...])
+      {3, nil}
+
+  """
+  def delete_map_tiles(map_tile_ids) do
+    from(mt in MapTile, where: mt.id in ^map_tile_ids)
+    |> Repo.delete_all()
+  end
 end
