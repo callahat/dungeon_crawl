@@ -68,5 +68,26 @@ defmodule DungeonCrawl.DungeonInstancesTest do
     test "create_map_tile/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = DungeonInstances.create_map_tile(@invalid_attrs)
     end
+
+    test "update_map_tiles/1 updates valid changes" do
+      map_tile_1 = map_tile_fixture(%{character: "0"})
+      {:ok, map_tile_2} = DungeonInstances.create_map_tile(Map.merge @valid_attrs, Map.take(map_tile_1, [:character, :map_instance_id, :tile_template_id]))
+
+      good_changeset = MapTile.changeset(map_tile_1, %{character: "Y"})
+      bad_changeset = MapTile.changeset(map_tile_2, %{character: "XXX", color: "red"})
+
+      assert {:ok, %{map_tile_updates: 2}} = DungeonInstances.update_map_tiles([good_changeset, bad_changeset])
+      assert "Y" == Repo.get(MapTile, map_tile_1.id).character
+      refute "XXX" == Repo.get(MapTile, map_tile_2.id).character
+    end
+
+    test "delete_map_tiles/1 deletes the map tiles with given ids" do
+      map_tile_1 = map_tile_fixture(%{character: "0"})
+      {:ok, map_tile_2} = DungeonInstances.create_map_tile(Map.merge @valid_attrs, Map.take(map_tile_1, [:character, :map_instance_id, :tile_template_id]))
+
+      assert {1, nil} = DungeonInstances.delete_map_tiles([map_tile_1.id])
+      refute Repo.get(MapTile, map_tile_1.id)
+      assert Repo.get(MapTile, map_tile_2.id)
+    end
   end
 end

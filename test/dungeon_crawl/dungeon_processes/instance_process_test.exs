@@ -151,6 +151,31 @@ defmodule DungeonCrawl.InstanceProcessTest do
             payload: %{tiles: [%{row: 1, col: 4}]}}
   end
 
+  test "write_db", %{instance_process: instance_process, map_instance: map_instance} do
+    tt = insert_tile_template()
+
+    map_tiles = [
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
+        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white"},
+        %{id: 123, character: "O", row: 1, col: 4, z_index: 0}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+
+    [map_tile_id_1, map_tile_id_2, map_tile_id_3] = map_tiles |> Enum.map(fn(mt) -> mt.id end)
+
+    assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id_1, %{character: "Y", row: 2, col: 3})
+    assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id_2)
+
+    assert :ok = Process.send(instance_process, :write_db, [])
+    :timer.sleep 10 # let the process do its thing
+    assert "Y" == Repo.get(MapTile, map_tile_id_1).character
+    refute Repo.get(MapTile, map_tile_id_2)
+    assert "O" == Repo.get(MapTile, map_tile_id_3).character
+  end
+
   test "get_tile/2 gets a tile by its id", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     assert %MapTile{id: map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, map_tile_id)
   end
