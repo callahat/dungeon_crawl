@@ -31,15 +31,8 @@ Logger.info inspect params
 Logger.info inspect object
 Logger.info inspect object.state
 Logger.info inspect object && object.state
-IO.puts "Running:"
-IO.puts inspect command
-IO.puts inspect params
-IO.puts inspect object
-IO.puts inspect object.state
-IO.puts inspect object && object.state
         runner_state = apply(Command, command, [runner_state, params])
-IO.puts "command applied"
-IO.puts inspect runner_state.program
+
         # increment program counter, check for end of program
         program = %{runner_state.program | pc: runner_state.program.pc + 1}
         if program.pc > Enum.count(program.instructions) do

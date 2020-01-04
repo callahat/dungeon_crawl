@@ -78,14 +78,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns the updated state.
   """
   def send_event(%Instances{program_contexts: program_contexts} = state, %{id: map_tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
-IO.puts "HERE"
     case program_contexts do
       %{^map_tile_id => %{program: program, object: object}} ->
-IO.puts "now here"
         %Runner{program: program, object: object, state: state} = Scripting.Runner.run(%Runner{program: program, object: object, state: state}, event)
                                   |> Map.put(:event_sender, sender)
                                   |> handle_broadcasting()
-IO.puts "Made it here?"
         if program.status == :dead do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
         else

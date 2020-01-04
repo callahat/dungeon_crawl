@@ -64,14 +64,11 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, new_attrs)
   end
   def _become(%Runner{program: program, object: object, state: state}, new_attrs) do
-IO.puts "IN BECOME"
-IO.puts inspect object
-IO.puts inspect new_attrs
     {object, state} = Instances.update_map_tile( 
                       state,
                       object,
                       new_attrs)
-IO.puts "INSTANCE UPDATED"
+
     message = ["tile_changes",
                %{tiles: [
                    Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
