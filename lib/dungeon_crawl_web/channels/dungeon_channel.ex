@@ -75,11 +75,11 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       target_tile = Instances.get_map_tile(instance_state, player_tile, direction)
 
       if target_tile do
-        instance_state = Instances.send_event(instance_state, target_tile, action, player_location)
-
         if !Instances.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
         end
+        instance_state = Instances.send_event(instance_state, target_tile, action, player_location)
+
         {:ok, instance_state}
       else
         {:ok, instance_state}

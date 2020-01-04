@@ -1,12 +1,34 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  def dungeon_as_table(dungeon, with_template_id \\ false) do
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
+  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.DungeonInstances
+
+  def dungeon_as_table(dungeon, height, width, with_template_id \\ false) do
+    _dungeon_as_table(dungeon, height, width, with_template_id)
+  end
+
+  defp _dungeon_as_table(%Dungeon.Map{} = dungeon, height, width, with_template_id) do
     dungeon.dungeon_map_tiles
+    |> _dungeon_table(height, width, with_template_id)
+  end
+
+  defp _dungeon_as_table(%DungeonInstances.Map{} = dungeon, height, width, with_template_id) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon.id)
+    instance_state = InstanceProcess.get_state(instance)
+
+    instance_state.map_by_ids
+    |> Enum.map(fn({id, map_tile}) -> map_tile end)
+    |> _dungeon_table(height, width, with_template_id)
+  end
+
+  defp _dungeon_table(dungeon_map_tiles, height, width, with_template_id) do
+    dungeon_map_tiles
     |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
     |> DungeonCrawl.Repo.preload(:tile_template)
     |> Enum.reduce(%{}, fn(dmt,acc) -> if Map.has_key?(acc, {dmt.row, dmt.col}), do: acc, else: Map.put(acc, {dmt.row, dmt.col}, dmt) end)
-    |> rows(dungeon.height, dungeon.width, with_template_id)
+    |> rows(height, width, with_template_id)
   end
 
   defp rows(map, height, width, with_template_id) do

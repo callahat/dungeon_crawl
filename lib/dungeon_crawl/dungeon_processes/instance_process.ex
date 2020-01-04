@@ -6,6 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.MapTile
 
   ## Client API
@@ -210,22 +211,27 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_info(:write_db, %Instances{dirty_ids: dirty_ids} = state) do
     # :deleted
     # :updated
-    {deletes, updates} = dirty_ids
+    [deletes, updates] = dirty_ids
                          |> Map.to_list
                          |> Enum.split_with(fn({_, event}) -> event == :deleted end)
+                         |> Tuple.to_list()
                          |> Enum.map(fn(items) ->
-                              Enum.map(fn({id,_}) -> id end)
+                              Enum.map(items, fn({id,_}) -> id end)
                             end)
 
     updates = updates -- deletes
 
-    deletes |> DungeonInstances.delete_map_tiles()
+    if deletes != [] do
+      deletes |> DungeonInstances.delete_map_tiles()
+    end
 
-    updates
-    |> Enum.map(fn(updated_id) ->
-         MapTile.changeset(Instances.get_map_tile_by_id(%MapTile{id: updated_id}), dirty_ids[updated_id])
-       end)
-    |> DungeonInstances.update_map_tiles()
+    if updates != [] do
+      updates
+      |> Enum.map(fn(updated_id) ->
+           dirty_ids[updated_id]
+         end)
+      |> DungeonInstances.update_map_tiles()
+    end
 
     Process.send_after(self(), :write_db, @db_update_timeout)
 

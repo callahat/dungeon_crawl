@@ -44,7 +44,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert style_d == "<div style='color: #FFF;background-color: #000'>D</div>"
   end
 
-  test "dungeon_as_table/1 returns table rows of the dungeon" do
+  test "dungeon_as_table/3 returns table rows of the dungeon" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
@@ -52,14 +52,14 @@ defmodule DungeonCrawlWeb.SharedViewTest do
              Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
              Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
 
-    rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles))
+    rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height)
 
     assert rows =~ ~r{<td id='1_1'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
   end
 
-  test "dungeon_as_table/2 returns table rows of the dungeon including the data attributes" do
+  test "dungeon_as_table/4 returns table rows of the dungeon including the data attributes" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
@@ -67,7 +67,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
              Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
              Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
 
-    rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), true)
+    rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height, true)
 
     assert rows =~ ~r|<td id='1_1' data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></td>|
     assert rows =~ ~r|<td id='1_2' data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></td>|

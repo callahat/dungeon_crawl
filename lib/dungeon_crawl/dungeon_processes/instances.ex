@@ -6,6 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
   defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}
 
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileState
   alias DungeonCrawl.Scripting
@@ -156,7 +157,7 @@ IO.puts "Made it here?"
   """
   def update_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: map_tile_id}, new_attributes) do
     new_attributes = Map.delete(new_attributes, :id)
-    previous_update = state.dirty_ids[map_tile_id] || %{}
+    previous_changeset = state.dirty_ids[map_tile_id] || MapTile.changeset(by_id[map_tile_id], %{})
 
     updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes)
 
@@ -164,7 +165,7 @@ IO.puts "Made it here?"
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
 
     by_id = Map.put(by_id, map_tile_id, updated_tile)
-    dirty_ids = Map.put(state.dirty_ids, map_tile_id, Map.merge(previous_update, new_attributes))
+    dirty_ids = Map.put(state.dirty_ids, map_tile_id, MapTile.changeset(previous_changeset, new_attributes))
 
     if updated_tile_coords != old_tile_coords do
       z_index_map = by_coords[{updated_tile_coords.row, updated_tile_coords.col}] || %{}
