@@ -2,7 +2,9 @@ defmodule DungeonCrawl.DungeonChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.DungeonChannel
-  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileSeeder
 
@@ -71,8 +73,9 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "."
   test "move broadcasts a tile_update if its a valid move when starting location only had the tile that moved", %{socket: socket} do
-    Repo.get_by(Dungeon.MapTile, %{row: @player_row, col: @player_col, z_index: 0})
-    |> Repo.delete!
+    map_tile = Repo.get_by(DungeonInstances.MapTile, %{row: @player_row, col: @player_col, z_index: 0})
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_tile.map_instance_id)
+    InstanceProcess.delete_tile(instance, map_tile.id)
     push socket, "move", %{"direction" => "up"}
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div></div>"}]}
   end
@@ -92,7 +95,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "."
   test "step does not reply if there is no tile", %{socket: socket} do
-    Repo.get_by(Dungeon.MapTile, %{row: @player_row-1, col: @player_col})
+    Repo.get_by(DungeonInstances.MapTile, %{row: @player_row-1, col: @player_col})
     |> Repo.delete!
     ref = push socket, "step", %{"direction" => "up"}
     refute_reply ref, _, _
@@ -119,35 +122,41 @@ defmodule DungeonCrawl.DungeonChannelTest do
   # TODO: refactor the underlying model/channel methods into more testable concerns
   @tag up_tile: "+"
   test "use_door with a valid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
+    north_tile = _player_location_north(player_location)
+
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
 
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>'</div>"}]}
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["'"].id
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["'"].character
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["'"].script
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["'"].state
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["'"].id
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).character == basic_tiles["'"].character
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).script == basic_tiles["'"].script
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).state == basic_tiles["'"].state
 
     push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
 
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>+</div>"}]}
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["+"].id
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).character == basic_tiles["+"].character
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).script == basic_tiles["+"].script
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).state == basic_tiles["+"].state
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["+"].id
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).character == basic_tiles["+"].character
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).script == basic_tiles["+"].script
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).state == basic_tiles["+"].state
   end
 
   @tag up_tile: "."
   test "use_door with an invalid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    north_tile = _player_location_north(player_location)
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
+
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
 
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "message",
         payload: %{message: "Cannot open that"}}
     refute_broadcast "tile_changes", _
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["."].id
 
     push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
 
@@ -157,6 +166,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
         payload: %{message: "Cannot close that"}}
 
     refute_broadcast "tile_changes", _
-    assert Dungeon.get_map_tile(_player_location_north(player_location)).tile_template_id == basic_tiles["."].id
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["."].id
   end
 end

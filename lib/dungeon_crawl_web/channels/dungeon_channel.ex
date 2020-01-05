@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.Player
-  alias DungeonCrawl.DungeonInstances, as: Dungeon
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Action.{Move}
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
@@ -32,21 +32,26 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    destination = Dungeon.get_map_tile(player_location.map_tile, direction)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_location = Player.get_location!(socket.assigns.user_id_hash)
+      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+      destination = Instances.get_map_tile(instance_state, player_tile, direction)
 
-    case Move.go(player_location.map_tile, destination) do
-      {:ok, %{new_location: new_location, old_location: old}} ->
-        broadcast socket,
-                  "tile_changes",
-                  %{tiles: [
-                     Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
-                     Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
-                    ]}
+      case Move.go(player_tile, destination, instance_state) do
+        {:ok, %{new_location: new_location, old_location: old}, instance_state} ->
+          broadcast socket,
+                    "tile_changes",
+                    %{tiles: [
+                       Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
+                       Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
+                      ]}
+          {:ok, instance_state}
 
-      {:invalid} ->
-        :ok
-    end
+        {:invalid} ->
+          {:ok, instance_state}
+      end
+    end)
 
     {:reply, :ok, socket}
   end
@@ -63,18 +68,23 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
-    player_location = Player.get_location!(socket.assigns.user_id_hash) |> Repo.preload(:map_tile)
-    target_tile = Dungeon.get_map_tile(player_location.map_tile, direction) |> Repo.preload(:tile_template)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_location = Player.get_location!(socket.assigns.user_id_hash)
+      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+      target_tile = Instances.get_map_tile(instance_state, player_tile, direction)
 
-    if target_tile do
-      {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+      if target_tile do
+        if !Instances.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
+        end
+        instance_state = Instances.send_event(instance_state, target_tile, action, player_location)
 
-      InstanceProcess.send_event(instance, target_tile.id, action, player_location)
-
-      if !InstanceProcess.responds_to_event?(instance, target_tile.id, action) && unhandled_event_message do
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
+        {:ok, instance_state}
+      else
+        {:ok, instance_state}
       end
-    end
+    end)
     {:noreply, socket}
   end
 end

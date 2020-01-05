@@ -65,7 +65,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
   end
 
-  defp _validate(program, [ {line_no, [ :if, [_condition, label] ]} | instructions], errors, user) do
+  defp _validate(program, [ {line_no, [ :jump_if, [_condition, label] ]} | instructions], errors, user) do
     if program.labels[label] do
       _validate(program, instructions, errors, user)
     else

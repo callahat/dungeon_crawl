@@ -2,63 +2,62 @@ defmodule DungeonCrawl.Action.MoveTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Action.Move
-  alias DungeonCrawl.DungeonInstances, as: Dungeon
   alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.DungeonProcesses.Instances
 
   test "moving to an empty floor space" do
-    floor_tt = insert_tile_template() # floor by default
-    dungeon = insert_stubbed_dungeon_instance()
-    floor_a = Dungeon.create_map_tile!(%{map_instance_id: dungeon.id, row: 1, col: 2, tile_template_id: floor_tt.id, state: floor_tt.state})
-    floor_b = Dungeon.create_map_tile!(%{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: floor_tt.id, state: floor_tt.state})
+    floor_a           = %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "."}
+    floor_b           = %MapTile{id: 998, row: 1, col: 1, z_index: 0, character: "."}
 
-    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
+    player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
 
-    destination = Dungeon.get_map_tile(dungeon.id, 1, 1)
+    {floor_a, state} = Instances.create_map_tile(%Instances{}, floor_a)
+    {_floor_b, state} = Instances.create_map_tile(state, floor_b)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
 
-    assert {:ok, %{new_location: new_location, old_location: old_location}} = Move.go(player_location.map_tile, destination)
-    assert %MapTile{row: 1, col: 2, tile_template_id: floor_tt_id} = old_location
-    assert floor_tt_id == floor_tt.id
-    assert %MapTile{row: 1, col: 1} = new_location
-    assert Dungeon.get_map_tiles(dungeon.id, 1, 2) == [floor_a]
-    assert Dungeon.get_map_tiles(dungeon.id, 1, 1) == [Repo.preload(player_location, :map_tile, force: true).map_tile,
-                                                       floor_b]
+    destination =     Instances.get_map_tile(state, %{row: 1, col: 1})
+
+    assert {:ok, %{new_location: new_location, old_location: old_location}, state} = Move.go(player_location, destination, state)
+    assert %MapTile{row: 1, col: 2, character: ".", z_index: 0} = old_location
+
+    assert %MapTile{row: 1, col: 1, z_index: 1} = new_location
+    assert Instances.get_map_tiles(state, %{row: 1, col: 2}) == [floor_a]
+    assert Instances.get_map_tiles(state, %{row: 1, col: 1}) == [new_location,
+                                                                 destination]
   end
 
   test "moving to an empty floor space from a non map tile" do
-    floor_tt = insert_tile_template() # floor by default
-    dungeon = insert_stubbed_dungeon_instance()
-    floor_a = Dungeon.create_map_tile!(%{map_instance_id: dungeon.id, row: 1, col: 2, tile_template_id: floor_tt.id, state: floor_tt.state})
-    floor_b = Dungeon.create_map_tile!(%{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: floor_tt.id, state: floor_tt.state})
+    floor_b           = %MapTile{id: 998, row: 1, col: 1, z_index: 0, character: "."}
+    player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
 
-    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 2, col: 1}) |> Repo.preload(:map_tile)
+    {floor_b, state} = Instances.create_map_tile(%Instances{}, floor_b)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
 
-    destination = Dungeon.get_map_tile(dungeon.id, 1, 1)
-
-    assert {:ok, %{new_location: new_location, old_location: old_location}} = Move.go(player_location.map_tile, destination)
-    assert %MapTile{row: 2, col: 1} = old_location
-    assert %MapTile{row: 1, col: 1} = new_location
-    assert Dungeon.get_map_tiles(dungeon.id, 1, 2) == [floor_a]
-    assert Dungeon.get_map_tiles(dungeon.id, 1, 1) == [Repo.preload(player_location, :map_tile, force: true).map_tile,
-                                                       floor_b]
+    assert {:ok, %{new_location: new_location, old_location: old_location}, state} = Move.go(player_location, floor_b, state)
+    assert %MapTile{id: nil,  row: 1, col: 2, character: nil} = old_location
+    assert %MapTile{id: 1000, row: 1, col: 1, character: "@"} = new_location
+    assert Instances.get_map_tiles(state, %{row: 1, col: 2}) == []
+    assert Instances.get_map_tiles(state, %{row: 1, col: 1}) ==
+             [new_location,
+              floor_b]
   end
 
   test "moving to a bad space" do
-    impassable_floor = insert_tile_template(%{responders: "{}", state: "blocking: true"})
+    wall              = %MapTile{id: 997, row: 1, col: 1, z_index: 0, character: "#", state: "blocking: true"}
+    player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
 
-    dungeon = insert_stubbed_dungeon_instance(%{},
-      [Map.merge(%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0},
-                 Map.take(impassable_floor, [:character,:color,:background_color,:state,:script]))])
-    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
-    destination = %MapTile{map_instance_id: dungeon.id, row: 1, col: 1, tile_template_id: impassable_floor.id, state: impassable_floor.state}
+    {wall, state} = Instances.create_map_tile(%Instances{}, wall)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
 
-    assert {:invalid} = Move.go(player_location.map_tile, destination)
+    assert {:invalid} = Move.go(player_location, wall, state)
   end
 
   test "moving to something that is not a map tile" do
-    dungeon = insert_stubbed_dungeon_instance()
-    player_location = insert_player_location(%{map_instance_id: dungeon.id, row: 1, col: 2}) |> Repo.preload(:map_tile)
+    player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
 
-    assert {:invalid} = Move.go(player_location.map_tile, nil)
+    {player_location, state} = Instances.create_map_tile(%Instances{}, player_location)
+
+    assert {:invalid} = Move.go(player_location, nil, state)
   end
 end
 

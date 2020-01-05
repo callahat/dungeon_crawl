@@ -4,11 +4,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   require Logger
 
   alias DungeonCrawl.Scripting
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonInstances
 
   ## Client API
 
   @timeout 100
+  @db_update_timeout 5000
 
   @doc """
   Starts the instance process.
@@ -23,23 +26,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def load_map(instance, map_tiles) do
     map_tiles
     |> Enum.each( fn(map_tile) ->
-         map_tile = case TileState.Parser.parse(map_tile.state) do
-                      {:ok, state} -> Map.put(map_tile, :parsed_state, state)
-                      _            -> map_tile
-                    end
-         GenServer.cast(instance, {:register_map_tile, {map_tile}})
-
-         case Scripting.Parser.parse(map_tile.script) do
-           {:ok, program} ->
-             unless program.status == :dead do
-               GenServer.cast(instance, {:start_program, {map_tile.id, %{program: program, object: map_tile, event_sender: nil} }})
-             end
-           other ->
-             Logger.warn """
-                         Possible corrupt script for map tile instance: #{inspect map_tile}
-                         Not :ok response: #{inspect other}
-                         """
-         end
+         GenServer.cast(instance, {:create_map_tile, {map_tile}})
        end )
   end
 
@@ -48,13 +35,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
+    Process.send_after(instance, :write_db, @db_update_timeout)
   end
 
   @doc """
   Inspect the state
   """
-  def inspect_state(instance) do
-    GenServer.call(instance, {:inspect})
+  def get_state(instance) do
+    GenServer.call(instance, {:get_state})
   end
 
   @doc """
@@ -83,8 +71,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   the tile with the highest (top) z_index is returned.
   """
   def get_tile(instance, row, col) do
-    tile_id = GenServer.call(instance, {:get_map_tile, {row, col}})
-    get_tile(instance, tile_id)
+    GenServer.call(instance, {:get_map_tile, {row, col}})
   end
 
   @doc """
@@ -92,8 +79,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   If there are many tiles there, the tile with the highest (top) z_index is returned.
   """
   def get_tile(instance, row, col, direction) do
-    {d_row, d_col} = _direction_delta(direction)
-    get_tile(instance, row + d_row, col + d_col)
+    GenServer.call(instance, {:get_map_tile, {row, col, direction}})
+  end
+
+  @doc """
+  Gets the tiles for the given row, col coordinates.
+  """
+  def get_tiles(instance, row, col) do
+    GenServer.call(instance, {:get_map_tiles, {row, col}})
+  end
+
+  @doc """
+  Gets the tiles for the given row, col coordinates one away in the given direction.
+  """
+  def get_tiles(instance, row, col, direction) do
+    GenServer.call(instance, {:get_map_tiles, {row, col, direction}})
   end
 
   @doc """
@@ -103,219 +103,163 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     GenServer.cast(instance, {:update_map_tile, {tile_id, attrs}})
   end
 
-  ## Defining GenServer Callbacks
+  @doc """
+  Deletes the given map tile.
+  """
+  def delete_tile(instance, tile_id) do
+    GenServer.cast(instance, {:delete_map_tile, {tile_id}})
+  end
 
-  # Possible future state
-  # The state of the GenServer is a tuple of three:
-  # 1st - Map of tile id (key) to %Program{} (value) for all living programs
-  # 2nd - Representation of the entire map. The first element of the tuple 
-  #       is a map with tile id (key) and the entire instance %MapTile{} (value).
-  #       The second element of the tuple is also a map, is an ordered array of tile ids (value)
-  #       in a map by the row, col (key)
-  # 3rd - boolean representing if the scheduler is running or not. If not, the
-  #       process is in an "idle" state. Otherwise, the process is "active" and
-  #       checks all the running programs for activity every XXX ms
+  @doc """
+  Runs the given function in the context of the instance process.
+  Expects the function passed in to take one parameter; `instance_state`.
+  The function should return a tuple containing the return value for `run_with` and
+  the modified state for the first and second tuple members respectively.
+  """
+  def run_with(instance, func) when is_function(func) do
+    GenServer.call(instance, {:run_with, {func}})
+  end
+
+  ## Defining GenServer Callbacks
 
   @impl true
   def init(:ok) do
-    map = {
-            %{}, # MapId => Map Record
-            %{}  # {row, col} -> Ordered array of map id's
-          }
-    active_programs = %{} # map_id associated with program
-    {:ok, {active_programs, map}}
+    {:ok, %Instances{}}
   end
 
   @impl true
-  def handle_call({:inspect}, _from, state) do
+  def handle_call({:get_state}, _from, state) do
     {:reply, state, state}
   end
 
   @impl true
-  def handle_call({:responds_to_event?, {tile_id, event}}, _from, {program_contexts, map}) do
-    with %{^tile_id => %{program: program}} <- program_contexts,
-         labels <- program.labels[event],
-         true <- is_list(labels) do
-      {:reply, Enum.any?(labels, fn([_, active]) -> active end), {program_contexts, map}}
-    else
-      _ ->
-        {:reply, false, {program_contexts, map}}
-    end
+  def handle_call({:responds_to_event?, {tile_id, event}}, _from, %Instances{} = state) do
+    true_or_false = Instances.responds_to_event?(state, %{id: tile_id}, event)
+    {:reply, true_or_false, state}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {tile_id}}, _from, {program_contexts, {by_id, _by_coords} = map}) do
-    {:reply, by_id[tile_id], {program_contexts, map}}
+  def handle_call({:get_map_tile, {tile_id}}, _from, %Instances{} = state) do
+    map_tile = Instances.get_map_tile_by_id(state, %{id: tile_id})
+    {:reply, map_tile, state}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {row, col}}, _from, {program_contexts, {_by_id, by_coords} = map}) do
-    with tiles when is_map(tiles) <- by_coords[{row, col}],
-         [{_z_index, top_tile}] <- Map.to_list(tiles)
-                                   |> Enum.sort(fn({a,_},{b,_}) -> b > a end)
-                                   |> Enum.take(1) do
-      {:reply, top_tile, {program_contexts, map}}
-    else
-      _ ->
-        {:reply, nil, {program_contexts, map}}
-    end
+  def handle_call({:get_map_tile, {row, col}}, _from, state) do
+    map_tile = Instances.get_map_tile(state, %{row: row, col: col})
+    {:reply, map_tile, state}
   end
 
   @impl true
-  def handle_cast({:start_program, {map_tile_id, program_context}}, {program_contexts, map}) do
-    if Map.has_key?(program_contexts, map_tile_id) do
-      # already a running program for that tile id, or there is no map tile for that id
-      {:noreply, {program_contexts, map}}
-    else
-      {:noreply, {Map.put(program_contexts, map_tile_id, program_context), map}}
-    end
+  def handle_call({:get_map_tile, {row, col, direction}}, _from, state) do
+    map_tile = Instances.get_map_tile(state, %{row: row, col: col}, direction)
+    {:reply, map_tile, state}
   end
 
   @impl true
-  def handle_cast({:register_map_tile, {map_tile}}, {program_contexts, {by_id, by_coords} = map}) do
-    if Map.has_key?(by_id, map_tile.id) do
-      # Tile already registered
-      {:noreply, {program_contexts, map}}
-    else
-      z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
-
-      if Map.has_key?(z_index_map, map_tile.z_index) do
-        # don't overwrite and add the tile if there's already one registered there
-        {:noreply, {program_contexts, map}}
-      else
-        by_id = Map.put(by_id, map_tile.id, map_tile)
-        by_coords = Map.put(by_coords, {map_tile.row, map_tile.col},
-                            Map.put(z_index_map, map_tile.z_index, map_tile.id))
-        {:noreply, {program_contexts, {by_id, by_coords}}}
-      end
-    end
+  def handle_call({:get_map_tiles, {row, col}}, _from, %Instances{} = state) do
+    map_tiles = Instances.get_map_tiles(state, %{row: row, col: col})
+    {:reply, map_tiles, state}
   end
 
   @impl true
-  def handle_cast({:send_event, {tile_id, event, sender = %DungeonCrawl.Player.Location{}}}, {program_contexts, map}) do
-    case program_contexts do
-      %{^tile_id => %{program: program, object: object}} ->
-        updated_program_context = Scripting.Runner.run(%{program: program, object: object, label: event})
-                                  |> Map.put(:event_sender, sender)
-                                  |> _handle_broadcasting()
-        if updated_program_context.program.status == :dead do
-          {:noreply, { Map.delete(program_contexts, tile_id), map}}
-        else
-          {:noreply, { Map.put(program_contexts, tile_id, Map.put(updated_program_context, :event_sender, sender)), map}}
-        end
-
-      _ ->
-        {:noreply, {program_contexts, map}}
-    end
+  def handle_call({:get_map_tiles, {row, col, direction}}, _from, %Instances{} = state) do
+    map_tiles = Instances.get_map_tiles(state, %{row: row, col: col}, direction)
+    {:reply, map_tiles, state}
   end
 
   @impl true
-  def handle_cast({:update_map_tile, {tile_id, new_attributes}}, {program_contexts, {by_id, by_coords} = map}) do
-    updated_tile = by_id[tile_id] |> Map.merge(new_attributes) |> Map.merge(%{id: tile_id}) #cannot update the ID
-
-    old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
-    updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
-
-
-    if updated_tile_coords != old_tile_coords do
-      z_index_map = by_coords[{updated_tile_coords.row, updated_tile_coords.col}] || %{}
-
-      if Map.has_key?(z_index_map, updated_tile_coords.z_index) do
-        # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
-        {:noreply, {program_contexts, map}}
-      else
-        by_id = Map.put(by_id, tile_id, updated_tile)
-        by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
-                    |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), tile_id)
-        {:noreply, {program_contexts, {by_id, by_coords}}}
-      end
-    else
-      by_id = Map.put(by_id, tile_id, updated_tile)
-      {:noreply, {program_contexts, {by_id, by_coords}}}
-    end
+  def handle_call({:run_with, {function}}, _from, %Instances{} = state) when is_function(function) do
+    {return_value, state} = function.(state)
+    {:reply, return_value, state}
   end
 
   @impl true
-  def handle_info(:perform_actions, {program_contexts, map}) do
-    updated_program_contexts = _cycle_programs(program_contexts)
-    _schedule()
-
-    {:noreply, {updated_program_contexts, map}}
+  def handle_cast({:create_map_tile, {map_tile}}, %Instances{} = state) do
+    {_map_tile, state} = Instances.create_map_tile(state, map_tile)
+    {:noreply, state}
   end
 
-  defp _schedule do
+  @impl true
+  def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender}}, %Instances{} = state) do
+    state = Instances.send_event(state, %{id: tile_id}, event, sender)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:update_map_tile, {tile_id, new_attributes}}, %Instances{} = state) do
+    {_updated_tile, state} = Instances.update_map_tile(state, %{id: tile_id}, new_attributes)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:delete_map_tile, {map_tile_id}}, %Instances{} = state) do
+    {_deleted_tile, state} = Instances.delete_map_tile(state, %{id: map_tile_id})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:perform_actions, %Instances{program_contexts: program_contexts} = state) do
+    {updated_program_contexts, state} = _cycle_programs(program_contexts, state)
     Process.send_after(self(), :perform_actions, @timeout)
+
+    {:noreply, %Instances{ state | program_contexts: updated_program_contexts}}
+  end
+
+  @impl true
+  def handle_info(:write_db, %Instances{dirty_ids: dirty_ids} = state) do
+    # :deleted
+    # :updated
+    [deletes, updates] = dirty_ids
+                         |> Map.to_list
+                         |> Enum.split_with(fn({_, event}) -> event == :deleted end)
+                         |> Tuple.to_list()
+                         |> Enum.map(fn(items) ->
+                              Enum.map(items, fn({id,_}) -> id end)
+                            end)
+
+    updates = updates -- deletes
+
+    if deletes != [] do
+      deletes |> DungeonInstances.delete_map_tiles()
+    end
+
+    if updates != [] do
+      updates
+      |> Enum.map(fn(updated_id) ->
+           dirty_ids[updated_id]
+         end)
+      |> DungeonInstances.update_map_tiles()
+    end
+
+    Process.send_after(self(), :write_db, @db_update_timeout)
+
+    {:noreply, %Instances{ state | dirty_ids: %{}}}
   end
 
   #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
   #will be broadcast. Typically this will only be called by the scheduler.
-  defp _cycle_programs(program_contexts) when is_map(program_contexts) do
-    program_contexts
-    |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
-    |> _cycle_programs()
-    |> Map.new(fn [k,v] -> {k,v} end)
+  # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
+  defp _cycle_programs(program_contexts, state) when is_map(program_contexts) do
+    {program_contexts, state} = program_contexts
+                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
+                                |> _cycle_programs(state)
+    program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
+    {program_contexts, state}
   end
 
-  defp _cycle_programs([]), do: []
-  defp _cycle_programs([[line, program_context] | program_contexts]) do
-    updated_program_context = Scripting.Runner.run(program_context)
+  defp _cycle_programs([], state), do: {[], state}
+  defp _cycle_programs([[line, program_context] | program_contexts], state) do
+    runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object: program_context.object, state: state})
                               |> Map.put(:event_sender, program_context.event_sender)
-                              |> _handle_broadcasting()
+                              |> Instances.handle_broadcasting()
 
-    if updated_program_context.program.status == :dead do
-      [ _cycle_programs(program_contexts) ]
+    {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
+
+    if runner_state.program.status == :dead do
+      {[ other_program_contexts, runner_state.state ], updated_state}
     else
-      [ [line, updated_program_context] | _cycle_programs(program_contexts) ]
+      {[ [line, Map.take(runner_state, [:program, :object, :event_sender])] | other_program_contexts ], updated_state}
     end
-  end
-
-  defp _handle_broadcasting(program_context) do
-    _handle_broadcasts(program_context.program.broadcasts, "dungeons:#{program_context.object.map_instance_id}")
-    _handle_broadcasts(program_context.program.responses, program_context.event_sender)
-
-    %{ program_context | program: %{ program_context.program | responses: [], broadcasts: [] } }
-  end
-
-  defp _handle_broadcasts([ [event, payload] | messages], socket) when is_binary(socket) do
-    DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
-    _handle_broadcasts(messages, socket)
-  end
-  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.Player.Location{}) do
-    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
-    _handle_broadcasts(messages, player_location)
-  end
-  defp _handle_broadcasts(_, _), do: nil
-
-  defp _remove_coord(by_coords, %{row: row, col: col, z_index: z_index}) do
-    z_indexes = case Map.fetch(by_coords, {row, col}) do
-                  {:ok, z_index_map} -> Map.delete(z_index_map, z_index)
-                  _                  -> %{}
-                end
-    Map.put(by_coords, {row, col}, z_indexes)
-  end
-
-  defp _put_coord(by_coords, %{row: row, col: col, z_index: z_index}, map_tile_id) do
-    z_indexes = case Map.fetch(by_coords, {row, col}) do
-                  {:ok, z_index_map} -> Map.put(z_index_map, z_index, map_tile_id)
-                  _                  -> %{z_index => map_tile_id}
-                end
-    Map.put(by_coords, {row, col}, z_indexes)
-  end
-
-  @directions %{
-    "up"    => {-1,  0},
-    "down"  => { 1,  0},
-    "left"  => { 0, -1},
-    "right" => { 0,  1},
-    "north" => {-1,  0},
-    "south" => { 1,  0},
-    "west"  => { 0, -1},
-    "east"  => { 0,  1}
-  }
-
-  @no_direction { 0,  0}
-
-  defp _direction_delta(direction) do
-    @directions[direction] || @no_direction
   end
 end

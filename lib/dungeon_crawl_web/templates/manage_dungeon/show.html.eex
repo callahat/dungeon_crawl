@@ -25,9 +25,21 @@
 
 <div class="text-center">
 <%= if @instance do %>
-<%= render(DungeonCrawlWeb.SharedView, "dungeon_instance.html", dungeon: @instance, readonly: true, with_template_id: false) %>
+<%= render(DungeonCrawlWeb.SharedView,
+           "dungeon_instance.html",
+           dungeon: @instance,
+           width: @instance.width,
+           height: @instance.height,
+           readonly: true,
+           with_template_id: false) %>
 <% else %>
-<%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: @dungeon, readonly: true, with_template_id: false) %>
+<%= render(DungeonCrawlWeb.SharedView,
+           "dungeon.html",
+           dungeon: @dungeon,
+           width: @dungeon.width,
+           height: @dungeon.height,
+           readonly: true,
+           with_template_id: false) %>
 <% end %>
 </div>
 
