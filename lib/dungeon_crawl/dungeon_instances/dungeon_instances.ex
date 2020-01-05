@@ -125,7 +125,7 @@ defmodule DungeonCrawl.DungeonInstances do
                      Enum.reduce(chunked_changesets, 0, fn(map_tile_changeset, acc) ->
                        Repo.update(map_tile_changeset)
                        1 + acc
-                      end )
+                      end ) + acc
                     end )
         {:ok, result}
       end)

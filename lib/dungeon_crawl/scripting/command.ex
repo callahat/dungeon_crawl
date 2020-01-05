@@ -192,7 +192,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def move(%Runner{program: program} = runner_state, ["idle", _]) do
     %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5 } }
   end
-  def move(%Runner{program: program, object: object} = runner_state, [direction]) do
+  def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
   end
   def move(%Runner{program: program, object: object, state: state} = runner_state, [direction, retry_until_successful]) do
@@ -247,7 +247,7 @@ defmodule DungeonCrawl.Scripting.Command do
       object: object,
       state: state }
   """
-  def text(%Runner{program: program, state: state} = runner_state, params) do
+  def text(%Runner{program: program} = runner_state, params) do
     if params != [""] do
       # TODO: probably allow this to be refined by whomever the message is for
       message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")

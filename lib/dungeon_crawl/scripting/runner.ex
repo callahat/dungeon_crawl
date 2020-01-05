@@ -21,7 +21,7 @@ require Logger
     end
   end
 
-  def run(%Runner{program: program, object: object, state: state} = runner_state) do
+  def run(%Runner{program: program, object: object} = runner_state) do
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]

@@ -4,7 +4,6 @@ defmodule DungeonCrawl.Action.MoveTest do
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
 
   test "moving to an empty floor space" do
     floor_a           = %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "."}
@@ -13,10 +12,8 @@ defmodule DungeonCrawl.Action.MoveTest do
     player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
 
     {floor_a, state} = Instances.create_map_tile(%Instances{}, floor_a)
-    {floor_b, state} = Instances.create_map_tile(state, floor_b)
+    {_floor_b, state} = Instances.create_map_tile(state, floor_b)
     {player_location, state} = Instances.create_map_tile(state, player_location)
-
-    dungeon_map_tiles = [floor_a, floor_b, player_location]
 
     destination =     Instances.get_map_tile(state, %{row: 1, col: 1})
 

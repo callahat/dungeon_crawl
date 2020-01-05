@@ -1,8 +1,6 @@
 defmodule DungeonCrawl.InstanceProcessTest do
   use DungeonCrawl.DataCase
 
-  import ExUnit.CaptureLog
-
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Instances
@@ -250,11 +248,11 @@ defmodule DungeonCrawl.InstanceProcessTest do
   test "run_with/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     new_tile = %MapTile{id: 999, row: 1, col: 1, z_index: 1, character: "K"}
     return_value = InstanceProcess.run_with(instance_process, fn (state) ->
-                     {new_tile, state} = Instances.create_map_tile(state, new_tile)
+                     Instances.create_map_tile(state, new_tile)
                    end)
     assert return_value == Map.put(new_tile, :parsed_state, %{})
-    %Instances{ program_contexts: programs, 
-                map_by_ids: by_id,
+    %Instances{ program_contexts: _programs, 
+                map_by_ids: _by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert %{ {1, 1} => %{ 0 => ^map_tile_id, 1 => 999} } = by_coord
   end

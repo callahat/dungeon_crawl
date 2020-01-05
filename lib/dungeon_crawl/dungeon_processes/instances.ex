@@ -21,7 +21,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     {d_row, d_col} = _direction_delta(direction)
     get_map_tile(state, %{row: row + d_row, col: col + d_col})
   end
-  def get_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{row: row, col: col} = _map_tile) do
+  def get_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _map_tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          [{_z_index, top_tile}] <- Map.to_list(tiles)
                                    |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
@@ -36,11 +36,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Returns the map tiles in the given directon from the provided coordinates.
   """
-  def get_map_tiles(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{row: row, col: col} = map_tile, direction) do
+  def get_map_tiles(%Instances{} = state, %{row: row, col: col} = _map_tile, direction) do
     {d_row, d_col} = _direction_delta(direction)
     Instances.get_map_tiles(state, %{row: row + d_row, col: col + d_col})
   end
-  def get_map_tiles(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{row: row, col: col} = map_tile) do
+  def get_map_tiles(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _map_tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          tiles <- Map.to_list(tiles)
                   |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
@@ -55,14 +55,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Gets the map tile given by the id.
   """
-  def get_map_tile_by_id(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id} = map_tile) do
+  def get_map_tile_by_id(%Instances{map_by_ids: by_id} = _state, %{id: map_tile_id} = _map_tile) do
     by_id[map_tile_id]
   end
 
   @doc """
   Returns true or false, depending on if the given tile_id responds to the event.
   """
-  def responds_to_event?(%Instances{program_contexts: program_contexts} = state, %{id: map_tile_id}, event) do
+  def responds_to_event?(%Instances{program_contexts: program_contexts} = _state, %{id: map_tile_id}, event) do
     with %{^map_tile_id => %{program: program}} <- program_contexts,
          labels <- program.labels[event],
          true <- is_list(labels) do
@@ -191,7 +191,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     map_tile = by_id[map_tile_id]
 
     if map_tile do
-      z_index_map = by_coords[{map_tile.row, map_tile.col}] || %{}
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
       {map_tile, %Instances{ program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids }}

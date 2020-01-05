@@ -1,11 +1,8 @@
 defmodule DungeonCrawlWeb.PlayerChannel do
   use DungeonCrawl.Web, :channel
 
-  alias DungeonCrawl.Player
-
   def join("players:" <> location_id, _payload, socket) do
-    instance_id = String.to_integer(location_id)
-
+    # TODO: verify the player joining the channel is the player
     {:ok, %{location_id: location_id}, assign(socket, :location_id, location_id)}
   end
 

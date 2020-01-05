@@ -4,9 +4,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
-  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.Instances
 
   def program_fixture(script \\ nil) do
@@ -91,7 +89,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     program = program_fixture()
     stubbed_object = %{state: ""}
 
-    %Runner{object: updated_map_tile, program: program, state: state} = Command.halt(%Runner{program: program, object: stubbed_object})
+    %Runner{object: _updated_map_tile, program: program, state: _state} = Command.halt(%Runner{program: program, object: stubbed_object})
     assert program.status == :idle
     assert program.pc == -1
   end
@@ -160,7 +158,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Idle
-    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
+    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
@@ -191,7 +189,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful
-    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down", true])
+    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["down", true])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],

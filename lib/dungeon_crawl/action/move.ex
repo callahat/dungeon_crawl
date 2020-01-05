@@ -16,7 +16,7 @@ defmodule DungeonCrawl.Action.Move do
       {:invalid}
     end
   end
-  def go(_, _, %Instances{} = state), do: {:invalid}
+  def go(_, _, _), do: {:invalid}
 
   defp _valid_move(destination) do
     {:ok, state} = Parser.parse(destination.state)

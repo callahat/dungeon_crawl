@@ -4,7 +4,6 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
-  alias DungeonCrawl.DungeonProcesses.Instances
 
   describe "run" do
     test "executes from current pc" do

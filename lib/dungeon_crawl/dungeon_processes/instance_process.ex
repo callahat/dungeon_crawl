@@ -7,7 +7,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonInstances.MapTile
 
   ## Client API
 
@@ -177,7 +176,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_cast({:create_map_tile, {map_tile}}, %Instances{} = state) do
-    {map_tile, state} = Instances.create_map_tile(state, map_tile)
+    {_map_tile, state} = Instances.create_map_tile(state, map_tile)
     {:noreply, state}
   end
 
@@ -189,13 +188,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_cast({:update_map_tile, {tile_id, new_attributes}}, %Instances{} = state) do
-    {updated_tile, state} = Instances.update_map_tile(state, %{id: tile_id}, new_attributes)
+    {_updated_tile, state} = Instances.update_map_tile(state, %{id: tile_id}, new_attributes)
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:delete_map_tile, {map_tile_id}}, %Instances{} = state) do
-    {deleted_tile, state} = Instances.delete_map_tile(state, %{id: map_tile_id})
+    {_deleted_tile, state} = Instances.delete_map_tile(state, %{id: map_tile_id})
     {:noreply, state}
   end
 
