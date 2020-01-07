@@ -1,17 +1,11 @@
 defmodule DungeonCrawl.Scripting.CommandTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
-
-  def map_tile_fixture(attrs \\ %{}) do
-    impassable_floor = insert_tile_template(attrs)
-    
-    dungeon = insert_stubbed_dungeon_instance(%{},
-      [Map.merge(%{row: 1, col: 2, tile_template_id: impassable_floor.id, z_index: 0},
-                 Map.take(impassable_floor, [:character,:color,:background_color,:state,:script]))])
-    DungeonCrawl.DungeonInstances.get_map_tile! dungeon.id, 1, 2
-  end
+  alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.DungeonProcesses.Instances
 
   def program_fixture(script \\ nil) do
     script = script ||
@@ -32,7 +26,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:change_state) == :change_state
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
-    assert Command.get_command(:if) == :if
+    assert Command.get_command(:if) == :jump_if
     assert Command.get_command(:noop) == :noop
     assert Command.get_command(:text) == :text
 
@@ -40,34 +34,52 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
-    map_tile = map_tile_fixture()
     params = [%{character: "~", color: "puce"}]
 
-    %{object: updated_map_tile, program: _program} = Command.become(%{program: program, object: map_tile, params: params})
+    %Runner{object: updated_map_tile, state: state} = Command.become(%Runner{program: program, object: map_tile, state: state}, params)
 
-    refute Map.take(map_tile, [:character, :color]) == %{character: "~", color: "puce"}
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
     assert Map.take(updated_map_tile, [:character, :color]) == %{character: "~", color: "puce"}
   end
 
-  test "CHANGE_STATE" do
+  test "BECOME a ttid" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
-    map_tile = map_tile_fixture(%{state: "one: 100, add: 8"})
+    squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK"})
+    params = [{:ttid, squeaky_door.id}]
 
-    %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:add, "+=", 1]})
+    %Runner{object: updated_map_tile, program: program, state: state} = Command.become(%Runner{program: program, object: map_tile, state: state}, params)
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
+
+    refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
+    assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
+    assert program.status == :idle
+    assert %{1 => [:halt, [""]],
+             2 => [:noop, "TOUCH"],
+             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+  end
+
+  test "CHANGE_STATE" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"})
+    program = program_fixture()
+
+    %Runner{object: updated_map_tile, state: state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:add, "+=", 1])
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
     assert updated_map_tile.state == "add: 9, one: 100"
-    %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:one, "=", 432]})
+    %Runner{object: updated_map_tile, state: state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:one, "=", 432])
     assert updated_map_tile.state == "add: 8, one: 432"
-    %{object: updated_map_tile, program: _program} = Command.change_state(%{program: program, object: map_tile, params: [:new, "+=", 1]})
+    %Runner{object: updated_map_tile, state: _state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:new, "+=", 1])
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
   end
 
   test "DIE" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
-    map_tile = map_tile_fixture(%{script: "it does soemthing and this is a fake script"})
 
-    %{object: updated_map_tile, program: program} = Command.die(%{program: program, object: map_tile})
-
+    %Runner{object: updated_map_tile, program: program, state: state} = Command.die(%Runner{program: program, object: map_tile, state: state})
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
     assert program.status == :dead
     assert program.pc == -1
     assert updated_map_tile.script == ""
@@ -77,48 +89,149 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     program = program_fixture()
     stubbed_object = %{state: ""}
 
-    %{object: _, program: program} = Command.halt(%{program: program, object: stubbed_object})
+    %Runner{object: _updated_map_tile, program: program, state: _state} = Command.halt(%Runner{program: program, object: stubbed_object})
     assert program.status == :idle
     assert program.pc == -1
   end
 
-  test "IF when state check is TRUE" do
+  test "JUMP_IF when state check is TRUE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
     params = [["", :check_state, :thing, "", ""], "TOUCH"]
 
-    %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
+    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
     assert program.status == :alive
     assert program.pc == 3
   end
 
-  test "IF when state check is FALSE" do
+  test "JUMP_IF when state check is FALSE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
     params = [["!", :check_state, :thing, "", ""], "TOUCH"]
 
     assert program.status == :alive
-    %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
+    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
     assert program.status == :alive
     assert program.pc == 1
   end
 
-  test "IF when state check is TRUE but no active label" do
+  test "JUMP_IF when state check is TRUE but no active label" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
     params = [["!", :check_state, :thing, "", ""], "TOUCH"]
 
     program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
-    %{object: _, program: program} = Command.if(%{program: program, object: stubbed_object, params: params})
+    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "MOVE with one param" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    # Successful
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["left"])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful (but its a try and move that does not keep trying)
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down"])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Idle
+    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = program
+    assert updated_object2 = mover
+  end
+
+  test "MOVE with two params" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["left", true])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful
+    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["down", true])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 0 # decremented so when runner increments the PC it will still be the current move command
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+  end
+
+  test "MOVE into something blocking (or a nil square) triggers a THUD event" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    program = program_fixture("""
+                              #MOVE south
+                              #END
+                              #END
+                              :THUD
+                              #BECOME character: X
+                              """)
+
+    %Runner{program: program} = Command.move(%Runner{program: program, object: mover, state: state}, ["south", true])
+
+    assert %{status: :alive,
+             wait_cycles: 0,
+             broadcasts: [],
+             pc: 4
+           } = program
+  end
+
+  test "NOOP" do
+    program = program_fixture()
+    stubbed_object = %{state: "thing: true"}
+    runner_state = %Runner{object: stubbed_object, program: program}
+    assert runner_state == Command.noop(runner_state)
   end
 
   test "text" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
 
-    %{object: _, program: program} = Command.text(%{program: program, object: stubbed_object, params: ["I am just a simple text."]})
+    %Runner{program: program} = Command.text(%Runner{program: program, object: stubbed_object}, ["I am just a simple text."])
     assert program.responses == ["I am just a simple text."]
     assert program.status == :alive
     assert program.pc == 1

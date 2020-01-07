@@ -16,8 +16,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     open_door    = create_with_defaults!(%{character: "'", name: "Open Door", description: "An open door", state: "blocking: false, open: true"})
     closed_door  = create_with_defaults!(%{character: "+", name: "Closed Door", description: "A closed door", state: "blocking: true, open: false"})
 
-    open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{script: ":CLOSE\n#BECOME TTID:#{closed_door.id}"})
-    closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{script: ":OPEN\n#BECOME TTID:#{open_door.id}"})
+    open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{script: "#END\n:CLOSE\n#BECOME TTID:#{closed_door.id}"})
+    closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{script: "#END\n:OPEN\n#BECOME TTID:#{open_door.id}"})
 
     solo_door() # placeholder for now
 

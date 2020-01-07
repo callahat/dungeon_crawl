@@ -83,7 +83,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   defp assign_player_location(conn, _opts) do
     player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(map_tile: [:dungeon, dungeon: [dungeon_map_tiles: :tile_template]])
+                      |> Repo.preload(map_tile: [:dungeon])
+
     conn
     |> assign(:player_location, player_location)
   end

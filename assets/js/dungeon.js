@@ -31,6 +31,10 @@ let Dungeon = {
         console.log("joined the dungeons channel!")
       })
       .receive("error", resp => console.log("join failed", resp))
+
+    window.addEventListener('beforeunload', (event) => {
+      socket.disconnect()
+    })
   },
   setupWindowListeners(dungeonChannel){
     let suppressDefaultKeys = [37,38,39,40]

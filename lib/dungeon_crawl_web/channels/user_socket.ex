@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.UserSocket do
   ## Channels
   # channel "room:*", DungeonCrawlWeb.RoomChannel
   channel "dungeons:*", DungeonCrawlWeb.DungeonChannel
+  channel "players:*", DungeonCrawlWeb.PlayerChannel
 
   ## Transports
   # transport :websocket, Phoenix.Transports.WebSocket

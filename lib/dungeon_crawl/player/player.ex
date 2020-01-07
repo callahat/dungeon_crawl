@@ -145,6 +145,14 @@ defmodule DungeonCrawl.Player do
              left_join: pmt in assoc(mt, :player_locations),
              select: count(pmt.id))
   end
+  # TODO: consolidate
+  def players_in_dungeon(%{instance_id: instance_id}) do
+    Repo.one(from m in DungeonCrawl.DungeonInstances.Map,
+             where: m.id == ^instance_id,
+             left_join: mt in assoc(m, :dungeon_map_tiles),
+             left_join: pmt in assoc(mt, :player_locations),
+             select: count(pmt.id))
+  end
 
   @doc """
   Returns the dungeon of the instance where the player location is.
