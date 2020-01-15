@@ -13,6 +13,8 @@
 // to also remove its path from "config.paths.watched".
 import css from '../css/app.css';
 
+import 'bootstrap'
+
 import "phoenix_html"
 
 // Import local files
