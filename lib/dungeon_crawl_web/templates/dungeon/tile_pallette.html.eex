@@ -13,8 +13,8 @@
         Responders: <span id="active_tile_responders">{}</span>
       </div>
       <div id="color_area" class="hidden">
-        <span><pre class="tile_template_preview embiggen" id="tile_color_pre" title="foreground">F</pre><input id="tile_color" type="text" value="" placeholder="foreground"/></span>
-        <span><pre class="tile_template_preview embiggen" id="tile_background_color_pre" title="background">B</pre><input id="tile_background_color" type="text" value="" placeholder="backround"/></span>
+        <div><pre class="tile_template_preview embiggen" id="tile_color_pre" title="foreground">F</pre><input id="tile_color" type="text" value="" placeholder="foreground" class="small"/></div>
+        <div><pre class="tile_template_preview embiggen" id="tile_background_color_pre" title="background">B</pre><input id="tile_background_color" type="text" value="" placeholder="backround" class="small"/></div>
       </div>
     </div>
   </div>

@@ -2,13 +2,30 @@
 @import "../node_modules/bootstrap/dist/css/bootstrap.css";
 @import "../node_modules/font-awesome/css/font-awesome.css";
 
+body {
+    min-height: 75rem;
+    padding-top: 4.5rem;
+}
+
+pre#short_comm {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+}
+
 pre.dungeon_preview {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
   padding: 0.5em;
 }
 
 pre.color_pallette {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
   padding: 0.5em;
@@ -16,6 +33,8 @@ pre.color_pallette {
 }
 
 pre.tile_template_preview {
+  background: #f5f5f5;
+  border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
   padding: 0;
@@ -23,6 +42,11 @@ pre.tile_template_preview {
   font-size: 13px;
   margin: 0;
   overflow: hidden;
+  vertical-align: middle;
+}
+
+pre.small {
+  font-size:small;
 }
 
 pre.embiggen {
@@ -34,7 +58,6 @@ pre.embiggen_most {
 }
 
 pre.dungeon_preview table, pre.color_pallette table {
-  display: inline-block;
   margin: 0;
   padding: 0;
   -webkit-touch-callout: none;
@@ -43,6 +66,11 @@ pre.dungeon_preview table, pre.color_pallette table {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+pre.dungeon_preview table tr td, pre.color_pallette table tr td {
+  margin: 0;
+  padding: 0;
 }
 
 #dungeon_editor pre.dungeon_preview table td.hilight,
@@ -55,8 +83,6 @@ pre.dungeon_preview table, pre.color_pallette table {
 #dungeon_editor .tile_template_preview div:hover{
   background-color:orange !important;
 }
-
-.breadcrumb > li.pull-left + li:before {content: none;}
 
 input#tile_template_character {
   width: 3em;
@@ -76,4 +102,8 @@ a.pallette_tools.active {
 
 a.pallette_tools.inactive {
   font-weight: bold;
+}
+
+.hidden {
+  display: none !important;
 }
