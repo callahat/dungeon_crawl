@@ -13,7 +13,7 @@
 
   <body>
 
-    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark flex-md-nowrap">
       <button class="navbar-toggler collapsed" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -39,14 +39,16 @@
       </div>
     </nav>
 
-    <main class="container" role="main">
-      <div>
-      <%= if get_flash(@conn, :info) do %><p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p><% end %>
-      <%= if get_flash(@conn, :error) do %><p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p><% end %>
+    <div class="container-fluid">
+      <div class="row">
+        <main class="<%= main_tag_class(assigns) %>" role="main">
+          <%= if get_flash(@conn, :info) do %><p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p><% end %>
+          <%= if get_flash(@conn, :error) do %><p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p><% end %>
 
-      <%= render @view_module, @view_template, assigns %>
+          <%= render @view_module, @view_template, assigns %>
+        </main>
       </div>
-    </main>
+    </div>
 
   </body>
   <script>window.userToken = "<%= assigns[:user_token] %>"</script>
