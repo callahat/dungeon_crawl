@@ -37,9 +37,9 @@
 
       <td class="text-right">
         <%= activate_or_new_version_button(@conn, tile_template) %>
-        <%= link "Show", to: Routes.manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-default btn-xs" %>
-        <%= unless tile_template.active, do: link "Edit", to: Routes.manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= link "Show", to: Routes.manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-light btn-sm" %>
+        <%= unless tile_template.active, do: link "Edit", to: Routes.manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-light btn-sm" %>
+        <%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
       </td>
     </tr>
 <% end %>

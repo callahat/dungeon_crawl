@@ -10,14 +10,14 @@ defmodule DungeonCrawlWeb.ManageTileTemplateView do
              to: Routes.manage_tile_template_new_version_path(conn, :new_version, tile_template),
              method: :post,
              data: [confirm: "Are you sure?"],
-             class: "btn btn-info btn-xs"
+             class: "btn btn-info btn-sm"
       end
     else
       link "Activate",
            to: Routes.manage_tile_template_activate_path(conn, :activate, tile_template),
            method: :put,
            data: [confirm: "Are you sure?"],
-           class: "btn btn-info btn-xs"
+           class: "btn btn-success btn-sm"
     end
   end
 

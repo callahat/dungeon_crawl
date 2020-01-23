@@ -28,8 +28,8 @@
       <td><%= dungeon.updated_at %></td>
 
       <td class="text-right">
-        <%= link "Show", to: Routes.manage_dungeon_path(@conn, :show, dungeon), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: Routes.manage_dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= link "Show", to: Routes.manage_dungeon_path(@conn, :show, dungeon), class: "btn btn-light btn-sm" %>
+        <%= link "Delete", to: Routes.manage_dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
       </td>
     </tr>
 <% end %>

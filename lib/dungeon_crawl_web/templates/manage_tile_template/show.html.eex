@@ -71,5 +71,5 @@
 <%= link "Edit", to: Routes.manage_tile_template_path(@conn, :edit, @tile_template) %> |
 <% end %>
 <%= link "Back", to: Routes.manage_tile_template_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, @tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, @tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 

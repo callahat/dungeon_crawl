@@ -12,9 +12,9 @@
     <tr>
 
       <td class="text-right">
-        <%= link "Show", to: Routes.crawler_path(@conn, :show, crawler), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: Routes.crawler_path(@conn, :edit, crawler), class: "btn btn-default btn-xs" %>
-        <%= link "Delete", to: Routes.crawler_path(@conn, :delete, crawler), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <%= link "Show", to: Routes.crawler_path(@conn, :show, crawler), class: "btn btn-light btn-sm" %>
+        <%= link "Edit", to: Routes.crawler_path(@conn, :edit, crawler), class: "btn btn-light btn-sm" %>
+        <%= link "Delete", to: Routes.crawler_path(@conn, :delete, crawler), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
       </td>
     </tr>
 <% end %>

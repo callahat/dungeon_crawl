@@ -10,12 +10,12 @@
            readonly: false,
            with_template_id: false) %>
 <br/>
-<%= link "Leave Dungeon", to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Leave Dungeon", to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-sm" %>
 </div>
 <% else %>
 Not currently in any dungeon.
 <br/>
-<%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 
 <br/>
 <br/>
@@ -42,7 +42,7 @@ Or join:
             <td><%= instance.locations |> Enum.count %></td>
             <td>
               <span class="pull-right">
-                <%= link "Join", to: Routes.crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+                <%= link "Join", to: Routes.crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
               </span>
             </td>
           </tr>
@@ -50,7 +50,7 @@ Or join:
           <tr>
             <td colspan=100%>
               <span class="pull-right">
-                <%= link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+                <%= link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
               </span>
             </td>
           <tr>

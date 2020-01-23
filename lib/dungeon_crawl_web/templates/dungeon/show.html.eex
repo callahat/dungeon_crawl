@@ -13,5 +13,5 @@
 <%= link "Edit", to: Routes.dungeon_path(@conn, :edit, @dungeon) %> |
 <% end %>
 <%= link "Back", to: Routes.dungeon_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Delete", to: Routes.dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 
