@@ -29,15 +29,11 @@ let DungeonEditor = {
     window.addEventListener('mouseup', e => {this.disablePainting()} );
 
 
-    document.getElementById("tile_pallette_tools").addEventListener('click', e => {
-      e.preventDefault()
-      this.toggleActiveToolLink("tile_pallette", "color")
+    document.getElementById("tiletool-tab").addEventListener('click', e => {
       this.mode = "tile_painting"
     });
 
-    document.getElementById("color_tools").addEventListener('click', e => {
-      e.preventDefault()
-      this.toggleActiveToolLink("color", "tile_pallette")
+    document.getElementById("colortool-tab").addEventListener('click', e => {
       this.mode = "color_painting"
     });
 
@@ -109,7 +105,6 @@ let DungeonEditor = {
 
     document.getElementById("active_tile_character").innerHTML = tag.innerHTML
     document.getElementById("active_tile_description").innerText = tag.getAttribute("data-tile-template-description")
-    document.getElementById("active_tile_responders").innerText = tag.getAttribute("data-tile-template-responders")
 
     this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")

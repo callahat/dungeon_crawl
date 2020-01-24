@@ -1,13 +1,26 @@
 /* This file is for your main application css. */
-@import "./phoenix.css";
+@import "../node_modules/bootstrap/dist/css/bootstrap.css";
+@import "../node_modules/font-awesome/css/font-awesome.css";
+
+pre#short_comm {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+}
 
 pre.dungeon_preview {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
   padding: 0.5em;
 }
 
 pre.color_pallette {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
   padding: 0.5em;
@@ -15,6 +28,8 @@ pre.color_pallette {
 }
 
 pre.tile_template_preview {
+  background: #f5f5f5;
+  border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
   padding: 0;
@@ -22,6 +37,11 @@ pre.tile_template_preview {
   font-size: 13px;
   margin: 0;
   overflow: hidden;
+  vertical-align: middle;
+}
+
+pre.small {
+  font-size:small;
 }
 
 pre.embiggen {
@@ -33,7 +53,6 @@ pre.embiggen_most {
 }
 
 pre.dungeon_preview table, pre.color_pallette table {
-  display: inline-block;
   margin: 0;
   padding: 0;
   -webkit-touch-callout: none;
@@ -42,6 +61,11 @@ pre.dungeon_preview table, pre.color_pallette table {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+pre.dungeon_preview table tr td, pre.color_pallette table tr td {
+  margin: 0;
+  padding: 0;
 }
 
 #dungeon_editor pre.dungeon_preview table td.hilight,
@@ -55,24 +79,113 @@ pre.dungeon_preview table, pre.color_pallette table {
   background-color:orange !important;
 }
 
-.breadcrumb > li.pull-left + li:before {content: none;}
-
 input#tile_template_character {
   width: 3em;
   padding-left: 1.2em;
 }
 
 .tile_pallette_group {
-  height: 100px;
   overflow-y: scroll;
 }
 
-a.pallette_tools.active {
-  font-weight: bold;
-  text-decoration: none;
+.hidden {
+  display: none !important;
+}
+
+/*
+ * Table with sticky header row
+ */
+
+.table-responsive{
+  height: calc(100vh - 120px);
+  overflow-y: scroll;
+  border-top: 1px black solid;
+}
+
+.table-responsive thead tr:nth-child(1) th{
+  border-top: none;
+  background: #FAFAFA;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/*
+ * Sidebar
+ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100; /* Behind the navbar */
+  padding: 56px 0 0; /* Height of navbar */
+}
+
+.sidebar-sticky {
+  position: relative;
+  top: 0;
+  height: calc(100vh - 48px);
+  padding-top: .5rem;
+  overflow-x: hidden;
+  overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+}
+
+@supports ((position: -webkit-sticky) or (position: sticky)) {
+  .sidebar-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+  }
+}
+
+.sidebar .nav-link {
+  font-weight: 500;
+  color: #333;
+}
+
+.sidebar .nav-link .feather {
+  margin-right: 4px;
+  color: #999;
+}
+
+.sidebar .nav-link.active {
+  color: #007bff;
+}
+
+.sidebar .nav-link:hover .feather,
+.sidebar .nav-link.active .feather {
   color: inherit;
 }
 
-a.pallette_tools.inactive {
-  font-weight: bold;
+.sidebar-heading {
+  font-size: .75rem;
+  text-transform: uppercase;
 }
+
+/*
+ * Content
+ */
+
+[role="main"] {
+  padding-top: 56px; /* Space for fixed navbar */
+}
+
+@media (min-width: 768px) {
+  [role="main"] {
+    padding-top: 56px; /* Space for fixed navbar */
+  }
+}
+
+/*
+ * Navbar
+ */
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, .25);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+}
+

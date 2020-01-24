@@ -21,5 +21,5 @@
 
 <%= link "Edit", to: Routes.manage_user_path(@conn, :edit, @user) %> |
 <%= link "Back", to: Routes.manage_user_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.manage_user_path(@conn, :delete, @user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+<%= link "Delete", to: Routes.manage_user_path(@conn, :delete, @user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 

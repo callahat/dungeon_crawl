@@ -16,5 +16,5 @@
 
 <%= link "Edit", to: Routes.user_path(@conn, :edit) %> |
 <%= link "Back", to: Routes.page_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.user_path(@conn, :delete), method: :delete, data: [confirm: "Are you sure you want to delete your account?"], class: "btn btn-danger btn-xs" %>
+<%= link "Delete", to: Routes.user_path(@conn, :delete), method: :delete, data: [confirm: "Are you sure you want to delete your account?"], class: "btn btn-danger btn-sm" %>
 
