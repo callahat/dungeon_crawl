@@ -93,6 +93,24 @@ input#tile_template_character {
 }
 
 /*
+ * Table with sticky header row
+ */
+
+.table-responsive{
+  height: calc(100vh - 120px);
+  overflow-y: scroll;
+  border-top: 1px black solid;
+}
+
+.table-responsive thead tr:nth-child(1) th{
+  border-top: none;
+  background: #FAFAFA;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/*
  * Sidebar
  */
 
@@ -170,3 +188,4 @@ input#tile_template_character {
   background-color: rgba(0, 0, 0, .25);
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
 }
+

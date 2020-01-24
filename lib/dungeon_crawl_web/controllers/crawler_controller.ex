@@ -15,10 +15,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
-#  def index(conn, _params) do
-#    render(conn, "index.html", crawler: crawler)
-#  end
-
   def show(conn, _opts) do
     player_location = conn.assigns[:player_location]
 
