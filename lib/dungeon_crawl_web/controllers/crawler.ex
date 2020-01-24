@@ -63,10 +63,11 @@ defmodule DungeonCrawlWeb.Crawler do
     map_tile = Repo.preload(location, :map_tile).map_tile
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_tile.map_instance_id)
     deleted_location = InstanceProcess.run_with(instance, fn (instance_state) ->
-      {_, instance_state} = Instances.delete_map_tile(instance_state, map_tile)
+      {deleted_instance_location, instance_state} = Instances.delete_map_tile(instance_state, map_tile)
+
       deleted_location = Player.delete_location!(location)
 
-      _broadcast_leave_event(instance_state, deleted_location)
+      _broadcast_leave_event(instance_state, deleted_instance_location)
 
       {deleted_location, instance_state}
     end)
@@ -78,15 +79,15 @@ defmodule DungeonCrawlWeb.Crawler do
     deleted_location
   end
 
-  defp _broadcast_leave_event(instance_state, location) do
-    top = Instances.get_map_tile(instance_state, location.map_tile)
+  defp _broadcast_leave_event(instance_state, map_tile) do
+    top = Instances.get_map_tile(instance_state, map_tile)
     tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
-#    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
+#    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{map_tile.map_instance_id}",
 #                                    "player_left",
-#                                    %{row: location.map_tile.row, col: location.map_tile.col, tile: tile})
-    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
+#                                    %{row: map_tile.row, col: map_tile.col, tile: tile})
+    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{map_tile.map_instance_id}",
                                     "tile_changes",
-                                    %{ tiles: [%{row: location.map_tile.row, col: location.map_tile.col, rendering: tile}] })
+                                    %{ tiles: [%{row: map_tile.row, col: map_tile.col, rendering: tile}] })
 
   end
 end
