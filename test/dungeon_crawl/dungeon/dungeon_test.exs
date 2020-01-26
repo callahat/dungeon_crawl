@@ -333,7 +333,15 @@ defmodule DungeonCrawl.DungeonTest do
       refute Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col})
     end
 
-    test "get_map_tile/3 returns a map_tile" do
+    test "get_map_tile/4 returns a map_tile with given z_index" do
+      bottom_tile = map_tile_fixture()
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
+      assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col, 0) == bottom_tile
+      refute Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col, 0) == map_tile
+      refute Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col, 99)
+    end
+
+    test "get_map_tile/3 returns a map_tile with highest z_index" do
       bottom_tile = map_tile_fixture()
       map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tile(map_tile.dungeon_id, map_tile.row, map_tile.col) == map_tile

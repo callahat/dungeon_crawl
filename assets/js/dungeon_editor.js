@@ -79,12 +79,13 @@ let DungeonEditor = {
     var map_tile_changes = []
 
     for(let tile_change of Array.from(document.getElementsByClassName("changed-map-tile"))){
-      let [row, col] = tile_change.getAttribute("id").split("_").map(i => parseInt(i))
+      let [row, col] = tile_change.parentNode.getAttribute("id").split("_").map(i => parseInt(i))
       let ttid = parseInt(tile_change.getAttribute("data-tile-template-id"))
       let color = tile_change.getAttribute("data-color")
       let background_color = tile_change.getAttribute("data-background-color")
+      let z_index = tile_change.getAttribute("data-z-index")
 
-      map_tile_changes.push({row: row, col: col, tile_template_id: ttid, color: color, background_color: background_color })
+      map_tile_changes.push({row: row, col: col, z_index: z_index, tile_template_id: ttid, color: color, background_color: background_color })
     }
     document.getElementById("map_tile_changes").value = JSON.stringify(map_tile_changes)
     //event.preventDefault()

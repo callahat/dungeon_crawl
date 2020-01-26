@@ -148,13 +148,19 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "redirects when data is valid", %{conn: conn, dungeon: dungeon} do
       tile_template = insert_tile_template(%{character: "X", color: "white", background_color: "blue"})
+      dmt_attrs = Map.take(Dungeon.get_map_tile(dungeon.id, 1, 1), [:dungeon_id, :row, :col, :tile_template_id, :character, :color, :background_color])
+      {:ok, other_tile} = Dungeon.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
 
       conn = put conn, dungeon_path(conn, :update, dungeon),
-                   map: Elixir.Map.put(@update_attrs, :tile_changes, "[{\"row\": 1, \"col\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]")
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1).character == tile_template.character
-      refute Dungeon.get_map_tile(dungeon.id, 1, 1).color == tile_template.color
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1).color == "red"
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1).background_color == tile_template.background_color
+                   map: Elixir.Map.put(@update_attrs, :tile_changes, "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]")
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).character == tile_template.character
+      refute Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == tile_template.color
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == "red"
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).background_color == tile_template.background_color
+
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).character == other_tile.character
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).color == other_tile.color
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).background_color == other_tile.background_color
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
     end
 

@@ -88,7 +88,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, tile_updates} ->
         # TODO: move this to a method in Dungeon
         tile_updates
-        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"]),
+        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"], tu["z_index"]),
                                TileTemplates.get_tile_template(tu["tile_template_id"]),
                                tu["color"],
                                tu["background_color"]
