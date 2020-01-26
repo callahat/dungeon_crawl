@@ -155,22 +155,23 @@ let DungeonEditor = {
     //var paintMethod;
     if(this.mode == "color_painting") {
       var paintMethod = this.colorTile,
-          attributes = ["data-color", "data-background-color","data-tile-template-id"]
+          attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_painting") {
       if(this.historicTile) { return }
       var paintMethod = this.paintTile,
-          attributes = ["data-tile-template-id"]
+          attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
       return
     }
 
     let map_location = this.getMapLocation(event)
+
     if(!map_location) { return } // event picked up on bad element
 
     this.painted = true
 
-    var targetCoord = map_location.id.split("_").map(c => {return parseInt(c)})
+    var targetCoord = map_location.parentNode.id.split("_").map(c => {return parseInt(c)})
 
     if(event.shiftKey && event.ctrlKey){
       this.paintTiles(this.coordsForFill(targetCoord, map_location, attributes), paintMethod)
@@ -184,30 +185,45 @@ let DungeonEditor = {
   },
   paintTiles(coords, paintMethod){
     for(let coord of coords){
+      /* If current tile selection is top + 1, get the top non hidden tile that is not class new-map-tile
+            if there is a new map tile, that one will be selected for both top + 1 as well as the current z_index being edited.
+            if current z_index being edited is greater than the tile there (can be tile with changed-map-tile class, that
+            still indicates the topmost tile is not newly placed.
+         Then how to stack multiple tiles? 
+         Have top level being edited be explicit. Painting color (and erasing when that comes) drops to the visible tile
+            (probably should not jump z_indexes on a fill though)
+          
+       */
+      var location_td = document.getElementById(coord)
       paintMethod(document.getElementById(coord), this)
     }
   },
-  colorTile(map_location, context){
-    let div = map_location.children[0]
-    map_location.setAttribute("data-color", context.selectedColor)
-    map_location.setAttribute("data-background-color", context.selectedBackgroundColor)
-    context.updateColors(div, context.selectedColor, context.selectedBackgroundColor)
-    map_location.setAttribute("class", "changed-map-tile")
-  },
-  paintTile(map_location, context){
-    let old_tile = map_location.children[0]
+  colorTile(map_location_td, context){
+    // There should only ever be one not hidden
+    let div = map_location_td.querySelector("div:not([hidden])")
 
-    map_location.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
-    map_location.removeChild(old_tile)
-    map_location.setAttribute("data-tile-template-id", context.selectedTileId)
-    map_location.setAttribute("data-color", context.selectedTileColor)
-    map_location.setAttribute("data-background-color", context.selectedTileBackgroundColor)
-    map_location.setAttribute("class", "changed-map-tile")
+    div.setAttribute("data-color", context.selectedColor)
+    div.setAttribute("data-background-color", context.selectedBackgroundColor)
+    context.updateColors(div.children[0], context.selectedColor, context.selectedBackgroundColor)
+    div.setAttribute("class", "changed-map-tile")
+  },
+  paintTile(map_location_td, context){
+    // there should only ever be one not hidden, TODO: but want to also get the current edited z-index
+    let div = map_location_td.querySelector("div:not([hidden])")
+    let old_tile = div.children[0]
+
+    div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
+    div.removeChild(old_tile)
+    div.setAttribute("data-tile-template-id", context.selectedTileId)
+    div.setAttribute("data-color", context.selectedTileColor)
+    div.setAttribute("data-background-color", context.selectedTileBackgroundColor)
+    div.setAttribute("class", "changed-map-tile")
   },
   getMapLocation(event){
-    if(event.target.tagName != "DIV" && event.target.tagName != "TD"){
+    // if it hits TD, more work would be needed to figure out what div is the active targr
+    if(event.target.tagName != "DIV"){
       return
-    } else if(event.target.tagName == "DIV"){
+    } else if(event.target.tagName == "DIV" && event.target.parentNode.tagName == "DIV"){
       return(event.target.parentNode)
     } else {
       return(event.target)
@@ -239,7 +255,7 @@ let DungeonEditor = {
 
       for(let candidate of this.adjacentCoords(coord)) {
         let tileId = candidate.join("_")
-        el = document.getElementById(tileId)
+        el = document.querySelector("td[id='"+tileId+"'] div:not([hidden])")
         if(!(coords.find(c => { return c == tileId }) || frontier.find(c => { return c.join("_") == tileId })) &&
            this.sameTileTemplate(el, map_location, attributes)){
           frontier.push(candidate)
@@ -265,7 +281,7 @@ let DungeonEditor = {
       let elem = document.querySelectorAll(".tile_template_preview:hover")[0]
       if(!elem) { return }
 
-      for(let element of document.querySelectorAll('td[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] div')){
+      for(let element of document.querySelectorAll('div[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] div')){
         element.classList.add("hilight");
       }
     }

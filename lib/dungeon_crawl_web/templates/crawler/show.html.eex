@@ -7,8 +7,7 @@
            dungeon: @player_location.map_tile.dungeon, # Make this the instance
            height: @player_location.map_tile.dungeon.height,
            width: @player_location.map_tile.dungeon.width,
-           readonly: false,
-           with_template_id: false) %>
+           readonly: false) %>
 <br/>
 <%= link "Leave Dungeon", to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-sm" %>
 </div>
