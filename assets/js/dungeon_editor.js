@@ -81,6 +81,12 @@ let DungeonEditor = {
     document.getElementById("z_upper_max").addEventListener('click', e => {
       document.getElementById("z_index_upper").value = this.zIndexUpperBound
     })
+    document.getElementById("z_index_upper").addEventListener('change', e => {
+      this.updateVisibleStacks();
+    })
+    document.getElementById("z_index_lower").addEventListener('change', e => {
+      this.updateVisibleStacks();
+    })
 
     // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
@@ -354,6 +360,25 @@ let DungeonEditor = {
       var style = "color:" + color + ";background-color:" + background_color;
     }
     element.setAttribute("style", style)
+  },
+  updateVisibleStacks(){
+    let topTile,
+        tiles,
+        upperZIndex = document.getElementById("z_index_upper").value,
+        blankDiv = document.createElement("div");
+    blankDiv.setAttribute("data-z-index", upperZIndex)
+    blankDiv.innerText = " "
+    for(let td of document.querySelectorAll('#dungeon tr td')){
+      tiles = Array.from(td.children)
+      topTile = tiles.filter((a)=> a.getAttribute("data-z-index") <= upperZIndex )
+                     .sort((a,b) => a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))[0]
+      tiles.map((div) => div.classList.add("hidden"))
+      if(topTile){
+        topTile.classList.remove("hidden")
+      } else {
+        td.appendChild(blankDiv.cloneNode(true))
+      }
+    }
   },
   selectedTileId: null,
   selectedTileHtml: null,
