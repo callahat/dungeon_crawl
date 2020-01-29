@@ -98,6 +98,19 @@ defmodule DungeonCrawl.Dungeon do
 
   def get_map_by(attrs), do: Repo.get_by!(Map, attrs)
 
+
+  @doc """
+  Returns a tuple containing the lowest z_index and highest z_index values, respectively.
+  """
+  def get_bounding_z_indexes(%Map{id: dungeon_id}) do
+    get_bounding_z_indexes(dungeon_id)
+  end
+  def get_bounding_z_indexes(dungeon_id) do
+    Repo.one(from mt in MapTile,
+             where: mt.dungeon_id == ^dungeon_id,
+             select: {min(mt.z_index), max(mt.z_index)})
+  end
+
   @doc """
   Returns list of historic (ie, soft deleted) TileTemplates which are present in the dungeon.
   These not selectable for new dungeon design.

@@ -61,8 +61,9 @@ defmodule DungeonCrawlWeb.DungeonController do
     historic_templates = Dungeon.list_historic_tile_templates(dungeon)
 
     changeset = Dungeon.change_map(dungeon)
+    {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z)
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do

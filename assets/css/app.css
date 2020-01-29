@@ -92,6 +92,15 @@ input#tile_template_character {
   display: none !important;
 }
 
+#z_index_range_tool input:focus, #z_index_range_tool button:focus{
+  box-shadow: none;
+}
+
+#z_index_range_tool .active {
+  border: 3px solid blue;
+  background-color: #E0E0FF;
+}
+
 /*
  * Table with sticky header row
  */

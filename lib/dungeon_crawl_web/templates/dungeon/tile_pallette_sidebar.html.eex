@@ -1,9 +1,33 @@
 <nav class="col-md-3 col-lg-3 d-none d-md-block bg-light sidebar">
   <div class="sidebar-sticky">
     <ul class="nav flex-column">
+      <li class="nav-item px-2">
+        <div id="z_index_range_tool">
+          <div>Z index range</div>
+          <div class="row">
+            <div class="col-6">Lower</div>
+            <div class="col-6">Upper</div>
+          </div>
+          <div class="row">
+            <div class="col-6"><%= text_input :z_index, :lower, type: :number, class: "form-control text-center", value: @low_z_index %></div>
+            <div class="col-6"><%= text_input :z_index, :upper, type: :number, class: "form-control text-center", value: @high_z_index %></div>
+          </div>
+          <div class="row">
+            <div class="col-6">
+            <button id="z_lower_min" class="btn btn-info btn-sm" title="Lowest Z Index">&lt;&lt;</button>
+            <button id="z_lower_max" class="btn btn-info btn-sm" title="Match Upper Bound">&gt;&gt;</button>
+          </div>
+          <div class="col-6">
+            <button id="z_upper_min" class="btn btn-info btn-sm" title="Match Lower Bound">&lt;&lt;</button>
+            <button id="z_upper_max" class="btn btn-info btn-sm" title="Highest Z Index">&gt;&gt;</button>
+            </div>
+          </div>
+        </div>
+      </li>
       <li class="nav-item pl-2">
         <% # TODO: displaying this when the window is small? %>
         <div>
+
           <ul class="nav nav-tabs" id="tool_tab" role="tablist">
             <li class="nav-item">
               <a class="nav-link active" id="tiletool-tab" data-toggle="tab" href="#tiletool" role="tab" aria-controls="tiletool" aria-selected="true">Tiles</a>

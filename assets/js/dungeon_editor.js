@@ -68,6 +68,21 @@ let DungeonEditor = {
     //  window.addEventListener(events[i], report, false);
     }*/
 
+    // Z Index tool
+    document.getElementById("z_lower_min").addEventListener('click', e => {
+      document.getElementById("z_index_lower").value = this.zIndexLowerBound
+    })
+    document.getElementById("z_lower_max").addEventListener('click', e => {
+      document.getElementById("z_index_lower").value = parseInt(document.getElementById("z_index_upper").value)
+    })
+    document.getElementById("z_upper_min").addEventListener('click', e => {
+      document.getElementById("z_index_upper").value = parseInt(document.getElementById("z_index_lower").value)
+    })
+    document.getElementById("z_upper_max").addEventListener('click', e => {
+      document.getElementById("z_index_upper").value = this.zIndexUpperBound
+    })
+
+    // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
     if(dungeonForm.addEventListener){
       dungeonForm.addEventListener("submit", this.submitForm, false);  //Modern browsers
@@ -352,7 +367,10 @@ let DungeonEditor = {
   hilightable: true,
   mode: "tile_painting",
   selectedColor: null,
-  selectedBackgroundColor: null
+  selectedBackgroundColor: null,
+  zIndexBoundSelected: null,
+  zIndexUpperBound: 0,
+  zIndexLowerBound: 0
 }
 
 export default DungeonEditor
