@@ -222,7 +222,7 @@ let DungeonEditor = {
   },
   colorTile(map_location_td, context){
     // There should only ever be one not hidden
-    let div = map_location_td.querySelector("div:not([hidden])")
+    let div = map_location_td.querySelector("td > div:not([class=hidden])")
 
     div.setAttribute("data-color", context.selectedColor)
     div.setAttribute("data-background-color", context.selectedBackgroundColor)
@@ -231,7 +231,7 @@ let DungeonEditor = {
   },
   paintTile(map_location_td, context){
     // there should only ever be one not hidden, TODO: but want to also get the current edited z-index
-    let div = map_location_td.querySelector("div:not([hidden])")
+    let div = map_location_td.querySelector("td > div:not([class=hidden])")
     let old_tile = div.children[0]
 
     div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
@@ -367,7 +367,7 @@ let DungeonEditor = {
         upperZIndex = document.getElementById("z_index_upper").value,
         blankDiv = document.createElement("div");
     blankDiv.setAttribute("data-z-index", upperZIndex)
-    blankDiv.innerText = " "
+    blankDiv.innerHTML = "<div> </div>"
     for(let td of document.querySelectorAll('#dungeon tr td')){
       tiles = Array.from(td.children)
       topTile = tiles.filter((a)=> a.getAttribute("data-z-index") <= upperZIndex )
