@@ -198,7 +198,7 @@ let DungeonEditor = {
       return
     }
 
-    let map_location = this.getMapLocation(event)
+    let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
 
     if(!map_location) { return } // event picked up on bad element
 
@@ -242,6 +242,7 @@ let DungeonEditor = {
       let blankDiv = document.createElement("div");
       blankDiv.setAttribute("data-z-index", document.getElementById("z_index_current").value)
       blankDiv.innerHTML = "<div> </div>"
+      blankDiv.classList.add("placeholder")
       map_location_td.appendChild(blankDiv)
       return(blankDiv)
     }
@@ -300,17 +301,21 @@ let DungeonEditor = {
     let frontier = [target_coord]
     let coords = []
     let el = null
+    let map_tile_td
+    let tileId
 
     while(frontier.length > 0){
       let coord = frontier.pop()
       coords.push(coord.join("_"))
 
       for(let candidate of this.adjacentCoords(coord)) {
-        let tileId = candidate.join("_")
-        el = document.querySelector("td[id='"+tileId+"'] div:not([hidden])")
-        if(!(coords.find(c => { return c == tileId }) || frontier.find(c => { return c.join("_") == tileId })) &&
-           this.sameTileTemplate(el, map_location, attributes)){
-          frontier.push(candidate)
+        tileId = candidate.join("_")
+        if(map_tile_td = document.getElementById(tileId)) {
+          el = this.findOrCreateActiveTileDiv(map_tile_td)
+          if(!(coords.find(c => { return c == tileId }) || frontier.find(c => { return c.join("_") == tileId })) &&
+             this.sameTileTemplate(el, map_location, attributes)){
+            frontier.push(candidate)
+          }
         }
       }
     }
