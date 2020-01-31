@@ -69,24 +69,33 @@ let DungeonEditor = {
     }*/
 
     // Z Index tool
-    document.getElementById("z_lower_min").addEventListener('click', e => {
-      document.getElementById("z_index_lower").value = this.zIndexLowerBound
-    })
-    document.getElementById("z_lower_max").addEventListener('click', e => {
-      document.getElementById("z_index_lower").value = parseInt(document.getElementById("z_index_upper").value)
-    })
     document.getElementById("z_upper_min").addEventListener('click', e => {
-      document.getElementById("z_index_upper").value = parseInt(document.getElementById("z_index_lower").value)
+      document.getElementById("z_index_current").value = this.zIndexLowerBound
+      this.updateVisibleStacks()
     })
     document.getElementById("z_upper_max").addEventListener('click', e => {
-      document.getElementById("z_index_upper").value = this.zIndexUpperBound
+      document.getElementById("z_index_current").value = this.zIndexUpperBound
+      this.updateVisibleStacks()
     })
-    document.getElementById("z_index_upper").addEventListener('change', e => {
+    document.getElementById("z_index_current").addEventListener('change', e => {
       this.updateVisibleStacks();
     })
-    document.getElementById("z_index_lower").addEventListener('change', e => {
-      this.updateVisibleStacks();
+    document.getElementById("up_to_current_layer_visible_toggle").addEventListener('click', e => {
+      document.getElementById("up_to_current_layer_visible_toggle").classList.add("hidden")
+      document.getElementById("only_current_layer_visible_toggle").classList.remove("hidden")
+      this.onlyShowCurrentLayer = true
+      this.updateVisibleStacks()
     })
+    document.getElementById("only_current_layer_visible_toggle").addEventListener('click', e => {
+      document.getElementById("only_current_layer_visible_toggle").classList.add("hidden")
+      document.getElementById("up_to_current_layer_visible_toggle").classList.remove("hidden")
+      this.onlyShowCurrentLayer = false
+      this.updateVisibleStacks()
+    })
+
+    this.zIndexUpperBound = document.getElementById("z_index_upper").value
+    this.zIndexLowerBound = document.getElementById("z_index_lower").value
+    this.onlyShowCurrentLayer = false
 
     // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
@@ -95,6 +104,8 @@ let DungeonEditor = {
     }else if(dungeonForm.attachEvent){
       dungeonForm.attachEvent('onsubmit', this.submitForm);            //Old IE
     }
+
+    this.updateVisibleStacks()
   },
   submitForm(event){
     var map_tile_changes = []
@@ -220,6 +231,21 @@ let DungeonEditor = {
       paintMethod(document.getElementById(coord), this)
     }
   },
+  findOrCreateActiveTileDiv(map_location_td){
+    let div = map_location_td.querySelector("td > div[data-z-index='" + document.getElementById("z_index_current").value + "']")
+    
+    if(!!div) {
+      return(div)
+    } else {
+      map_location_td.querySelector("td > div:not([class=hidden])").classList.add("hidden")
+
+      let blankDiv = document.createElement("div");
+      blankDiv.setAttribute("data-z-index", document.getElementById("z_index_current").value)
+      blankDiv.innerHTML = "<div> </div>"
+      map_location_td.appendChild(blankDiv)
+      return(blankDiv)
+    }
+  },
   colorTile(map_location_td, context){
     // There should only ever be one not hidden
     let div = map_location_td.querySelector("td > div:not([class=hidden])")
@@ -231,7 +257,7 @@ let DungeonEditor = {
   },
   paintTile(map_location_td, context){
     // there should only ever be one not hidden, TODO: but want to also get the current edited z-index
-    let div = map_location_td.querySelector("td > div:not([class=hidden])")
+    let div = context.findOrCreateActiveTileDiv(map_location_td)
     let old_tile = div.children[0]
 
     div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
@@ -239,7 +265,11 @@ let DungeonEditor = {
     div.setAttribute("data-tile-template-id", context.selectedTileId)
     div.setAttribute("data-color", context.selectedTileColor)
     div.setAttribute("data-background-color", context.selectedTileBackgroundColor)
-    div.setAttribute("class", "changed-map-tile")
+    if(div.classList.contains("placeholder") || div.classList.contains("new-map-tile")){
+      div.setAttribute("class", "new-map-tile")
+    } else {
+      div.setAttribute("class", "changed-map-tile")
+    }
   },
   getMapLocation(event){
     // if it hits TD, more work would be needed to figure out what div is the active targr
@@ -319,7 +349,7 @@ let DungeonEditor = {
       this.hilightable = true
     }
   },
-  toggleActiveToolLink(selected, other){
+/*  toggleActiveToolLink(selected, other){
     let selected_link = document.getElementById(selected + "_tools")
 
     if(!!selected_link.getAttribute("class").match("inactive")) {
@@ -338,7 +368,7 @@ let DungeonEditor = {
       other_pallette.classList.add("hidden")
       selected_pallette.classList.remove("hidden")
     }
-  },
+  },*/
   updateColorPreviews(){
     let color = document.getElementById("tile_color").value;
     let background_color = document.getElementById("tile_background_color").value;
@@ -362,19 +392,24 @@ let DungeonEditor = {
     element.setAttribute("style", style)
   },
   updateVisibleStacks(){
-    let topTile,
+    let visibleTile,
         tiles,
-        upperZIndex = document.getElementById("z_index_upper").value,
+        currentZIndex = document.getElementById("z_index_current").value,
         blankDiv = document.createElement("div");
-    blankDiv.setAttribute("data-z-index", upperZIndex)
+    blankDiv.setAttribute("data-z-index", currentZIndex)
+    blankDiv.classList.add("placeholder")
     blankDiv.innerHTML = "<div> </div>"
     for(let td of document.querySelectorAll('#dungeon tr td')){
       tiles = Array.from(td.children)
-      topTile = tiles.filter((a)=> a.getAttribute("data-z-index") <= upperZIndex )
-                     .sort((a,b) => a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))[0]
+      if(this.onlyShowCurrentLayer){
+        visibleTile = tiles.find((a) => a.getAttribute("data-z-index") == currentZIndex)
+      } else {
+        visibleTile = tiles.filter((a)=> !a.classList.contains("placeholder") && a.getAttribute("data-z-index") <= currentZIndex )
+                           .sort((a,b) => a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))[0]
+      }
       tiles.map((div) => div.classList.add("hidden"))
-      if(topTile){
-        topTile.classList.remove("hidden")
+      if(visibleTile){
+        visibleTile.classList.remove("hidden")
       } else {
         td.appendChild(blankDiv.cloneNode(true))
       }
@@ -393,9 +428,9 @@ let DungeonEditor = {
   mode: "tile_painting",
   selectedColor: null,
   selectedBackgroundColor: null,
-  zIndexBoundSelected: null,
   zIndexUpperBound: 0,
-  zIndexLowerBound: 0
+  zIndexLowerBound: 0,
+  onlyShowCurrentLayer: false
 }
 
 export default DungeonEditor

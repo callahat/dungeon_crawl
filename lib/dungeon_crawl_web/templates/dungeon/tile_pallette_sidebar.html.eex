@@ -4,22 +4,24 @@
       <li class="nav-item px-2">
         <div id="z_index_range_tool">
           <div>Z index range</div>
-          <div class="row">
-            <div class="col-6">Lower</div>
-            <div class="col-6">Upper</div>
+          <div class="row no-gutters">
+            <div class="col-3">Show</div>
+            <div class="col-5">Z Index</div>
+            <div class="col-4"></div>
           </div>
-          <div class="row">
-            <div class="col-6"><%= text_input :z_index, :lower, type: :number, class: "form-control text-center", value: @low_z_index %></div>
-            <div class="col-6"><%= text_input :z_index, :upper, type: :number, class: "form-control text-center", value: @high_z_index %></div>
-          </div>
-          <div class="row">
-            <div class="col-6">
-            <button id="z_lower_min" class="btn btn-info btn-sm" title="Lowest Z Index">&lt;&lt;</button>
-            <button id="z_lower_max" class="btn btn-info btn-sm" title="Match Upper Bound">&gt;&gt;</button>
-          </div>
-          <div class="col-6">
-            <button id="z_upper_min" class="btn btn-info btn-sm" title="Match Lower Bound">&lt;&lt;</button>
-            <button id="z_upper_max" class="btn btn-info btn-sm" title="Highest Z Index">&gt;&gt;</button>
+          <div class="row no-gutters">
+            <div class="col-3">
+              <button id="up_to_current_layer_visible_toggle" class="btn btn-info btn-sm" title="Show tiles up to the current active layer">Up to</button>
+              <button id="only_current_layer_visible_toggle" class="btn btn-info btn-sm hidden" title="Only show the active layer">Only</button>
+            </div>
+            <div class="col-5">
+              <%= text_input :z_index, :current, type: :number, class: "form-control text-center", value: @high_z_index %>
+              <%= text_input :z_index, :lower, type: :hidden, class: "form-control text-center", value: @low_z_index %>
+              <%= text_input :z_index, :upper, type: :hidden, class: "form-control text-center", value: @high_z_index %>
+            </div>
+            <div class="col-4">
+              <button id="z_upper_min" class="btn btn-info btn-sm" title="Match Lower Bound">&lt;&lt;</button>
+              <button id="z_upper_max" class="btn btn-info btn-sm" title="Highest Z Index">&gt;&gt;</button>
             </div>
           </div>
         </div>
