@@ -72,6 +72,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     case Dungeon.update_map(dungeon, dungeon_params) do
       {:ok, dungeon} ->
         _make_tile_updates(dungeon, dungeon_params["tile_changes"])
+        _make_tile_additions(dungeon, dungeon_params["tile_additions"])
 
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
@@ -103,6 +104,34 @@ defmodule DungeonCrawlWeb.DungeonController do
                                              state: tt.state,
                                              script: tt.script
                                             })
+           end)
+
+      {:error, _, _} ->
+        false # noop
+    end
+  end
+
+  defp _make_tile_additions(dungeon, tile_additions) do
+    case Jason.decode(tile_additions) do
+      {:ok, tile_additions} ->
+        # TODO: move this to a method in Dungeon
+        tile_additions
+        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]),
+                               ta
+                              ] end)
+        |> Enum.reject(fn([tt,_]) -> is_nil(tt) end)
+        |> Enum.map(fn([tt, ta]) ->
+             Dungeon.create_map_tile!(%{dungeon_id: dungeon.id,
+                                        row: ta["row"],
+                                        col: ta["col"],
+                                        z_index: ta["z_index"],
+                                        tile_template_id: tt.id,
+                                        character: tt.character,
+                                        color: ta["color"] || tt.color,
+                                        background_color: ta["background_color"] || tt.background_color,
+                                        state: tt.state,
+                                        script: tt.script
+                                      })
            end)
 
       {:error, _, _} ->

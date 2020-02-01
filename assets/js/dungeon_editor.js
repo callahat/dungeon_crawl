@@ -104,27 +104,32 @@ let DungeonEditor = {
     // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
     if(dungeonForm.addEventListener){
-      dungeonForm.addEventListener("submit", this.submitForm, false);  //Modern browsers
+      dungeonForm.addEventListener("submit", ((event) => this.submitForm(event, this)), false);  //Modern browsers
     }else if(dungeonForm.attachEvent){
-      dungeonForm.attachEvent('onsubmit', this.submitForm);            //Old IE
+      dungeonForm.attachEvent('onsubmit', ((event) => this.submitForm(event, this)));            //Old IE
     }
 
     this.updateVisibleStacks()
   },
-  submitForm(event){
-    var map_tile_changes = []
-
-    for(let tile_change of Array.from(document.getElementsByClassName("changed-map-tile"))){
-      let [row, col] = tile_change.parentNode.getAttribute("id").split("_").map(i => parseInt(i))
-      let ttid = parseInt(tile_change.getAttribute("data-tile-template-id"))
-      let color = tile_change.getAttribute("data-color")
-      let background_color = tile_change.getAttribute("data-background-color")
-      let z_index = tile_change.getAttribute("data-z-index")
-
-      map_tile_changes.push({row: row, col: col, z_index: z_index, tile_template_id: ttid, color: color, background_color: background_color })
-    }
-    document.getElementById("map_tile_changes").value = JSON.stringify(map_tile_changes)
+  submitForm(event, context){
+    document.getElementById("map_tile_changes").value = JSON.stringify(context.getTileFormData("changed-map-tile"))
+    document.getElementById("map_tile_additions").value = JSON.stringify(context.getTileFormData("new-map-tile"))
     //event.preventDefault()
+  },
+  getTileFormData(type){
+    var map_tile_data = []
+
+    for(let tile of Array.from(document.getElementsByClassName(type))){
+      let [row, col] = tile.parentNode.getAttribute("id").split("_").map(i => parseInt(i))
+      let ttid = parseInt(tile.getAttribute("data-tile-template-id"))
+      let color = tile.getAttribute("data-color")
+      let background_color = tile.getAttribute("data-background-color")
+      let z_index = tile.getAttribute("data-z-index")
+
+      map_tile_data.push({row: row, col: col, z_index: z_index, tile_template_id: ttid, color: color, background_color: background_color })
+    }
+
+    return(map_tile_data)
   },
   enablePainting(){
     this.painting = true
@@ -251,7 +256,10 @@ let DungeonEditor = {
       div.setAttribute("data-color", context.selectedColor)
       div.setAttribute("data-background-color", context.selectedBackgroundColor)
       context.updateColors(div.children[0], context.selectedColor, context.selectedBackgroundColor)
-      div.setAttribute("class", "changed-map-tile")
+
+      if(!div.classList.contains("new-map-tile")){
+        div.setAttribute("class", "changed-map-tile")
+      }
     }
   },
   paintTile(map_location_td, context){

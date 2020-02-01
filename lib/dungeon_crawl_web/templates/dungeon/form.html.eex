@@ -34,6 +34,7 @@
       <p>* changing dimensions may cause the map to lose tiles</p>
     </div>
     <%= hidden_input f, :tile_changes %>
+    <%= hidden_input f, :tile_additions %>
 <% end %>
   </div>
 

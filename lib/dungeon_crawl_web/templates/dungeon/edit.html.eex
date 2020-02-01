@@ -14,4 +14,4 @@
 </div>
 
 
-<%= link "Back", to: Routes.dungeon_path(@conn, :index) %>
+<%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
