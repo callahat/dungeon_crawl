@@ -78,9 +78,10 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> put_flash(:info, "Dungeon updated successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
+        {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
         tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z)
     end
   end
 

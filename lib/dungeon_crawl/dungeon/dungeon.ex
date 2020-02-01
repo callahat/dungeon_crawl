@@ -96,11 +96,13 @@ defmodule DungeonCrawl.Dungeon do
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
 
-  def get_map_by(attrs), do: Repo.get_by!(Map, attrs)
-
-
   @doc """
   Returns a tuple containing the lowest z_index and highest z_index values, respectively.
+
+  ## Examples
+
+      iex> get_bounding_z_indexes!(456)
+      {0,1}
   """
   def get_bounding_z_indexes(%Map{id: dungeon_id}) do
     get_bounding_z_indexes(dungeon_id)
@@ -374,11 +376,10 @@ defmodule DungeonCrawl.Dungeon do
   ## Examples
 
       iex> delete_map(map)
-      {:ok, %Map{}}
+      %Map{}
 
       iex> delete_map(map)
-      {:error, %Ecto.Changeset{}}
-
+      :error
   """
   def hard_delete_map!(%Map{} = map) do
     Repo.delete!(map)

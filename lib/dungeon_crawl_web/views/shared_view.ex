@@ -92,7 +92,7 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp _lower_editor_cells([]), do: ""
   defp _lower_editor_cells([ cell | cells ]) do
-    "<div class=\"hidden\" data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
+    "<div class='hidden' data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
     <> _lower_editor_cells(cells)
   end
 

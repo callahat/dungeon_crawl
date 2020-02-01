@@ -61,6 +61,18 @@ defmodule DungeonCrawl.DungeonTest do
       assert Dungeon.get_map!(map.id) == map
     end
 
+    test "get_bounding_z_indexes!/1 returns the map's lowest and highest z index for given id" do
+      tile_a = insert_tile_template()
+      map = insert_stubbed_dungeon(%{},
+              [Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0},
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
+               Elixir.Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 2},
+                                Elixir.Map.take(tile_a, [:character, :color, :background_color, :state, :script]))])
+
+      assert Dungeon.get_bounding_z_indexes(map.id) == {0,2}
+      assert Dungeon.get_bounding_z_indexes(map) == {0,2}
+    end
+
     test "list_historic_tile_templates/1 when no historic tiles returns an empty array" do
       tile_a = insert_tile_template()
       tile_b = insert_tile_template()
@@ -189,11 +201,18 @@ defmodule DungeonCrawl.DungeonTest do
       assert error_msg == "Inactive tiles: INT (id: #{tile_b.id}) 1 times"
     end
 
-    test "soft_delete_map/1 soft deletes the map" do
+    test "delete_map/1 soft deletes the map" do
       map = map_fixture()
       assert {:ok, map} = Dungeon.delete_map(map)
       assert %Map{} = map
       assert map.deleted_at
+    end
+
+    test "hard_delete_map!/1 deletes the map" do
+      map = map_fixture()
+      assert map = Dungeon.hard_delete_map!(map)
+      assert %Map{} = map
+      refute DungeonCrawl.Repo.get Dungeon.Map, map.id
     end
 
     test "activate_map/1 activates the map" do
@@ -258,9 +277,17 @@ defmodule DungeonCrawl.DungeonTest do
       assert Dungeon.get_map_tile!(map_tile.id) == map_tile
     end
 
+    test "get_map_tile!/1 returns the map tile with given map values (using the highest z_index)" do
+      map_tile = map_tile_fixture(%{z_index: 1})
+      lower_map_tile = map_tile_fixture(%{z_index: 0}, map_tile.dungeon_id)
+      assert Dungeon.get_map_tile!(Map.take(lower_map_tile, [:dungeon_id, :row, :col])) == map_tile
+    end
+
     test "get_map_tile!/1 returns the map tile with given map values" do
-      map_tile = map_tile_fixture()
-      assert Dungeon.get_map_tile!(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row, col: map_tile.col}) == map_tile
+      map_tile = map_tile_fixture(%{z_index: 1})
+      lower_map_tile = map_tile_fixture(%{z_index: 0}, map_tile.dungeon_id)
+      assert Dungeon.get_map_tile!(Map.take(lower_map_tile, [:dungeon_id, :row, :col, :z_index])) == lower_map_tile
+      assert Dungeon.get_map_tile!(Map.take(map_tile, [:dungeon_id, :row, :col, :z_index])) == map_tile
     end
 
     test "create_map_tile/1 with valid data creates a map_tile" do
@@ -327,9 +354,16 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     test "get_map_tile/1 returns a map_tile from the top" do
-      bottom_tile = map_tile_fixture()
+      bottom_tile = map_tile_fixture(%{z_index: 0})
       map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
       assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row, col: map_tile.col}) == map_tile
+      refute Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col})
+    end
+
+    test "get_map_tile/1 returns a map_tile for the coords including the top" do
+      bottom_tile = map_tile_fixture(%{z_index: 0})
+      map_tile = map_tile_fixture(%{z_index: 1}, bottom_tile.dungeon_id)
+      assert Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id, row: map_tile.row, col: map_tile.col, z_index: 0}) == bottom_tile
       refute Dungeon.get_map_tile(%{dungeon_id: map_tile.dungeon_id+1, row: map_tile.row, col: map_tile.col})
     end
 

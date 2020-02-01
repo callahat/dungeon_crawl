@@ -151,8 +151,12 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       dmt_attrs = Map.take(Dungeon.get_map_tile(dungeon.id, 1, 1), [:dungeon_id, :row, :col, :tile_template_id, :character, :color, :background_color])
       {:ok, other_tile} = Dungeon.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
 
+      tile_data = %{tile_changes: "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]",
+                    tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]"}
+
       conn = put conn, dungeon_path(conn, :update, dungeon),
-                   map: Elixir.Map.put(@update_attrs, :tile_changes, "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]")
+                   map: Elixir.Map.merge(@update_attrs, tile_data)
+      :timer.sleep 300
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).character == tile_template.character
       refute Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == tile_template.color
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == "red"
@@ -161,17 +165,22 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).character == other_tile.character
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).color == other_tile.color
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).background_color == other_tile.background_color
+
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).character == tile_template.character
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).color == "blue"
+      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
+
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
     end
 
     test "renders errors when data is invalid", %{conn: conn, dungeon: dungeon} do
-      conn = put conn, dungeon_path(conn, :update, dungeon), map: @invalid_attrs, tile_changes: []
+      conn = put conn, dungeon_path(conn, :update, dungeon), map: @invalid_attrs
       assert html_response(conn, 200) =~ "Edit dungeon"
     end
 
     test "cannot update active dungeon", %{conn: conn, dungeon: dungeon} do
       {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
-      conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs, tile_changes: []
+      conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
@@ -233,7 +242,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "creates a new version", %{conn: conn, dungeon: dungeon} do
       {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
       conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
-      new_version = Dungeon.get_map_by(%{previous_version_id: dungeon.id})
+      new_version = Repo.get_by!(Dungeon.Map, %{previous_version_id: dungeon.id})
       assert redirected_to(conn) == dungeon_path(conn, :show, new_version)
       refute Repo.get!(Dungeon.Map, dungeon.id).deleted_at
       refute Repo.get!(Dungeon.Map, new_version.id).active
