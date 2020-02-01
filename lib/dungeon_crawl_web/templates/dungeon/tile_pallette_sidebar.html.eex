@@ -3,7 +3,6 @@
     <ul class="nav flex-column">
       <li class="nav-item px-2">
         <div id="z_index_range_tool">
-          <div>Z index range</div>
           <div class="row no-gutters">
             <div class="col-3">Show</div>
             <div class="col-5">Z Index</div>
