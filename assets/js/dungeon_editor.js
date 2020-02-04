@@ -250,8 +250,8 @@ let DungeonEditor = {
     let currentZIndex = document.getElementById("z_index_current").value,
         div = map_location_td.querySelector("td > div[data-z-index='" + currentZIndex + "']")
 
-    if(div.classList.contains("placeholder")){
-      context.showVisibleTileAtCoordinate(div.parentNode, currentZIndex)
+    if(div == null || div.classList.contains("placeholder")){
+      context.showVisibleTileAtCoordinate(map_location_td, currentZIndex)
     } else {
       div.setAttribute("data-color", context.selectedColor)
       div.setAttribute("data-background-color", context.selectedBackgroundColor)
