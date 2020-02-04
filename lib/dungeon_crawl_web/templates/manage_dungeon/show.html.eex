@@ -30,16 +30,14 @@
            dungeon: @instance,
            width: @instance.width,
            height: @instance.height,
-           readonly: true,
-           with_template_id: false) %>
+           readonly: true) %>
 <% else %>
 <%= render(DungeonCrawlWeb.SharedView,
            "dungeon.html",
            dungeon: @dungeon,
            width: @dungeon.width,
            height: @dungeon.height,
-           readonly: true,
-           with_template_id: false) %>
+           readonly: true) %>
 <% end %>
 </div>
 

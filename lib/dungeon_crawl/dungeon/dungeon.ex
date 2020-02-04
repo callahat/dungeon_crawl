@@ -96,7 +96,22 @@ defmodule DungeonCrawl.Dungeon do
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
 
-  def get_map_by(attrs), do: Repo.get_by!(Map, attrs)
+  @doc """
+  Returns a tuple containing the lowest z_index and highest z_index values, respectively.
+
+  ## Examples
+
+      iex> get_bounding_z_indexes!(456)
+      {0,1}
+  """
+  def get_bounding_z_indexes(%Map{id: dungeon_id}) do
+    get_bounding_z_indexes(dungeon_id)
+  end
+  def get_bounding_z_indexes(dungeon_id) do
+    Repo.one(from mt in MapTile,
+             where: mt.dungeon_id == ^dungeon_id,
+             select: {min(mt.z_index), max(mt.z_index)})
+  end
 
   @doc """
   Returns list of historic (ie, soft deleted) TileTemplates which are present in the dungeon.
@@ -361,11 +376,10 @@ defmodule DungeonCrawl.Dungeon do
   ## Examples
 
       iex> delete_map(map)
-      {:ok, %Map{}}
+      %Map{}
 
       iex> delete_map(map)
-      {:error, %Ecto.Changeset{}}
-
+      :error
   """
   def hard_delete_map!(%Map{} = map) do
     Repo.delete!(map)
@@ -398,7 +412,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
-  Gets a single map_tile, with the highest z_index for given coordinates
+  Gets a single map_tile, with the highest z_index for given coordinates (if no z_index is given)
 
   Raises `Ecto.NoResultsError` if the Map tile does not exist.
 
@@ -411,13 +425,21 @@ defmodule DungeonCrawl.Dungeon do
       ** (Ecto.NoResultsError)
 
   """
+  def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col, z_index: z_index}), do: get_map_tile!(dungeon_id, row, col, z_index)
   def get_map_tile!(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile!(dungeon_id, row, col)
   def get_map_tile!(id), do: Repo.get!(MapTile, id)
+  def get_map_tile!(dungeon_id, row, col, z_index) do
+    Repo.one!(_get_map_tile_query(dungeon_id, row, col, z_index, 1))
+  end
   def get_map_tile!(dungeon_id, row, col) do
     Repo.one!(_get_map_tile_query(dungeon_id, row, col, 1))
   end
 
+  def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col, z_index: z_index}), do: get_map_tile(dungeon_id, row, col, z_index)
   def get_map_tile(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tile(dungeon_id, row, col)
+  def get_map_tile(dungeon_id, row, col, z_index) do
+    Repo.one(_get_map_tile_query(dungeon_id, row, col, z_index, 1))
+  end
   def get_map_tile(dungeon_id, row, col) do
     Repo.one(_get_map_tile_query(dungeon_id, row, col, 1))
   end
@@ -436,6 +458,12 @@ defmodule DungeonCrawl.Dungeon do
   def get_map_tiles(%{dungeon_id: dungeon_id, row: row, col: col}), do: get_map_tiles(dungeon_id, row, col)
   def get_map_tiles(dungeon_id, row, col) do
     Repo.all(_get_map_tile_query(dungeon_id, row, col, nil))
+  end
+
+  defp _get_map_tile_query(dungeon_id, row, col, z_index, max_results) do
+    from mt in MapTile,
+    where: mt.dungeon_id == ^dungeon_id and mt.row == ^row and mt.col == ^col and mt.z_index == ^z_index,
+    limit: ^max_results
   end
 
   defp _get_map_tile_query(dungeon_id, row, col, max_results) do

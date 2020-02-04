@@ -1,8 +1,11 @@
 defmodule DungeonCrawlWeb.SharedViewTest do
-  use DungeonCrawlWeb.ConnCase, async: true
+  use DungeonCrawlWeb.ConnCase#, async: true
 
   import DungeonCrawlWeb.SharedView
   alias DungeonCrawl.Dungeon.MapTile
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+
+  @copyable_attrs [:character, :color, :background_color, :state, :script]
 
   test "tile_and_style/1 with nil" do
     assert tile_and_style(nil) == ""
@@ -48,29 +51,57 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
-            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
-             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
+            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
+             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
 
     rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height)
 
-    assert rows =~ ~r{<td id='1_1'><div>A</div></td>}
+    assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
   end
 
-  test "dungeon_as_table/4 returns table rows of the dungeon including the data attributes" do
+  test "dungeon_as_table/3 returns table rows of the dungeon instance" do
+    tile_a = insert_tile_template(%{character: "A"})
+    tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
+
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
+    instance = insert_stubbed_dungeon_instance(%{},
+                 [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+                  Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+                  Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
+                  Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
+
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+
+    rows = dungeon_as_table(instance, instance.width, instance.height)
+
+    assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
+    assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
+    assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
+  end
+
+  test "editor_dungeon_as_table/3 returns table rows of the dungeon including the data attributes" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
     map = insert_stubbed_dungeon(%{},
-            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
-             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, [:character, :color, :background_color, :state, :script])),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, [:character, :color, :background_color, :state, :script]))])
+            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
+             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
 
-    rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height, true)
+    rows = editor_dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height)
 
-    assert rows =~ ~r|<td id='1_1' data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></td>|
-    assert rows =~ ~r|<td id='1_2' data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></td>|
-    assert rows =~ ~r|<td id='1_3' data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}'><div style='color: #FFF'>B</div></td>|
+    tile_a_0 = "<div data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></div>"
+    tile_b_0 = "<div data-z-index=0 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}'><div style='color: #FFF'>B</div></div>"
+    tile_a_0_hidden = "<div class='hidden' data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></div>"
+    tile_b_1 = "<div data-z-index=1 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}'><div style='color: #FFF'>B</div></div>"
+
+    assert rows =~ ~r|<td id='1_1'>#{tile_b_1}#{tile_a_0_hidden}</td>|
+    assert rows =~ ~r|<td id='1_2'>#{tile_a_0}</td>|
+    assert rows =~ ~r|<td id='1_3'>#{tile_b_0}</td>|
   end
 end

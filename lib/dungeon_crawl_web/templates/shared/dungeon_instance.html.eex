@@ -1,6 +1,6 @@
 <pre class="dungeon_preview border rounded"
 ><table id="dungeon_instance" data-instance-id="<%= @dungeon.id %>" data-readonly="<%= @readonly %>">
-<%= {:safe, dungeon_as_table(@dungeon, @height, @width, @with_template_id) } %>
+<%= {:safe, dungeon_as_table(@dungeon, @height, @width) } %>
 </table
 ></pre>
 

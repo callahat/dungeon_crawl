@@ -61,8 +61,9 @@ defmodule DungeonCrawlWeb.DungeonController do
     historic_templates = Dungeon.list_historic_tile_templates(dungeon)
 
     changeset = Dungeon.change_map(dungeon)
+    {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z)
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do
@@ -71,14 +72,16 @@ defmodule DungeonCrawlWeb.DungeonController do
     case Dungeon.update_map(dungeon, dungeon_params) do
       {:ok, dungeon} ->
         _make_tile_updates(dungeon, dungeon_params["tile_changes"])
+        _make_tile_additions(dungeon, dungeon_params["tile_additions"])
 
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
+        {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
         tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates)
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z)
     end
   end
 
@@ -88,7 +91,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, tile_updates} ->
         # TODO: move this to a method in Dungeon
         tile_updates
-        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"]),
+        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"], tu["z_index"]),
                                TileTemplates.get_tile_template(tu["tile_template_id"]),
                                tu["color"],
                                tu["background_color"]
@@ -102,6 +105,34 @@ defmodule DungeonCrawlWeb.DungeonController do
                                              state: tt.state,
                                              script: tt.script
                                             })
+           end)
+
+      {:error, _, _} ->
+        false # noop
+    end
+  end
+
+  defp _make_tile_additions(dungeon, tile_additions) do
+    case Jason.decode(tile_additions) do
+      {:ok, tile_additions} ->
+        # TODO: move this to a method in Dungeon
+        tile_additions
+        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]),
+                               ta
+                              ] end)
+        |> Enum.reject(fn([tt,_]) -> is_nil(tt) end)
+        |> Enum.map(fn([tt, ta]) ->
+             Dungeon.create_map_tile!(%{dungeon_id: dungeon.id,
+                                        row: ta["row"],
+                                        col: ta["col"],
+                                        z_index: ta["z_index"],
+                                        tile_template_id: tt.id,
+                                        character: tt.character,
+                                        color: ta["color"] || tt.color,
+                                        background_color: ta["background_color"] || tt.background_color,
+                                        state: tt.state,
+                                        script: tt.script
+                                      })
            end)
 
       {:error, _, _} ->

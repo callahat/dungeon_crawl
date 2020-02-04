@@ -1,9 +1,34 @@
 <nav class="col-md-3 col-lg-3 d-none d-md-block bg-light sidebar">
   <div class="sidebar-sticky">
     <ul class="nav flex-column">
+      <li class="nav-item px-2">
+        <div id="z_index_range_tool">
+          <div class="row no-gutters">
+            <div class="col-3">Show</div>
+            <div class="col-5">Z Index</div>
+            <div class="col-4"></div>
+          </div>
+          <div class="row no-gutters">
+            <div class="col-3">
+              <button id="up_to_current_layer_visible_toggle" class="btn btn-info btn-sm" title="Show tiles up to the current active layer">Up to</button>
+              <button id="only_current_layer_visible_toggle" class="btn btn-info btn-sm hidden" title="Only show the active layer">Only</button>
+            </div>
+            <div class="col-5">
+              <%= text_input :z_index, :current, type: :number, class: "form-control text-center", value: @high_z_index %>
+              <%= text_input :z_index, :lower, type: :hidden, class: "form-control text-center", value: @low_z_index %>
+              <%= text_input :z_index, :upper, type: :hidden, class: "form-control text-center", value: @high_z_index %>
+            </div>
+            <div class="col-4">
+              <button id="z_upper_min" class="btn btn-info btn-sm" title="Match Lower Bound">&lt;&lt;</button>
+              <button id="z_upper_max" class="btn btn-info btn-sm" title="Highest Z Index">&gt;&gt;</button>
+            </div>
+          </div>
+        </div>
+      </li>
       <li class="nav-item pl-2">
         <% # TODO: displaying this when the window is small? %>
         <div>
+
           <ul class="nav nav-tabs" id="tool_tab" role="tablist">
             <li class="nav-item">
               <a class="nav-link active" id="tiletool-tab" data-toggle="tab" href="#tiletool" role="tab" aria-controls="tiletool" aria-selected="true">Tiles</a>
