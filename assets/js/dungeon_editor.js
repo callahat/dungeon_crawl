@@ -37,6 +37,12 @@ let DungeonEditor = {
       this.mode = "color_painting"
     });
 
+    document.getElementById("other-tab").addEventListener('click', e => {
+      // defaulting to tile edit
+      this.mode = "tile_edit"
+      document.getElementById("tile_editor_tool").classList.add('active')
+    });
+
     for(let field of ['tile_color', 'tile_background_color']){
       document.getElementById(field).addEventListener('change', e => {
         e.preventDefault()

@@ -31,10 +31,19 @@
 
           <ul class="nav nav-tabs" id="tool_tab" role="tablist">
             <li class="nav-item">
-              <a class="nav-link active" id="tiletool-tab" data-toggle="tab" href="#tiletool" role="tab" aria-controls="tiletool" aria-selected="true">Tiles</a>
+              <a class="nav-link active" id="tiletool-tab" data-toggle="tab" href="#tiletool" role="tab" aria-controls="tiletool" aria-selected="true">
+                Tiles
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" id="colortool-tab" data-toggle="tab" href="#colortool" role="tab" aria-controls="colortool" aria-selected="false">Colors</a>
+              <a class="nav-link" id="colortool-tab" data-toggle="tab" href="#colortool" role="tab" aria-controls="colortool" aria-selected="false">
+                Colors
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="other-tab" data-toggle="tab" href="#othertool" role="tab" aria-controls="othertool" aria-selected="false">
+                Tools
+              </a>
             </li>
           </ul>
 
@@ -86,6 +95,17 @@
                    <%= color_tr(["#A54", "#D54", "#A94", "#AA7", "#6A6", "#6AA", "#56A", "#44A", "#84A", "#A4A"]) %>
                    <%= color_tr(["#831", "#B32", "#951", "#882", "#271", "#357", "#236", "#127", "#517", "#716"]) %>
                 </table></pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" id="othertool" role="tabpanel" aria-labelledby="othertool-tab">
+              <div id="other_tools_area">
+                <div class="row no-gutters mt-2">
+                  <button id="tile_editor_tool" class="btn btn-info btn-sm mx-1" title="Edit tiles individually">Tile Edit</button>
+                  <button id="erase_tool" class="btn btn-info btn-sm mx-1" title="Erase tiles">Eraser</button>
+                  <!-- tile detail editor -->
+                  <!-- Text  -->
                 </div>
               </div>
             </div>
