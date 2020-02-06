@@ -2,7 +2,7 @@
   "repository": {},
   "license": "MIT",
   "scripts": {
-    "deploy": "webpack --mode production",
+    "deploy": "webpack --mode development",
     "watch": "webpack --mode development --watch-stdin"
   },
   "dependencies": {
@@ -19,7 +19,7 @@
     "@babel/preset-env": "^7.0.0",
     "babel-loader": "^8.0.0",
     "copy-webpack-plugin": "^5.1.1",
-    "css-loader": "^3.2.0",
+    "css-loader": "3.3.0",
     "mini-css-extract-plugin": "^0.4.0",
     "optimize-css-assets-webpack-plugin": "^5.0.3",
     "uglifyjs-webpack-plugin": "^1.2.4",
