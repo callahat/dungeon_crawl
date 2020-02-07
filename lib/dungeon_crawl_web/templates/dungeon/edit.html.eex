@@ -15,3 +15,5 @@
 
 
 <%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
+
+<%= render "tile_edit_modal.html" %>

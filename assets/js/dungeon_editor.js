@@ -192,6 +192,8 @@ let DungeonEditor = {
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
       this.updateColorPreviews()
+    } else if(this.mode == "tile_edit") {
+console.log("Do i do anything here?")
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
       return
@@ -199,6 +201,15 @@ let DungeonEditor = {
   },
   paintEventHandler(event){
     if(!this.painting || this.painted) { return }
+
+
+    let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
+
+    if(!map_location) { return } // event picked up on bad element
+
+    this.painted = true
+
+    var targetCoord = map_location.parentNode.id.split("_").map(c => {return parseInt(c)})
 
     //var paintMethod;
     if(this.mode == "color_painting") {
@@ -208,18 +219,15 @@ let DungeonEditor = {
       if(this.historicTile) { return }
       var paintMethod = this.paintTile,
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
+    } else if(this.mode == "tile_edit") {
+
+      $('#exampleModal').modal({show: true})
+
+      return
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
       return
     }
-
-    let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
-
-    if(!map_location) { return } // event picked up on bad element
-
-    this.painted = true
-
-    var targetCoord = map_location.parentNode.id.split("_").map(c => {return parseInt(c)})
 
     if(event.shiftKey && event.ctrlKey){
       this.paintTiles(this.coordsForFill(targetCoord, map_location, attributes), paintMethod)
