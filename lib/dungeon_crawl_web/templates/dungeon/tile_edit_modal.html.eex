@@ -1,9 +1,9 @@
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="tileEditModal" tabindex="-1" role="dialog" aria-labelledby="tileEditModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Edit Tile</h5>
+        <h5 class="modal-title" id="tileEditModalLabel">Edit Tile</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -20,7 +20,7 @@
           <div class="col-2">
             <div class="form-group">
               <%= label :tile_template, :character, class: "control-label" %>
-              <%= text_input :tile_template, :character, class: "form-control", limit: 1 %>
+              <%= text_input :tile_template, :character, class: "form-control", maxlength: 1 %>
             </div>
           </div>
           <div class="col-2">
@@ -54,11 +54,13 @@
           <%= label :tile_template, :script, class: "control-label" %>
           <%= textarea :tile_template, :script, class: "form-control" %>
         </div>
-
+        <%= hidden_input :tile_template, :row %>
+        <%= hidden_input :tile_template, :col %>
+        <%= hidden_input :tile_template, :z_index %>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary">Save changes</button>
+        <button type="button" class="btn btn-primary" id="save_tile_changes" data-dismiss="modal">Save changes</button>
       </div>
     </div>
   </div>

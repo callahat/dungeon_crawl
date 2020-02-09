@@ -107,6 +107,38 @@ let DungeonEditor = {
     this.blankDivNode.classList.add("placeholder")
     this.blankDivNode.innerHTML = "<div> </div>"
 
+    // Tile Editor Tool
+    document.getElementById("save_tile_changes").addEventListener('click', e => {
+      let row = document.getElementById("tile_template_row").value,
+          col = document.getElementById("tile_template_col").value,
+          z_index = document.getElementById("tile_template_z_index").value,
+          map_location_td = document.getElementById(row + "_" + col),
+          map_location = this.findOrCreateActiveTileDiv(map_location_td),
+          tileHtml = this.blankDivNode.cloneNode(true);
+
+      tileHtml.innerText = document.getElementById("tile_template_character").value[0] || " "
+      tileHtml.style["color"] = document.getElementById("tile_template_color").value || ""
+      tileHtml.style["background-color"] = document.getElementById("tile_template_background_color").value || ""
+
+      this.paintTile(map_location_td, {selectedTileId: "",
+                                  selectedTileHtml: tileHtml,
+                                  selectedTileColor: tileHtml.style["color"],
+                                  selectedTileBackgroundColor: tileHtml.style["background-color"],
+                                  selectedTileName: (document.getElementById("tile_template_name").value || ""),
+                                  selectedTileCharacter: tileHtml.innerText,
+                                  selectedTileState: (document.getElementById("tile_template_state").value || ""),
+                                  selectedTileScript: (document.getElementById("tile_template_script").value || ""),
+                                  findOrCreateActiveTileDiv: this.findOrCreateActiveTileDiv
+      })
+    })
+
+    $("#tileEditModal").on('hide.bs.modal', event => {
+      let row = document.getElementById("tile_template_row").value,
+          col = document.getElementById("tile_template_col").value,
+          map_location_td = document.getElementById(row + "_" + col)
+      this.showVisibleTileAtCoordinate(map_location_td, document.getElementById("z_index_current").value)
+    })
+
     // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
     if(dungeonForm.addEventListener){
@@ -159,6 +191,10 @@ let DungeonEditor = {
     this.selectedTileHtml = tag.children[0]
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
+//    this.selectedTileName = tag.getAttribute("data-name")
+    this.selectedTileCharacter = tag.getAttribute("data-character")
+    this.selectedTileState = tag.getAttribute("data-state")
+    this.selectedTileScript = tag.getAttribute("data-script")
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
     }
@@ -202,7 +238,6 @@ console.log("Do i do anything here?")
   paintEventHandler(event){
     if(!this.painting || this.painted) { return }
 
-
     let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
 
     if(!map_location) { return } // event picked up on bad element
@@ -220,9 +255,25 @@ console.log("Do i do anything here?")
       var paintMethod = this.paintTile,
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_edit") {
+console.log("tile edit")
+      // TODO: add a coord hidden element?
+      // TODO: load the current stuff
+      document.getElementById("tile_template_row").value = targetCoord[0]
+      document.getElementById("tile_template_col").value = targetCoord[1]
+      document.getElementById("tile_template_z_index").value = map_location.getAttribute("data-z-index")
 
-      $('#exampleModal').modal({show: true})
+      document.getElementById("tile_template_name").value = map_location.getAttribute("data-name")
+      document.getElementById("tile_template_character").value = map_location.getAttribute("data-character")
+      document.getElementById("tile_template_color").value = map_location.getAttribute("data-color")
+      document.getElementById("tile_template_background_color").value = map_location.getAttribute("data-background-color")
+      document.getElementById("tile_template_state").value = map_location.getAttribute("data-state")
+      document.getElementById("tile_template_script").value = map_location.getAttribute("data-script")
+ 
+      document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
 
+      $('#tileEditModal').modal({show: true})
+
+      this.lastCoord = this.lastDraggedCoord = targetCoord
       return
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
@@ -286,6 +337,15 @@ console.log("Do i do anything here?")
     div.setAttribute("data-tile-template-id", context.selectedTileId)
     div.setAttribute("data-color", context.selectedTileColor)
     div.setAttribute("data-background-color", context.selectedTileBackgroundColor)
+
+    // from individual tile edits; painted templates dont have these currently. probably should though
+    // to make things consistent
+
+    div.setAttribute("data-name", context.selectedTileName)
+    div.setAttribute("data-character", context.selectedTileCharacter)
+    div.setAttribute("data-state", context.selectedTileState)
+    div.setAttribute("data-script", context.selectedTileScript)
+
     if(div.classList.contains("placeholder") || div.classList.contains("new-map-tile")){
       if(document.getElementById("z_index_current").value > context.zIndexUpperBound) {
         context.zIndexUpperBound = document.getElementById("z_index_current").value
@@ -298,13 +358,15 @@ console.log("Do i do anything here?")
     }
   },
   getMapLocation(event){
-    // if it hits TD, more work would be needed to figure out what div is the active targr
-    if(event.target.tagName != "DIV"){
-      return
+    if(event.target.tagName == "TD"){
+      console.log("MISSED THE DIV AND HIT A TD INSTEAD!")
+      return(event.target.querySelector("div:not([class=hidden])"))
     } else if(event.target.tagName == "DIV" && event.target.parentNode.tagName == "DIV"){
       return(event.target.parentNode)
-    } else {
+    } else if(event.target.tagName == "DIV" && event.target.parentNode.tagName == "TD") {
       return(event.target)
+    } else {
+      return
     }
   },
   coordsBetween(start, end){
@@ -431,6 +493,10 @@ console.log("Do i do anything here?")
   selectedTileHtml: null,
   selectedTileColor: null,
   selectedTileBackgroundColor: null,
+  selectedTileName: null,
+  selectedTileCharacter: null,
+  selectedTileState: null,
+  selectedTileScript: null,
   painting: false,
   painted: false,
   lastDraggedCoord: null,
@@ -443,6 +509,7 @@ console.log("Do i do anything here?")
   zIndexUpperBound: 0,
   zIndexLowerBound: 0,
   onlyShowCurrentLayer: false
+
 }
 
 export default DungeonEditor
