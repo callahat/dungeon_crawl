@@ -112,22 +112,29 @@ let DungeonEditor = {
       let row = document.getElementById("tile_template_row").value,
           col = document.getElementById("tile_template_col").value,
           z_index = document.getElementById("tile_template_z_index").value,
+          character = (document.getElementById("tile_template_character").value[0] || " "),
+          color = (document.getElementById("tile_template_color").value || ""),
+          background_color = (document.getElementById("tile_template_background_color").value || ""),
           map_location_td = document.getElementById(row + "_" + col),
           map_location = this.findOrCreateActiveTileDiv(map_location_td),
-          tileHtml = this.blankDivNode.cloneNode(true);
+          tile_name = (document.getElementById("tile_template_name").value || ""),
+          state = (document.getElementById("tile_template_state").value || ""),
+          script = (document.getElementById("tile_template_script").value || "")
 
-      tileHtml.innerText = document.getElementById("tile_template_character").value[0] || " "
-      tileHtml.style["color"] = document.getElementById("tile_template_color").value || ""
-      tileHtml.style["background-color"] = document.getElementById("tile_template_background_color").value || ""
+      let tileHtml = this.blankDivNode.cloneNode(true)
+
+      tileHtml.innerText = character
+      tileHtml.style["color"] = color
+      tileHtml.style["background-color"] = background_color
 
       this.paintTile(map_location_td, {selectedTileId: "",
                                   selectedTileHtml: tileHtml,
-                                  selectedTileColor: tileHtml.style["color"],
-                                  selectedTileBackgroundColor: tileHtml.style["background-color"],
-                                  selectedTileName: (document.getElementById("tile_template_name").value || ""),
-                                  selectedTileCharacter: tileHtml.innerText,
-                                  selectedTileState: (document.getElementById("tile_template_state").value || ""),
-                                  selectedTileScript: (document.getElementById("tile_template_script").value || ""),
+                                  selectedTileColor: color,
+                                  selectedTileBackgroundColor: background_color,
+                                  selectedTileName: tile_name,
+                                  selectedTileCharacter: character,
+                                  selectedTileState: state,
+                                  selectedTileScript: script,
                                   findOrCreateActiveTileDiv: this.findOrCreateActiveTileDiv
       })
     })

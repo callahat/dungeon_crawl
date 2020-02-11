@@ -52,4 +52,24 @@ defmodule DungeonCrawlWeb.DungeonView do
   defp _make_it_safe(html) do
     {:safe, html}
   end
+
+  def render("map_tile_errors.json", %{map_tile_errors: map_tile_errors}) do
+    errors = Enum.map(map_tile_errors, fn {field, detail} ->
+      %{
+        field: field,
+        detail: _render_detail(detail)
+      }
+    end)
+
+    %{errors: errors}
+  end
+
+  defp _render_detail({message, values}) do
+    Enum.reduce values, message, fn {k, v}, acc ->
+      String.replace(acc, "%{#{k}}", to_string(v))
+    end
+  end
+  defp _render_detail(message) do
+    message
+  end
 end

@@ -140,6 +140,14 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
+  # JSON
+  def validate_map_tile(conn, %{"id" => id, "map_tile" => map_tile_params}) do
+    map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Map.put(map_tile_params, :dungeon_id, id))
+                         |> TileTemplates.TileTemplate.validate_script(%{user_id: conn.assigns.current_user.id})
+
+    render(conn, "map_tile_errors.json", map_tile_errors: map_tile_changeset.errors)
+  end
+
   def delete(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon #Dungeon.get_map!(id)
 
