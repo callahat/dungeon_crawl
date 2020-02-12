@@ -109,41 +109,77 @@ let DungeonEditor = {
 
     // Tile Editor Tool
     document.getElementById("save_tile_changes").addEventListener('click', e => {
-      let row = document.getElementById("tile_template_row").value,
-          col = document.getElementById("tile_template_col").value,
-          z_index = document.getElementById("tile_template_z_index").value,
-          character = (document.getElementById("tile_template_character").value[0] || " "),
-          color = (document.getElementById("tile_template_color").value || ""),
-          background_color = (document.getElementById("tile_template_background_color").value || ""),
-          map_location_td = document.getElementById(row + "_" + col),
+      let map_tile_attrs = {
+            row: document.getElementById("tile_template_row").value,
+            col: document.getElementById("tile_template_col").value,
+            z_index: document.getElementById("tile_template_z_index").value,
+            character: (document.getElementById("tile_template_character").value[0] || " "),
+            color: (document.getElementById("tile_template_color").value || ""),
+            background_color: (document.getElementById("tile_template_background_color").value || ""),
+            tile_name: (document.getElementById("tile_template_name").value || ""),
+            state: (document.getElementById("tile_template_state").value || ""),
+            script: (document.getElementById("tile_template_script").value || "")
+          },
+          map_location_td = document.getElementById(map_tile_attrs.row + "_" + map_tile_attrs.col),
           map_location = this.findOrCreateActiveTileDiv(map_location_td),
-          tile_name = (document.getElementById("tile_template_name").value || ""),
-          state = (document.getElementById("tile_template_state").value || ""),
-          script = (document.getElementById("tile_template_script").value || "")
+          tileHtml = this.blankDivNode.cloneNode(true),
+          paintTileFunction = this.paintTile,
+          findOrCreateActiveTileDivFunction = this.findOrCreateActiveTileDiv,
+          resetTileModalErrors = this.resetTileModalErrors
 
-      let tileHtml = this.blankDivNode.cloneNode(true)
+      $.post("/dungeons/205/validate_map_tile", {map_tile: map_tile_attrs, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
+       .done(function(resp){
+          if(resp.errors.length > 0){
+            let otherErrors = ["Errors exist with the tile"]
+            for(let error of resp.errors){
+              let field = document.getElementById('tile_template_' + error.field),
+                  errorMessageEl = document.getElementById('tile_template_' + error.field + '_error_messages')
+              if(field) {
+                field.classList.add("error")
+                if(errorMessageEl){
+                  errorMessageEl.innerText = error.detail
+                }
+              } else {
+                otherErrors.push(error.field + ' - ' + error.detail)
+              }
+            }
+            document.getElementById("tile_errors").innerText = otherErrors.join("<br/>")
+            document.getElementById("tile_errors").classList.remove("hidden")
 
-      tileHtml.innerText = character
-      tileHtml.style["color"] = color
-      tileHtml.style["background-color"] = background_color
+          } else {
+            resetTileModalErrors()
 
-      this.paintTile(map_location_td, {selectedTileId: "",
-                                  selectedTileHtml: tileHtml,
-                                  selectedTileColor: color,
-                                  selectedTileBackgroundColor: background_color,
-                                  selectedTileName: tile_name,
-                                  selectedTileCharacter: character,
-                                  selectedTileState: state,
-                                  selectedTileScript: script,
-                                  findOrCreateActiveTileDiv: this.findOrCreateActiveTileDiv
-      })
-    })
+            tileHtml.innerText = map_tile_attrs.character
+            tileHtml.style["color"] = map_tile_attrs.color
+            tileHtml.style["background-color"] = map_tile_attrs.background_color
+
+            paintTileFunction(map_location_td, {selectedTileId: "",
+                                                selectedTileHtml: tileHtml,
+                                                selectedTileColor: map_tile_attrs.color,
+                                                selectedTileBackgroundColor: map_tile_attrs.background_color,
+                                                selectedTileName: map_tile_attrs.tile_name,
+                                                selectedTileCharacter: map_tile_attrs.character,
+                                                selectedTileState: map_tile_attrs.state,
+                                                selectedTileScript: map_tile_attrs.script,
+                                                findOrCreateActiveTileDiv: findOrCreateActiveTileDivFunction
+            })
+
+            $("#tileEditModal").modal('hide')
+          }
+       })
+       .fail(function(resp){
+          console.log(resp.status)
+       })
+
+
+    }) // end save_tile_changes listener
 
     $("#tileEditModal").on('hide.bs.modal', event => {
       let row = document.getElementById("tile_template_row").value,
           col = document.getElementById("tile_template_col").value,
           map_location_td = document.getElementById(row + "_" + col)
       this.showVisibleTileAtCoordinate(map_location_td, document.getElementById("z_index_current").value)
+      this.resetTileModalErrors()
     })
 
     // Submit is overridden to build the JSON that updates the dungeon map tiles
@@ -155,6 +191,18 @@ let DungeonEditor = {
     }
 
     this.updateVisibleStacks()
+  },
+  resetTileModalErrors(){
+    document.getElementById("tile_errors").classList.add("hidden")
+    document.getElementById("tile_errors").innerText = ''
+    document.getElementById("tile_template_state_error_messages").innerText = ''
+    document.getElementById("tile_template_script_error_messages").innerText = ''
+    document.getElementById("tile_template_name").classList.remove("error")
+    document.getElementById("tile_template_character").classList.remove("error")
+    document.getElementById("tile_template_color").classList.remove("error")
+    document.getElementById("tile_template_background_color").classList.remove("error")
+    document.getElementById("tile_template_state").classList.remove("error")
+    document.getElementById("tile_template_script").classList.remove("error")
   },
   submitForm(event, context){
     document.getElementById("map_tile_changes").value = JSON.stringify(context.getTileFormData("changed-map-tile"))
@@ -185,7 +233,7 @@ let DungeonEditor = {
   },
   updateActiveTile(target){
     if(!target) { return }
-
+console.log('updated active tile')
     let tag = target.tagName == "DIV" ? target.parentNode : target
 
     document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
@@ -198,7 +246,7 @@ let DungeonEditor = {
     this.selectedTileHtml = tag.children[0]
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
-//    this.selectedTileName = tag.getAttribute("data-name")
+    this.selectedTileName = tag.getAttribute("data-name")
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
     this.selectedTileScript = tag.getAttribute("data-script")
@@ -236,7 +284,7 @@ let DungeonEditor = {
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
       this.updateColorPreviews()
     } else if(this.mode == "tile_edit") {
-console.log("Do i do anything here?")
+      console.log("Do i do anything here?")
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
       return

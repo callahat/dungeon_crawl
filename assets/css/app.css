@@ -101,6 +101,10 @@ input#tile_template_character {
   background-color: #E0E0FF;
 }
 
+.form-control.error {
+  border-color: #dc3545;
+}
+
 /*
  * Table with sticky header row
  */
