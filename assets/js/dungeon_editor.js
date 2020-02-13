@@ -218,8 +218,21 @@ let DungeonEditor = {
       let color = tile.getAttribute("data-color")
       let background_color = tile.getAttribute("data-background-color")
       let z_index = tile.getAttribute("data-z-index")
+      let character = tile.getAttribute("data-character")
+      let state = tile.getAttribute("data-state")
+      let script = tile.getAttribute("data-script")
+      let name = tile.getAttribute("data-name")
 
-      map_tile_data.push({row: row, col: col, z_index: z_index, tile_template_id: ttid, color: color, background_color: background_color })
+      map_tile_data.push({row: row,
+                          col: col,
+                          z_index: z_index,
+                          tile_template_id: ttid,
+                          color: color,
+                          background_color: background_color,
+                          character: character,
+                          state: state,
+                          script: script,
+                          name: name })
     }
 
     return(map_tile_data)

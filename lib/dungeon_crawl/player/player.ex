@@ -64,7 +64,7 @@ defmodule DungeonCrawl.Player do
 
   defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.Map{} = instance) do
     empty_floor = Repo.preload(instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
-                      |> Enum.filter(fn(t) -> t.tile_template.character == "." end)
+                      |> Enum.filter(fn(t) -> t.tile_template && t.tile_template.character == "." end)
                       |> Enum.random
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()

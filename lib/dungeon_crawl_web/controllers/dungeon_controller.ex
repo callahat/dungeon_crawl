@@ -93,17 +93,16 @@ defmodule DungeonCrawlWeb.DungeonController do
         tile_updates
         |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"], tu["z_index"]),
                                TileTemplates.get_tile_template(tu["tile_template_id"]),
-                               tu["color"],
-                               tu["background_color"]
+                               tu
                               ] end)
-        |> Enum.reject(fn([d,t,_,_]) -> is_nil(d) || is_nil(t) end)
-        |> Enum.map(fn([dmt, tt, color, background_color]) ->
+        |> Enum.reject(fn([d,_,_]) -> is_nil(d) end)
+        |> Enum.map(fn([dmt, tt, tu]) ->
              Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id,
-                                             character: tt.character,
-                                             color: color || tt.color,
-                                             background_color: background_color || tt.background_color,
-                                             state: tt.state,
-                                             script: tt.script
+                                             character: tu["character"] || tt.character,
+                                             color: tu["color"] || tt.color,
+                                             background_color: tu["background_color"] || tt.background_color,
+                                             state: tu["state"] || tt.state,
+                                             script: tu["script"] || tt.script
                                             })
            end)
 
@@ -127,11 +126,11 @@ defmodule DungeonCrawlWeb.DungeonController do
                                         col: ta["col"],
                                         z_index: ta["z_index"],
                                         tile_template_id: tt.id,
-                                        character: tt.character,
+                                        character: ta["character"] || tt.character,
                                         color: ta["color"] || tt.color,
                                         background_color: ta["background_color"] || tt.background_color,
-                                        state: tt.state,
-                                        script: tt.script
+                                        state: ta["state"] || tt.state,
+                                        script: ta["script"] || tt.script
                                       })
            end)
 
