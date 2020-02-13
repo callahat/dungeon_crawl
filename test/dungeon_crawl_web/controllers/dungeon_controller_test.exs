@@ -6,6 +6,15 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   @create_attrs %{name: "some name", height: 40, width: 80}
   @update_attrs %{name: "new name", height: 40, width: 40}
   @invalid_attrs %{name: ""}
+  @tile_attrs %{"background_color" => "",
+                "character" => " ",
+                "col" => "42",
+                "color" => "",
+                "row" => "8",
+                "script" => "",
+                "state" => "",
+                "tile_name" => "",
+                "z_index" => "2"}
 
   def fixture(:dungeon, user_id) do
     {:ok, dungeon} = Dungeon.create_map(Map.put(@create_attrs, :user_id, user_id))
@@ -60,6 +69,21 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "redirects", %{conn: conn, dungeon: dungeon} do
       conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs
       assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "validate_map_tile" do
+    setup [:create_user, :create_dungeon]
+
+    test "returns empty array of errors when its all good", %{conn: conn, dungeon: dungeon} do
+      conn = post conn, dungeon_path(conn, :validate_map_tile, dungeon), map_tile: @tile_attrs
+      assert json_response(conn, 200) == %{"errors" => []}
+    end
+
+    test "returns array of validation errors when there are problems", %{conn: conn, dungeon: dungeon} do
+      conn = post conn, dungeon_path(conn, :validate_map_tile, dungeon), map_tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp"})
+      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "Error parsing around: derp", "field" => "state"},
+                                                        %{"detail" => "should be at most 1 character(s)", "field" => "character"}]}
     end
   end
 
