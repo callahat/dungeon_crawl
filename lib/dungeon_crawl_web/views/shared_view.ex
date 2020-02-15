@@ -84,7 +84,7 @@ defmodule DungeonCrawlWeb.SharedView do
     |> Enum.join("")
   end
 
-  defp _editor_cells([]), do: "<div data-z-index=0 #{data_attributes(nil)}>#{ tile_and_style(nil) }</div>"
+  defp _editor_cells([]), do: "<div class='blank' data-z-index=0 #{data_attributes(nil)}>#{ tile_and_style(nil) }</div>"
   defp _editor_cells([ cell | cells ]) do
     "<div data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
     <> _lower_editor_cells(cells)
@@ -109,10 +109,10 @@ defmodule DungeonCrawlWeb.SharedView do
     "data-script='#{mt.script}'"
   end
 
-  def tile_and_style(nil, :safe), do: {:safe, ""}
+  def tile_and_style(nil, :safe), do: {:safe, "<div> </div>"}
   def tile_and_style(tile, :safe), do: {:safe, _tile_and_style(tile)}
 
-  def tile_and_style(nil), do: ""
+  def tile_and_style(nil), do: "<div> </div>"
   def tile_and_style(tile), do: _tile_and_style(tile)
 
   defp _tile_and_style(%{color: nil, background_color: nil} = map_tile) do

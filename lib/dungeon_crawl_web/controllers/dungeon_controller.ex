@@ -73,6 +73,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, dungeon} ->
         _make_tile_updates(dungeon, dungeon_params["tile_changes"])
         _make_tile_additions(dungeon, dungeon_params["tile_additions"])
+        _make_tile_deletions(dungeon, dungeon_params["tile_deletions"])
 
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
@@ -132,6 +133,24 @@ defmodule DungeonCrawlWeb.DungeonController do
                                         state: ta["state"] || tt.state,
                                         script: ta["script"] || tt.script
                                       })
+           end)
+
+      {:error, _, _} ->
+        false # noop
+    end
+  end
+
+  defp _make_tile_deletions(dungeon, tile_deletions) do
+    case Jason.decode(tile_deletions) do
+      {:ok, tile_deletions} ->
+        # TODO: move this to a method in Dungeon
+        tile_deletions
+        |> Enum.map(fn(t) -> [t["row"],
+                              t["col"],
+                              t["z_index"]
+                             ] end)
+        |> Enum.map(fn([row, col, z_index]) ->
+             Dungeon.delete_map_tile(dungeon.id, row, col, z_index)
            end)
 
       {:error, _, _} ->

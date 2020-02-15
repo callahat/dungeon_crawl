@@ -176,7 +176,8 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       {:ok, other_tile} = Dungeon.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
 
       tile_data = %{tile_changes: "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]",
-                    tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]"}
+                    tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]",
+                    tile_deletions: "[{\"row\": 0, \"col\": 1, \"z_index\": 0}]"}
 
       conn = put conn, dungeon_path(conn, :update, dungeon),
                    map: Elixir.Map.merge(@update_attrs, tile_data)
@@ -193,6 +194,8 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).character == tile_template.character
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).color == "blue"
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
+
+      refute Dungeon.get_map_tile(dungeon.id, 0, 1, 1)
 
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
     end

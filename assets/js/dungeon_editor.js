@@ -40,7 +40,28 @@ let DungeonEditor = {
     document.getElementById("other-tab").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "tile_edit"
-      document.getElementById("tile_editor_tool").classList.add('active')
+      document.getElementById("tile_editor_tool").classList.add('btn-info')
+      document.getElementById("tile_editor_tool").classList.remove('btn-light')
+      document.getElementById("erase_tool").classList.add('btn-light')
+      document.getElementById("erase_tool").classList.remove('btn-info')
+    });
+
+    document.getElementById("tile_editor_tool").addEventListener('click', e => {
+      // defaulting to tile edit
+      this.mode = "tile_edit"
+      document.getElementById("tile_editor_tool").classList.add('btn-info')
+      document.getElementById("tile_editor_tool").classList.remove('btn-light')
+      document.getElementById("erase_tool").classList.add('btn-light')
+      document.getElementById("erase_tool").classList.remove('btn-info')
+    });
+
+    document.getElementById("erase_tool").addEventListener('click', e => {
+      // defaulting to tile edit
+      this.mode = "tile_erase"
+      document.getElementById("tile_editor_tool").classList.add('btn-light')
+      document.getElementById("tile_editor_tool").classList.remove('btn-info')
+      document.getElementById("erase_tool").classList.add('btn-info')
+      document.getElementById("erase_tool").classList.remove('btn-light')
     });
 
     for(let field of ['tile_color', 'tile_background_color']){
@@ -207,6 +228,7 @@ let DungeonEditor = {
   submitForm(event, context){
     document.getElementById("map_tile_changes").value = JSON.stringify(context.getTileFormData("changed-map-tile"))
     document.getElementById("map_tile_additions").value = JSON.stringify(context.getTileFormData("new-map-tile"))
+    document.getElementById("map_tile_deletions").value = JSON.stringify(context.getTileFormData("deleted-map-tile"))
     //event.preventDefault()
   },
   getTileFormData(type){
@@ -296,7 +318,7 @@ console.log('updated active tile')
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
       this.updateColorPreviews()
-    } else if(this.mode == "tile_edit") {
+    } else if(this.mode == "tile_edit" || this.mode == "tile_erase") {
       console.log("Do i do anything here?")
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
@@ -323,9 +345,6 @@ console.log('updated active tile')
       var paintMethod = this.paintTile,
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_edit") {
-console.log("tile edit")
-      // TODO: add a coord hidden element?
-      // TODO: load the current stuff
       document.getElementById("tile_template_row").value = targetCoord[0]
       document.getElementById("tile_template_col").value = targetCoord[1]
       document.getElementById("tile_template_z_index").value = map_location.getAttribute("data-z-index")
@@ -342,6 +361,14 @@ console.log("tile edit")
       $('#tileEditModal').modal({show: true})
 
       this.lastCoord = this.lastDraggedCoord = targetCoord
+      return
+    } else if(this.mode == "tile_erase") {
+      this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
+      let visible_tile_div = map_location.parentNode.querySelector("td > div:not([class=hidden]):not([class=placeholder]) ")
+      if(!!visible_tile_div && !visible_tile_div.classList.contains("placeholder")){
+        visible_tile_div.setAttribute("class", "deleted-map-tile")
+        this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
+      }
       return
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
@@ -414,7 +441,7 @@ console.log("tile edit")
     div.setAttribute("data-state", context.selectedTileState)
     div.setAttribute("data-script", context.selectedTileScript)
 
-    if(div.classList.contains("placeholder") || div.classList.contains("new-map-tile")){
+    if(div.classList.contains("placeholder")  || div.classList.contains("blank") || div.classList.contains("new-map-tile")){
       if(document.getElementById("z_index_current").value > context.zIndexUpperBound) {
         context.zIndexUpperBound = document.getElementById("z_index_current").value
       } else if(document.getElementById("z_index_current").value < context.zIndexLowerBound) {
@@ -544,7 +571,8 @@ console.log("tile edit")
     if(this.onlyShowCurrentLayer){
       visibleTile = tiles.find((a) => a.getAttribute("data-z-index") == currentZIndex)
     } else {
-      visibleTile = tiles.filter((a)=> !a.classList.contains("placeholder") && a.getAttribute("data-z-index") <= currentZIndex )
+      visibleTile = tiles.filter((a)=> !(a.classList.contains("placeholder") || a.classList.contains("deleted-map-tile"))
+                                       && a.getAttribute("data-z-index") <= currentZIndex )
                          .sort((a,b) => a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))[0]
     }
     tiles.map((div) => div.classList.add("hidden"))

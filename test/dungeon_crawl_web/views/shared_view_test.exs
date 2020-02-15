@@ -8,11 +8,11 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   @copyable_attrs [:character, :color, :background_color, :state, :script]
 
   test "tile_and_style/1 with nil" do
-    assert tile_and_style(nil) == ""
+    assert tile_and_style(nil) == "<div> </div>"
   end
 
   test "tile_and_style/2 with nil" do
-    assert tile_and_style(nil, :safe) == {:safe, ""}
+    assert tile_and_style(nil, :safe) == {:safe, "<div> </div>"}
   end
 
   test "tile_and_style/2 using :safe returns a tuple marked html safe" do

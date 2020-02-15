@@ -395,5 +395,23 @@ defmodule DungeonCrawl.DungeonTest do
       assert Dungeon.get_map_tiles(map_tile.dungeon_id, map_tile.row, map_tile.col) == [map_tile, bottom_tile]
       assert Dungeon.get_map_tiles(map_tile.dungeon_id + 1, map_tile.row, map_tile.col) == []
     end
+
+    test "delete_map_tile/4 returns the deleted map_tile" do
+      tile = map_tile_fixture()
+      assert {:ok, deleted_tile} = Dungeon.delete_map_tile(tile.dungeon_id, tile.row, tile.col, tile.z_index)
+      assert tile.id == deleted_tile.id
+      refute Dungeon.get_map_tile(tile.dungeon_id, tile.row, tile.col, tile.z_index)
+    end
+
+    test "delete_map_tile/1 returns the deleted map_tile" do
+      tile = map_tile_fixture()
+      assert {:ok, deleted_tile} = Dungeon.delete_map_tile(tile)
+      assert tile.id == deleted_tile.id
+      refute Dungeon.get_map_tile(tile.dungeon_id, tile.row, tile.col, tile.z_index)
+    end
+
+    test "delete_map_tile/1 returns nil if given nil" do
+      refute Dungeon.delete_map_tile(nil)
+    end
   end
 end

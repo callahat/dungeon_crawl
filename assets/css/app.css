@@ -96,11 +96,6 @@ input#tile_template_character {
   box-shadow: none;
 }
 
-#z_index_range_tool .active {
-  border: 3px solid blue;
-  background-color: #E0E0FF;
-}
-
 .form-control.error {
   border-color: #dc3545;
 }
