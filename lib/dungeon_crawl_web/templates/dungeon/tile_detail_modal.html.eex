@@ -1,0 +1,54 @@
+<!-- Modal -->
+<div class="modal fade" id="tileDetailModal" tabindex="-1" role="dialog" aria-labelledby="tileDetailModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tileDetailModalLabel">
+          <span id="tile_detail_name"></span>
+          <pre id="tile_detail_character" class="tile_template_preview embiggen"></pre>
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="row">
+          <div class="col-6">
+            <strong>Color</strong><br/>
+            <span id="tile_detail_color"></span>
+          </div>
+
+          <div class="col-6">
+            <strong>Background Color</strong><br/>
+            <span id="tile_detail_background_color"></span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <strong>Description</strong><br/>
+            <span id="tile_detail_description"></span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <strong>State</strong>
+            <pre id="tile_detail_state" class="script"></pre>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <strong>Script</strong>
+            <pre id="tile_detail_script" class="script"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

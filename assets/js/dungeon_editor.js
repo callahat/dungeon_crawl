@@ -203,6 +203,11 @@ let DungeonEditor = {
       this.resetTileModalErrors()
     })
 
+    // Tile Detail
+    document.getElementById("tile_detail_tool").addEventListener("click", function(event){
+      $('#tileDetailModal').modal({show: true})
+    })
+
     // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
     if(dungeonForm.addEventListener){
@@ -268,8 +273,10 @@ let DungeonEditor = {
   },
   updateActiveTile(target){
     if(!target) { return }
-console.log('updated active tile')
-    let tag = target.tagName == "DIV" ? target.parentNode : target
+
+    let tag = target.tagName == "DIV" && target.parentNode.tagName != "TD" ? target.parentNode : target
+
+    if(target.classList.contains("placeholder")) { return }
 
     document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
 
@@ -288,6 +295,20 @@ console.log('updated active tile')
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
     }
+    if(!this.selectedTileId){
+      document.getElementById("active_tile_name").innerText += " (custom)"
+    }
+    this.updateTileDetail()
+  },
+  updateTileDetail(){
+    document.getElementById("tile_detail_name").innerText = document.getElementById("active_tile_name").innerText
+    document.getElementById("tile_detail_character").innerHTML = this.selectedTileHtml.outerHTML
+    document.getElementById("tile_detail_color").innerText = this.selectedTileColor || "<none>"
+    document.getElementById("tile_detail_background_color").innerText = this.selectedTileBackgroundColor || "<none>"
+    document.getElementById("tile_detail_description").innerText = document.getElementById("active_tile_description").innerText || "<none>"
+    document.getElementById("tile_detail_state").innerText = this.selectedTileState
+    document.getElementById("tile_detail_script").innerText = this.selectedTileScript
+    document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
   },
   updateActiveColor(event){
     let target = event.target
@@ -303,6 +324,8 @@ console.log('updated active tile')
     this.updateColorPreviews()
   },
   selectDungeonTile(event){
+    if(this.mode == "tile_edit" || this.mode == "tile_erase") { return }
+
     let map_location = this.getMapLocation(event)
     if(!map_location) { return } // event picked up on bad element
     this.painting = false
@@ -311,15 +334,13 @@ console.log('updated active tile')
     if(this.mode == "tile_painting") {
       let target = [...document.getElementsByName("paintable_tile_template")].find(
         function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
-
+        || map_location
       this.updateActiveTile(target)
     } else if(this.mode == "color_painting") {
 
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
       this.updateColorPreviews()
-    } else if(this.mode == "tile_edit" || this.mode == "tile_erase") {
-      console.log("Do i do anything here?")
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
       return
@@ -327,6 +348,7 @@ console.log('updated active tile')
   },
   paintEventHandler(event){
     if(!this.painting || this.painted) { return }
+    if(this.mode == "tile_painting" && this.historicTile) { return }
 
     let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
 
@@ -341,7 +363,6 @@ console.log('updated active tile')
       var paintMethod = this.colorTile,
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_painting") {
-      if(this.historicTile) { return }
       var paintMethod = this.paintTile,
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_edit") {
@@ -571,9 +592,13 @@ console.log('updated active tile')
     if(this.onlyShowCurrentLayer){
       visibleTile = tiles.find((a) => a.getAttribute("data-z-index") == currentZIndex)
     } else {
-      visibleTile = tiles.filter((a)=> !(a.classList.contains("placeholder") || a.classList.contains("deleted-map-tile"))
-                                       && a.getAttribute("data-z-index") <= currentZIndex )
-                         .sort((a,b) => a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))[0]
+      visibleTile = tiles.filter((a)=> !(a.classList.contains("deleted-map-tile")) && a.getAttribute("data-z-index") <= currentZIndex )
+                         .sort(function(a,b){
+                                 if(a.classList.contains("placeholder") != b.classList.contains("placeholder")){
+                                   return(a.classList.contains("placeholder"))
+                                 }
+                                 return(a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))
+                               })[0]
     }
     tiles.map((div) => div.classList.add("hidden"))
     if(visibleTile){
