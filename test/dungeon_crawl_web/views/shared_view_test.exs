@@ -8,11 +8,11 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   @copyable_attrs [:character, :color, :background_color, :state, :script]
 
   test "tile_and_style/1 with nil" do
-    assert tile_and_style(nil) == ""
+    assert tile_and_style(nil) == "<div> </div>"
   end
 
   test "tile_and_style/2 with nil" do
-    assert tile_and_style(nil, :safe) == {:safe, ""}
+    assert tile_and_style(nil, :safe) == {:safe, "<div> </div>"}
   end
 
   test "tile_and_style/2 using :safe returns a tuple marked html safe" do
@@ -95,10 +95,10 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
     rows = editor_dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height)
 
-    tile_a_0 = "<div data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></div>"
-    tile_b_0 = "<div data-z-index=0 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}'><div style='color: #FFF'>B</div></div>"
-    tile_a_0_hidden = "<div class='hidden' data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}'><div>A</div></div>"
-    tile_b_1 = "<div data-z-index=1 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}'><div style='color: #FFF'>B</div></div>"
+    tile_a_0 = "<div data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}' data-character='A' data-state='blocking: false' data-script=''><div>A</div></div>"
+    tile_b_0 = "<div data-z-index=0 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}' data-character='B' data-state='blocking: false' data-script=''><div style='color: #FFF'>B</div></div>"
+    tile_a_0_hidden = "<div class='hidden' data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}' data-character='A' data-state='blocking: false' data-script=''><div>A</div></div>"
+    tile_b_1 = "<div data-z-index=1 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}' data-character='B' data-state='blocking: false' data-script=''><div style='color: #FFF'>B</div></div>"
 
     assert rows =~ ~r|<td id='1_1'>#{tile_b_1}#{tile_a_0_hidden}</td>|
     assert rows =~ ~r|<td id='1_2'>#{tile_a_0}</td>|

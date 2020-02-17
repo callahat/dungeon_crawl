@@ -27,6 +27,7 @@ defmodule DungeonCrawlWeb.Router do
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
     resources "/dungeons", DungeonController
+      post    "/dungeons/:id/validate_map_tile", DungeonController, :validate_map_tile
       post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
       post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl

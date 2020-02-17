@@ -558,4 +558,26 @@ defmodule DungeonCrawl.Dungeon do
   def change_map_tile(%MapTile{} = map_tile) do
     MapTile.changeset(map_tile, %{})
   end
+
+  @doc """
+  Deletes a Map Tile. If map tile with the given coords and dungeon does not exist, nil is returned.
+
+  ## Examples
+
+      iex> delete_map_tile(%MapTile{})
+      %MapTile{}
+
+      iex> delete_map_tile(dungeon_id, row, col, z_index)
+      %MapTile{}
+
+      iex> delete_map(dungeon_id, row, col, z_index)
+      nil
+  """
+  def delete_map_tile(dungeon_id, row, col, z_index) do
+    delete_map_tile(get_map_tile(dungeon_id, row, col, z_index))
+  end
+  def delete_map_tile(nil), do: nil
+  def delete_map_tile(%MapTile{} = map_tile) do
+    Repo.delete(map_tile)
+  end
 end

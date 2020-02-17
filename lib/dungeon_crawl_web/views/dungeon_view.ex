@@ -23,12 +23,16 @@ defmodule DungeonCrawlWeb.DungeonView do
                 name="paintable_tile_template"
                 title="#{ tile_template.name }"
                 #{ if historic, do: " data-historic-template=true" }
+                data-tile-template-id="#{ tile_template.id }"
                 data-tile-template-description="#{ tile_template.description }"
                 data-tile-template-state="#{ tile_template.state }"
                 data-tile-template-script="#{ tile_template.script }"
                 data-color="#{ tile_template.color }"
                 data-background-color="#{ tile_template.background_color }"
-                data-tile-template-id="#{ tile_template.id }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
+                data-name="#{ tile_template.name }"
+                data-character="#{ tile_template.character }"
+                data-state="#{ tile_template.state }"
+                data-script="#{ tile_template.script }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
          """
        end)
     |> Enum.join("\n")
@@ -51,5 +55,25 @@ defmodule DungeonCrawlWeb.DungeonView do
 
   defp _make_it_safe(html) do
     {:safe, html}
+  end
+
+  def render("map_tile_errors.json", %{map_tile_errors: map_tile_errors}) do
+    errors = Enum.map(map_tile_errors, fn {field, detail} ->
+      %{
+        field: field,
+        detail: _render_detail(detail)
+      }
+    end)
+
+    %{errors: errors}
+  end
+
+  defp _render_detail({message, values}) do
+    Enum.reduce values, message, fn {k, v}, acc ->
+      String.replace(acc, "%{#{k}}", to_string(v))
+    end
+  end
+  defp _render_detail(message) do
+    message
   end
 end

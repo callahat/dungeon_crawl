@@ -8,6 +8,16 @@ pre#short_comm {
   border: 1px solid #dee2e6;
 }
 
+pre.script {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+  line-height: 1.2;
+  padding: 0.5em;
+  width: min-content;
+  font-size: 75%;
+}
+
 pre.dungeon_preview {
   background: #f5f5f5;
   border-radius: 0.25rem;
@@ -96,9 +106,8 @@ input#tile_template_character {
   box-shadow: none;
 }
 
-#z_index_range_tool .active {
-  border: 3px solid blue;
-  background-color: #E0E0FF;
+.form-control.error {
+  border-color: #dc3545;
 }
 
 /*

@@ -69,6 +69,7 @@ defmodule DungeonCrawl.TileTemplates do
       ** (Ecto.NoResultsError)
 
   """
+  def get_tile_template(nil),  do: %TileTemplate{}
   def get_tile_template(id),  do: Repo.get(TileTemplate, id)
   def get_tile_template!(id), do: Repo.get!(TileTemplate, id)
 

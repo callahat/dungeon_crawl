@@ -6,6 +6,15 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   @create_attrs %{name: "some name", height: 40, width: 80}
   @update_attrs %{name: "new name", height: 40, width: 40}
   @invalid_attrs %{name: ""}
+  @tile_attrs %{"background_color" => "",
+                "character" => " ",
+                "col" => "42",
+                "color" => "",
+                "row" => "8",
+                "script" => "",
+                "state" => "",
+                "tile_name" => "",
+                "z_index" => "2"}
 
   def fixture(:dungeon, user_id) do
     {:ok, dungeon} = Dungeon.create_map(Map.put(@create_attrs, :user_id, user_id))
@@ -60,6 +69,21 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "redirects", %{conn: conn, dungeon: dungeon} do
       conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs
       assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "validate_map_tile" do
+    setup [:create_user, :create_dungeon]
+
+    test "returns empty array of errors when its all good", %{conn: conn, dungeon: dungeon} do
+      conn = post conn, dungeon_path(conn, :validate_map_tile, dungeon), map_tile: @tile_attrs
+      assert json_response(conn, 200) == %{"errors" => []}
+    end
+
+    test "returns array of validation errors when there are problems", %{conn: conn, dungeon: dungeon} do
+      conn = post conn, dungeon_path(conn, :validate_map_tile, dungeon), map_tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp"})
+      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "Error parsing around: derp", "field" => "state"},
+                                                        %{"detail" => "should be at most 1 character(s)", "field" => "character"}]}
     end
   end
 
@@ -152,7 +176,8 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       {:ok, other_tile} = Dungeon.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
 
       tile_data = %{tile_changes: "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]",
-                    tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]"}
+                    tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]",
+                    tile_deletions: "[{\"row\": 0, \"col\": 1, \"z_index\": 0}]"}
 
       conn = put conn, dungeon_path(conn, :update, dungeon),
                    map: Elixir.Map.merge(@update_attrs, tile_data)
@@ -169,6 +194,8 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).character == tile_template.character
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).color == "blue"
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
+
+      refute Dungeon.get_map_tile(dungeon.id, 0, 1, 1)
 
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
     end

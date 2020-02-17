@@ -15,7 +15,12 @@ import css from '../css/app.css';
 
 import 'bootstrap'
 
+import $ from 'jquery'
+
 import "phoenix_html"
+
+window.jQuery = $
+window.$ = $
 
 // Import local files
 //

@@ -73,6 +73,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:ok, dungeon} ->
         _make_tile_updates(dungeon, dungeon_params["tile_changes"])
         _make_tile_additions(dungeon, dungeon_params["tile_additions"])
+        _make_tile_deletions(dungeon, dungeon_params["tile_deletions"])
 
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
@@ -93,17 +94,16 @@ defmodule DungeonCrawlWeb.DungeonController do
         tile_updates
         |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"], tu["z_index"]),
                                TileTemplates.get_tile_template(tu["tile_template_id"]),
-                               tu["color"],
-                               tu["background_color"]
+                               tu
                               ] end)
-        |> Enum.reject(fn([d,t,_,_]) -> is_nil(d) || is_nil(t) end)
-        |> Enum.map(fn([dmt, tt, color, background_color]) ->
+        |> Enum.reject(fn([d,_,_]) -> is_nil(d) end)
+        |> Enum.map(fn([dmt, tt, tu]) ->
              Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id,
-                                             character: tt.character,
-                                             color: color || tt.color,
-                                             background_color: background_color || tt.background_color,
-                                             state: tt.state,
-                                             script: tt.script
+                                             character: tu["character"] || tt.character,
+                                             color: tu["color"] || tt.color,
+                                             background_color: tu["background_color"] || tt.background_color,
+                                             state: tu["state"] || tt.state,
+                                             script: tu["script"] || tt.script
                                             })
            end)
 
@@ -127,17 +127,43 @@ defmodule DungeonCrawlWeb.DungeonController do
                                         col: ta["col"],
                                         z_index: ta["z_index"],
                                         tile_template_id: tt.id,
-                                        character: tt.character,
+                                        character: ta["character"] || tt.character,
                                         color: ta["color"] || tt.color,
                                         background_color: ta["background_color"] || tt.background_color,
-                                        state: tt.state,
-                                        script: tt.script
+                                        state: ta["state"] || tt.state,
+                                        script: ta["script"] || tt.script
                                       })
            end)
 
       {:error, _, _} ->
         false # noop
     end
+  end
+
+  defp _make_tile_deletions(dungeon, tile_deletions) do
+    case Jason.decode(tile_deletions) do
+      {:ok, tile_deletions} ->
+        # TODO: move this to a method in Dungeon
+        tile_deletions
+        |> Enum.map(fn(t) -> [t["row"],
+                              t["col"],
+                              t["z_index"]
+                             ] end)
+        |> Enum.map(fn([row, col, z_index]) ->
+             Dungeon.delete_map_tile(dungeon.id, row, col, z_index)
+           end)
+
+      {:error, _, _} ->
+        false # noop
+    end
+  end
+
+  def validate_map_tile(conn, %{"id" => id, "map_tile" => map_tile_params}) do
+    map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Elixir.Map.put(map_tile_params, "dungeon_id", id))
+                         |> TileTemplates.TileTemplate.validate_script(%{user_id: conn.assigns.current_user.id})
+                         |> TileTemplates.TileTemplate.validate_state
+
+    render(conn, "map_tile_errors.json", map_tile_errors: map_tile_changeset.errors)
   end
 
   def delete(conn, %{"id" => _id}) do

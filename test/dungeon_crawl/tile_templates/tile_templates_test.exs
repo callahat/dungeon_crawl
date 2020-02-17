@@ -49,6 +49,10 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.list_placeable_tile_templates(user) == %{active: [tile_template, public_tile_template], inactive: [inactive_tile_template]}
     end
 
+    test "get_tile_template/1 returns an empty struct for nil" do
+      assert TileTemplates.get_tile_template(nil) == %TileTemplate{}
+    end
+
     test "get_tile_template!/1 returns the tile_template with given id" do
       tile_template = tile_template_fixture()
       assert TileTemplates.get_tile_template!(tile_template.id) == tile_template

@@ -1,0 +1,72 @@
+<!-- Modal -->
+<div class="modal fade" id="tileEditModal" tabindex="-1" role="dialog" aria-labelledby="tileEditModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tileEditModalLabel">Edit Tile</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="row">
+          <div class="col-12">
+            <div id="tile_errors" class="alert alert-danger hidden" role="alert"></div>
+          </div>
+          <div class="col-6">
+            <div class="form-group">
+              <%= label :tile_template, :name, class: "control-label" %>
+              <%= text_input :tile_template, :name, class: "form-control" %>
+            </div>
+          </div>
+          <div class="col-2">
+            <div class="form-group">
+              <%= label :tile_template, :character, class: "control-label" %>
+              <%= text_input :tile_template, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+            </div>
+          </div>
+          <div class="col-2">
+            <br/>
+            <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
+          </div>
+          <div class="col-2">
+            <br/>
+            <pre id="character_preview_small" class="tile_template_preview"></pre>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="form-group col-6">
+            <%= label :tile_template, :color, class: "control-label" %>
+            <%= text_input :tile_template, :color, class: "form-control" %>
+          </div>
+
+          <div class="form-group col-6">
+            <%= label :tile_template, :background_color, class: "control-label" %>
+            <%= text_input :tile_template, :background_color, class: "form-control" %>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <%= label :tile_template, :state, class: "control-label" %>
+          <%= text_input :tile_template, :state, class: "form-control" %>
+          <pre id="tile_template_state_error_messages"></pre>
+        </div>
+
+        <div class="form-group">
+          <%= label :tile_template, :script, class: "control-label" %>
+          <%= textarea :tile_template, :script, class: "form-control" %>
+          <pre id="tile_template_script_error_messages"></pre>
+        </div>
+        <%= hidden_input :tile_template, :row %>
+        <%= hidden_input :tile_template, :col %>
+        <%= hidden_input :tile_template, :z_index %>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="save_tile_changes">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>

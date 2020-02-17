@@ -57,12 +57,12 @@
 
   <li>
     <strong>State:</strong>
-    <pre><%= @tile_template.state %></pre>
+    <pre class="script"><%= @tile_template.state %></pre>
   </li>
 
   <li>
     <strong>Script:</strong>
-    <pre><%= @tile_template.script %></pre>
+    <pre class="script"><%= @tile_template.script %></pre>
   </li>
 </ul>
 

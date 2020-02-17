@@ -48,4 +48,18 @@ defmodule DungeonCrawlWeb.DungeonViewTest do
     assert tr =~ ~r|<td data-color="white".*?</td>|
     assert tr =~ ~r|<td data-color="blue".*?</td>|
   end
+
+  test "render/2 returns json for changeset errors" do
+    no_errors = []
+    errors = [
+      character: {"should be at most %{count} character(s)", [count: 1, validation: :length, kind: :max, type: :string]}
+    ]
+
+    assert %{errors: []} = DungeonView.render("map_tile_errors.json", %{map_tile_errors: no_errors})
+    assert %{errors: [
+                %{detail: "should be at most 1 character(s)", field: :character}
+              ]
+           } = DungeonView.render("map_tile_errors.json", %{map_tile_errors: errors})
+    assert %{errors: [ %{detail: "it bad", field: :script} ] } = DungeonView.render("map_tile_errors.json", %{map_tile_errors: [script: "it bad"]})
+  end
 end
