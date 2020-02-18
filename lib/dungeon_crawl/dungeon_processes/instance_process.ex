@@ -257,7 +257,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
     if runner_state.program.status == :dead do
-      {[ other_program_contexts, runner_state.state ], updated_state}
+      { other_program_contexts, updated_state}
     else
       {[ [line, Map.take(runner_state, [:program, :object, :event_sender])] | other_program_contexts ], updated_state}
     end

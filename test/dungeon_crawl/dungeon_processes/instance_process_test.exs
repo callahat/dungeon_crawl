@@ -116,7 +116,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
         %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white"},
-        %{id: 123, character: "O", row: 1, col: 4, z_index: 0}
+        %{id: 123, character: "O", row: 1, col: 4, z_index: 0, script: "#DIE"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
