@@ -59,7 +59,13 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_line(line, program) do
-    case Regex.named_captures(~r/^(?<type>#|:|@)(?<instruction>.*)$/, line) do
+    case Regex.named_captures(~r/^(?<type>#|:|@|\\|\?)(?<instruction>.*)$/, line) do
+      %{"type" => "\\", "instruction" => _command} ->
+        _parse_shorthand_movement(line, program)
+
+      %{"type" => "?", "instruction" => _command} ->
+        _parse_shorthand_movement(line, program)
+
       %{"type" => "#", "instruction" => command} ->
         _parse_command(command, program)
 
@@ -71,6 +77,49 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       _ -> # If the last item in the program is also text, concat the two
         _handle_text(line, program)
+    end
+  end
+
+  defp _parse_shorthand_movement(line, program) do
+    with steps <- line |> String.to_charlist |> Enum.chunk_every(2),
+         {:ok, expanded_steps} <- _parse_shorthand_movements(steps),
+         line_number <- Enum.count(program.instructions) + 1 do
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:compound_move, expanded_steps]) } }
+    else
+      {:error, msg} -> {:error, msg, program}
+      _             -> {:error, "Invalid command: `#{line}`", program} # Probably won't hit this
+    end
+  end
+
+  defp _parse_shorthand_movements([]), do: {:ok, []}
+  defp _parse_shorthand_movements([ [leading_character, direction] | steps ]) do
+    with {:ok, retry_until_successful} <- _parse_shorthand_directive(leading_character),
+         {:ok, parsed_direction} <- _parse_shorthand_direction(direction),
+         {:ok, parsed_shorthand_movements} <- _parse_shorthand_movements(steps) do
+      {:ok, [ [parsed_direction, retry_until_successful] | parsed_shorthand_movements]}
+    else
+      {:error, msg} -> {:error, msg}
+      _ -> {:error, "Invalid shorthand movement: #{[leading_character, direction]}"}
+    end
+  end
+
+  defp _parse_shorthand_directive(?\\), do: {:ok, true}
+  defp _parse_shorthand_directive(??),  do: {:ok, false}
+  defp _parse_shorthand_directive(_),   do: {:error}
+
+  defp _parse_shorthand_direction(direction) do
+    case direction do
+      ?n -> {:ok, "north"}
+      ?N -> {:ok, "north"}
+      ?s -> {:ok, "south"}
+      ?S -> {:ok, "south"}
+      ?e -> {:ok, "east"}
+      ?E -> {:ok, "east"}
+      ?w -> {:ok, "west"}
+      ?W -> {:ok, "west"}
+      ?i -> {:ok, "idle"}
+      ?I -> {:ok, "idle"}
+      _  -> {:error}
     end
   end
 

@@ -39,6 +39,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #BECOME TTID:#{tile_template.id}
                #MOVE south, true
                #MOVE east
+               \\n\\n?n
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -53,7 +54,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  10 => [:change_state, [:counter, "+=", 1]],
                                                  11 => [:become, [{:ttid, tile_template.id}]],
                                                  12 => [:move, ["south", true]],
-                                                 13 => [:move, ["east"]]
+                                                 13 => [:move, ["east"]],
+                                                 14 => [:compound_move, [["north", true], ["north", true], ["north", false]]]
                                                  },
                                  status: :alive,
                                  pc: 1,
