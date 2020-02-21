@@ -119,6 +119,81 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Similar to MOVE. This method is not directly accessable in the script as a normal command.
+  Rather, a line of short hand movement commands will be parsed and run via `compound_move`.
+  A short hand movement is two characters. A backslash or a question mark followed by a
+  direction character (n, s, e, w, or i, case insensitive).
+
+  A backslash will retry that movement until successful (unless the program also responds to
+  THUD). A question mark will attempt the movement once and then move on with the next instruction.
+  If the movement is invalid, the `pc` will be set to the location of the `THUD` label if an active one exists.
+
+  Valid directions:
+  n - up
+  s - down
+  e - right
+  w - left
+  i - no movement
+
+  Shorthand examples:
+
+  \n\n\n - move north three times
+  \e?n?n - move east once, then try to move north twice
+
+  For purposes of keeping track of which of the shorthand movements the command is on, the `lc` - line counter
+  element on the program is used.
+
+  The parameters expected are an enumerable containing tuples of 2. The first element of the tuple, and the second
+  is if the movement should retry until successful. The behavior is similar to the regular move command.
+
+  ## Examples
+
+    iex> Command.compound_move(%Runner{program: %Program{}, object: object, state: state}, [{"north", true}, {"east", false}])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def compound_move(%Runner{program: program, object: object, state: state} = runner_state, movement_chain) do
+    case Enum.at(movement_chain, program.lc) do
+      nil ->
+        %{ runner_state | program: %{ program | lc: 0 } }
+
+      {direction, retry_until_successful} ->
+        destination = Instances.get_map_tile(state, object, direction)
+
+        case Move.go(object, destination, state) do
+          {:ok, %{new_location: new_location, old_location: old}, new_state} ->
+
+            message = ["tile_changes",
+                   %{tiles: [
+                         Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
+                         Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
+                   ]}]
+
+            %Runner{ program: %{program | pc: program.pc - 1,
+                                          lc: program.lc + 1,
+                                          broadcasts: [message | program.broadcasts],
+                                          status: :wait,
+                                          wait_cycles: 5 },
+                     object: new_location,
+                     state: new_state}
+
+          {:invalid} ->
+            with labels when not is_nil(labels) <- program.labels["THUD"],
+                 [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
+              %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
+
+            else
+              _ ->
+                if retry_until_successful do
+                  %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+                else
+                  %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: 5} }
+                end
+            end
+        end
+    end
+  end
+
+  @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance)
 
   ## Examples
@@ -163,7 +238,7 @@ defmodule DungeonCrawl.Scripting.Command do
     with labels when not is_nil(labels) <- program.labels[label],
          [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
          true <- Maths.check(neg, object_state[var], op, value) do
-      %Runner{ runner_state | program: %{program | pc: line_number} }
+      %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
     end

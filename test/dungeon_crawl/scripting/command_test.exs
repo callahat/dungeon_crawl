@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
 
   def program_fixture(script \\ nil) do
@@ -72,6 +73,87 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "add: 8, one: 432"
     %Runner{object: updated_map_tile, state: _state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:new, "+=", 1])
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
+  end
+
+  test "COMPOUND_MOVE" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    # Successful
+    %Runner{program: program, object: mover, state: state} = Command.compound_move(%Runner{object: mover, state: state},
+                                                                                   [{"west", true}, {"east", true}])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 0,
+             lc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful (but its a try and move that does not keep trying)
+    %Runner{program: program, object: mover, state: state} = Command.compound_move(%Runner{object: mover, state: state},
+                                                                                   [{"south", false}])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 0,
+             lc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful (but its a retry until successful)
+    %Runner{program: program, object: mover, state: state} = Command.compound_move(%Runner{object: mover, state: state},
+                                                                                   [{"south", true}, {"east", true}])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 0,
+             lc: 0
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Last movement already done
+    runner_state = %Runner{object: mover, state: state, program: %Program{ status: :alive, lc: 2 }}
+    %Runner{program: program, object: mover, state: _state} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
+    assert %{status: :alive,
+             wait_cycles: 0,
+             broadcasts: [],
+             pc: 1,
+             lc: 0
+           } = program
+    assert updated_object2 = mover
+  end
+
+  test "COMPOUND_MOVE into something blocking (or a nil square) triggers a THUD event" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    program = program_fixture("""
+                              \\s\\w?e?e
+                              #END
+                              #END
+                              :THUD
+                              #BECOME character: X
+                              """)
+
+    %Runner{program: program} = Command.compound_move(%Runner{program: program, object: mover, state: state}, [{"south", true}])
+
+    assert %{status: :alive,
+             wait_cycles: 0,
+             broadcasts: [],
+             pc: 4,
+             lc: 0
+           } = program
   end
 
   test "DIE" do

@@ -96,7 +96,7 @@ defmodule DungeonCrawl.Scripting.Parser do
     with {:ok, retry_until_successful} <- _parse_shorthand_directive(leading_character),
          {:ok, parsed_direction} <- _parse_shorthand_direction(direction),
          {:ok, parsed_shorthand_movements} <- _parse_shorthand_movements(steps) do
-      {:ok, [ [parsed_direction, retry_until_successful] | parsed_shorthand_movements]}
+      {:ok, [ {parsed_direction, retry_until_successful} | parsed_shorthand_movements]}
     else
       {:error, msg} -> {:error, msg}
       _ -> {:error, "Invalid shorthand movement: #{[leading_character, direction]}"}

@@ -55,7 +55,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  11 => [:become, [{:ttid, tile_template.id}]],
                                                  12 => [:move, ["south", true]],
                                                  13 => [:move, ["east"]],
-                                                 14 => [:compound_move, [["north", true], ["north", true], ["north", false]]]
+                                                 14 => [:compound_move, [{"north", true}, {"north", true}, {"north", false}]]
                                                  },
                                  status: :alive,
                                  pc: 1,
@@ -167,6 +167,21 @@ defmodule DungeonCrawl.Scripting.ParserTest do
     defp invalid_kwargs script do
       assert {:ok, %Program{instructions: %{1 => [:become, params]}}} = Parser.parse(script)
       assert is_list(params)
+    end
+
+    test "bad shorthand movements" do
+      script = """
+               ?n\\u?L
+               Doesnt parse to here
+               """
+      assert {:error, "Invalid shorthand movement: \\u", program = %Program{}} = Parser.parse(script)
+      assert program == %Program{instructions: %{},
+                                 status: :dead,
+                                 pc: 1,
+                                 labels: %{},
+                                 locked: false,
+                                 broadcasts: [],
+                                 responses: []}
     end
   end
 end
