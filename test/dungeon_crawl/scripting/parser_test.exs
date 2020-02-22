@@ -39,7 +39,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #BECOME TTID:#{tile_template.id}
                #MOVE south, true
                #MOVE east
-               \\n\\n?n
+               /n/n?n
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -171,10 +171,10 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
     test "bad shorthand movements" do
       script = """
-               ?n\\u?L
+               ?n/u?L
                Doesnt parse to here
                """
-      assert {:error, "Invalid shorthand movement: \\u", program = %Program{}} = Parser.parse(script)
+      assert {:error, "Invalid shorthand movement: /u", program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{},
                                  status: :dead,
                                  pc: 1,

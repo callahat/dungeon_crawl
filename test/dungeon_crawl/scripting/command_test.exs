@@ -139,7 +139,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
     program = program_fixture("""
-                              \\s\\w?e?e
+                              /s/w?e?e
                               #END
                               #END
                               :THUD

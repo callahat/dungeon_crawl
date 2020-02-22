@@ -59,8 +59,8 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_line(line, program) do
-    case Regex.named_captures(~r/^(?<type>#|:|@|\\|\?)(?<instruction>.*)$/, line) do
-      %{"type" => "\\", "instruction" => _command} ->
+    case Regex.named_captures(~r/^(?<type>#|:|@|\/|\?)(?<instruction>.*)$/, line) do
+      %{"type" => "/", "instruction" => _command} ->
         _parse_shorthand_movement(line, program)
 
       %{"type" => "?", "instruction" => _command} ->
@@ -103,7 +103,7 @@ defmodule DungeonCrawl.Scripting.Parser do
     end
   end
 
-  defp _parse_shorthand_directive(?\\), do: {:ok, true}
+  defp _parse_shorthand_directive(?/), do: {:ok, true}
   defp _parse_shorthand_directive(??),  do: {:ok, false}
   defp _parse_shorthand_directive(_),   do: {:error}
 
