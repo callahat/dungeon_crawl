@@ -32,10 +32,12 @@ defmodule DungeonCrawl.Scripting.Command do
       :change_state -> :change_state
       :die          -> :die
       :end          -> :halt
+      :go           -> :go
       :if           -> :jump_if
       :move         -> :move
       :noop         -> :noop
       :text         -> :text
+      :try          -> :try
 
       _ -> nil
     end
@@ -181,6 +183,20 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Move in the given direction, and keep retrying until successful.
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.go(%Runner{program: %Program{}, object: object, state: state}, ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def go(runner_state, [direction]) do
+    move(runner_state, [direction, true])
+  end
+
+  @doc """
   Changes the program state to idle and sets the pc to -1. This indicates that the program is still alive,
   but awaiting a message to respond to (ie, a TOUCH event)
 
@@ -323,4 +339,18 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
+  @doc """
+  Attempt to move in the given direction, if blocked the object doesn't move but the `THUD` message
+  will still be sent.
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.try(%Runner{program: %Program{}, object: object, state: state}, ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def try(runner_state, [direction]) do
+    move(runner_state, [direction, false])
+  end
 end

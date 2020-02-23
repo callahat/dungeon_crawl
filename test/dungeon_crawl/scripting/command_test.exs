@@ -167,6 +167,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.script == ""
   end
 
+  test "GO" do
+    # Basically Move with true
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    assert Command.go(%Runner{object: mover, state: state}, ["left"]) == Command.move(%Runner{object: mover, state: state}, ["left", true])
+
+    # Unsuccessful
+    assert Command.go(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", true])
+  end
+
   test "HALT/END" do
     program = program_fixture()
     stubbed_object = %{state: ""}
@@ -317,5 +329,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.responses == ["I am just a simple text."]
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "TRY" do
+    # Basically Move with false
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    assert Command.try(%Runner{object: mover, state: state}, ["left"]) == Command.move(%Runner{object: mover, state: state}, ["left", false])
+
+    # Unsuccessful
+    assert Command.try(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", false])
   end
 end

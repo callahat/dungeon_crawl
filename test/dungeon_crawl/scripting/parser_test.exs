@@ -40,6 +40,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #MOVE south, true
                #MOVE east
                /n/n?n
+               #GO west
+               #TRY south
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -55,7 +57,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  11 => [:become, [{:ttid, tile_template.id}]],
                                                  12 => [:move, ["south", true]],
                                                  13 => [:move, ["east"]],
-                                                 14 => [:compound_move, [{"north", true}, {"north", true}, {"north", false}]]
+                                                 14 => [:compound_move, [{"north", true}, {"north", true}, {"north", false}]],
+                                                 15 => [:go, ["west"]],
+                                                 16 => [:try, ["south"]]
                                                  },
                                  status: :alive,
                                  pc: 1,
