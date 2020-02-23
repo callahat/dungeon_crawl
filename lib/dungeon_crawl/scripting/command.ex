@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.TileState
   alias DungeonCrawl.TileTemplates
 
@@ -151,45 +152,14 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.compound_move(%Runner{program: %Program{}, object: object, state: state}, [{"north", true}, {"east", false}])
     %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
   """
-  def compound_move(%Runner{program: program, object: object, state: state} = runner_state, movement_chain) do
+  def compound_move(%Runner{program: program} = runner_state, movement_chain) do
     case Enum.at(movement_chain, program.lc) do
       nil ->
         %{ runner_state | program: %{ program | lc: 0 } }
 
       {direction, retry_until_successful} ->
-        destination = Instances.get_map_tile(state, object, direction)
-
-        case Move.go(object, destination, state) do
-          {:ok, %{new_location: new_location, old_location: old}, new_state} ->
-
-            message = ["tile_changes",
-                   %{tiles: [
-                         Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
-                         Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
-                   ]}]
-
-            %Runner{ program: %{program | pc: program.pc - 1,
-                                          lc: program.lc + 1,
-                                          broadcasts: [message | program.broadcasts],
-                                          status: :wait,
-                                          wait_cycles: 5 },
-                     object: new_location,
-                     state: new_state}
-
-          {:invalid} ->
-            with labels when not is_nil(labels) <- program.labels["THUD"],
-                 [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
-              %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
-
-            else
-              _ ->
-                if retry_until_successful do
-                  %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
-                else
-                  %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: 5} }
-                end
-            end
-        end
+        next_actions = %{pc: program.pc - 1, lc: program.lc + 1, invalid_move_handler: &_invalid_compound_command/2}
+        _move(runner_state, direction, retry_until_successful, next_actions)
     end
   end
 
@@ -235,8 +205,7 @@ defmodule DungeonCrawl.Scripting.Command do
     [[neg, _command, var, op, value], label] = params
 
     # first active matching label
-    with labels when not is_nil(labels) <- program.labels[label],
-         [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
+    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
          true <- Maths.check(neg, object_state[var], op, value) do
       %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
@@ -270,7 +239,12 @@ defmodule DungeonCrawl.Scripting.Command do
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
   end
-  def move(%Runner{program: program, object: object, state: state} = runner_state, [direction, retry_until_successful]) do
+  def move(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
+    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    _move(runner_state, direction, retry_until_successful, next_actions)
+  end
+
+  defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     destination = Instances.get_map_tile(state, object, direction)
 
     case Move.go(object, destination, state) do
@@ -282,21 +256,38 @@ defmodule DungeonCrawl.Scripting.Command do
                      Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
                ]}]
 
-        %Runner{ program: %{program | broadcasts: [message | program.broadcasts], status: :wait, wait_cycles: 5 },
+        %Runner{ program: %{program | pc: next_actions.pc,
+                                      lc: next_actions.lc,
+                                      broadcasts: [message | program.broadcasts],
+                                      status: :wait,
+                                      wait_cycles: 5 },
                  object: new_location,
                  state: new_state}
+
       {:invalid} ->
-        with labels when not is_nil(labels) <- program.labels["THUD"],
-             [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
+        next_actions.invalid_move_handler.(runner_state, retryable)
+    end
+  end
+
+  defp _invalid_compound_command(%Runner{program: program} = runner_state, retryable) do
+    cond do
+      line_number = Program.line_for(program, "THUD") ->
+          %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
+      retryable ->
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+      true ->
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: 5} }
+    end
+  end
+
+  defp _invalid_simple_command(%Runner{program: program} = runner_state, retryable) do
+    cond do
+      line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number} }
-        else
-          _ ->
-            if retry_until_successful do
-              %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
-            else
-              %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5} }
-            end
-        end
+      retryable ->
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+      true ->
+          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5} }
     end
   end
 
