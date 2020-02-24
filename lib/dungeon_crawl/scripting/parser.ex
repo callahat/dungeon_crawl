@@ -250,7 +250,8 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>.+?)((?<op>!=|==|<=|>=|<|>)(?<value>.+))?$/i, String.trim(param)) do
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>[_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<value>.+))?$/i,
+                              String.trim(param)) do
       %{"neg" => "", "state_element" => state_element, "op" => "", "value" => ""} ->
         ["", :check_state, String.trim(state_element) |> String.to_atom(), "==", true]
 
@@ -262,6 +263,9 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       %{"neg" => _, "state_element" => state_element, "op" => op, "value" => value} ->
         ["!", :check_state, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+
+      _ ->
+        :error
     end
   end
 end

@@ -38,6 +38,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :noop         -> :noop
       :text         -> :text
       :try          -> :try
+      :walk         -> :walk
 
       _ -> nil
     end
@@ -352,5 +353,21 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def try(runner_state, [direction]) do
     move(runner_state, [direction, false])
+  end
+
+  @doc """
+  Continue to move in the given direction until bumping into something. Similar to `TRY` but repeats until
+  it cannot move in the given direction anymore.
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.try(%Runner{program: %Program{}, object: object, state: state}, ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def walk(%Runner{program: program} = runner_state, [direction]) do
+    next_actions = %{pc: program.pc - 1, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    _move(runner_state, direction, false, next_actions)
   end
 end

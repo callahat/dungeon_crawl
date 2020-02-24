@@ -42,6 +42,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                /n/n?n
                #GO west
                #TRY south
+               #WALK north
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -59,7 +60,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  13 => [:move, ["east"]],
                                                  14 => [:compound_move, [{"north", true}, {"north", true}, {"north", false}]],
                                                  15 => [:go, ["west"]],
-                                                 16 => [:try, ["south"]]
+                                                 16 => [:try, ["south"]],
+                                                 17 => [:walk, ["north"]]
                                                  },
                                  status: :alive,
                                  pc: 1,
