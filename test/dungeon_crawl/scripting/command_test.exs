@@ -188,6 +188,20 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.pc == -1
   end
 
+  test "FACING" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up"})
+    program = program_fixture()
+
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["east"])
+    assert updated_map_tile.state == "facing: east"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["clockwise"])
+    assert updated_map_tile.state == "facing: east"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["counterclockwise"])
+    assert updated_map_tile.state == "facing: west"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["reverse"])
+    assert updated_map_tile.state == "facing: south"
+  end
+
   test "JUMP_IF when state check is TRUE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}

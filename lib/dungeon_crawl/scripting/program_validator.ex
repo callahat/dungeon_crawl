@@ -66,6 +66,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
   end
 
+  defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
+    if ["north", "south", "west", "east", "up", "down", "left", "right", "reverse", "clockwise", "counterclockwise"] |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
   defp _validate(program, [ {line_no, [ :jump_if, [[_neg, _command, _var, _op, _value], label] ]} | instructions], errors, user) do
    if program.labels[label] do
       _validate(program, instructions, errors, user)

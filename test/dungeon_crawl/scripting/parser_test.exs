@@ -43,6 +43,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #GO west
                #TRY south
                #WALK north
+               #FACING clockwise
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -61,7 +62,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  14 => [:compound_move, [{"north", true}, {"north", true}, {"north", false}]],
                                                  15 => [:go, ["west"]],
                                                  16 => [:try, ["south"]],
-                                                 17 => [:walk, ["north"]]
+                                                 17 => [:walk, ["north"]],
+                                                 18 => [:facing, ["clockwise"]]
                                                  },
                                  status: :alive,
                                  pc: 1,

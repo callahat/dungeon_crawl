@@ -32,6 +32,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :change_state -> :change_state
       :die          -> :die
       :end          -> :halt
+      :facing       -> :facing
       :go           -> :go
       :if           -> :jump_if
       :move         -> :move
@@ -214,6 +215,67 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Changes the direction the object is facing. Nothing done if the object has no facing if
+  reverse, clockwise, or counterclockwise is specified.
+
+  north, up
+  south, down
+  east, right
+  west, left
+  reverse - reverses the current facing direction (ie, north becomes south)
+  clockwise - turns the current facing clockwise (ie, north becomes west)
+  counterclockwise - turns the current facing counter clockwise (ie, north becomes east)
+  """
+  def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    direction = case object_state.facing do
+                  "left"  -> "north"
+                  "west"  -> "north"
+                  "up"    -> "east"
+                  "north" -> "east"
+                  "right" -> "south"
+                  "east"  -> "south"
+                  "down"  -> "west"
+                  "south" -> "west"
+                  _       -> "idle"
+                end
+    change_state(runner_state, [:facing, "=", direction])
+  end
+  def facing(%Runner{object: object} = runner_state, ["counterclockwise"]) do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    direction = case object_state.facing do
+                  "left"  -> "south"
+                  "west"  -> "south"
+                  "up"    -> "west"
+                  "north" -> "west"
+                  "right" -> "north"
+                  "east"  -> "north"
+                  "down"  -> "east"
+                  "south" -> "east"
+                  _       -> "idle"
+                end
+    change_state(runner_state, [:facing, "=", direction])
+  end
+  def facing(%Runner{object: object} = runner_state, ["reverse"]) do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    direction = case object_state.facing do
+                  "left"  -> "east"
+                  "west"  -> "east"
+                  "up"    -> "south"
+                  "north" -> "south"
+                  "right" -> "west"
+                  "east"  -> "west"
+                  "down"  -> "north"
+                  "south" -> "north"
+                  _       -> "idle"
+                end
+    change_state(runner_state, [:facing, "=", direction])
+  end
+  def facing(runner_state, [direction]) do
+    change_state(runner_state, [:facing, "=", direction])
+  end
+
+  @doc """
   Conditionally jump to a label. Program counter (pc) will be set to the location of the first active label
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
@@ -279,14 +341,18 @@ defmodule DungeonCrawl.Scripting.Command do
                      Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
                ]}]
 
-        %Runner{ program: %{program | pc: next_actions.pc,
-                                      lc: next_actions.lc,
-                                      broadcasts: [message | program.broadcasts],
-                                      status: :wait,
-                                      wait_cycles: 5 },
-                 object: new_location,
-                 state: new_state}
-        |> change_state([:facing, "=", direction])
+        updated_runner_state = %Runner{ program: %{program | pc: next_actions.pc,
+                                                             lc: next_actions.lc,
+                                                             broadcasts: [message | program.broadcasts],
+                                                             status: :wait,
+                                                             wait_cycles: 5 },
+                                        object: new_location,
+                                        state: new_state}
+        if direction != "idle" do
+          change_state(updated_runner_state, [:facing, "=", direction])
+        else
+          updated_runner_state
+        end
 
       {:invalid} ->
         next_actions.invalid_move_handler.(runner_state, retryable)
