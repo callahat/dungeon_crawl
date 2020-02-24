@@ -138,6 +138,7 @@ defmodule DungeonCrawl.Scripting.Command do
   e - right
   w - left
   i - no movement
+  c - continue
 
   Shorthand examples:
 
@@ -238,12 +239,15 @@ defmodule DungeonCrawl.Scripting.Command do
 
   If the movement is invalid, the `pc` will be set to the location of the `THUD` label if an active one exists.
 
+  A succesful movement will also set the objects `facing` state value to that direction.
+
   Valid directions:
-  north - up
-  south - down
-  east  - right
-  west  - left
-  idle  - no movement
+  north    - up
+  south    - down
+  east     - right
+  west     - left
+  idle     - no movement
+  continue - continue in the current direction of the `facing` state value. Acts as `idle` if this value is not set or valid.
 
   ## Examples
 
@@ -262,6 +266,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
+    direction = _get_real_direction(object, direction)
+
     destination = Instances.get_map_tile(state, object, direction)
 
     case Move.go(object, destination, state) do
@@ -280,11 +286,18 @@ defmodule DungeonCrawl.Scripting.Command do
                                       wait_cycles: 5 },
                  object: new_location,
                  state: new_state}
+        |> change_state([:facing, "=", direction])
 
       {:invalid} ->
         next_actions.invalid_move_handler.(runner_state, retryable)
     end
   end
+
+  defp _get_real_direction(object, "continue") do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    object_state.facing || "idle"
+  end
+  defp _get_real_direction(_object, direction), do: direction
 
   defp _invalid_compound_command(%Runner{program: program} = runner_state, retryable) do
     cond do

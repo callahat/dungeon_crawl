@@ -119,6 +119,8 @@ defmodule DungeonCrawl.Scripting.Parser do
       ?W -> {:ok, "west"}
       ?i -> {:ok, "idle"}
       ?I -> {:ok, "idle"}
+      ?c -> {:ok, "continue"}
+      ?C -> {:ok, "continue"}
       _  -> {:error}
     end
   end

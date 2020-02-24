@@ -357,4 +357,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # Unsuccessful
     assert Command.walk(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", false])
   end
+
+  test "WALK with a continue and facing" do
+    # Basically Move with until it cannot move
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"})
+
+    expected_runner_state = Command.move(%Runner{object: mover, state: state}, ["west", false])
+    expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
+
+    assert Command.walk(%Runner{object: mover, state: state}, ["continue"]) == expected_runner_state
+  end
 end
