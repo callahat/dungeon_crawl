@@ -87,7 +87,6 @@ defmodule DungeonCrawl.Scripting.Parser do
       {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:compound_move, expanded_steps]) } }
     else
       {:error, msg} -> {:error, msg, program}
-      _             -> {:error, "Invalid command: `#{line}`", program} # Probably won't hit this
     end
   end
 

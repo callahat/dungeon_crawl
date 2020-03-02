@@ -74,6 +74,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:go, [direction] ]} | instructions], errors, user) do
+    if ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue"] |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: GO command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
   defp _validate(program, [ {line_no, [ :jump_if, [[_neg, _command, _var, _op, _value], label] ]} | instructions], errors, user) do
    if program.labels[label] do
       _validate(program, instructions, errors, user)
@@ -89,12 +97,19 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate(program, [ {line_no, [:move, [direction] ]} | instructions], errors, user) do
     _validate(program, [ {line_no, [:move, [direction, false] ]} | instructions], errors, user)
   end
-
   defp _validate(program, [ {line_no, [:move, [direction, _] ]} | instructions], errors, user) do
     if ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue"] |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: MOVE command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
+    if ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue"] |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: TRY command references invalid direction `#{direction}`" | errors], user)
     end
   end
 
