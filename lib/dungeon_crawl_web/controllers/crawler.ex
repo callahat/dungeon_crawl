@@ -39,7 +39,7 @@ defmodule DungeonCrawlWeb.Crawler do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
     
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {top, instance_state} = Instances.create_map_tile(instance_state, location.map_tile)
+      {top, instance_state} = Instances.create_player_map_tile(instance_state, location.map_tile, location)
       tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
 #                                    "player_joined",
