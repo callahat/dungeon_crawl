@@ -202,6 +202,7 @@ defmodule DungeonCrawl.Scripting.Command do
   @doc """
   Changes the program state to idle and sets the pc to -1. This indicates that the program is still alive,
   but awaiting a message to respond to (ie, a TOUCH event)
+  END is what would be put in the script.
 
   ## Examples
 
@@ -226,6 +227,9 @@ defmodule DungeonCrawl.Scripting.Command do
   clockwise - turns the current facing clockwise (ie, north becomes west)
   counterclockwise - turns the current facing counter clockwise (ie, north becomes east)
   """
+  def facing(%Runner{object: object} = runner_state, ["player"]) do
+    facing(runner_state, [_direction_of_player(runner_state)])
+  end
   def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
     direction = case object_state.facing do
@@ -327,6 +331,12 @@ defmodule DungeonCrawl.Scripting.Command do
     _move(runner_state, direction, retry_until_successful, next_actions)
   end
 
+  defp _move(runner_state, "player", retryable, next_actions) do
+    _move(runner_state, _direction_of_player(runner_state), retryable, next_actions)
+  end
+  defp _move(%Runner{program: program, object: object, state: state} = runner_state, "idle", retryable, next_actions) do
+    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5 } }
+  end
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
 
@@ -448,5 +458,34 @@ defmodule DungeonCrawl.Scripting.Command do
   def walk(%Runner{program: program} = runner_state, [direction]) do
     next_actions = %{pc: program.pc - 1, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
     _move(runner_state, direction, false, next_actions)
+  end
+
+  defp _direction_of_player(%Runner{state: state, object: object} = runner_state) do
+    # TODO: add preferred player
+    with map_tile_ids when length(map_tile_ids) != [] <- Map.keys(state.player_locations),
+         player_map_tile_id <- Enum.random(map_tile_ids),
+         %{row: row, col: col} <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}),
+         {delta_row, delta_col} <- {row - object.row, col - object.col} do
+      cond do
+        delta_row == 0 && delta_col == 0 ->
+          "idle"
+
+        delta_row == delta_col ->
+          if :rand.uniform(2) == 1 do
+            if delta_row > 0, do: "south", else: "north"
+          else
+            if delta_col > 0, do: "east", else: "west"
+          end
+
+        abs(delta_row) > abs(delta_col) ->
+          if delta_row > 0, do: "south", else: "north"
+
+        # abs col > row
+        true ->
+          if delta_col > 0, do: "east", else: "west"
+      end
+    else
+      _ -> "idle"
+    end
   end
 end

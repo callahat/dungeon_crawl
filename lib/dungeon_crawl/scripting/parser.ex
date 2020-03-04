@@ -120,6 +120,8 @@ defmodule DungeonCrawl.Scripting.Parser do
       ?I -> {:ok, "idle"}
       ?c -> {:ok, "continue"}
       ?C -> {:ok, "continue"}
+      ?p -> {:ok, "player"}
+      ?P -> {:ok, "player"}
       _  -> {:error}
     end
   end
