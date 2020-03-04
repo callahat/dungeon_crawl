@@ -227,7 +227,7 @@ defmodule DungeonCrawl.Scripting.Command do
   clockwise - turns the current facing clockwise (ie, north becomes west)
   counterclockwise - turns the current facing counter clockwise (ie, north becomes east)
   """
-  def facing(%Runner{object: object} = runner_state, ["player"]) do
+  def facing(%Runner{} = runner_state, ["player"]) do
     facing(runner_state, [_direction_of_player(runner_state)])
   end
   def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
@@ -334,8 +334,12 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _move(runner_state, "player", retryable, next_actions) do
     _move(runner_state, _direction_of_player(runner_state), retryable, next_actions)
   end
-  defp _move(%Runner{program: program, object: object, state: state} = runner_state, "idle", retryable, next_actions) do
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5 } }
+  defp _move(%Runner{program: program} = runner_state, "idle", _retryable, next_actions) do
+    %Runner{ runner_state | program: %{program | pc: next_actions.pc,
+                                                 lc: next_actions.lc,
+                                                 status: :wait,
+                                                 wait_cycles: 5 }}
+
   end
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
@@ -460,7 +464,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _move(runner_state, direction, false, next_actions)
   end
 
-  defp _direction_of_player(%Runner{state: state, object: object} = runner_state) do
+  defp _direction_of_player(%Runner{state: state, object: object} = _runner_state) do
     # TODO: add preferred player
     with map_tile_ids when length(map_tile_ids) != [] <- Map.keys(state.player_locations),
          player_map_tile_id <- Enum.random(map_tile_ids),
