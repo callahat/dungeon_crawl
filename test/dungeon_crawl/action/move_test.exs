@@ -59,5 +59,18 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     assert {:invalid} = Move.go(player_location, nil, state)
   end
+
+  test "can_move/1 is true if the destination exists and is not blocking" do
+    floor_b           = %MapTile{id: 998, row: 1, col: 1, z_index: 0, character: "."}
+    wall              = %MapTile{id: 997, row: 1, col: 1, z_index: 0, character: "#", state: "blocking: true"}
+
+    # Dont care about state just want the processed MapTile
+    {wall, _state} = Instances.create_map_tile(%Instances{}, wall)
+    {floor_b, _state} = Instances.create_map_tile(%Instances{}, floor_b)
+
+    refute Move.can_move(nil)
+    refute Move.can_move(wall)
+    assert Move.can_move(floor_b)
+  end
 end
 

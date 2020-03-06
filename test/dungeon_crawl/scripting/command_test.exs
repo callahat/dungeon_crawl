@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.Scripting.CommandTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
@@ -200,6 +201,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "facing: west"
     %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["reverse"])
     assert updated_map_tile.state == "facing: south"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: idle"
+
+    {_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: south"
   end
 
   test "JUMP_IF when state check is TRUE" do
@@ -267,6 +274,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Idle
     %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = program
+    assert updated_object2 = mover
+
+    # Move towards player (will end up being idle since no player in this test setup)
+    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["player"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],

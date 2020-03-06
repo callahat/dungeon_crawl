@@ -210,7 +210,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert changeset_neg_3.changes == MapTile.changeset(%MapTile{},%{character: "M"}).changes
   end
 
-  test "delete_player_map_tile/1 deletes the map tile and unregisters player location", %{state: state} do
+  test "delete_player_map_tile/2 deletes the map tile and unregisters player location", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]
 
@@ -236,7 +236,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{} == player_locations
   end
 
-  test "delete_map_tile/1 deletes the map tile", %{state: state} do
+  test "delete_map_tile/2 deletes the map tile", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]
 
@@ -256,5 +256,43 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 2} => %{} } = by_coord
+  end
+
+  test "direction_of_map_tile/3" do
+    map_tile_nw = %MapTile{id: 990, row: 2, col: 2, z_index: 0, character: "."}
+    map_tile_n  = %MapTile{id: 991, row: 2, col: 3, z_index: 0, character: "#", state: "blocking: true"}
+    map_tile_ne = %MapTile{id: 992, row: 2, col: 4, z_index: 0, character: "."}
+    map_tile_w  = %MapTile{id: 993, row: 3, col: 2, z_index: 0, character: "#", state: "blocking: true"}
+    map_tile_me = %MapTile{id: 994, row: 3, col: 3, z_index: 0, character: "@"}
+    map_tile_e  = %MapTile{id: 995, row: 3, col: 4, z_index: 0, character: "."}
+    map_tile_sw = %MapTile{id: 996, row: 4, col: 2, z_index: 0, character: "."}
+    map_tile_s  = %MapTile{id: 997, row: 4, col: 3, z_index: 0, character: "."}
+    map_tile_se = %MapTile{id: 998, row: 4, col: 4, z_index: 0, character: "."}
+
+    {_, state} = Instances.create_map_tile(%Instances{}, map_tile_nw)
+    {_, state} = Instances.create_map_tile(state, map_tile_n)
+    {_, state} = Instances.create_map_tile(state, map_tile_ne)
+    {_, state} = Instances.create_map_tile(state, map_tile_w)
+    {_, state} = Instances.create_map_tile(state, map_tile_me)
+    {_, state} = Instances.create_map_tile(state, map_tile_e)
+    {_, state} = Instances.create_map_tile(state, map_tile_sw)
+    {_, state} = Instances.create_map_tile(state, map_tile_s)
+    {_, state} = Instances.create_map_tile(state, map_tile_se)
+
+    # If target is at same coords as object, idle
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_me) == "idle"
+    # Target inline but is blocked, still returns the direction
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_n) == "north"
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_w) == "west"
+    # Target inline and unblocked
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_s) == "south"
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_e) == "east"
+    # Target is in a diagonal direction, preference given to the non blocked
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_ne) == "east"
+    assert Instances.direction_of_map_tile(state, map_tile_me, map_tile_sw) == "south"
+    # Target is in a diagonal direction, non blocked, one is picked
+    assert Enum.member?(["south", "east"], Instances.direction_of_map_tile(state, map_tile_me, map_tile_se))
+    # Target is in a diagonal direction, both blocked, one is picked
+    assert Enum.member?(["north", "west"], Instances.direction_of_map_tile(state, map_tile_me, map_tile_nw))
   end
 end

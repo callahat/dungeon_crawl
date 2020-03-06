@@ -339,7 +339,6 @@ defmodule DungeonCrawl.Scripting.Command do
                                                  lc: next_actions.lc,
                                                  status: :wait,
                                                  wait_cycles: 5 }}
-
   end
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
@@ -465,29 +464,12 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _direction_of_player(%Runner{state: state, object: object} = _runner_state) do
-    # TODO: add preferred player
-    with map_tile_ids when length(map_tile_ids) != [] <- Map.keys(state.player_locations),
+    # TODO: add preferred player, right now it just picks a random player
+    with map_tile_ids when length(map_tile_ids) != 0 <- Map.keys(state.player_locations),
          player_map_tile_id <- Enum.random(map_tile_ids),
-         %{row: row, col: col} <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}),
-         {delta_row, delta_col} <- {row - object.row, col - object.col} do
-      cond do
-        delta_row == 0 && delta_col == 0 ->
-          "idle"
+         player_map_tile when player_map_tile != nil <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}) do
 
-        delta_row == delta_col ->
-          if :rand.uniform(2) == 1 do
-            if delta_row > 0, do: "south", else: "north"
-          else
-            if delta_col > 0, do: "east", else: "west"
-          end
-
-        abs(delta_row) > abs(delta_col) ->
-          if delta_row > 0, do: "south", else: "north"
-
-        # abs col > row
-        true ->
-          if delta_col > 0, do: "east", else: "west"
-      end
+      Instances.direction_of_map_tile(state, object, player_map_tile)
     else
       _ -> "idle"
     end
