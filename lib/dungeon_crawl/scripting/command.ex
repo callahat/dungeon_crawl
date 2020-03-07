@@ -228,7 +228,8 @@ defmodule DungeonCrawl.Scripting.Command do
   counterclockwise - turns the current facing counter clockwise (ie, north becomes east)
   """
   def facing(%Runner{} = runner_state, ["player"]) do
-    facing(runner_state, [_direction_of_player(runner_state)])
+    {new_runner_state, player_direction} = _direction_of_player(runner_state)
+    facing(new_runner_state, [player_direction])
   end
   def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -332,7 +333,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _move(runner_state, "player", retryable, next_actions) do
-    _move(runner_state, _direction_of_player(runner_state), retryable, next_actions)
+    {new_runner_state, player_direction} = _direction_of_player(runner_state)
+    _move(new_runner_state, player_direction, retryable, next_actions)
   end
   defp _move(%Runner{program: program} = runner_state, "idle", _retryable, next_actions) do
     %Runner{ runner_state | program: %{program | pc: next_actions.pc,
@@ -463,15 +465,25 @@ defmodule DungeonCrawl.Scripting.Command do
     _move(runner_state, direction, false, next_actions)
   end
 
-  defp _direction_of_player(%Runner{state: state, object: object} = _runner_state) do
-    # TODO: add preferred player, right now it just picks a random player
+  defp _direction_of_player(%Runner{object: object} = runner_state) do
+    target_player_map_tile_id = object.parsed_state[:target_player_map_tile_id]
+    _direction_of_player(runner_state, target_player_map_tile_id)
+  end
+  defp _direction_of_player(%Runner{state: state} = runner_state, nil) do
     with map_tile_ids when length(map_tile_ids) != 0 <- Map.keys(state.player_locations),
-         player_map_tile_id <- Enum.random(map_tile_ids),
-         player_map_tile when player_map_tile != nil <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}) do
+         player_map_tile_id <- Enum.random(map_tile_ids) do
 
-      Instances.direction_of_map_tile(state, object, player_map_tile)
+      _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile_id]))
     else
-      _ -> "idle"
+      _ -> {runner_state, "idle"}
+    end
+  end
+  defp _direction_of_player(%Runner{state: state, object: object} = runner_state, target_player_map_tile_id) do
+    with player_map_tile when player_map_tile != nil <- Instances.get_map_tile_by_id(state, %{id: target_player_map_tile_id}) do
+      {runner_state, Instances.direction_of_map_tile(state, object, player_map_tile)}
+    else
+      _ ->
+      _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", nil]))
     end
   end
 end

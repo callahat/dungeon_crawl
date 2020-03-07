@@ -26,7 +26,7 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
   def changeset(map_tile_instance, attrs) do
     map_tile_instance
     |> cast(attrs, [:row, :col, :map_instance_id, :tile_template_id, :z_index, :character, :color, :background_color, :state, :script])
-    |> validate_required([:row, :col, :map_instance_id, :tile_template_id, :z_index])
+    |> validate_required([:row, :col, :map_instance_id, :z_index])
     |> TileTemplate.validate_renderables
   end
 end

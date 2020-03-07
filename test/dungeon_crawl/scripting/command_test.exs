@@ -131,7 +131,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 1,
              lc: 0
            } = program
-    assert updated_object2 = mover
   end
 
   test "COMPOUND_MOVE into something blocking (or a nil square) triggers a THUD event" do
@@ -204,9 +203,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["player"])
     assert updated_map_tile.state == "facing: idle"
 
-    {_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
+    # Facing to player direction targets that player when it is not targeting a player
+    {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
     %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["player"])
-    assert updated_map_tile.state == "facing: south"
+    assert updated_map_tile.state == "facing: south, target_player_map_tile_id: 43201"
+
+    # Facing to player direction when there is no players sets facing to idle and the target player to nil
+    {_fake_player, state} = Instances.delete_map_tile(state, fake_player)
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: updated_map_tile, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
   end
 
   test "JUMP_IF when state check is TRUE" do
@@ -273,22 +278,54 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Idle
-    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1
            } = program
-    assert updated_object2 = mover
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
-    # Move towards player (will end up being idle since no player in this test setup)
-    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["player"])
+    # Moving in player direction targets a player when it is not targeting a player
+    {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
+    %Runner{object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["player"])
+    assert %{row: 1,
+             col: 2,
+             character: "c",
+             state: "facing: east, target_player_map_tile_id: 43201",
+             z_index: 1} = mover
+
+    # Moving in player direction keeps after that player
+    {another_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43215, row: 1, col: 5, z_index: 0, character: "@"}, %Location{})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["player"])
+    assert %{row: 2,
+             col: 2,
+             character: "c",
+             state: "facing: south, target_player_map_tile_id: 43201",
+             z_index: 1} = mover
+
+    # When target player leaves dungeon, another target is chosen 
+    {_, state} = Instances.delete_map_tile(state, fake_player)
+    %Runner{object: mover, state: state} = Command.facing(%Runner{program: program, object: mover, state: state}, ["player"])
+    assert %{row: 2,
+             col: 2,
+             character: "c",
+             state: "facing: north, target_player_map_tile_id: 43215",
+             z_index: 1} = mover
+    {_, state} = Instances.delete_map_tile(state, another_fake_player)
+
+    # Move towards player (will end up being unchanged since no players remaining)
+    %Runner{program: program, object: mover} = Command.move(%Runner{object: mover, state: state}, ["player"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1
            } = program
-    assert updated_object2 = mover
+    assert %{row: 2,
+             col: 2,
+             character: "c",
+             state: "facing: north, target_player_map_tile_id: nil",
+             z_index: 1} = mover
   end
 
   test "MOVE with two params" do
