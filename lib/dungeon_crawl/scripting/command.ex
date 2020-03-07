@@ -81,6 +81,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
     if Map.has_key?(new_attrs, :script) do
       {:ok, new_program} = Scripting.Parser.parse(new_attrs.script)
+      state = %{ state | program_contexts: Map.put(state.program_contexts, object.id, new_program) }
       %Runner{ program: %{new_program | broadcasts: [message | program.broadcasts], responses: program.responses, status: :idle },
                object: object,
                state: state}

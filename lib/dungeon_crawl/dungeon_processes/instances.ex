@@ -168,6 +168,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     previous_changeset = state.dirty_ids[map_tile_id] || MapTile.changeset(by_id[map_tile_id], %{})
 
     updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes)
+    updated_tile = case TileState.Parser.parse(updated_tile.state) do
+                     {:ok, state} -> Map.put(updated_tile, :parsed_state, state)
+                     _            -> updated_tile
+                   end
 
     old_tile_coords = Map.take(by_id[map_tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
