@@ -3,6 +3,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  @valid_facings ["north", "south", "west", "east", "up", "down", "left", "right", "reverse", "clockwise", "counterclockwise", "player"]
+  @valid_directions ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue", "player"]
+
   @doc """
   Validates the commands and their inputs of a program. User is used to validate a given tile template id
   can be used for that user. A normal user will only be able to use a TTID for a template that they own and
@@ -61,27 +64,55 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       _validate(program, instructions, ["Line #{line_no}: BECOME command has errors: `#{error_messages}`" | errors], user)
     end
   end
+
   defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
   end
 
-  defp _validate(program, [ {line_no, [ :jump_if, [_condition, label] ]} | instructions], errors, user) do
-    if program.labels[label] do
+  defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
+    if @valid_facings |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [:go, [direction] ]} | instructions], errors, user) do
+    if @valid_directions |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: GO command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [ :jump_if, [[_neg, _command, _var, _op, _value], label] ]} | instructions], errors, user) do
+   if program.labels[label] do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
     end
   end
 
+  defp _validate(program, [ {line_no, [ :jump_if, _ ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [:move, [direction] ]} | instructions], errors, user) do
     _validate(program, [ {line_no, [:move, [direction, false] ]} | instructions], errors, user)
   end
-
   defp _validate(program, [ {line_no, [:move, [direction, _] ]} | instructions], errors, user) do
-    if ["north", "south", "west", "east", "up", "down", "left", "right", "idle"] |> Enum.member?(direction) do
+    if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: MOVE command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
+    if @valid_directions |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: TRY command references invalid direction `#{direction}`" | errors], user)
     end
   end
 

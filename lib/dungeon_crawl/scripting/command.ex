@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.TileState
   alias DungeonCrawl.TileTemplates
 
@@ -31,10 +32,14 @@ defmodule DungeonCrawl.Scripting.Command do
       :change_state -> :change_state
       :die          -> :die
       :end          -> :halt
+      :facing       -> :facing
+      :go           -> :go
       :if           -> :jump_if
       :move         -> :move
       :noop         -> :noop
       :text         -> :text
+      :try          -> :try
+      :walk         -> :walk
 
       _ -> nil
     end
@@ -119,6 +124,51 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Similar to MOVE. This method is not directly accessable in the script as a normal command.
+  Rather, a line of short hand movement commands will be parsed and run via `compound_move`.
+  A short hand movement is two characters. A backslash or a question mark followed by a
+  direction character (n, s, e, w, or i, case insensitive).
+
+  A backslash will retry that movement until successful (unless the program also responds to
+  THUD). A question mark will attempt the movement once and then move on with the next instruction.
+  If the movement is invalid, the `pc` will be set to the location of the `THUD` label if an active one exists.
+
+  Valid directions:
+  n - up
+  s - down
+  e - right
+  w - left
+  i - no movement
+  c - continue
+
+  Shorthand examples:
+
+  \n\n\n - move north three times
+  \e?n?n - move east once, then try to move north twice
+
+  For purposes of keeping track of which of the shorthand movements the command is on, the `lc` - line counter
+  element on the program is used.
+
+  The parameters expected are an enumerable containing tuples of 2. The first element of the tuple, and the second
+  is if the movement should retry until successful. The behavior is similar to the regular move command.
+
+  ## Examples
+
+    iex> Command.compound_move(%Runner{program: %Program{}, object: object, state: state}, [{"north", true}, {"east", false}])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def compound_move(%Runner{program: program} = runner_state, movement_chain) do
+    case Enum.at(movement_chain, program.lc) do
+      nil ->
+        %{ runner_state | program: %{ program | lc: 0 } }
+
+      {direction, retry_until_successful} ->
+        next_actions = %{pc: program.pc - 1, lc: program.lc + 1, invalid_move_handler: &_invalid_compound_command/2}
+        _move(runner_state, direction, retry_until_successful, next_actions)
+    end
+  end
+
+  @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance)
 
   ## Examples
@@ -136,8 +186,23 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Move in the given direction, and keep retrying until successful.
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.go(%Runner{program: %Program{}, object: object, state: state}, ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def go(runner_state, [direction]) do
+    move(runner_state, [direction, true])
+  end
+
+  @doc """
   Changes the program state to idle and sets the pc to -1. This indicates that the program is still alive,
   but awaiting a message to respond to (ie, a TOUCH event)
+  END is what would be put in the script.
 
   ## Examples
 
@@ -151,6 +216,71 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Changes the direction the object is facing. Nothing done if the object has no facing if
+  reverse, clockwise, or counterclockwise is specified.
+
+  north, up
+  south, down
+  east, right
+  west, left
+  reverse - reverses the current facing direction (ie, north becomes south)
+  clockwise - turns the current facing clockwise (ie, north becomes west)
+  counterclockwise - turns the current facing counter clockwise (ie, north becomes east)
+  """
+  def facing(%Runner{} = runner_state, ["player"]) do
+    {new_runner_state, player_direction} = _direction_of_player(runner_state)
+    facing(new_runner_state, [player_direction])
+  end
+  def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    direction = case object_state.facing do
+                  "left"  -> "north"
+                  "west"  -> "north"
+                  "up"    -> "east"
+                  "north" -> "east"
+                  "right" -> "south"
+                  "east"  -> "south"
+                  "down"  -> "west"
+                  "south" -> "west"
+                  _       -> "idle"
+                end
+    change_state(runner_state, [:facing, "=", direction])
+  end
+  def facing(%Runner{object: object} = runner_state, ["counterclockwise"]) do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    direction = case object_state.facing do
+                  "left"  -> "south"
+                  "west"  -> "south"
+                  "up"    -> "west"
+                  "north" -> "west"
+                  "right" -> "north"
+                  "east"  -> "north"
+                  "down"  -> "east"
+                  "south" -> "east"
+                  _       -> "idle"
+                end
+    change_state(runner_state, [:facing, "=", direction])
+  end
+  def facing(%Runner{object: object} = runner_state, ["reverse"]) do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    direction = case object_state.facing do
+                  "left"  -> "east"
+                  "west"  -> "east"
+                  "up"    -> "south"
+                  "north" -> "south"
+                  "right" -> "west"
+                  "east"  -> "west"
+                  "down"  -> "north"
+                  "south" -> "north"
+                  _       -> "idle"
+                end
+    change_state(runner_state, [:facing, "=", direction])
+  end
+  def facing(runner_state, [direction]) do
+    change_state(runner_state, [:facing, "=", direction])
+  end
+
+  @doc """
   Conditionally jump to a label. Program counter (pc) will be set to the location of the first active label
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
@@ -160,10 +290,9 @@ defmodule DungeonCrawl.Scripting.Command do
     [[neg, _command, var, op, value], label] = params
 
     # first active matching label
-    with labels when not is_nil(labels) <- program.labels[label],
-         [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
+    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
          true <- Maths.check(neg, object_state[var], op, value) do
-      %Runner{ runner_state | program: %{program | pc: line_number} }
+      %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
     end
@@ -177,12 +306,15 @@ defmodule DungeonCrawl.Scripting.Command do
 
   If the movement is invalid, the `pc` will be set to the location of the `THUD` label if an active one exists.
 
+  A succesful movement will also set the objects `facing` state value to that direction.
+
   Valid directions:
-  north - up
-  south - down
-  east  - right
-  west  - left
-  idle  - no movement
+  north    - up
+  south    - down
+  east     - right
+  west     - left
+  idle     - no movement
+  continue - continue in the current direction of the `facing` state value. Acts as `idle` if this value is not set or valid.
 
   ## Examples
 
@@ -195,7 +327,24 @@ defmodule DungeonCrawl.Scripting.Command do
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
   end
-  def move(%Runner{program: program, object: object, state: state} = runner_state, [direction, retry_until_successful]) do
+  def move(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
+    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    _move(runner_state, direction, retry_until_successful, next_actions)
+  end
+
+  defp _move(runner_state, "player", retryable, next_actions) do
+    {new_runner_state, player_direction} = _direction_of_player(runner_state)
+    _move(new_runner_state, player_direction, retryable, next_actions)
+  end
+  defp _move(%Runner{program: program} = runner_state, "idle", _retryable, next_actions) do
+    %Runner{ runner_state | program: %{program | pc: next_actions.pc,
+                                                 lc: next_actions.lc,
+                                                 status: :wait,
+                                                 wait_cycles: 5 }}
+  end
+  defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
+    direction = _get_real_direction(object, direction)
+
     destination = Instances.get_map_tile(state, object, direction)
 
     case Move.go(object, destination, state) do
@@ -207,21 +356,49 @@ defmodule DungeonCrawl.Scripting.Command do
                      Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
                ]}]
 
-        %Runner{ program: %{program | broadcasts: [message | program.broadcasts], status: :wait, wait_cycles: 5 },
-                 object: new_location,
-                 state: new_state}
-      {:invalid} ->
-        with labels when not is_nil(labels) <- program.labels["THUD"],
-             [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
-          %Runner{ runner_state | program: %{program | pc: line_number} }
+        updated_runner_state = %Runner{ program: %{program | pc: next_actions.pc,
+                                                             lc: next_actions.lc,
+                                                             broadcasts: [message | program.broadcasts],
+                                                             status: :wait,
+                                                             wait_cycles: 5 },
+                                        object: new_location,
+                                        state: new_state}
+        if direction != "idle" do
+          change_state(updated_runner_state, [:facing, "=", direction])
         else
-          _ ->
-            if retry_until_successful do
-              %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
-            else
-              %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5} }
-            end
+          updated_runner_state
         end
+
+      {:invalid} ->
+        next_actions.invalid_move_handler.(runner_state, retryable)
+    end
+  end
+
+  defp _get_real_direction(object, "continue") do
+    {:ok, object_state} = TileState.Parser.parse(object.state)
+    object_state.facing || "idle"
+  end
+  defp _get_real_direction(_object, direction), do: direction
+
+  defp _invalid_compound_command(%Runner{program: program} = runner_state, retryable) do
+    cond do
+      line_number = Program.line_for(program, "THUD") ->
+          %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
+      retryable ->
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+      true ->
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: 5} }
+    end
+  end
+
+  defp _invalid_simple_command(%Runner{program: program} = runner_state, retryable) do
+    cond do
+      line_number = Program.line_for(program, "THUD") ->
+          %Runner{ runner_state | program: %{program | pc: line_number} }
+      retryable ->
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+      true ->
+          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5} }
     end
   end
 
@@ -257,4 +434,56 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
+  @doc """
+  Attempt to move in the given direction, if blocked the object doesn't move but the `THUD` message
+  will still be sent.
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.try(%Runner{program: %Program{}, object: object, state: state}, ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def try(runner_state, [direction]) do
+    move(runner_state, [direction, false])
+  end
+
+  @doc """
+  Continue to move in the given direction until bumping into something. Similar to `TRY` but repeats until
+  it cannot move in the given direction anymore.
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.try(%Runner{program: %Program{}, object: object, state: state}, ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
+  """
+  def walk(%Runner{program: program} = runner_state, [direction]) do
+    next_actions = %{pc: program.pc - 1, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    _move(runner_state, direction, false, next_actions)
+  end
+
+  defp _direction_of_player(%Runner{object: object} = runner_state) do
+    target_player_map_tile_id = object.parsed_state[:target_player_map_tile_id]
+    _direction_of_player(runner_state, target_player_map_tile_id)
+  end
+  defp _direction_of_player(%Runner{state: state} = runner_state, nil) do
+    with map_tile_ids when length(map_tile_ids) != 0 <- Map.keys(state.player_locations),
+         player_map_tile_id <- Enum.random(map_tile_ids) do
+
+      _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile_id]))
+    else
+      _ -> {runner_state, "idle"}
+    end
+  end
+  defp _direction_of_player(%Runner{state: state, object: object} = runner_state, target_player_map_tile_id) do
+    with player_map_tile when player_map_tile != nil <- Instances.get_map_tile_by_id(state, %{id: target_player_map_tile_id}) do
+      {runner_state, Instances.direction_of_map_tile(state, object, player_map_tile)}
+    else
+      _ ->
+      _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", nil]))
+    end
+  end
 end

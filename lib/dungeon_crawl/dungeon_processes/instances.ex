@@ -4,8 +4,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}
 
+  alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileState
@@ -96,6 +97,16 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   @doc """
+  Creates the given map tile for the player location in the parent instance state if it does not already exist.
+  Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
+  Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
+  """
+  def create_player_map_tile(%Instances{player_locations: player_locations} = state, map_tile, location) do
+    {top, instance_state} = Instances.create_map_tile(state, map_tile)
+    {top, %{ instance_state | player_locations: Map.put(player_locations, map_tile.id, location)}}
+  end
+
+  @doc """
   Creates the given map tile in the parent instance state if it does not already exist.
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
@@ -181,10 +192,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   @doc """
-  Deletes the given map tile from the instance state.
+  Deletes the given map tile from the instance state. If there is a player location also associated with that map tile,
+  the player location is unregistered.
   Returns a tuple containing the deleted tile (nil if no tile was deleted) and the updated state.
   """
-  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: map_tile_id}) do
+  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations} = state, %{id: map_tile_id}) do
     program_contexts = Map.delete(program_contexts, map_tile_id)
     dirty_ids = Map.put(state.dirty_ids, map_tile_id, :deleted)
 
@@ -193,9 +205,40 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     if map_tile do
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
-      {map_tile, %Instances{ program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids }}
+      player_locations = Map.delete(player_locations, map_tile_id)
+      {map_tile, %Instances{ program_contexts: program_contexts,
+                             map_by_ids: by_id,
+                             map_by_coords: by_coords,
+                             dirty_ids: dirty_ids,
+                             player_locations: player_locations }}
     else
       {nil, state}
+    end
+  end
+
+  @doc """
+  Returns the rough direction the given map tile is in, from the given object. Preference will be given to the direction
+  which is not immediately blocked. If there are two directions and both are blocked, or both are clear then one will be
+  randomly chosen.
+  """
+  def direction_of_map_tile(state, %MapTile{} = object, %MapTile{} = target_map_tile) do
+    {delta_row, delta_col} = {target_map_tile.row - object.row, target_map_tile.col - object.col}
+
+    cond do
+      delta_row == 0 && delta_col == 0 ->
+        "idle"
+
+      delta_row == 0 ->
+        if delta_col > 0, do: "east", else: "west"
+
+      delta_col == 0 ->
+        if delta_row > 0, do: "south", else: "north"
+
+      true ->
+        dirs = [if(delta_row > 0, do: "south", else: "north"),
+                if(delta_col > 0, do: "east", else: "west")]
+        non_blocking_dirs = Enum.filter(dirs, fn(dir) -> Move.can_move(Instances.get_map_tile(state, object, dir)) end)
+        if length(non_blocking_dirs) == 0, do: Enum.random(dirs), else: Enum.random(non_blocking_dirs)
     end
   end
 

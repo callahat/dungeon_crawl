@@ -1,10 +1,12 @@
 defmodule DungeonCrawl.Scripting.CommandTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
 
   def program_fixture(script \\ nil) do
@@ -74,6 +76,86 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
   end
 
+  test "COMPOUND_MOVE" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    # Successful
+    %Runner{program: program, object: mover, state: state} = Command.compound_move(%Runner{object: mover, state: state},
+                                                                                   [{"west", true}, {"east", true}])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 0,
+             lc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful (but its a try and move that does not keep trying)
+    %Runner{program: program, object: mover, state: state} = Command.compound_move(%Runner{object: mover, state: state},
+                                                                                   [{"south", false}])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 0,
+             lc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful (but its a retry until successful)
+    %Runner{program: program, object: mover, state: state} = Command.compound_move(%Runner{object: mover, state: state},
+                                                                                   [{"south", true}, {"east", true}])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 0,
+             lc: 0
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Last movement already done
+    runner_state = %Runner{object: mover, state: state, program: %Program{ status: :alive, lc: 2 }}
+    %Runner{program: program, object: mover, state: _state} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
+    assert %{status: :alive,
+             wait_cycles: 0,
+             broadcasts: [],
+             pc: 1,
+             lc: 0
+           } = program
+  end
+
+  test "COMPOUND_MOVE into something blocking (or a nil square) triggers a THUD event" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    program = program_fixture("""
+                              /s/w?e?e
+                              #END
+                              #END
+                              :THUD
+                              #BECOME character: X
+                              """)
+
+    %Runner{program: program} = Command.compound_move(%Runner{program: program, object: mover, state: state}, [{"south", true}])
+
+    assert %{status: :alive,
+             wait_cycles: 0,
+             broadcasts: [],
+             pc: 4,
+             lc: 0
+           } = program
+  end
+
   test "DIE" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
@@ -85,6 +167,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.script == ""
   end
 
+  test "GO" do
+    # Basically Move with true
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    assert Command.go(%Runner{object: mover, state: state}, ["left"]) == Command.move(%Runner{object: mover, state: state}, ["left", true])
+
+    # Unsuccessful
+    assert Command.go(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", true])
+  end
+
   test "HALT/END" do
     program = program_fixture()
     stubbed_object = %{state: ""}
@@ -92,6 +186,32 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{object: _updated_map_tile, program: program, state: _state} = Command.halt(%Runner{program: program, object: stubbed_object})
     assert program.status == :idle
     assert program.pc == -1
+  end
+
+  test "FACING" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up"})
+    program = program_fixture()
+
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["east"])
+    assert updated_map_tile.state == "facing: east"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["clockwise"])
+    assert updated_map_tile.state == "facing: east"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["counterclockwise"])
+    assert updated_map_tile.state == "facing: west"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["reverse"])
+    assert updated_map_tile.state == "facing: south"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: idle"
+
+    # Facing to player direction targets that player when it is not targeting a player
+    {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: south, target_player_map_tile_id: 43201"
+
+    # Facing to player direction when there is no players sets facing to idle and the target player to nil
+    {_fake_player, state} = Instances.delete_map_tile(state, fake_player)
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: updated_map_tile, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
   end
 
   test "JUMP_IF when state check is TRUE" do
@@ -158,13 +278,54 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Idle
-    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1
            } = program
-    assert updated_object2 = mover
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Moving in player direction targets a player when it is not targeting a player
+    {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
+    %Runner{object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["player"])
+    assert %{row: 1,
+             col: 2,
+             character: "c",
+             state: "facing: east, target_player_map_tile_id: 43201",
+             z_index: 1} = mover
+
+    # Moving in player direction keeps after that player
+    {another_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43215, row: 1, col: 5, z_index: 0, character: "@"}, %Location{})
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["player"])
+    assert %{row: 2,
+             col: 2,
+             character: "c",
+             state: "facing: south, target_player_map_tile_id: 43201",
+             z_index: 1} = mover
+
+    # When target player leaves dungeon, another target is chosen 
+    {_, state} = Instances.delete_map_tile(state, fake_player)
+    %Runner{object: mover, state: state} = Command.facing(%Runner{program: program, object: mover, state: state}, ["player"])
+    assert %{row: 2,
+             col: 2,
+             character: "c",
+             state: "facing: north, target_player_map_tile_id: 43215",
+             z_index: 1} = mover
+    {_, state} = Instances.delete_map_tile(state, another_fake_player)
+
+    # Move towards player (will end up being unchanged since no players remaining)
+    %Runner{program: program, object: mover} = Command.move(%Runner{object: mover, state: state}, ["player"])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = program
+    assert %{row: 2,
+             col: 2,
+             character: "c",
+             state: "facing: north, target_player_map_tile_id: nil",
+             z_index: 1} = mover
   end
 
   test "MOVE with two params" do
@@ -235,5 +396,44 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.responses == ["I am just a simple text."]
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "TRY" do
+    # Basically Move with false
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    assert Command.try(%Runner{object: mover, state: state}, ["left"]) == Command.move(%Runner{object: mover, state: state}, ["left", false])
+
+    # Unsuccessful
+    assert Command.try(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", false])
+  end
+
+  test "WALK" do
+    # Basically Move with until it cannot move
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+
+    expected_runner_state = Command.move(%Runner{object: mover, state: state}, ["left", false])
+    expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
+
+    assert Command.walk(%Runner{object: mover, state: state}, ["left"]) == expected_runner_state
+
+    # Unsuccessful
+    assert Command.walk(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", false])
+  end
+
+  test "WALK with a continue and facing" do
+    # Basically Move with until it cannot move
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"})
+
+    expected_runner_state = Command.move(%Runner{object: mover, state: state}, ["west", false])
+    expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
+
+    assert Command.walk(%Runner{object: mover, state: state}, ["continue"]) == expected_runner_state
   end
 end

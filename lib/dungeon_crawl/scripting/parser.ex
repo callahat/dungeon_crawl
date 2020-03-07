@@ -59,7 +59,13 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_line(line, program) do
-    case Regex.named_captures(~r/^(?<type>#|:|@)(?<instruction>.*)$/, line) do
+    case Regex.named_captures(~r/^(?<type>#|:|@|\/|\?)(?<instruction>.*)$/, line) do
+      %{"type" => "/", "instruction" => _command} ->
+        _parse_shorthand_movement(line, program)
+
+      %{"type" => "?", "instruction" => _command} ->
+        _parse_shorthand_movement(line, program)
+
       %{"type" => "#", "instruction" => command} ->
         _parse_command(command, program)
 
@@ -71,6 +77,52 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       _ -> # If the last item in the program is also text, concat the two
         _handle_text(line, program)
+    end
+  end
+
+  defp _parse_shorthand_movement(line, program) do
+    with steps <- line |> String.to_charlist |> Enum.chunk_every(2),
+         {:ok, expanded_steps} <- _parse_shorthand_movements(steps),
+         line_number <- Enum.count(program.instructions) + 1 do
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:compound_move, expanded_steps]) } }
+    else
+      {:error, msg} -> {:error, msg, program}
+    end
+  end
+
+  defp _parse_shorthand_movements([]), do: {:ok, []}
+  defp _parse_shorthand_movements([ [leading_character, direction] | steps ]) do
+    with {:ok, retry_until_successful} <- _parse_shorthand_directive(leading_character),
+         {:ok, parsed_direction} <- _parse_shorthand_direction(direction),
+         {:ok, parsed_shorthand_movements} <- _parse_shorthand_movements(steps) do
+      {:ok, [ {parsed_direction, retry_until_successful} | parsed_shorthand_movements]}
+    else
+      {:error, msg} -> {:error, msg}
+      _ -> {:error, "Invalid shorthand movement: #{[leading_character, direction]}"}
+    end
+  end
+
+  defp _parse_shorthand_directive(?/), do: {:ok, true}
+  defp _parse_shorthand_directive(??),  do: {:ok, false}
+  defp _parse_shorthand_directive(_),   do: {:error}
+
+  defp _parse_shorthand_direction(direction) do
+    case direction do
+      ?n -> {:ok, "north"}
+      ?N -> {:ok, "north"}
+      ?s -> {:ok, "south"}
+      ?S -> {:ok, "south"}
+      ?e -> {:ok, "east"}
+      ?E -> {:ok, "east"}
+      ?w -> {:ok, "west"}
+      ?W -> {:ok, "west"}
+      ?i -> {:ok, "idle"}
+      ?I -> {:ok, "idle"}
+      ?c -> {:ok, "continue"}
+      ?C -> {:ok, "continue"}
+      ?p -> {:ok, "player"}
+      ?P -> {:ok, "player"}
+      _  -> {:error}
     end
   end
 
@@ -201,7 +253,8 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>.+?)((?<op>!=|==|<=|>=|<|>)(?<value>.+))?$/i, String.trim(param)) do
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>[_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<value>.+))?$/i,
+                              String.trim(param)) do
       %{"neg" => "", "state_element" => state_element, "op" => "", "value" => ""} ->
         ["", :check_state, String.trim(state_element) |> String.to_atom(), "==", true]
 
@@ -213,6 +266,9 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       %{"neg" => _, "state_element" => state_element, "op" => op, "value" => value} ->
         ["!", :check_state, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+
+      _ ->
+        :error
     end
   end
 end

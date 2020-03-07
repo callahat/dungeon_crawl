@@ -46,6 +46,7 @@ defmodule DungeonCrawl.TileState.Parser do
 
   defp _cast_param(param) do
     cond do
+      Regex.match?(~r/^nil$/i, param) -> nil
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
@@ -69,7 +70,7 @@ defmodule DungeonCrawl.TileState.Parser do
   def stringify(state_map) do
     state_map
     |> Map.to_list
-    |> Enum.map(fn({k,v}) -> "#{k}: #{v}" end)
+    |> Enum.map(fn({k,v}) -> if(is_nil(v), do: "#{k}: nil", else: "#{k}: #{v}") end)
     |> Enum.join(", ")
   end
 end

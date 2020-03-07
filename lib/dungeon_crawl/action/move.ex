@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Action.Move do
 
   # todo: rename this
   def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state) do
-    if _valid_move(destination) do
+    if can_move(destination) do
       top_tile = Map.take(destination, [:map_instance_id, :row, :col, :z_index])
       {new_location, state} = Instances.update_map_tile(state, entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
       old_location_top_tile = Instances.get_map_tile(state, Map.take(entity_map_tile, [:row, :col]))
@@ -18,8 +18,8 @@ defmodule DungeonCrawl.Action.Move do
   end
   def go(_, _, _), do: {:invalid}
 
-  defp _valid_move(destination) do
-    {:ok, state} = Parser.parse(destination.state)
-    !state[:blocking]
+  def can_move(nil), do: false
+  def can_move(destination) do
+    !destination.parsed_state[:blocking]
   end
 end

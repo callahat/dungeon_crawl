@@ -13,7 +13,7 @@ require Logger
   """
   def run(runner_state = %Runner{program: program}, label) do
     with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
-         program = %{program | pc: next_pc, status: :alive} do
+         program = %{program | pc: next_pc, lc: 0, status: :alive} do
       run(%Runner{ runner_state | program: program})
     else
       _ ->
