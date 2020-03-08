@@ -69,7 +69,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, new_attrs)
   end
   def _become(%Runner{program: program, object: object, state: state}, new_attrs) do
-    {object, state} = Instances.update_map_tile( 
+    {object, state} = Instances.update_map_tile(
                       state,
                       object,
                       new_attrs)
