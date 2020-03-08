@@ -127,7 +127,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Last movement already done
     runner_state = %Runner{object: mover, state: state, program: %Program{ status: :alive, lc: 2 }}
-    %Runner{program: program, object: mover, state: _state} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
+    %Runner{program: program, object: _mover, state: _state} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
     assert %{status: :alive,
              wait_cycles: 0,
              broadcasts: [],
