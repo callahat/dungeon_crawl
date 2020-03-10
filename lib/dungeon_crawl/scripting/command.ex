@@ -5,7 +5,6 @@ defmodule DungeonCrawl.Scripting.Command do
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
@@ -69,7 +68,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, new_attrs)
   end
   def _become(%Runner{program: program, object: object, state: state}, new_attrs) do
-    {object, state} = Instances.update_map_tile( 
+    {object, state} = Instances.update_map_tile(
                       state,
                       object,
                       new_attrs)
@@ -79,16 +78,15 @@ defmodule DungeonCrawl.Scripting.Command do
                    Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
                ]}]
 
-    if Map.has_key?(new_attrs, :script) do
-      {:ok, new_program} = Scripting.Parser.parse(new_attrs.script)
-      %Runner{ program: %{new_program | broadcasts: [message | program.broadcasts], responses: program.responses, status: :idle },
-               object: object,
-               state: state}
-    else
-      %Runner{ program: %{program | broadcasts: [message | program.broadcasts] },
-               object: object,
-               state: state }
-    end
+    current_program = if Map.has_key?(new_attrs, :script) do
+                        # A changed script will update the program, so get the current
+                        Map.get(state.program_contexts, object.id).program
+                      else
+                        program
+                      end
+    %Runner{ program: %{current_program | broadcasts: [message | program.broadcasts] },
+             object: object,
+             state: state }
   end
 
   @doc """

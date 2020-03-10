@@ -112,24 +112,16 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   """
   def create_map_tile(%Instances{} = state, map_tile) do
-    map_tile = case TileState.Parser.parse(map_tile.state) do
-                 {:ok, state} -> Map.put(map_tile, :parsed_state, state)
-                 _            -> map_tile
-               end
+    map_tile = _with_parsed_state(map_tile)
     {map_tile, state} = _register_map_tile(state, map_tile)
-    case Scripting.Parser.parse(map_tile.script) do
-     {:ok, program} ->
-       unless program.status == :dead do
-         {map_tile, _start_program(state, map_tile.id, %{program: program, object: map_tile, event_sender: nil})}
-       else
-         {map_tile, state}
-       end
-     other ->
-       Logger.warn """
-                   Possible corrupt script for map tile instance: #{inspect map_tile}
-                   Not :ok response: #{inspect other}
-                   """
-       {map_tile, state}
+    {_, map_tile, state} = _parse_and_start_program(state, map_tile)
+    {map_tile, state}
+  end
+
+  defp _with_parsed_state(map_tile) do
+    case TileState.Parser.parse(map_tile.state) do
+      {:ok, state} -> Map.put(map_tile, :parsed_state, state)
+      _            -> map_tile
     end
   end
 
@@ -151,6 +143,23 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
+  defp _parse_and_start_program(state, map_tile) do
+    case Scripting.Parser.parse(map_tile.script) do
+     {:ok, program} ->
+       unless program.status == :dead do
+         {:ok, map_tile, _start_program(state, map_tile.id, %{program: program, object: map_tile, event_sender: nil})}
+       else
+         {:none, map_tile, state}
+       end
+     other ->
+       Logger.warn """
+                   Possible corrupt script for map tile instance: #{inspect map_tile}
+                   Not :ok response: #{inspect other}
+                   """
+       {:none, map_tile, state}
+    end
+  end
+
   defp _start_program(%Instances{program_contexts: program_contexts} = state, map_tile_id, program_context) do
     if Map.has_key?(program_contexts, map_tile_id) do
       # already a running program for that tile id, or there is no map tile for that id
@@ -161,13 +170,17 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   @doc """
-  Updates the given map tile in the parent instance process, and returns the updated tile and new state
+  Updates the given map tile in the parent instance process, and returns the updated tile and new state.
+  If the new attributes include a script, the program will be updated if the script is valid.
   """
   def update_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: map_tile_id}, new_attributes) do
     new_attributes = Map.delete(new_attributes, :id)
     previous_changeset = state.dirty_ids[map_tile_id] || MapTile.changeset(by_id[map_tile_id], %{})
 
+    script_changed = !!new_attributes[:script]
+
     updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes)
+    updated_tile = _with_parsed_state(updated_tile)
 
     old_tile_coords = Map.take(by_id[map_tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
@@ -185,10 +198,31 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), map_tile_id)
         {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids }}
+        |> _update_program(script_changed)
       end
     else
       {updated_tile, %Instances{ state | map_by_ids: by_id, dirty_ids: dirty_ids }}
+      |> _update_program(script_changed)
     end
+  end
+
+  defp _update_program({map_tile, %Instances{} = state}, false), do: {map_tile, state}
+  defp _update_program({map_tile, %Instances{} = state}, true) do
+    {previous_program, program_contexts} = Map.pop(state.program_contexts, map_tile.id)
+    _update_program(previous_program || %{},
+                    _parse_and_start_program(%Instances{state | program_contexts: program_contexts}, map_tile))
+  end
+  defp _update_program(_previous_program, {:none, map_tile, state}) do
+    {map_tile, state}
+  end
+  defp _update_program(previous_program, {:ok, map_tile, state}) do
+    new_program = state.program_contexts[map_tile.id].program
+                  |> Map.merge(Map.take(previous_program, [:broadcasts, :responses]))
+                  |> Map.put(:status, :idle)
+
+    updated_context = %{ state.program_contexts[map_tile.id] | program: new_program }
+
+    {map_tile, %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile.id, updated_context) }}
   end
 
   @doc """

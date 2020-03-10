@@ -49,18 +49,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "BECOME a ttid" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
-    squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK"})
+    squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
     params = [{:ttid, squeaky_door.id}]
 
     %Runner{object: updated_map_tile, program: program, state: state} = Command.become(%Runner{program: program, object: map_tile, state: state}, params)
     assert updated_map_tile == Instances.get_map_tile(state, map_tile)
 
+    refute Map.take(updated_map_tile, [:state]) == %{script: map_tile.state}
+    refute Map.take(updated_map_tile, [:parsed_state]) == %{script: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
     assert program.status == :idle
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+    assert %{blocking: true} = updated_map_tile.parsed_state
   end
 
   test "CHANGE_STATE" do
@@ -124,7 +127,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Last movement already done
     runner_state = %Runner{object: mover, state: state, program: %Program{ status: :alive, lc: 2 }}
-    %Runner{program: program, object: mover, state: _state} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
+    %Runner{program: program, object: _mover, state: _state} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
     assert %{status: :alive,
              wait_cycles: 0,
              broadcasts: [],
