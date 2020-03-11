@@ -51,7 +51,7 @@ Or join:
             <tr>
               <td colspan=100%>
                 <span class="pull-right">
-                  <%= link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                  <%= if can_start_new_instance(dungeon.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
                 </span>
               </td>
             <tr>

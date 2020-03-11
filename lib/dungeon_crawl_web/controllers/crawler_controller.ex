@@ -14,6 +14,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_not_crawling  when action in [:create, :join]
   plug :validate_active_or_owner when action in [:join]
   plug :validate_autogen_solo_enabled when action in [:create]
+  plug :validate_instance_limit when action in [:join]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
@@ -137,4 +138,16 @@ defmodule DungeonCrawlWeb.CrawlerController do
       |> halt()
     end
   end
+
+  defp validate_instance_limit(%{params: %{"dungeon_id" => dungeon_id}} = conn, _opts) do
+    if is_nil(Admin.get_setting.max_instances) or Dungeon.instance_count(dungeon_id) < Admin.get_setting.max_instances do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Dungeon has reached its limit on instances and cannot create another")
+      |> redirect(to: Routes.crawler_path(conn, :show))
+      |> halt()
+    end
+  end
+  defp validate_instance_limit(conn, _opts), do: conn
 end

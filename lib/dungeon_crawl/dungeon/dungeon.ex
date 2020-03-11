@@ -80,6 +80,22 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
+  Gets the number of instances for the given dungeon.
+
+    ## Examples
+
+    iex > instance_count(%Map{})
+    3
+  """
+  def instance_count(%Map{id: dungeon_id}), do: instance_count(dungeon_id)
+  def instance_count(dungeon_id) do
+    Repo.one(from instance in DungeonCrawl.DungeonInstances.Map,
+               where: instance.map_id == ^dungeon_id,
+               group_by: instance.map_id,
+               select: count(instance.map_id)) || 0
+  end
+
+  @doc """
   Gets a single map.
 
   Raises `Ecto.NoResultsError` if the Map does not exist.
