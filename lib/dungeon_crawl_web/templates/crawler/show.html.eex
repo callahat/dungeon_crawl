@@ -14,7 +14,9 @@
 <% else %>
 Not currently in any dungeon.
 <br/>
+<%= if DungeonCrawl.Admin.get_setting.autogen_solo_enabled do %>
 <%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+<% end %>
 
 <br/>
 <br/>

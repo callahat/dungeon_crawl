@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
 
   import Plug.Conn, only: [assign: 3]
 
+  alias DungeonCrawl.Admin
   alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
@@ -64,6 +65,14 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     conn = post conn, crawler_path(conn, :create)
     assert redirected_to(conn) == crawler_path(conn, :show)
     assert get_flash(conn, :info) == "Already crawling dungeon"
+  end
+
+  test "created does not generate a new solo dungeon if setting is off", %{conn: conn} do
+    Admin.update_setting(%{autogen_solo_enabled: false})
+    conn = post conn, crawler_path(conn, :create)
+    assert redirected_to(conn) == crawler_path(conn, :show)
+    assert get_flash(conn, :error) == "Generate and go solo is disabled"
+    refute Player.get_location(conn.assigns[:user_id_hash])
   end
 
   # join
@@ -166,7 +175,7 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     insert_player_location(%{map_instance_id: instance.id, user_id_hash: different_user.user_id_hash})
     # Seems that it might not be done propagating the instance_process, below sometimes fails with nil at the delete spot
     # TODO: remove the sleep, probably after most of the casts have been converted to calls
-    :timer.sleep(50)
+    :timer.sleep(100)
     conn = delete conn, crawler_path(conn, :destroy)
     assert redirected_to(conn) == crawler_path(conn, :show)
     assert get_flash(conn, :info) == "Dungeon cleared."
