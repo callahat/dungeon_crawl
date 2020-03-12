@@ -11,11 +11,13 @@
   <tr>
     <th>ID</th>
     <th>Players</th>
+    <th></th>
   </tr>
   <%= for instance <- @dungeon.map_instances do %>
   <tr>
     <td><%= link instance.id, to: Routes.manage_dungeon_path(@conn, :show, @dungeon, instance_id: instance.id) %></td>
     <td><%= Enum.count(instance.locations) %></td>
+    <td><%= link "Delete Instance", to: Routes.manage_dungeon_path(@conn, :delete, @dungeon, instance_id: instance.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
   </tr>
   <% end %>
 </table>

@@ -24,6 +24,17 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
     render(conn, "show.html", dungeon: dungeon, instance: nil, owner_name: owner_name)
   end
 
+  def delete(conn, %{"id" => id, "instance_id" => instance_id}) do
+    dungeon = Dungeon.get_map!(id)
+    instance = DungeonInstances.get_map!(instance_id)
+
+    DungeonInstances.delete_map!(instance)
+
+    conn
+    |> put_flash(:info, "Dungeon Instance deleted successfully.")
+    |> redirect(to: Routes.manage_dungeon_path(conn, :show, dungeon))
+  end
+
   def delete(conn, %{"id" => id}) do
     dungeon = Dungeon.get_map!(id)
 
