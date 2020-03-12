@@ -1,6 +1,7 @@
 defmodule DungeonCrawlWeb.DungeonControllerTest do
   use DungeonCrawlWeb.ConnCase
 
+  alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.Player
   @create_attrs %{name: "some name", height: 40, width: 80}
@@ -96,6 +97,26 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
   # /Without registered user
+
+  describe "with a registered user but edit dungeons is disabled" do
+    setup [:create_user]
+
+    test "lists all dungeons", %{conn: conn} do
+      Admin.update_setting(%{non_admin_dungeons_enabled: false})
+      conn = get conn, dungeon_path(conn, :index)
+      assert redirected_to(conn) == crawler_path(conn, :show)
+    end
+  end
+
+  describe "with a registered admin user but edit dungeons is disabled" do
+    setup [:create_admin]
+
+    test "lists all dungeons", %{conn: conn} do
+      Admin.update_setting(%{non_admin_dungeons_enabled: false})
+      conn = get conn, dungeon_path(conn, :index)
+      assert html_response(conn, 200) =~ "Listing dungeons"
+    end
+  end
 
   # With a registered user
   describe "index with a registered user" do
@@ -308,6 +329,12 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
   defp create_user(_) do
     user = insert_user(%{username: "CSwaggins"})
+    conn = assign(build_conn(), :current_user, user)
+    {:ok, conn: conn, user: user}
+  end
+
+  defp create_admin(_) do
+    user = insert_user(%{username: "CSwaggins", is_admin: true})
     conn = assign(build_conn(), :current_user, user)
     {:ok, conn: conn, user: user}
   end

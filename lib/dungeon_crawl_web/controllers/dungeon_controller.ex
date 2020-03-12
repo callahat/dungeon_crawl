@@ -13,6 +13,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
 
   plug :authenticate_user
+  plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
   plug :validate_updateable when action in [:edit, :update]
@@ -216,6 +217,17 @@ defmodule DungeonCrawlWeb.DungeonController do
     conn
     |> put_flash(:info, "Dungeon joined successfully.")
     |> redirect(to: Routes.crawler_path(conn, :show))
+  end
+
+  defp validate_edit_dungeon_available(conn, _opts) do
+    if conn.assigns.current_user.is_admin or Admin.get_setting().non_admin_dungeons_enabled do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Edit dungeons is disabled")
+      |> redirect(to: Routes.crawler_path(conn, :show))
+      |> halt()
+    end
   end
 
   defp assign_player_location(conn, _opts) do
