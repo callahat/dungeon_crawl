@@ -7,7 +7,7 @@ defmodule DungeonCrawl.DungeonTest do
   describe "dungeons" do
     alias DungeonCrawl.Dungeon.Map
 
-    @valid_attrs %{name: "some content"}
+    @valid_attrs %{name: "some content", height: 40, width: 80}
     @update_attrs %{name: "new name"}
     @invalid_attrs %{height: 1}
 

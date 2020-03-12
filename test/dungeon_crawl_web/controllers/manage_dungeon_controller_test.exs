@@ -2,8 +2,6 @@ defmodule DungeonCrawlWeb.ManageDungeonControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.Dungeon
-  @valid_attrs %{name: "some content"}
-  @invalid_attrs %{}
 
   describe "non registered users" do
     test "redirects non admin users", %{conn: conn} do
@@ -29,22 +27,6 @@ defmodule DungeonCrawlWeb.ManageDungeonControllerTest do
     test "lists all entries on index", %{conn: conn} do
       conn = get conn, manage_dungeon_path(conn, :index)
       assert html_response(conn, 200) =~ "Listing dungeons"
-    end
-
-    test "renders form for new resources", %{conn: conn} do
-      conn = get conn, manage_dungeon_path(conn, :new)
-      assert html_response(conn, 200) =~ "New dungeon"
-    end
-
-    test "creates resource and redirects when data is valid", %{conn: conn} do
-      conn = post conn, manage_dungeon_path(conn, :create), map: @valid_attrs
-      assert redirected_to(conn) == manage_dungeon_path(conn, :show, Repo.get_by!(Dungeon.Map, @valid_attrs))
-      assert Repo.get_by!(Dungeon.Map, @valid_attrs)
-    end
-
-    test "does not create resource and renders errors when data is invalid", %{conn: conn} do
-      conn = post conn, manage_dungeon_path(conn, :create), map: @invalid_attrs
-      assert html_response(conn, 200) =~ "New dungeon"
     end
 
     test "shows chosen resource", %{conn: conn} do

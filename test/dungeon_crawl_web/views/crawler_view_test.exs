@@ -5,7 +5,7 @@ defmodule DungeonCrawlWeb.CrawlerViewTest do
 
   alias DungeonCrawl.Admin
 
-  test "can_start_new_instance/1", %{conn: conn} do
+  test "can_start_new_instance/1", %{conn: _conn} do
     instance = insert_stubbed_dungeon_instance(%{active: true})
 
     assert CrawlerView.can_start_new_instance(instance.map_id)

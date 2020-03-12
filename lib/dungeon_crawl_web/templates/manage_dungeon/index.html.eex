@@ -1,5 +1,4 @@
 <h2>Listing dungeons</h2>
-<%= link "New dungeon", to: Routes.manage_dungeon_path(@conn, :new) %>
 
 <div class="table-responsive">
   <table class="table table-sm">
