@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.SettingControllerTest do
 
   import Plug.Conn, only: [assign: 3]
 
-  @update_attrs %{autogen_solo_enabled: false, max_height: 43, max_instances: 43, max_width: 43, non_admin_dungeons_enabled: false}
+  @update_attrs %{autogen_solo_enabled: false, max_height: 77, max_instances: 43, max_width: 111, non_admin_dungeons_enabled: false}
   @invalid_attrs %{max_height: 9008, max_width: 10}
 
   setup %{conn: conn} = config do

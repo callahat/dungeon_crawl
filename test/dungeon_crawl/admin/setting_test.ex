@@ -15,4 +15,12 @@ defmodule DungeonCrawl.Admin.SettingTest do
     changeset = Setting.changeset(%Setting{}, @invalid_attrs)
     refute changeset.valid?
   end
+
+  test "autogen height and width must be less than or equal the max h&w" do
+    changeset = Setting.changeset(%Setting{}, %{autogen_height: 40, autogen_width: 80, max_height: 40, max_width: 80})
+    assert changeset.valid?
+
+    changeset = Setting.changeset(%Setting{}, %{autogen_height: 41, autogen_width: 81, max_height: 40, max_width: 80})
+    refute changeset.valid?
+  end
 end
