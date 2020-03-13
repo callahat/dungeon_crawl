@@ -14,7 +14,9 @@
 <% else %>
 Not currently in any dungeon.
 <br/>
+<%= if DungeonCrawl.Admin.get_setting.autogen_solo_enabled do %>
 <%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+<% end %>
 
 <br/>
 <br/>
@@ -49,7 +51,7 @@ Or join:
             <tr>
               <td colspan=100%>
                 <span class="pull-right">
-                  <%= link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                  <%= if can_start_new_instance(dungeon.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
                 </span>
               </td>
             <tr>

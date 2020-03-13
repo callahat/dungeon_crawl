@@ -14,13 +14,13 @@
 
     <div class="form-group col-md-2">
       <%= label f, :height, class: "control-label" %>
-      <%= text_input f, :height, class: "form-control" %>
+      <%= text_input f, :height, class: "form-control", placeholder: "20 to #{@max_dimensions.max_height}" %>
       <%= error_tag f, :height %>
     </div>
 
     <div class="form-group col-md-2">
       <%= label f, :width, class: "control-label" %>
-      <%= text_input f, :width, class: "form-control" %>
+      <%= text_input f, :width, class: "form-control", placeholder: "20 to #{@max_dimensions.max_width}" %>
       <%= error_tag f, :width %>
     </div>
 

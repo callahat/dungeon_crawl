@@ -41,7 +41,8 @@ defmodule DungeonCrawlWeb.Router do
     pipe_through [:browser, :authenticate_user, :verify_user_is_admin]
 
     resources "/users", ManageUserController
-    resources "/dungeons", ManageDungeonController, except: [:edit, :update]
+    resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
+    resources "/settings", SettingController, singleton: true, only: [:edit, :update]
 #    resources "/tile_templates", ManageTileTemplateController
 #      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
 #      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate

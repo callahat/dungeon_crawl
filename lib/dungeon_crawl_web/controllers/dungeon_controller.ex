@@ -1,6 +1,7 @@
 defmodule DungeonCrawlWeb.DungeonController do
   use DungeonCrawl.Web, :controller
 
+  alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.TileTemplates
@@ -12,6 +13,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
 
   plug :authenticate_user
+  plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
   plug :validate_updateable when action in [:edit, :update]
@@ -27,7 +29,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   def new(conn, _params) do
     changeset = Dungeon.change_map(%Map{})
     generators = ["Rooms", "Labrynth", "Empty Map"]
-    render(conn, "new.html", changeset: changeset, generators: generators)
+    render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
   end
 
   def create(conn, %{"map" => dungeon_params}) do
@@ -44,7 +46,7 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, :dungeon, changeset, _others} ->
         generators = ["Rooms", "Labrynth", "Empty Map"]
-        render(conn, "new.html", changeset: changeset, generators: generators)
+        render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
     end
   end
 
@@ -63,7 +65,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     changeset = Dungeon.change_map(dungeon)
     {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z)
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions())
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do
@@ -82,7 +84,7 @@ defmodule DungeonCrawlWeb.DungeonController do
         {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
         tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z)
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions())
     end
   end
 
@@ -204,6 +206,10 @@ defmodule DungeonCrawlWeb.DungeonController do
         conn
         |> put_flash(:error, message)
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+      {:error, :dungeon, _, _} ->
+        conn
+        |> put_flash(:error, "Cannot create new version; dimensions restricted?")
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
     end
   end
 
@@ -215,6 +221,17 @@ defmodule DungeonCrawlWeb.DungeonController do
     conn
     |> put_flash(:info, "Dungeon joined successfully.")
     |> redirect(to: Routes.crawler_path(conn, :show))
+  end
+
+  defp validate_edit_dungeon_available(conn, _opts) do
+    if conn.assigns.current_user.is_admin or Admin.get_setting().non_admin_dungeons_enabled do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Edit dungeons is disabled")
+      |> redirect(to: Routes.crawler_path(conn, :show))
+      |> halt()
+    end
   end
 
   defp assign_player_location(conn, _opts) do
@@ -252,5 +269,9 @@ defmodule DungeonCrawlWeb.DungeonController do
   defp set_sidebar_present_md(conn, _opts) do
     conn
     |> assign(:sidebar_present_md, true)
+  end
+
+  defp _max_dimensions() do
+    Elixir.Map.take(Admin.get_setting, [:max_height, :max_width])
   end
 end

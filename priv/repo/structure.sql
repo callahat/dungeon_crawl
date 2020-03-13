@@ -82,7 +82,8 @@ CREATE TABLE public.dungeons (
     active boolean,
     deleted_at timestamp without time zone,
     previous_version_id bigint,
-    user_id bigint
+    user_id bigint,
+    max_instances integer
 );
 
 
@@ -221,6 +222,43 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: settings; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE public.settings (
+    id bigint NOT NULL,
+    max_height integer,
+    max_width integer,
+    autogen_height integer,
+    autogen_width integer,
+    max_instances integer,
+    autogen_solo_enabled boolean DEFAULT false NOT NULL,
+    non_admin_dungeons_enabled boolean DEFAULT false NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.settings_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.settings_id_seq OWNED BY public.settings.id;
+
+
+--
 -- Name: tile_templates; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -337,6 +375,13 @@ ALTER TABLE ONLY public.player_locations ALTER COLUMN id SET DEFAULT nextval('pu
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
+ALTER TABLE ONLY public.settings ALTER COLUMN id SET DEFAULT nextval('public.settings_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
 ALTER TABLE ONLY public.tile_templates ALTER COLUMN id SET DEFAULT nextval('public.tile_templates_id_seq'::regclass);
 
 
@@ -393,6 +438,14 @@ ALTER TABLE ONLY public.player_locations
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
 
 
 --
@@ -608,5 +661,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856);
 

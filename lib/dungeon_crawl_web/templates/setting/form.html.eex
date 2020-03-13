@@ -1,0 +1,57 @@
+<%= form_for @changeset, @action, fn f -> %>
+  <%= if @changeset.action do %>
+    <div class="alert alert-danger">
+      <p>Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
+
+  <div class="row">
+  <div class="form-group col-6">
+    <%= label f, :max_height, class: "control-label" %>
+    <%= number_input f, :max_height, class: "form-control", placeholder: "80 for normal conditions" %>
+    <%= error_tag f, :max_height %>
+  </div>
+
+  <div class="form-group col-6">
+    <%= label f, :max_width, class: "control-label" %>
+    <%= number_input f, :max_width, class: "form-control", placeholder: "120 for normal conditions" %>
+    <%= error_tag f, :max_width %>
+  </div>
+  </div>
+
+  <div class="row">
+  <div class="form-group col-6">
+    <%= label f, :autogen_height, class: "control-label" %>
+    <%= number_input f, :autogen_height, class: "form-control", placeholder: "40 for normal conditions" %>
+    <%= error_tag f, :autogen_height %>
+  </div>
+
+  <div class="form-group col-6">
+    <%= label f, :autogen_width, class: "control-label" %>
+    <%= number_input f, :autogen_width, class: "form-control", placeholder: "80 for normal conditions" %>
+    <%= error_tag f, :autogen_width %>
+  </div>
+  </div>
+
+  <div class="form-group">
+    <%= label f, :max_instances, class: "control-label" %>
+    <%= number_input f, :max_instances, class: "form-control", placeholder: "blank for no limit" %>
+    <%= error_tag f, :max_instances %>
+  </div>
+
+  <div class="form-group">
+    <%= checkbox f, :autogen_solo_enabled %>
+    <%= label f, :autogen_solo_enabled, class: "control-label" %>
+    <%= error_tag f, :autogen_solo_enabled %>
+  </div>
+
+  <div class="form-group">
+    <%= checkbox f, :non_admin_dungeons_enabled %>
+    <%= label f, :non_admin_dungeons_enabled, class: "control-label" %>
+    <%= error_tag f, :non_admin_dungeons_enabled %>
+  </div>
+
+  <div>
+    <%= submit "Save" %>
+  </div>
+<% end %>

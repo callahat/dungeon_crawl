@@ -36,6 +36,11 @@ defmodule DungeonCrawl.Dungeon do
     Repo.all(from m in Map,
              where: is_nil(m.deleted_at))
   end
+  def list_dungeons(:soft_deleted) do
+    Repo.all(from m in Map,
+             where: not(is_nil(m.deleted_at)),
+             order_by: [:name, :version])
+  end
 
   @doc """
   Returns a list of maps with the dungeons and a count of players in them.
@@ -77,6 +82,22 @@ defmodule DungeonCrawl.Dungeon do
              preload: [:user, map_instances: {mi, locations: pmt}],
              select: %{dungeon_id: m.id, dungeon: m},
              order_by: [m.name, pmt.id])
+  end
+
+  @doc """
+  Gets the number of instances for the given dungeon.
+
+    ## Examples
+
+    iex > instance_count(%Map{})
+    3
+  """
+  def instance_count(%Map{id: dungeon_id}), do: instance_count(dungeon_id)
+  def instance_count(dungeon_id) do
+    Repo.one(from instance in DungeonCrawl.DungeonInstances.Map,
+               where: instance.map_id == ^dungeon_id,
+               group_by: instance.map_id,
+               select: count(instance.map_id)) || 0
   end
 
   @doc """
