@@ -16,6 +16,7 @@ defmodule DungeonCrawl.Dungeon.Map do
     has_many :map_instances, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_id
     has_many :dungeon_map_tiles, DungeonCrawl.Dungeon.MapTile, foreign_key: :dungeon_id, on_delete: :delete_all
     has_many :locations, through: [:dungeon_map_tiles, :player_locations], on_delete: :delete_all
+    has_many :next_versions, DungeonCrawl.Dungeon.Map, foreign_key: :previous_version_id, on_delete: :nilify_all
     belongs_to :previous_version, DungeonCrawl.Dungeon.Map, foreign_key: :previous_version_id
     belongs_to :user, DungeonCrawl.Account.User
 

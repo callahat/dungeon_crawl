@@ -36,6 +36,11 @@ defmodule DungeonCrawl.Dungeon do
     Repo.all(from m in Map,
              where: is_nil(m.deleted_at))
   end
+  def list_dungeons(:soft_deleted) do
+    Repo.all(from m in Map,
+             where: not(is_nil(m.deleted_at)),
+             order_by: [:name, :version])
+  end
 
   @doc """
   Returns a list of maps with the dungeons and a count of players in them.

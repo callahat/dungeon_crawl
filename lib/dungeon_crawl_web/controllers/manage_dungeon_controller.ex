@@ -4,6 +4,11 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
 
+  def index(conn, %{"show_deleted" => "true"} = params) do
+    dungeons = Dungeon.list_dungeons(:soft_deleted)
+    render(conn, "index_deleted.html", dungeons: dungeons)
+  end
+
   def index(conn, _params) do
     dungeons = Dungeon.list_dungeons_with_player_count()
     render(conn, "index.html", dungeons: dungeons)
@@ -35,13 +40,23 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
     |> redirect(to: Routes.manage_dungeon_path(conn, :show, dungeon))
   end
 
+  def delete(conn, %{"id" => id, "hard_delete" => "true"}) do
+    dungeon = Dungeon.get_map!(id)
+
+    Dungeon.hard_delete_map!(dungeon)
+
+    conn
+    |> put_flash(:info, "Dungeon #{dungeon.name} v#{dungeon.version} hard deleted successfully.")
+    |> redirect(to: Routes.manage_dungeon_path(conn, :index, %{show_deleted: "true"}))
+  end
+
   def delete(conn, %{"id" => id}) do
     dungeon = Dungeon.get_map!(id)
 
     Dungeon.delete_map!(dungeon)
 
     conn
-    |> put_flash(:info, "Dungeon deleted successfully.")
+    |> put_flash(:info, "Dungeon #{dungeon.name} v#{dungeon.version} deleted successfully.")
     |> redirect(to: Routes.manage_dungeon_path(conn, :index))
   end
 end
