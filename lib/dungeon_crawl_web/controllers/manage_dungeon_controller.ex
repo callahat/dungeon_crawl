@@ -4,7 +4,7 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
 
-  def index(conn, %{"show_deleted" => "true"} = params) do
+  def index(conn, %{"show_deleted" => "true"}) do
     dungeons = Dungeon.list_dungeons(:soft_deleted)
     render(conn, "index_deleted.html", dungeons: dungeons)
   end

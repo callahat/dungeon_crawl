@@ -206,6 +206,10 @@ defmodule DungeonCrawlWeb.DungeonController do
         conn
         |> put_flash(:error, message)
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+      {:error, :dungeon, _, _} ->
+        conn
+        |> put_flash(:error, "Cannot create new version; dimensions restricted?")
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
     end
   end
 

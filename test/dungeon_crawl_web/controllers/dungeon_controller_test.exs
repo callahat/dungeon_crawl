@@ -287,6 +287,14 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert get_flash(conn, :error) == "New version already exists"
     end
 
+    test "does not create a new version if dungeon fails validation", %{conn: conn, dungeon: dungeon} do
+      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
+      Admin.update_setting(%{autogen_height: 20, autogen_width: 20, max_width: 20, max_height: 20})
+      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
+      assert get_flash(conn, :error) == "Cannot create new version; dimensions restricted?"
+      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+    end
+
     test "creates a new version", %{conn: conn, dungeon: dungeon} do
       {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
       conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
