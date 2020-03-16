@@ -348,7 +348,7 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
   """
   def move(%Runner{program: program, object: object} = runner_state, ["idle", _]) do
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: object.parsed_state[:wait_cycles] || 5 } }
+    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: TileState.get_int(object, :wait_cycles, 5) } }
   end
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
@@ -366,7 +366,7 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
-                                                 wait_cycles: object.parsed_state[:wait_cycles] || 5 }}
+                                                 wait_cycles: TileState.get_int(object, :wait_cycles, 5) }}
   end
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
@@ -407,7 +407,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _get_real_direction(_object, direction), do: direction
 
   defp _invalid_compound_command(%Runner{program: program, object: object} = runner_state, retryable) do
-    wait_cycles = object.parsed_state[:wait_cycles] || 5
+    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
@@ -419,7 +419,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _invalid_simple_command(%Runner{program: program, object: object} = runner_state, retryable) do
-    wait_cycles = object.parsed_state[:wait_cycles] || 5
+    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number} }
@@ -494,7 +494,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _direction_of_player(%Runner{object: object} = runner_state) do
-    target_player_map_tile_id = object.parsed_state[:target_player_map_tile_id]
+    target_player_map_tile_id = TileState.get_int(object, :target_player_map_tile_id)
     _direction_of_player(runner_state, target_player_map_tile_id)
   end
   defp _direction_of_player(%Runner{state: state} = runner_state, nil) do
