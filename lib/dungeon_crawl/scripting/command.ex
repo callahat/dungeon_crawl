@@ -227,7 +227,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def facing(%Runner{} = runner_state, ["player"]) do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
-    facing(new_runner_state, [player_direction])
+    _facing(new_runner_state, player_direction)
   end
   def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -242,7 +242,7 @@ defmodule DungeonCrawl.Scripting.Command do
                   "south" -> "west"
                   _       -> "idle"
                 end
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
   end
   def facing(%Runner{object: object} = runner_state, ["counterclockwise"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -257,7 +257,7 @@ defmodule DungeonCrawl.Scripting.Command do
                   "south" -> "east"
                   _       -> "idle"
                 end
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
   end
   def facing(%Runner{object: object} = runner_state, ["reverse"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -272,10 +272,14 @@ defmodule DungeonCrawl.Scripting.Command do
                   "south" -> "north"
                   _       -> "idle"
                 end
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
   end
   def facing(runner_state, [direction]) do
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
+  end
+  def _facing(runner_state, direction) do
+    runner_state = change_state(runner_state, [:facing, "=", direction])
+    %Runner{ runner_state | program: %{runner_state.program | status: :wait, wait_cycles: 1 } }
   end
 
   @doc """
