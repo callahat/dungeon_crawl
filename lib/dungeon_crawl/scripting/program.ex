@@ -17,7 +17,8 @@ defmodule DungeonCrawl.Scripting.Program do
     nil
   """
   def line_for(program, label) do
-    with labels when not is_nil(labels) <- program.labels[label],
+    with normalized_label <- String.downcase(label),
+         labels when not is_nil(labels) <- program.labels[normalized_label],
          [[line_number, _]] <- labels |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1) do
       line_number
     else

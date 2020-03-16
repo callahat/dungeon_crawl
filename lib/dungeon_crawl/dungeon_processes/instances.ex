@@ -11,6 +11,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileState
   alias DungeonCrawl.Scripting
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
 
   require Logger
@@ -65,9 +66,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
   def responds_to_event?(%Instances{program_contexts: program_contexts} = _state, %{id: map_tile_id}, event) do
     with %{^map_tile_id => %{program: program}} <- program_contexts,
-         labels <- program.labels[event],
-         true <- is_list(labels) do
-      Enum.any?(labels, fn([_, active]) -> active end)
+         line_number when not(is_nil(line_number)) <- Program.line_for(program, event) do
+      true
     else
       _ ->
         false

@@ -30,7 +30,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       {:ok, program} = Parser.parse(script)
       stubbed_object = %{state: ""}
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object: stubbed_object}, "HERE")
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object: stubbed_object}, "Here")
       assert run_program.responses == ["After label"]
     end
 

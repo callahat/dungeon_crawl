@@ -67,7 +67,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  },
                                  status: :alive,
                                  pc: 1,
-                                 labels: %{"ALREADY_OPEN" => [[7, true]], "TOUCH" => [[2, true]]},
+                                 labels: %{"already_open" => [[7, true]], "touch" => [[2, true]]},
                                  locked: false,
                                  broadcasts: [],
                                  responses: []}
@@ -83,7 +83,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       assert program == %Program{instructions: %{1 => [:noop, "MAIN"]},
                                  status: :dead,
                                  pc: 1,
-                                 labels: %{"MAIN" => [[1, true]] },
+                                 labels: %{"main" => [[1, true]] },
                                  locked: false,
                                  broadcasts: [],
                                  responses: []}
