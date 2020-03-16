@@ -16,6 +16,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     thing is true
     #MOVE south, true
     #GO south
+    #CYCLE 3
     """
   end
 
@@ -40,6 +41,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #FACING reverse
     #FACING inward
     #IF bio = tho
+    #CYCLE 0
+    #CYCLE false
     """
   end
 
@@ -70,7 +73,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
                "Line 18: FACING command references invalid direction `inward`",
-               "Line 19: IF command malformed"],
+               "Line 19: IF command malformed",
+               "Line 20: CYCLE command has invalid param `0`",
+               "Line 21: CYCLE command has invalid param `false`"],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
@@ -81,7 +86,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
                "Line 18: FACING command references invalid direction `inward`",
-               "Line 19: IF command malformed"],
+               "Line 19: IF command malformed",
+               "Line 20: CYCLE command has invalid param `0`",
+               "Line 21: CYCLE command has invalid param `false`"],
               program} == ProgramValidator.validate(program, admin)
     end
   end

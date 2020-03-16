@@ -69,6 +69,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
   end
 
+  defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) when is_integer(wait_cycles) do
+    if wait_cycles > 0 do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: CYCLE command has invalid param `#{wait_cycles}`" | errors], user)
+    end
+  end
+  defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: CYCLE command has invalid param `#{wait_cycles}`" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
     if @valid_facings |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)

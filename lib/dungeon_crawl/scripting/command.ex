@@ -29,6 +29,7 @@ defmodule DungeonCrawl.Scripting.Command do
     case name do
       :become       -> :become
       :change_state -> :change_state
+      :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
       :facing       -> :facing
@@ -163,6 +164,29 @@ defmodule DungeonCrawl.Scripting.Command do
       {direction, retry_until_successful} ->
         next_actions = %{pc: program.pc - 1, lc: program.lc + 1, invalid_move_handler: &_invalid_compound_command/2}
         _move(runner_state, direction, retry_until_successful, next_actions)
+    end
+  end
+
+  @doc """
+  Sets the cycle speed of the object. The cycle speed is how quickly the object moves.
+  It defaults to 5 (about one move every 5 ticks, where a tick is ~100ms currently).
+  The lower the number the faster. Lowest it can be set is 1.
+  The underlying state value `wait_cycles` can also be directly set via the state
+  shorthand `@`. Extra care will be needed to make sure the parameter and changes
+  are valid.
+
+  ## Examples
+
+    iex> Command.cycle(%Runner{}, [1])
+    %Runner{program: program,
+      object: %{ object | state: "cycle: 1"},
+      state: updated_state }
+  """
+  def cycle(runner_state, [wait_cycles]) do
+    if wait_cycles < 1 do
+      runner_state
+    else
+      change_state(runner_state, [:wait_cycles, "=", wait_cycles])
     end
   end
 
@@ -323,8 +347,8 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.move(%Runner{program: %Program{}, object: object, state: state}, ["n", true])
     %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
   """
-  def move(%Runner{program: program} = runner_state, ["idle", _]) do
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5 } }
+  def move(%Runner{program: program, object: object} = runner_state, ["idle", _]) do
+    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: object.parsed_state[:wait_cycles] || 5 } }
   end
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
@@ -338,11 +362,11 @@ defmodule DungeonCrawl.Scripting.Command do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _move(new_runner_state, player_direction, retryable, next_actions)
   end
-  defp _move(%Runner{program: program} = runner_state, "idle", _retryable, next_actions) do
+  defp _move(%Runner{program: program, object: object} = runner_state, "idle", _retryable, next_actions) do
     %Runner{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
-                                                 wait_cycles: 5 }}
+                                                 wait_cycles: object.parsed_state[:wait_cycles] || 5 }}
   end
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
@@ -362,7 +386,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                                              lc: next_actions.lc,
                                                              broadcasts: [message | program.broadcasts],
                                                              status: :wait,
-                                                             wait_cycles: 5 },
+                                                             wait_cycles: object.parsed_state[:wait_cycles] || 5 },
                                         object: new_location,
                                         state: new_state}
         if direction != "idle" do
@@ -382,25 +406,27 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _get_real_direction(_object, direction), do: direction
 
-  defp _invalid_compound_command(%Runner{program: program} = runner_state, retryable) do
+  defp _invalid_compound_command(%Runner{program: program, object: object} = runner_state, retryable) do
+    wait_cycles = object.parsed_state[:wait_cycles] || 5
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
-  defp _invalid_simple_command(%Runner{program: program} = runner_state, retryable) do
+  defp _invalid_simple_command(%Runner{program: program, object: object} = runner_state, retryable) do
+    wait_cycles = object.parsed_state[:wait_cycles] || 5
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
     end
   end
 

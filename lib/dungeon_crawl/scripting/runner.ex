@@ -25,6 +25,7 @@ require Logger
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]
+# Logging is expensive, comment/remove later
 Logger.info "Running:"
 Logger.info inspect command
 Logger.info inspect params

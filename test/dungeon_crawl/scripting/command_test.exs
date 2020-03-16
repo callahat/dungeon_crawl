@@ -26,11 +26,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(" BECOME  ") == :become
     assert Command.get_command(:become) == :become
     assert Command.get_command(:change_state) == :change_state
+    assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
+    assert Command.get_command(:go) == :go
     assert Command.get_command(:if) == :jump_if
+    assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
     assert Command.get_command(:text) == :text
+    assert Command.get_command(:try) == :try
+    assert Command.get_command(:walk) == :walk
 
     refute Command.get_command(:fake_not_real)
   end
@@ -77,6 +82,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "add: 8, one: 432"
     %Runner{object: updated_map_tile, state: _state} = Command.change_state(%Runner{program: program, object: map_tile, state: state}, [:new, "+=", 1])
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
+  end
+
+  test "CYCLE" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+
+    %Runner{object: map_tile, state: state} = Command.cycle(%Runner{program: program, object: map_tile, state: state}, [3])
+    assert map_tile == Instances.get_map_tile(state, map_tile)
+    assert map_tile.state == "wait_cycles: 3"
+    %Runner{object: map_tile, state: state} = Command.cycle(%Runner{program: program, object: map_tile, state: state}, [-2])
+    assert map_tile == Instances.get_map_tile(state, map_tile)
+    assert map_tile.state == "wait_cycles: 3"
+    %Runner{object: map_tile, state: state} = Command.cycle(%Runner{program: program, object: map_tile, state: state}, [1])
+    assert map_tile == Instances.get_map_tile(state, map_tile)
+    assert map_tile.state == "wait_cycles: 1"
   end
 
   test "COMPOUND_MOVE" do
@@ -272,6 +292,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful (but its a try and move that does not keep trying)
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down"])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [],
+             pc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+
+    # Unsuccessful - uses the wait cycles from the state
     %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down"])
     assert %{status: :wait,
              wait_cycles: 5,
