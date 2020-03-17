@@ -35,10 +35,12 @@ defmodule DungeonCrawl.Scripting.Command do
       :facing       -> :facing
       :go           -> :go
       :if           -> :jump_if
+      :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
       :text         -> :text
       :try          -> :try
+      :unlock       -> :unlock
       :walk         -> :walk
 
       _ -> nil
@@ -325,6 +327,22 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Locks the object. This will prevent it from receiving and acting on any
+  message/event until it is unlocked. The underlying state value `locked`
+  can also be directly set via the state shorthand `@`.
+
+  ## Examples
+
+    iex> Command.lock(%Runner{}, [])
+    %Runner{program: program,
+      object: %{ object | state: "locked: true"},
+      state: updated_state }
+  """
+  def lock(runner_state, _) do
+    change_state(runner_state, [:locked, "=", true])
+  end
+
+  @doc """
   Moves the associated map tile/object based in the direction given by the first parameter.
   If the second parameter is `true` then the command will retry until the object is able
   to complete the move (unless the program also responds to THUD). When `false` (or not present)
@@ -475,6 +493,22 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def try(runner_state, [direction]) do
     move(runner_state, [direction, false])
+  end
+
+  @doc """
+  Locks the object. This will prevent it from receiving and acting on any
+  message/event until it is unlocked. The underlying state value `locked`
+  can also be directly set via the state shorthand `@`.
+
+  ## Examples
+
+    iex> Command.unlock(%Runner{}, [])
+    %Runner{program: program,
+      object: %{ object | state: "locked: false"},
+      state: updated_state }
+  """
+  def unlock(runner_state, _) do
+    change_state(runner_state, [:locked, "=", false])
   end
 
   @doc """

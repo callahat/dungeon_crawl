@@ -21,4 +21,26 @@ defmodule DungeonCrawl.TileState do
   end
   def _get_int(value, _) when is_integer(value), do: value
   def _get_int(_, default), do: default
+
+  @doc """
+  Gets a boolean from the state element matching the given key. If the key does not
+  exist false is returned. If the key is not false or nil, true is returned.
+
+  ## Examples
+
+    ie> TileState.get_bool(%{parsed_state: %{locked: true}}, :locked)
+    true
+
+    ie> TileState.get_bool(%{parsed_state: %{locked: nil}}, :locked)
+    false
+
+    ie> TileState.get_bool(%{parsed_state: %{locked: yup}}, :locked)
+    true
+
+    ie> TileState.get_bool(%{parsed_state: %{}}, :locked)
+    false
+  """
+  def get_bool(object, key) do
+    !!object.parsed_state[key]
+  end
 end

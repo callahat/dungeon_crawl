@@ -31,10 +31,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
     assert Command.get_command(:go) == :go
     assert Command.get_command(:if) == :jump_if
+    assert Command.get_command(:lock) == :lock
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
     assert Command.get_command(:text) == :text
     assert Command.get_command(:try) == :try
+    assert Command.get_command(:unlock) == :unlock
     assert Command.get_command(:walk) == :walk
 
     refute Command.get_command(:fake_not_real)
@@ -269,6 +271,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.pc == 1
   end
 
+  test "LOCK" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+
+    %Runner{object: map_tile, state: state} = Command.lock(%Runner{program: program, object: map_tile, state: state}, [])
+    assert map_tile == Instances.get_map_tile(state, map_tile)
+    assert map_tile.state == "locked: true"
+    assert map_tile.parsed_state == %{locked: true}
+  end
+
   test "MOVE with one param" do
     {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
@@ -440,6 +452,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Unsuccessful
     assert Command.try(%Runner{object: mover, state: state}, ["down"]) == Command.move(%Runner{object: mover, state: state}, ["down", false])
+  end
+
+  test "UNLOCK" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+
+    %Runner{object: map_tile, state: state} = Command.unlock(%Runner{program: program, object: map_tile, state: state}, [])
+    assert map_tile == Instances.get_map_tile(state, map_tile)
+    assert map_tile.state == "locked: false"
+    assert map_tile.parsed_state == %{locked: false}
   end
 
   test "WALK" do

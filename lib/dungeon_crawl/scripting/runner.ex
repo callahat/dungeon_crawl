@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.TileState
 
   defstruct program: %Program{}, object: %{}, state: %Instances{}, event_sender: nil
 
@@ -11,9 +12,10 @@ require Logger
   Run the program one cycle. Returns the next state of the program.
   One cycle being until it hits a stop or wait condition.
   """
-  def run(runner_state = %Runner{program: program}, label) do
-    with next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
-         program = %{program | pc: next_pc, lc: 0, status: :alive} do
+  def run(%Runner{program: program, object: object} = runner_state, label) do
+    with false <- TileState.get_bool(object, :locked),
+         next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
+         program <- %{program | pc: next_pc, lc: 0, status: :alive} do
       run(%Runner{ runner_state | program: program})
     else
       _ ->
