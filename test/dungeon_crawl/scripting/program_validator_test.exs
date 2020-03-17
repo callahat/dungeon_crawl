@@ -8,7 +8,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     """
     #END
     :TOUCH
-    #BECOME color: red
+    #BECOME color: red, character: 9
     You touched it
     #IF @thing, MORE
     #END
@@ -47,6 +47,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
   end
 
   describe "validate" do
+    test "special keywords value cast is overridden" do
+      {:ok, program} = Parser.parse("#BECOME character: 3")
+      assert {:ok, program} == ProgramValidator.validate(program, nil)
+    end
+
     test "program has no commands with bad parameters" do
       {:ok, program} = Parser.parse(nil)
       assert {:ok, program} == ProgramValidator.validate(program, nil)

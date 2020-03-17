@@ -33,7 +33,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   ## Examples
 
     iex> Parser.parse(~s/#become character: 4/)
-    {:ok, %Program{broadcasts: [], instructions: %{1 => [:become, [%{character: 4}]]}, labels: %{}, locked: false, pc: 1, responses: [], status: :alive}}
+    {:ok, %Program{broadcasts: [], instructions: %{1 => [:become, [%{character: "4"}]]}, labels: %{}, locked: false, pc: 1, responses: [], status: :alive}}
 
     iex> Parser.parse(~s/#fakecommand/)
     {:error, "Unknown command: `fakecommand`", %Program{}}
@@ -213,7 +213,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _parse_kwarg_params(param) do
     param
     |> _split_kwarg_pairs()
-    |> Enum.reduce(%{}, fn([key,val], acc) -> Map.put(acc, _format_keyword(key), _cast_param(val)) end)
+    |> Enum.reduce(%{}, fn([key,val], acc) -> keyword = _format_keyword(key); Map.put(acc, keyword, _cast_kparam(val, keyword)) end)
   end
 
   def _split_kwarg_pairs(params, pairs \\ [])
@@ -234,6 +234,10 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _format_keyword(key) do
     key |> String.downcase() |> String.to_atom()
   end
+
+  # Special keywords have an expected format; ie character will be used in become
+  defp _cast_kparam(param, :character), do: param
+  defp _cast_kparam(param, _keyword), do: _cast_param(param)
 
   defp _cast_param(param) do
     cond do
