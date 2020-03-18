@@ -43,6 +43,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #IF bio = tho
     #CYCLE 0
     #CYCLE false
+    #ZAP TOUCH
+    #ZAP THUD
+    #RESTORE TOUCH
+    #RESTORE THUD
     """
   end
 
@@ -80,7 +84,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 18: FACING command references invalid direction `inward`",
                "Line 19: IF command malformed",
                "Line 20: CYCLE command has invalid param `0`",
-               "Line 21: CYCLE command has invalid param `false`"],
+               "Line 21: CYCLE command has invalid param `false`",
+               "Line 23: ZAP command references nonexistant label `THUD`",
+               "Line 25: RESTORE command references nonexistant label `THUD`"
+              ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
@@ -93,7 +100,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 18: FACING command references invalid direction `inward`",
                "Line 19: IF command malformed",
                "Line 20: CYCLE command has invalid param `0`",
-               "Line 21: CYCLE command has invalid param `false`"],
+               "Line 21: CYCLE command has invalid param `false`",
+               "Line 23: ZAP command references nonexistant label `THUD`",
+               "Line 25: RESTORE command references nonexistant label `THUD`"
+              ],
               program} == ProgramValidator.validate(program, admin)
     end
   end

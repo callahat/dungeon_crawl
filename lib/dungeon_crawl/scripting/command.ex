@@ -38,10 +38,12 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :restore      -> :restore
       :text         -> :text
       :try          -> :try
       :unlock       -> :unlock
       :walk         -> :walk
+      :zap          -> :zap
 
       _ -> nil
     end
@@ -461,6 +463,34 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Restores a disabled ('zapped') label. This will allow it to be used when an event
+  is sent to the object/program. Nothing is done if all labels that match the given one
+  are active. Reactivates labels prioritizing the one closer to the end of the script.
+
+  ## Examples
+
+    iex> Command.restore(%Runner{}, ["thud"])
+    %Runner{}
+  """
+  def restore(%Runner{program: program} = runner_state, [label]) do
+    with normalized_label <- String.downcase(label),
+         labels when not is_nil(labels) <- program.labels[normalized_label] do
+      restored = labels
+                 |> Enum.reverse()
+                 |> _label_toggle(false)
+                 |> Enum.reverse()
+      if restored == labels do
+        runner_state
+      else
+        updated_program = %{ program | labels: Map.put(program.labels, normalized_label, restored)}
+        %{ runner_state | program: updated_program }
+      end
+    else
+      _ -> runner_state
+    end
+  end
+
+  @doc """
   Adds text to the responses for showing to a player in particular (ie, one who TOUCHed the object).
 
   ## Examples
@@ -546,6 +576,41 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       _ ->
       _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", nil]))
+    end
+  end
+
+  @doc """
+  Disables a label. This will prevent the label from being used to change the pc when
+  the program/object recieves an event. Nothing is done if all labels that match the
+  given one are inactive. Disables labels prioritizing the one closer to the top of the script.
+
+  ## Examples
+
+    iex> Command.zap(%Runner{}, ["thud"])
+    %Runner{}
+  """
+  def zap(%Runner{program: program} = runner_state, [label]) do
+    with normalized_label <- String.downcase(label),
+         labels when not is_nil(labels) <- program.labels[normalized_label] do
+      zapped = labels
+               |> _label_toggle(true)
+      if zapped == labels do
+        runner_state
+      else
+        updated_program = %{ program | labels: Map.put(program.labels, normalized_label, zapped)}
+        %{ runner_state | program: updated_program }
+      end
+    else
+      _ -> runner_state
+    end
+  end
+
+  defp _label_toggle([], _), do: []
+  defp _label_toggle([ [line_number, active] | labels ], toggle_value) do
+    if active == toggle_value do
+      [ [line_number, !active] | labels]
+    else
+      [ [line_number, active] | _label_toggle(labels, toggle_value)]
     end
   end
 end

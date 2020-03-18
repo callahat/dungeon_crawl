@@ -119,11 +119,27 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:restore, [label] ]} | instructions], errors, user) do
+    if program.labels[String.downcase(label)] do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: RESTORE command references nonexistant label `#{label}`" | errors], user)
+    end
+  end
+
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: TRY command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [:zap, [label] ]} | instructions], errors, user) do
+    if program.labels[String.downcase(label)] do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: ZAP command references nonexistant label `#{label}`" | errors], user)
     end
   end
 

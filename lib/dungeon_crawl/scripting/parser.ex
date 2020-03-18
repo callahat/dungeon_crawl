@@ -142,7 +142,7 @@ defmodule DungeonCrawl.Scripting.Parser do
     downcased_line = String.downcase(String.trim(line))
     with %{"label" => label} <- Regex.named_captures(~r/\A(?<label>[a-z\d_]+)\z/i, downcased_line),
          line_number <- Enum.count(program.instructions) + 1,
-         existing_labels <- Program.line_for(program, label) || [],
+         existing_labels <- program.labels[label] || [],
          updated_labels <- existing_labels ++ [[line_number, true]] do
       # No need to add the label; its a noop anyway
       {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:noop, line]), 

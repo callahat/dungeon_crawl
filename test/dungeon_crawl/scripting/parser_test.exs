@@ -45,6 +45,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #WALK north
                #FACING clockwise
                #CYCLE 2
+               #ZAP touch
+               #RESTORE touch
+               :TOUCH
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -65,11 +68,14 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  16 => [:try, ["south"]],
                                                  17 => [:walk, ["north"]],
                                                  18 => [:facing, ["clockwise"]],
-                                                 19 => [:cycle, [2]]
+                                                 19 => [:cycle, [2]],
+                                                 20 => [:zap, ["touch"]],
+                                                 21 => [:restore, ["touch"]],
+                                                 22 => [:noop, "TOUCH"]
                                                  },
                                  status: :alive,
                                  pc: 1,
-                                 labels: %{"already_open" => [[7, true]], "touch" => [[2, true]]},
+                                 labels: %{"already_open" => [[7, true]], "touch" => [[2, true],[22,true]]},
                                  locked: false,
                                  broadcasts: [],
                                  responses: []}

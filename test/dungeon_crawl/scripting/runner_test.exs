@@ -34,6 +34,23 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       assert run_program.responses == ["After label"]
     end
 
+    test "when given a label but the label is inactive it does not executes from that" do
+      script = """
+               B4 label
+               :HERE
+               After label
+               :HERE
+               After Active label
+               """
+      {:ok, program} = Parser.parse(script)
+      stubbed_object = %{state: "", parsed_state: %{}}
+
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | labels: %{"here" => [[2,false], [4,true]]}, status: :idle},
+                                                                              object: stubbed_object},
+                                                 "Here")
+      assert run_program.responses == ["After Active label"]
+    end
+
     test "when given a label but the program is locked it does not change the pc to the label" do
       script = """
                B4 label

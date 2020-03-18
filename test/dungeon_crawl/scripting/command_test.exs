@@ -37,7 +37,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:text) == :text
     assert Command.get_command(:try) == :try
     assert Command.get_command(:unlock) == :unlock
+    assert Command.get_command(:restore) == :restore
     assert Command.get_command(:walk) == :walk
+    assert Command.get_command(:zap) == :zap
 
     refute Command.get_command(:fake_not_real)
   end
@@ -432,6 +434,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.noop(runner_state)
   end
 
+  test "RESTORE" do
+    program = %Program{ labels: %{"thud" => [[1, false], [5, false], [9, true]]} }
+
+    runner_state = Command.restore(%Runner{program: program}, ["thud"])
+    assert %{"thud" => [[1,false], [5,true], [9,true]]} == runner_state.program.labels
+
+    runner_state = Command.restore(%{ runner_state | program: runner_state.program}, ["thud"])
+    assert %{"thud" => [[1,true], [5,true], [9,true]]} == runner_state.program.labels
+
+    assert runner_state == Command.restore(runner_state, ["thud"])
+    assert runner_state == Command.restore(runner_state, ["derp"])
+  end
+
   test "text" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
@@ -489,5 +504,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
 
     assert Command.walk(%Runner{object: mover, state: state}, ["continue"]) == expected_runner_state
+  end
+
+  test "ZAP" do
+    program = %Program{ labels: %{"thud" => [[1, true], [5, true]]} }
+
+    runner_state = Command.zap(%Runner{program: program}, ["thud"])
+    assert %{"thud" => [[1,false],[5,true]]} == runner_state.program.labels
+
+    runner_state = Command.zap(%{ runner_state | program: runner_state.program}, ["thud"])
+    assert %{"thud" => [[1,false],[5,false]]} == runner_state.program.labels
+
+    assert runner_state == Command.zap(runner_state, ["thud"])
+    assert runner_state == Command.zap(runner_state, ["derp"])
   end
 end
