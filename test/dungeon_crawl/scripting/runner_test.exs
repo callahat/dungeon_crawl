@@ -34,6 +34,28 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       assert run_program.responses == ["After label"]
     end
 
+    test "when there are messages in the queue" do
+      script = """
+               B4 label
+               :HERE
+               After label
+               #END
+               :THERE
+               Last text
+               """
+      {:ok, program} = Parser.parse(script)
+      stubbed_object = %{state: "", parsed_state: %{}}
+
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object: stubbed_object})
+      assert run_program.responses == ["Last text"]
+      assert run_program.message == {}
+
+      # A label passed in overrides the existing message
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object: stubbed_object}, "here")
+      assert run_program.responses == ["After label"]
+      assert run_program.message == {}
+    end
+
     test "when given a label but the label is inactive it does not executes from that" do
       script = """
                B4 label

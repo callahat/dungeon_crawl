@@ -20,4 +20,12 @@ defmodule DungeonCrawl.Scripting.ProgramTest do
       {:ok, program} = Parser.parse("")
       refute Program.line_for(program, "touch")
   end
+
+  test "send_message/2" do
+    program = Program.send_message(%Program{}, "touch", 1234)
+    assert {"touch", 1234} == program.message
+
+    program = Program.send_message(program, "panic")
+    assert {"touch", 1234} == program.message
+  end
 end
