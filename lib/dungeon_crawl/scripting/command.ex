@@ -39,6 +39,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :move         -> :move
       :noop         -> :noop
       :restore      -> :restore
+      :send         -> :send_message
       :text         -> :text
       :try          -> :try
       :unlock       -> :unlock
@@ -488,6 +489,71 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       _ -> runner_state
     end
+  end
+
+  @doc """
+  Sends a message. A message can be sent to the current running program, or to another program.
+  The first parameter is the message to send, and the second (optional) param is the target.
+  Both the label and the name are case insensitive.
+
+  Valid targets are:
+
+  `all` - all running programs, including this one
+  `others` - all other progograms
+  a direction - ie, north, south east, west
+  the name of a tile
+
+  The target will be resolved in the above order. A tile that shares one of the reserved words
+  (ie, all, other, north, south, east, west, self, etc) as its name will not necessarily be resolved
+  as the target. Naming a tile `north` and sending a message with `north` as the target will send
+  it to the tile north of the program's tile, not to tiles named `north`.
+  """
+  def send_message(%Runner{} = runner_state, [label]), do: _send_message(runner_state, [label, "self"])
+  def send_message(%Runner{} = runner_state, [label, target]) do
+    _send_message(runner_state, [label, String.downcase(target)])
+  end
+  def _send_message(%Runner{state: state, object: object} = runner_state, [label, "self"]) do
+    %{ runner_state | state: %{ state | program_messages: [ {object.id, label} | state.program_messages] } }
+  end
+  def _send_message(%Runner{object: object} = runner_state, [label, "others"]) do
+    _send_message_id_filter(runner_state, label, fn object_id -> object_id != object.id end)
+  end
+  def _send_message(%Runner{} = runner_state, [label, "all"]) do
+    _send_message_id_filter(runner_state, label, fn _object_id -> true end)
+  end
+  def _send_message(%Runner{state: state} = runner_state, [label, target]) do
+    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      _send_message_in_direction(runner_state, label, target)
+    else
+     # TODO: implement this by NAME
+      map_tile_ids = state.map_by_ids
+                     |> Map.to_list
+                     |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
+                     |> Enum.map(fn {id, _tile} -> id end)
+      _send_message_via_ids(runner_state, label, map_tile_ids)
+    end
+  end
+
+  def _send_message_in_direction(%Runner{state: state, object: object} = runner_state, label, direction) do
+    map_tile_ids = Instances.get_map_tiles(state, object, direction)
+                   |> Enum.map(&(&1.id))
+    _send_message_via_ids(runner_state, label, map_tile_ids)
+  end
+
+  def _send_message_id_filter(%Runner{state: state} = runner_state, label, filter) do
+    program_object_ids = state.program_contexts
+                         |> Map.keys()
+                         |> Enum.filter(&filter.(&1))
+    _send_message_via_ids(runner_state, label, program_object_ids)
+  end
+
+  def _send_message_via_ids(runner_state, _label, []), do: runner_state
+  def _send_message_via_ids(%Runner{state: state} = runner_state, label, [po_id | program_object_ids]) do
+    _send_message_via_ids(
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label} | state.program_messages] } },
+      label,
+      program_object_ids
+    )
   end
 
   @doc """

@@ -139,7 +139,8 @@ let DungeonEditor = {
             background_color: (document.getElementById("tile_template_background_color").value || ""),
             tile_name: (document.getElementById("tile_template_name").value || ""),
             state: (document.getElementById("tile_template_state").value || ""),
-            script: (document.getElementById("tile_template_script").value || "")
+            script: (document.getElementById("tile_template_script").value || ""),
+            name: (document.getElementById("tile_template_name").value || "")
           },
           map_location_td = document.getElementById(map_tile_attrs.row + "_" + map_tile_attrs.col),
           map_location = this.findOrCreateActiveTileDiv(map_location_td),

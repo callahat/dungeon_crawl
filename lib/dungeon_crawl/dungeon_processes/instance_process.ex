@@ -7,10 +7,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.Scripting.Program
 
   ## Client API
 
-  @timeout 100
+  @timeout 50
   @db_update_timeout 5000
 
   @doc """
@@ -200,10 +201,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_info(:perform_actions, %Instances{program_contexts: program_contexts} = state) do
-    {updated_program_contexts, state} = _cycle_programs(program_contexts, state)
+#    start_ms = :os.system_time(:millisecond)
+    {program_contexts, state} = _cycle_programs(program_contexts, state)
+#    Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
+
     Process.send_after(self(), :perform_actions, @timeout)
 
-    {:noreply, %Instances{ state | program_contexts: updated_program_contexts}}
+    {:noreply, %Instances{ state | program_contexts: program_contexts}}
   end
 
   @impl true
@@ -245,7 +249,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                                 |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
                                 |> _cycle_programs(state)
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
-    {program_contexts, state}
+    _message_programs(program_contexts, state)
   end
 
   defp _cycle_programs([], state), do: {[], state}
@@ -260,6 +264,22 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       { other_program_contexts, updated_state}
     else
       {[ [line, Map.take(runner_state, [:program, :object, :event_sender])] | other_program_contexts ], updated_state}
+    end
+  end
+
+  defp _message_programs(program_contexts, state) when is_map(program_contexts) do
+    program_contexts = state.program_messages
+                       |> _message_programs(program_contexts)
+    { program_contexts, %{state | program_messages: []} }
+  end
+  defp _message_programs([], program_contexts), do: program_contexts
+  defp _message_programs([ {po_id, label} | messages], program_contexts) do
+    program_context = program_contexts[po_id]
+    if program_context && program_context.program.message == {} do
+      program = program_context.program
+      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label)}})
+    else
+      _message_programs(messages, program_contexts)
     end
   end
 end

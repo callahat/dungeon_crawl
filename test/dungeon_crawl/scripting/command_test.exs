@@ -447,6 +447,67 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.restore(runner_state, ["derp"])
   end
 
+  test "SEND message to self" do
+    program = program_fixture()
+    stubbed_object = %{id: 1337}
+
+    %Runner{state: state} = Command.send_message(%Runner{program: program, object: stubbed_object}, ["touch"])
+    assert state.program_messages == [{1337, "touch"}]
+
+    # program_messages has more recent messages at the front of the list
+    %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object: stubbed_object}, ["tap", "self"])
+    assert state.program_messages == [{1337, "tap"}, {1337, "touch"}]
+  end
+
+  test "SEND message to others" do
+    program = program_fixture()
+    stubbed_object = %{id: 1337}
+    state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}}
+
+    %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object: stubbed_object}, ["tap", "others"])
+    assert state.program_messages == [{9001, "tap"}, {55, "tap"}, {1, "tap"}]
+  end
+
+  test "SEND message to all" do
+    program = program_fixture()
+    stubbed_object = %{id: 1337}
+    state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}}
+
+    %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object: stubbed_object}, ["dance", "all"])
+    assert state.program_messages == [{9001, "dance"}, {1337, "dance"}, {55, "dance"}, {1, "dance"}]
+  end
+
+  test "SEND message to tiles in a direction" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0})
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", "north"])
+    assert updated_state.program_messages == [{123, "touch"}, {255, "touch"}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", "south"])
+    assert updated_state.program_messages == [{999, "touch"}]
+  end
+
+  test "SEND message to tiles by name" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["name", "a"])
+    assert updated_state.program_messages == [{255, "name"}, {123, "name"}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["name", "C"])
+    assert updated_state.program_messages == [{999, "name"}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["name", "noname"])
+    assert updated_state.program_messages == []
+  end
+
   test "text" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}

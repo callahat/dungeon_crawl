@@ -223,7 +223,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _new_tile_copy(dmt, dungeon_id) do
-    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script])
+    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script, :name])
     |> Elixir.Map.put(:dungeon_id, dungeon_id)
   end
 
@@ -255,6 +255,7 @@ defmodule DungeonCrawl.Dungeon do
     dungeon_generator.generate(dungeon.height, dungeon.width)
     |> Enum.to_list
     |> Enum.map(fn({{row,col}, tile}) -> %{dungeon_id: dungeon.id,
+                                           name: tile_mapping[tile].name,
                                            row: row,
                                            col: col,
                                            tile_template_id: tile_mapping[tile].id,
@@ -306,6 +307,7 @@ defmodule DungeonCrawl.Dungeon do
     # Empty fill second
     new_dmts = _dim_list_difference(map, updated_map)
                |> Enum.map(fn({row,col}) -> %{dungeon_id: updated_map.id,
+                                              name: "",
                                               row: row,
                                               col: col,
                                               tile_template_id: empty_tile_template.id,

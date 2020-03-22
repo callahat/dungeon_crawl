@@ -105,7 +105,8 @@ defmodule DungeonCrawlWeb.DungeonController do
                                              color: tu["color"] || tt.color,
                                              background_color: tu["background_color"] || tt.background_color,
                                              state: tu["state"] || tt.state,
-                                             script: tu["script"] || tt.script
+                                             script: tu["script"] || tt.script,
+                                             name: tu["name"] || tt.name
                                             })
            end)
 
@@ -133,7 +134,8 @@ defmodule DungeonCrawlWeb.DungeonController do
                                         color: ta["color"] || tt.color,
                                         background_color: ta["background_color"] || tt.background_color,
                                         state: ta["state"] || tt.state,
-                                        script: ta["script"] || tt.script
+                                        script: ta["script"] || tt.script,
+                                        name: ta["name"] || tt.name
                                       })
            end)
 

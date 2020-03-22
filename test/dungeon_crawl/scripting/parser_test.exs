@@ -48,6 +48,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #ZAP touch
                #RESTORE touch
                :TOUCH
+               #SEND do_something, others
+               #SEND already_open
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -71,7 +73,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  19 => [:cycle, [2]],
                                                  20 => [:zap, ["touch"]],
                                                  21 => [:restore, ["touch"]],
-                                                 22 => [:noop, "TOUCH"]
+                                                 22 => [:noop, "TOUCH"],
+                                                 23 => [:send_message, ["do_something", "others"]],
+                                                 24 => [:send_message, ["already_open"]]
                                                  },
                                  status: :alive,
                                  pc: 1,

@@ -4,7 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile

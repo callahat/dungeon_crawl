@@ -104,9 +104,10 @@ defmodule DungeonCrawlWeb.SharedView do
     "data-color='#{mt.color}' " <>
     "data-background-color='#{mt.background_color}' " <>
     "data-tile-template-id='#{mt.tile_template_id}' " <>
-    "data-character='#{mt.character}' " <>
+    "data-character=\"#{mt.character}\" " <>
     "data-state='#{mt.state}' " <>
-    "data-script='#{mt.script}'"
+    "data-script='#{mt.script}' " <>
+    "data-name='#{mt.name}'"
   end
 
   def tile_and_style(nil, :safe), do: {:safe, "<div> </div>"}
