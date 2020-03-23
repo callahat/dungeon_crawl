@@ -452,11 +452,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     stubbed_object = %{id: 1337}
 
     %Runner{state: state} = Command.send_message(%Runner{program: program, object: stubbed_object}, ["touch"])
-    assert state.program_messages == [{1337, "touch"}]
+    assert state.program_messages == [{1337, "touch", nil}]
 
     # program_messages has more recent messages at the front of the list
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object: stubbed_object}, ["tap", "self"])
-    assert state.program_messages == [{1337, "tap"}, {1337, "touch"}]
+    assert state.program_messages == [{1337, "tap", nil}, {1337, "touch", nil}]
   end
 
   test "SEND message to others" do
@@ -465,7 +465,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}}
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object: stubbed_object}, ["tap", "others"])
-    assert state.program_messages == [{9001, "tap"}, {55, "tap"}, {1, "tap"}]
+    assert state.program_messages == [{9001, "tap", nil}, {55, "tap", nil}, {1, "tap", nil}]
   end
 
   test "SEND message to all" do
@@ -474,7 +474,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}}
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object: stubbed_object}, ["dance", "all"])
-    assert state.program_messages == [{9001, "dance"}, {1337, "dance"}, {55, "dance"}, {1, "dance"}]
+    assert state.program_messages == [{9001, "dance", nil}, {1337, "dance", nil}, {55, "dance", nil}, {1, "dance", nil}]
   end
 
   test "SEND message to tiles in a direction" do
@@ -485,10 +485,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0})
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", "north"])
-    assert updated_state.program_messages == [{123, "touch"}, {255, "touch"}]
+    assert updated_state.program_messages == [{123, "touch", nil}, {255, "touch", nil}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", "south"])
-    assert updated_state.program_messages == [{999, "touch"}]
+    assert updated_state.program_messages == [{999, "touch", nil}]
   end
 
   test "SEND message to tiles by name" do
@@ -499,10 +499,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["name", "a"])
-    assert updated_state.program_messages == [{255, "name"}, {123, "name"}]
+    assert updated_state.program_messages == [{255, "name", nil}, {123, "name", nil}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["name", "C"])
-    assert updated_state.program_messages == [{999, "name"}]
+    assert updated_state.program_messages == [{999, "name", nil}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["name", "noname"])
     assert updated_state.program_messages == []

@@ -513,7 +513,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _send_message(runner_state, [label, String.downcase(target)])
   end
   def _send_message(%Runner{state: state, object: object} = runner_state, [label, "self"]) do
-    %{ runner_state | state: %{ state | program_messages: [ {object.id, label} | state.program_messages] } }
+    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, nil} | state.program_messages] } }
   end
   def _send_message(%Runner{object: object} = runner_state, [label, "others"]) do
     _send_message_id_filter(runner_state, label, fn object_id -> object_id != object.id end)
@@ -550,7 +550,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def _send_message_via_ids(runner_state, _label, []), do: runner_state
   def _send_message_via_ids(%Runner{state: state} = runner_state, label, [po_id | program_object_ids]) do
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label} | state.program_messages] } },
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, nil} | state.program_messages] } },
       label,
       program_object_ids
     )

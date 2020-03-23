@@ -293,6 +293,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
     _handle_broadcasts(messages, player_location)
   end
+  # If this should be implemented, this is what broadcasting to a "program" method would look like.
+  # Could also just use an id that is assumed to be the linked map tile for the program. Since this
+  # is used to figure out what channel to send text, programs wouldnt really do anythign with it.
+#  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.DungeonInstances.MapTile{}), do: 'implement'
   defp _handle_broadcasts(_, _), do: nil
 
   @directions %{

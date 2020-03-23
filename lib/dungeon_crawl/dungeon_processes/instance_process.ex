@@ -200,14 +200,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_info(:perform_actions, %Instances{program_contexts: program_contexts} = state) do
+  def handle_info(:perform_actions, %Instances{} = state) do
 #    start_ms = :os.system_time(:millisecond)
-    {program_contexts, state} = _cycle_programs(program_contexts, state)
+    state = _cycle_programs(state)
 #    Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
 
     Process.send_after(self(), :perform_actions, @timeout)
 
-    {:noreply, %Instances{ state | program_contexts: program_contexts}}
+    {:noreply, state}
   end
 
   @impl true
@@ -244,12 +244,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
   #will be broadcast. Typically this will only be called by the scheduler.
   # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
-  defp _cycle_programs(program_contexts, state) when is_map(program_contexts) do
-    {program_contexts, state} = program_contexts
+  defp _cycle_programs(%Instances{} = state) do
+    {program_contexts, state} = state.program_contexts
                                 |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
                                 |> _cycle_programs(state)
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
-    _message_programs(program_contexts, state)
+    _message_programs(%{ state | program_contexts: program_contexts })
   end
 
   defp _cycle_programs([], state), do: {[], state}
@@ -267,17 +267,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
   end
 
-  defp _message_programs(program_contexts, state) when is_map(program_contexts) do
+  defp _message_programs(state) do
     program_contexts = state.program_messages
-                       |> _message_programs(program_contexts)
-    { program_contexts, %{state | program_messages: []} }
+                       |> _message_programs(state.program_contexts)
+    %{state | program_contexts: program_contexts, program_messages: []}
   end
   defp _message_programs([], program_contexts), do: program_contexts
-  defp _message_programs([ {po_id, label} | messages], program_contexts) do
+  defp _message_programs([ {po_id, label, sender} | messages], program_contexts) do
     program_context = program_contexts[po_id]
     if program_context && program_context.program.message == {} do
       program = program_context.program
-      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label)}})
+      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label),
+                                                                    event_sender: sender}})
     else
       _message_programs(messages, program_contexts)
     end
