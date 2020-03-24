@@ -115,8 +115,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
-        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white"},
-        %{id: 123, character: "O", row: 1, col: 4, z_index: 0, script: "#DIE"}
+        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "#DIE"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
@@ -147,6 +147,42 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 4}]}}
+  end
+
+  test "perform_actions adds messages to programs", %{instance_process: instance_process,
+                                                      map_instance: map_instance,
+                                                      map_tile_id: map_tile_id} do
+    dungeon_channel = "dungeons:#{map_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+
+    tt = insert_tile_template()
+
+    map_tiles = [
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
+        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: ""}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    %Instances{ program_contexts: program_contexts ,
+                program_messages: program_messages } = InstanceProcess.get_state(instance_process)
+    assert [] == program_messages # should be cleared after punting the messages to the actual progams
+
+    # The last map tile in this setup has no active program
+    expected = %{ map_tile_id => {"touch", nil},
+                  Enum.at(map_tiles,0).id => {"touch", nil},
+                  Enum.at(map_tiles,1).id => {"touch", nil} }
+
+    actual = program_contexts
+             |> Map.to_list
+             |> Enum.map(fn {id, context} -> {id, context.program.message} end)
+             |> Enum.into(%{})
+
+    assert actual == expected
   end
 
   test "write_db", %{instance_process: instance_process, map_instance: map_instance} do

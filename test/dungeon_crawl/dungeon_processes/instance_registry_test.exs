@@ -46,7 +46,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                                              instructions: %{1 => [:halt, [""]],
                                                                              2 => [:noop, "TOUCH"],
                                                                              3 => [:text, ["*PimPom*"]]},
-                                                             labels: %{"TOUCH" => [[2, true]]},
+                                                             labels: %{"touch" => [[2, true]]},
                                                              locked: false,
                                                              pc: 1,
                                                              responses: [],

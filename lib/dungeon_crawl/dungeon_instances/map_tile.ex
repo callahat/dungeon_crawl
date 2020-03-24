@@ -10,6 +10,8 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
     field :col, :integer
     field :z_index, :integer, default: 0
 
+    field :name, :string
+
     field :background_color, :string
     field :character, :string
     field :color, :string
@@ -25,7 +27,7 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
   @doc false
   def changeset(map_tile_instance, attrs) do
     map_tile_instance
-    |> cast(attrs, [:row, :col, :map_instance_id, :tile_template_id, :z_index, :character, :color, :background_color, :state, :script])
+    |> cast(attrs, [:row, :col, :map_instance_id, :tile_template_id, :z_index, :character, :color, :background_color, :state, :script, :name])
     |> validate_required([:row, :col, :map_instance_id, :z_index])
     |> TileTemplate.validate_renderables
   end

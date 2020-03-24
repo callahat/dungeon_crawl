@@ -29,16 +29,22 @@ defmodule DungeonCrawl.Scripting.Command do
     case name do
       :become       -> :become
       :change_state -> :change_state
+      :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
       :facing       -> :facing
       :go           -> :go
       :if           -> :jump_if
+      :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :restore      -> :restore
+      :send         -> :send_message
       :text         -> :text
       :try          -> :try
+      :unlock       -> :unlock
       :walk         -> :walk
+      :zap          -> :zap
 
       _ -> nil
     end
@@ -167,6 +173,29 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Sets the cycle speed of the object. The cycle speed is how quickly the object moves.
+  It defaults to 5 (about one move every 5 ticks, where a tick is ~100ms currently).
+  The lower the number the faster. Lowest it can be set is 1.
+  The underlying state value `wait_cycles` can also be directly set via the state
+  shorthand `@`. Extra care will be needed to make sure the parameter and changes
+  are valid.
+
+  ## Examples
+
+    iex> Command.cycle(%Runner{}, [1])
+    %Runner{program: program,
+      object: %{ object | state: "cycle: 1"},
+      state: updated_state }
+  """
+  def cycle(runner_state, [wait_cycles]) do
+    if wait_cycles < 1 do
+      runner_state
+    else
+      change_state(runner_state, [:wait_cycles, "=", wait_cycles])
+    end
+  end
+
+  @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance)
 
   ## Examples
@@ -227,7 +256,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def facing(%Runner{} = runner_state, ["player"]) do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
-    facing(new_runner_state, [player_direction])
+    _facing(new_runner_state, player_direction)
   end
   def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -242,7 +271,7 @@ defmodule DungeonCrawl.Scripting.Command do
                   "south" -> "west"
                   _       -> "idle"
                 end
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
   end
   def facing(%Runner{object: object} = runner_state, ["counterclockwise"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -257,7 +286,7 @@ defmodule DungeonCrawl.Scripting.Command do
                   "south" -> "east"
                   _       -> "idle"
                 end
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
   end
   def facing(%Runner{object: object} = runner_state, ["reverse"]) do
     {:ok, object_state} = TileState.Parser.parse(object.state)
@@ -272,10 +301,14 @@ defmodule DungeonCrawl.Scripting.Command do
                   "south" -> "north"
                   _       -> "idle"
                 end
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
   end
   def facing(runner_state, [direction]) do
-    change_state(runner_state, [:facing, "=", direction])
+    _facing(runner_state, direction)
+  end
+  def _facing(runner_state, direction) do
+    runner_state = change_state(runner_state, [:facing, "=", direction])
+    %Runner{ runner_state | program: %{runner_state.program | status: :wait, wait_cycles: 1 } }
   end
 
   @doc """
@@ -294,6 +327,22 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       _ -> runner_state
     end
+  end
+
+  @doc """
+  Locks the object. This will prevent it from receiving and acting on any
+  message/event until it is unlocked. The underlying state value `locked`
+  can also be directly set via the state shorthand `@`.
+
+  ## Examples
+
+    iex> Command.lock(%Runner{}, [])
+    %Runner{program: program,
+      object: %{ object | state: "locked: true"},
+      state: updated_state }
+  """
+  def lock(runner_state, _) do
+    change_state(runner_state, [:locked, "=", true])
   end
 
   @doc """
@@ -319,8 +368,8 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.move(%Runner{program: %Program{}, object: object, state: state}, ["n", true])
     %Runner{program: %{ program | status: :wait, wait_cycles: 5 }, object: %{object | row: object.row - 1}}
   """
-  def move(%Runner{program: program} = runner_state, ["idle", _]) do
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5 } }
+  def move(%Runner{program: program, object: object} = runner_state, ["idle", _]) do
+    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: TileState.get_int(object, :wait_cycles, 5) } }
   end
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
@@ -334,11 +383,11 @@ defmodule DungeonCrawl.Scripting.Command do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _move(new_runner_state, player_direction, retryable, next_actions)
   end
-  defp _move(%Runner{program: program} = runner_state, "idle", _retryable, next_actions) do
+  defp _move(%Runner{program: program, object: object} = runner_state, "idle", _retryable, next_actions) do
     %Runner{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
-                                                 wait_cycles: 5 }}
+                                                 wait_cycles: TileState.get_int(object, :wait_cycles, 5) }}
   end
   defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
@@ -358,7 +407,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                                              lc: next_actions.lc,
                                                              broadcasts: [message | program.broadcasts],
                                                              status: :wait,
-                                                             wait_cycles: 5 },
+                                                             wait_cycles: object.parsed_state[:wait_cycles] || 5 },
                                         object: new_location,
                                         state: new_state}
         if direction != "idle" do
@@ -378,25 +427,27 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _get_real_direction(_object, direction), do: direction
 
-  defp _invalid_compound_command(%Runner{program: program} = runner_state, retryable) do
+  defp _invalid_compound_command(%Runner{program: program, object: object} = runner_state, retryable) do
+    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
-  defp _invalid_simple_command(%Runner{program: program} = runner_state, retryable) do
+  defp _invalid_simple_command(%Runner{program: program, object: object} = runner_state, retryable) do
+    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: 5} }
+          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
@@ -410,6 +461,99 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
+  end
+
+  @doc """
+  Restores a disabled ('zapped') label. This will allow it to be used when an event
+  is sent to the object/program. Nothing is done if all labels that match the given one
+  are active. Reactivates labels prioritizing the one closer to the end of the script.
+
+  ## Examples
+
+    iex> Command.restore(%Runner{}, ["thud"])
+    %Runner{}
+  """
+  def restore(%Runner{program: program} = runner_state, [label]) do
+    with normalized_label <- String.downcase(label),
+         labels when not is_nil(labels) <- program.labels[normalized_label] do
+      restored = labels
+                 |> Enum.reverse()
+                 |> _label_toggle(false)
+                 |> Enum.reverse()
+      if restored == labels do
+        runner_state
+      else
+        updated_program = %{ program | labels: Map.put(program.labels, normalized_label, restored)}
+        %{ runner_state | program: updated_program }
+      end
+    else
+      _ -> runner_state
+    end
+  end
+
+  @doc """
+  Sends a message. A message can be sent to the current running program, or to another program.
+  The first parameter is the message to send, and the second (optional) param is the target.
+  Both the label and the name are case insensitive.
+
+  Valid targets are:
+
+  `all` - all running programs, including this one
+  `others` - all other progograms
+  a direction - ie, north, south east, west
+  the name of a tile
+
+  The target will be resolved in the above order. A tile that shares one of the reserved words
+  (ie, all, other, north, south, east, west, self, etc) as its name will not necessarily be resolved
+  as the target. Naming a tile `north` and sending a message with `north` as the target will send
+  it to the tile north of the program's tile, not to tiles named `north`.
+  """
+  def send_message(%Runner{} = runner_state, [label]), do: _send_message(runner_state, [label, "self"])
+  def send_message(%Runner{} = runner_state, [label, target]) do
+    _send_message(runner_state, [label, String.downcase(target)])
+  end
+  def _send_message(%Runner{state: state, object: object} = runner_state, [label, "self"]) do
+    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, nil} | state.program_messages] } }
+  end
+  def _send_message(%Runner{object: object} = runner_state, [label, "others"]) do
+    _send_message_id_filter(runner_state, label, fn object_id -> object_id != object.id end)
+  end
+  def _send_message(%Runner{} = runner_state, [label, "all"]) do
+    _send_message_id_filter(runner_state, label, fn _object_id -> true end)
+  end
+  def _send_message(%Runner{state: state} = runner_state, [label, target]) do
+    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      _send_message_in_direction(runner_state, label, target)
+    else
+     # TODO: implement this by NAME
+      map_tile_ids = state.map_by_ids
+                     |> Map.to_list
+                     |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
+                     |> Enum.map(fn {id, _tile} -> id end)
+      _send_message_via_ids(runner_state, label, map_tile_ids)
+    end
+  end
+
+  def _send_message_in_direction(%Runner{state: state, object: object} = runner_state, label, direction) do
+    map_tile_ids = Instances.get_map_tiles(state, object, direction)
+                   |> Enum.map(&(&1.id))
+    _send_message_via_ids(runner_state, label, map_tile_ids)
+  end
+
+  def _send_message_id_filter(%Runner{state: state} = runner_state, label, filter) do
+    program_object_ids = state.program_contexts
+                         |> Map.keys()
+                         |> Enum.filter(&filter.(&1))
+    _send_message_via_ids(runner_state, label, program_object_ids)
+  end
+
+  def _send_message_via_ids(runner_state, _label, []), do: runner_state
+  def _send_message_via_ids(%Runner{state: state} = runner_state, label, [po_id | program_object_ids]) do
+    _send_message_via_ids(
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, nil} | state.program_messages] } },
+      label,
+      program_object_ids
+    )
   end
 
   @doc """
@@ -448,6 +592,22 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Locks the object. This will prevent it from receiving and acting on any
+  message/event until it is unlocked. The underlying state value `locked`
+  can also be directly set via the state shorthand `@`.
+
+  ## Examples
+
+    iex> Command.unlock(%Runner{}, [])
+    %Runner{program: program,
+      object: %{ object | state: "locked: false"},
+      state: updated_state }
+  """
+  def unlock(runner_state, _) do
+    change_state(runner_state, [:locked, "=", false])
+  end
+
+  @doc """
   Continue to move in the given direction until bumping into something. Similar to `TRY` but repeats until
   it cannot move in the given direction anymore.
 
@@ -464,7 +624,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _direction_of_player(%Runner{object: object} = runner_state) do
-    target_player_map_tile_id = object.parsed_state[:target_player_map_tile_id]
+    target_player_map_tile_id = TileState.get_int(object, :target_player_map_tile_id)
     _direction_of_player(runner_state, target_player_map_tile_id)
   end
   defp _direction_of_player(%Runner{state: state} = runner_state, nil) do
@@ -482,6 +642,41 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       _ ->
       _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", nil]))
+    end
+  end
+
+  @doc """
+  Disables a label. This will prevent the label from being used to change the pc when
+  the program/object recieves an event. Nothing is done if all labels that match the
+  given one are inactive. Disables labels prioritizing the one closer to the top of the script.
+
+  ## Examples
+
+    iex> Command.zap(%Runner{}, ["thud"])
+    %Runner{}
+  """
+  def zap(%Runner{program: program} = runner_state, [label]) do
+    with normalized_label <- String.downcase(label),
+         labels when not is_nil(labels) <- program.labels[normalized_label] do
+      zapped = labels
+               |> _label_toggle(true)
+      if zapped == labels do
+        runner_state
+      else
+        updated_program = %{ program | labels: Map.put(program.labels, normalized_label, zapped)}
+        %{ runner_state | program: updated_program }
+      end
+    else
+      _ -> runner_state
+    end
+  end
+
+  defp _label_toggle([], _), do: []
+  defp _label_toggle([ [line_number, active] | labels ], toggle_value) do
+    if active == toggle_value do
+      [ [line_number, !active] | labels]
+    else
+      [ [line_number, active] | _label_toggle(labels, toggle_value)]
     end
   end
 end

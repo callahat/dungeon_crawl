@@ -69,6 +69,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
   end
 
+  defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) when is_integer(wait_cycles) do
+    if wait_cycles > 0 do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: CYCLE command has invalid param `#{wait_cycles}`" | errors], user)
+    end
+  end
+  defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: CYCLE command has invalid param `#{wait_cycles}`" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
     if @valid_facings |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
@@ -86,7 +97,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [ :jump_if, [[_neg, _command, _var, _op, _value], label] ]} | instructions], errors, user) do
-   if program.labels[label] do
+   if Program.line_for(program, label) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
@@ -108,11 +119,37 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:restore, [label] ]} | instructions], errors, user) do
+    if program.labels[String.downcase(label)] do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: RESTORE command references nonexistant label `#{label}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {_line_no, [:send_message, [_label] ]} | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {_line_no, [:send_message, [_label, _target] ]} | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:send_message, _ ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: TRY command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [:zap, [label] ]} | instructions], errors, user) do
+    if program.labels[String.downcase(label)] do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: ZAP command references nonexistant label `#{label}`" | errors], user)
     end
   end
 

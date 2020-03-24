@@ -97,16 +97,17 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   defp data_attributes(nil) do
-    ~s(data-color='' data-background-color='' data-tile-template-id='' data-name='' data-character=' ' data-state='' data-script='')
+    ~s(data-color='' data-background-color='' data-tile-template-id='' data-name='' data-character=' ' data-state='' data-script='' data-name='')
   end
   defp data_attributes(mt) do
     # TODO: add name when its supported
     "data-color='#{mt.color}' " <>
     "data-background-color='#{mt.background_color}' " <>
     "data-tile-template-id='#{mt.tile_template_id}' " <>
-    "data-character='#{mt.character}' " <>
-    "data-state='#{mt.state}' " <>
-    "data-script='#{mt.script}'"
+    "data-character='#{Phoenix.HTML.Safe.to_iodata mt.character}' " <>
+    "data-state='#{Phoenix.HTML.Safe.to_iodata mt.state}' " <>
+    "data-script='#{Phoenix.HTML.Safe.to_iodata mt.script}' " <>
+    "data-name='#{Phoenix.HTML.Safe.to_iodata mt.name}'"
   end
 
   def tile_and_style(nil, :safe), do: {:safe, "<div> </div>"}

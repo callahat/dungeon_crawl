@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.TileState
 
   defstruct program: %Program{}, object: %{}, state: %Instances{}, event_sender: nil
 
@@ -10,21 +11,35 @@ require Logger
   @doc """
   Run the program one cycle. Returns the next state of the program.
   One cycle being until it hits a stop or wait condition.
+  If a label/message is given as a param, the given label will have
+  first priority for updating the pc and executing the script from
+  there.
   """
-  def run(runner_state = %Runner{program: program}, label) do
-    with [[next_pc, _]] <- program.labels[label] || [] |> Enum.filter(fn([_l,a]) -> a end) |> Enum.take(1),
-         program = %{program | pc: next_pc, lc: 0, status: :alive} do
-      run(%Runner{ runner_state | program: program})
+  def run(%Runner{program: program, object: object} = runner_state, label) do
+    with false <- TileState.get_bool(object, :locked),
+         next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
+         program <- %{program | pc: next_pc, lc: 0, status: :alive, message: {}} do
+      _run(%Runner{ runner_state | program: program})
     else
       _ ->
         runner_state
     end
   end
 
-  def run(%Runner{program: program, object: object} = runner_state) do
+  def run(%Runner{program: program} = runner_state) do
+    if program.message == {} do
+      _run(runner_state)
+    else
+      {label, sender} = program.message
+      run(%{ runner_state | event_sender: sender, program: %{ program | message: {} } }, label)
+    end
+  end
+
+  def _run(%Runner{program: program, object: object} = runner_state) do
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]
+# Logging is expensive, comment/remove later
 Logger.info "Running:"
 Logger.info inspect command
 Logger.info inspect params

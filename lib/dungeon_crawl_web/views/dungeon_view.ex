@@ -25,14 +25,14 @@ defmodule DungeonCrawlWeb.DungeonView do
                 #{ if historic, do: " data-historic-template=true" }
                 data-tile-template-id="#{ tile_template.id }"
                 data-tile-template-description="#{ tile_template.description }"
-                data-tile-template-state="#{ tile_template.state }"
-                data-tile-template-script="#{ tile_template.script }"
+                data-tile-template-state="#{ Phoenix.HTML.Safe.to_iodata tile_template.state }"
+                data-tile-template-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }"
                 data-color="#{ tile_template.color }"
                 data-background-color="#{ tile_template.background_color }"
-                data-name="#{ tile_template.name }"
-                data-character="#{ tile_template.character }"
-                data-state="#{ tile_template.state }"
-                data-script="#{ tile_template.script }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
+                data-name="#{ Phoenix.HTML.Safe.to_iodata tile_template.name }"
+                data-character="#{ Phoenix.HTML.Safe.to_iodata tile_template.character }"
+                data-state="#{ Phoenix.HTML.Safe.to_iodata tile_template.state }"
+                data-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
          """
        end)
     |> Enum.join("\n")

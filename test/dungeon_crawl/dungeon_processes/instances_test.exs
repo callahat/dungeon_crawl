@@ -36,8 +36,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                       6 => [:die, [""]]
                     },
                     labels: %{
-                      "TERMINATE" => [[5, true]],
-                      "TOUCH" => [[2, true]]
+                      "terminate" => [[5, true]],
+                      "touch" => [[2, true]]
                     },
                     locked: false,
                     pc: 1,

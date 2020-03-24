@@ -8,7 +8,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     """
     #END
     :TOUCH
-    #BECOME color: red
+    #BECOME color: red, character: 9
     You touched it
     #IF @thing, MORE
     #END
@@ -16,6 +16,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     thing is true
     #MOVE south, true
     #GO south
+    #CYCLE 3
     """
   end
 
@@ -40,10 +41,24 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #FACING reverse
     #FACING inward
     #IF bio = tho
+    #CYCLE 0
+    #CYCLE false
+    #ZAP TOUCH
+    #ZAP THUD
+    #RESTORE TOUCH
+    #RESTORE THUD
+    #SEND touch
+    #SEND thud, all
+    #SEND hi, all, toomany
     """
   end
 
   describe "validate" do
+    test "special keywords value cast is overridden" do
+      {:ok, program} = Parser.parse("#BECOME character: 3")
+      assert {:ok, program} == ProgramValidator.validate(program, nil)
+    end
+
     test "program has no commands with bad parameters" do
       {:ok, program} = Parser.parse(nil)
       assert {:ok, program} == ProgramValidator.validate(program, nil)
@@ -70,7 +85,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
                "Line 18: FACING command references invalid direction `inward`",
-               "Line 19: IF command malformed"],
+               "Line 19: IF command malformed",
+               "Line 20: CYCLE command has invalid param `0`",
+               "Line 21: CYCLE command has invalid param `false`",
+               "Line 23: ZAP command references nonexistant label `THUD`",
+               "Line 25: RESTORE command references nonexistant label `THUD`",
+               "Line 28: SEND command has an invalid number of parameters"
+              ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
@@ -81,7 +102,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
                "Line 18: FACING command references invalid direction `inward`",
-               "Line 19: IF command malformed"],
+               "Line 19: IF command malformed",
+               "Line 20: CYCLE command has invalid param `0`",
+               "Line 21: CYCLE command has invalid param `false`",
+               "Line 23: ZAP command references nonexistant label `THUD`",
+               "Line 25: RESTORE command references nonexistant label `THUD`",
+               "Line 28: SEND command has an invalid number of parameters"
+              ],
               program} == ProgramValidator.validate(program, admin)
     end
   end

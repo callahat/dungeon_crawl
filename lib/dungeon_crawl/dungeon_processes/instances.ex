@@ -4,13 +4,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileState
   alias DungeonCrawl.Scripting
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
 
   require Logger
@@ -65,9 +66,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
   def responds_to_event?(%Instances{program_contexts: program_contexts} = _state, %{id: map_tile_id}, event) do
     with %{^map_tile_id => %{program: program}} <- program_contexts,
-         labels <- program.labels[event],
-         true <- is_list(labels) do
-      Enum.any?(labels, fn([_, active]) -> active end)
+         line_number when not(is_nil(line_number)) <- Program.line_for(program, event) do
+      true
     else
       _ ->
         false
@@ -293,6 +293,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
     _handle_broadcasts(messages, player_location)
   end
+  # If this should be implemented, this is what broadcasting to a "program" method would look like.
+  # Could also just use an id that is assumed to be the linked map tile for the program. Since this
+  # is used to figure out what channel to send text, programs wouldnt really do anythign with it.
+#  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.DungeonInstances.MapTile{}), do: 'implement'
   defp _handle_broadcasts(_, _), do: nil
 
   @directions %{
