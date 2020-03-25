@@ -389,10 +389,14 @@ defmodule DungeonCrawl.Scripting.Command do
                                                  status: :wait,
                                                  wait_cycles: TileState.get_int(object, :wait_cycles, 5) }}
   end
-  defp _move(%Runner{program: program, object: object, state: state} = runner_state, direction, retryable, next_actions) do
+  defp _move(%Runner{object: object, state: state} = runner_state, direction, retryable, next_actions) do
     direction = _get_real_direction(object, direction)
 
     destination = Instances.get_map_tile(state, object, direction)
+
+    # Might want to be able to pass coordinates, esp if the movement will ever be more than one away
+    runner_state = send_message(runner_state, ["touch", direction])
+    %Runner{program: program, object: object, state: state} = runner_state
 
     case Move.go(object, destination, state) do
       {:ok, %{new_location: new_location, old_location: old}, new_state} ->

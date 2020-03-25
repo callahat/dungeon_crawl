@@ -286,6 +286,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "MOVE with one param" do
     {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "#", row: 0, col: 1, z_index: 0, state: "blocking: true"})
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
     # Successful
@@ -304,6 +305,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 1
            } = program
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+    assert [{1, "touch", nil}] = state.program_messages
+    state = %{state | program_messages: []}
 
     # Unsuccessful (but its a try and move that does not keep trying)
     %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down"])
@@ -313,15 +316,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 1
            } = program
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+    assert [] = state.program_messages
+    state = %{state | program_messages: []}
 
     # Unsuccessful - uses the wait cycles from the state
-    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["down"])
+    %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["up"])
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1
            } = program
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+    assert [{4, "touch", nil}] = state.program_messages
+    state = %{state | program_messages: []}
 
     # Idle
     %Runner{program: program, object: mover, state: state} = Command.move(%Runner{object: mover, state: state}, ["idle"])
@@ -331,6 +338,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 1
            } = program
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+    assert [] = state.program_messages
 
     # Moving in player direction targets a player when it is not targeting a player
     {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
