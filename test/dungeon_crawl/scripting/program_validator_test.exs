@@ -50,6 +50,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SEND touch
     #SEND thud, all
     #SEND hi, all, toomany
+    #SEND touch, @facing
     """
   end
 

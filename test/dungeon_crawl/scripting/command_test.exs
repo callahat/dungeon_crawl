@@ -504,13 +504,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", "north"])
     assert updated_state.program_messages == [{123, "touch", nil}, {255, "touch", nil}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", "south"])
     assert updated_state.program_messages == [{999, "touch", nil}]
+
+    # Also works if the direction is in a state variable
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", [:state_variable, :facing]])
+    assert updated_state.program_messages == [{123, "touch", nil}, {255, "touch", nil}]
+
+    # Doesnt break if nonexistant state var
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object: obj}, ["touch", [:state_variable, :fake]])
+    assert updated_state.program_messages == []
   end
 
   test "SEND message to tiles by name" do
