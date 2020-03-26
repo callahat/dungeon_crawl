@@ -109,6 +109,8 @@ defmodule DungeonCrawl.Scripting.Command do
 
   Change is persisted to the DB for the object (map_tile instance)
 
+  Case sensitive
+
   ## Examples
 
     iex> Command.change_state(%Runner{program: program, object: %{state: "counter: 1"}, state: state}, [:counter, "+=", 3])
@@ -316,9 +318,18 @@ defmodule DungeonCrawl.Scripting.Command do
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
   """
-  def jump_if(%Runner{program: program, object: object} = runner_state, params) do
+  def jump_if(%Runner{} = runner_state, [[command, var], label]) when is_atom(command) do
+    jump_if(runner_state, [["", command, var, "==", true], label])
+  end
+  def jump_if(%Runner{} = runner_state, [[neg, command, var], label]) when is_atom(command) do
+    jump_if(runner_state, [[neg, command, var, "==", true], label])
+  end
+  def jump_if(%Runner{} = runner_state, [[command, var, op, value], label]) when is_atom(command) do
+    jump_if(runner_state, [["", command, var, op, value], label])
+  end
+
+  def jump_if(%Runner{program: program, object: object} = runner_state, [[neg, _command, var, op, value], label]) do
     {:ok, object_state} = DungeonCrawl.TileState.Parser.parse(object.state)
-    [[neg, _command, var, op, value], label] = params
 
     # first active matching label
     with line_number when not is_nil(line_number) <- Program.line_for(program, label),

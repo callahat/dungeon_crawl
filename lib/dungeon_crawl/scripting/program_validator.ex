@@ -96,8 +96,12 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
-  defp _validate(program, [ {line_no, [ :jump_if, [[_neg, _command, _var, _op, _value], label] ]} | instructions], errors, user) do
-   if Program.line_for(program, label) do
+  defp _validate(program, [ {line_no, [ :jump_if, [params, label] ]} | instructions], errors, user)
+         when length(params) == 2
+         when length(params) == 4
+         when length(params) == 3
+         when length(params) == 5 do
+    if Program.line_for(program, label) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)

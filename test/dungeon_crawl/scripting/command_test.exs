@@ -244,28 +244,42 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "JUMP_IF when state check is TRUE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
-    params = [["", :check_state, :thing, "", ""], "TOUCH"]
+    params = [[:state_variable, :thing], "TOUCH"]
 
-    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
-    assert program.status == :alive
-    assert program.pc == 3
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
+
+    # with explicit check
+    params = [[:state_variable, :thing, "==", true], "TOUCH"]
+
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
   end
 
   test "JUMP_IF when state check is FALSE" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
-    params = [["!", :check_state, :thing, "", ""], "TOUCH"]
+    params = [["!", :check_state, :thing], "TOUCH"]
 
     assert program.status == :alive
-    %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
-    assert program.status == :alive
-    assert program.pc == 1
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
+
+    # with explicit check
+    params = [["!", :check_state, :thing, "==", true], "TOUCH"]
+
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
   end
 
   test "JUMP_IF when state check is TRUE but no active label" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
-    params = [["!", :check_state, :thing, "", ""], "TOUCH"]
+    params = [["!", :check_state, :thing], "TOUCH"]
 
     program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
     %Runner{program: program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
