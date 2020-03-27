@@ -40,6 +40,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :noop         -> :noop
       :restore      -> :restore
       :send         -> :send_message
+      :shoot        -> :shoot
       :text         -> :text
       :try          -> :try
       :unlock       -> :unlock
@@ -576,6 +577,52 @@ defmodule DungeonCrawl.Scripting.Command do
       label,
       program_object_ids
     )
+  end
+
+  @doc """
+  Fires a bullet in the given direction. The bullet will spawn on the tile one away from the object
+  in the direction, unless that tile is blocking or responds to "SHOT", in which case that tile
+  will be sent the "SHOT" message and no bullet will spawn.
+  Otherwise, the bullet will walk in given direction until it hits something, or something
+  responds to the "SHOT" message.
+  """
+  def shoot(%Runner{object: object} = runner_state, [[:state_variable, var]]) do
+    shoot(runner_state, [object.parsed_state[var]])
+  end
+  def shoot(%Runner{object: object, state: state} = runner_state, [direction]) do
+    direction = _get_real_direction(object, direction)
+    spawn_tile = Instances.get_map_tile(state, object, direction)
+
+    cond do
+      is_nil(spawn_tile) ->
+        # No tile means edge of map or someplace that a bullet cannot be
+        runner_state
+
+      Map.take(spawn_tile, [:row, :col]) == Map.take(object, [:row, :col]) ->
+        # direction was invalid
+        runner_state
+
+      spawn_tile.parsed_state[:blocking] || Instances.responds_to_event?(state, spawn_tile, "shot") ->
+        send_message(runner_state, ["shot", direction])
+
+      true ->
+        bullet_tile_template = DungeonCrawl.TileTemplates.TileSeeder.bullet_tile()
+
+        # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
+        bullet = Map.take(spawn_tile, [:map_instance_id, :row, :col])
+                 |> Map.merge(%{tile_template_id: bullet_tile_template.id, z_index: spawn_tile.z_index + 1})
+                 |> Map.merge(Map.take(bullet_tile_template, [:character, :color, :background_color, :script]))
+                 |> Map.put(:state, bullet_tile_template.state <> ", facing: " <> direction)
+                 |> DungeonCrawl.DungeonInstances.create_map_tile!()
+
+        # Might also need to add to the program contexts
+        {top, state} = Instances.create_map_tile(state, bullet)
+        tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
+        DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{bullet.map_instance_id}",
+                                        "tile_changes",
+                                        %{ tiles: [%{row: top.row, col: top.col, rendering: tile}] })
+        %{ runner_state | state: state }
+    end
   end
 
   @doc """

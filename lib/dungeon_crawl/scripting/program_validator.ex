@@ -141,6 +141,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
   end
 
+  defp _validate(program, [ {line_no, [:shoot, [[_state_variable, var]] ]} | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:shoot, [direction] ]} | instructions], errors, user) do
+    if (@valid_directions -- ["idle"]) |> Enum.member?(direction) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: SHOOT command references invalid direction `#{direction}`" | errors], user)
+    end
+  end
+
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)

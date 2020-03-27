@@ -54,6 +54,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF ! @open, ALREADY_OPEN
                #IF @open == false, ALREADY_OPEN
                #IF not @open == false, ALREADY_OPEN
+               #SHOOT north
+               #SHOOT @facing
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -84,6 +86,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  26 => [:jump_if, [["!", :state_variable, :open], "ALREADY_OPEN"]],
                                                  27 => [:jump_if, [[:state_variable, :open, "==", false], "ALREADY_OPEN"]],
                                                  28 => [:jump_if, [["!", :state_variable, :open, "==", false], "ALREADY_OPEN"]],
+                                                 29 => [:shoot, ["north"]],
+                                                 30 => [:shoot, [[:state_variable, :facing]]],
                                                  },
                                  status: :alive,
                                  pc: 1,

@@ -26,6 +26,25 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   end
 
   @doc """
+  Seeds the DB with the basic bullet tile, returning that record.
+  """
+  def bullet_tile() do
+    TileTemplates.find_or_create_tile_template!(
+      %{character: "°",
+        name: "Bullet",
+        description: "Its a bullet.",
+        state: "blocking: false",
+        script: """
+                #WALK facing
+                :THUD
+                #SEND shot, @facing
+                #DIE
+                """
+      })
+  end
+
+
+  @doc """
   Seeds the DB with the basic player character tile, returning that record.
   """
   def rock_tile() do
