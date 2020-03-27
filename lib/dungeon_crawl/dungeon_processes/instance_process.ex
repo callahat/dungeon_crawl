@@ -201,9 +201,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_info(:perform_actions, %Instances{} = state) do
-#    start_ms = :os.system_time(:millisecond)
-    state = _cycle_programs(state)
-#    Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
+    # start_ms = :os.system_time(:millisecond)
+    state = _cycle_programs(%{state | new_pids: []})
+    # Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
 
     Process.send_after(self(), :perform_actions, @timeout)
 
@@ -248,22 +248,23 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {program_contexts, state} = state.program_contexts
                                 |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
                                 |> _cycle_programs(state)
+    # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
+                       |> Map.merge(Map.take(state.program_contexts, state.new_pids))
     _message_programs(%{ state | program_contexts: program_contexts })
   end
 
   defp _cycle_programs([], state), do: {[], state}
-  defp _cycle_programs([[line, program_context] | program_contexts], state) do
+  defp _cycle_programs([[pid, program_context] | program_contexts], state) do
     runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object: program_context.object, state: state})
                               |> Map.put(:event_sender, program_context.event_sender)
                               |> Instances.handle_broadcasting()
-
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
     if runner_state.program.status == :dead do
       { other_program_contexts, updated_state}
     else
-      {[ [line, Map.take(runner_state, [:program, :object, :event_sender])] | other_program_contexts ], updated_state}
+      {[ [pid, Map.take(runner_state, [:program, :object, :event_sender])] | other_program_contexts ], updated_state}
     end
   end
 

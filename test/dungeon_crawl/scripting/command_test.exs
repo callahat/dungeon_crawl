@@ -427,6 +427,28 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
   end
 
+  test "MOVE using a state variable" do
+    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"})
+
+    %Runner{program: program, object: mover, state: _state} = Command.move(%Runner{object: mover, state: state}, [[:state_variable, :facing], true])
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>c</div>", row: 1},
+                      %{col: 2, rendering: "<div>.</div>", row: 1}
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = program
+    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+  end
+
   test "MOVE into something blocking (or a nil square) triggers a THUD event" do
     {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
@@ -562,6 +584,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert bullet.parsed_state[:facing] == "north"
     assert updated_state.program_contexts[bullet.id]
     assert updated_state.program_messages == []
+    assert updated_state.new_pids == [bullet.id]
+    assert updated_state.program_contexts[bullet.id].program.status == :alive
 
     # shooting into a nil space does nothing (not even throw an exception
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object: obj}, ["east"])

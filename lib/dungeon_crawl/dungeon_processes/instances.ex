@@ -4,7 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: []
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: [], new_pids: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -88,7 +88,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
         else
           updated_program_context = %{program: program, object: object, event_sender: sender}
-          %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, updated_program_context)}
+          %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile_id, updated_program_context)}
         end
 
       _ ->
@@ -160,12 +160,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-  defp _start_program(%Instances{program_contexts: program_contexts} = state, map_tile_id, program_context) do
+  defp _start_program(%Instances{program_contexts: program_contexts, new_pids: new_pids} = state, map_tile_id, program_context) do
     if Map.has_key?(program_contexts, map_tile_id) do
       # already a running program for that tile id, or there is no map tile for that id
       state
     else
-      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context)}
+      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context), 
+                          new_pids: [map_tile_id | new_pids]}
     end
   end
 

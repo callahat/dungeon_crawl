@@ -437,6 +437,9 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
+  defp _get_real_direction(object, [:state_variable, var]) do
+    object.parsed_state[var] || "idle"
+  end
   defp _get_real_direction(object, "continue") do
     {:ok, object_state} = TileState.Parser.parse(object.state)
     object_state.facing || "idle"

@@ -48,7 +48,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: map_tile_id, script: "#DIE"}])
     assert %Instances{ program_contexts: programs,
                        map_by_ids: by_id,
-                       map_by_coords: by_coord } == InstanceProcess.get_state(instance_process)
+                       map_by_coords: by_coord,
+                       new_pids: [236, map_tile_id] } == InstanceProcess.get_state(instance_process)
   end
 
   test "start_scheduler", %{instance_process: instance_process} do
