@@ -165,7 +165,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       # already a running program for that tile id, or there is no map tile for that id
       state
     else
-      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context), 
+      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context),
                           new_pids: [map_tile_id | new_pids]}
     end
   end

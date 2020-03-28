@@ -30,7 +30,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   """
   def bullet_tile() do
     TileTemplates.find_or_create_tile_template!(
-      %{character: "°",
+      %{character: "◦",
         name: "Bullet",
         description: "Its a bullet.",
         state: "blocking: false, wait_cycles: 1",

@@ -580,7 +580,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object: obj}, ["north"])
     assert bullet = Instances.get_map_tile(updated_state, %{row: 1, col: 2})
 
-    assert bullet.character == "°"
+    assert bullet.character == "◦"
     assert bullet.parsed_state[:facing] == "north"
     assert updated_state.program_contexts[bullet.id]
     assert updated_state.program_messages == []
@@ -616,7 +616,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object: obj}, [[:state_variable, :facing]])
     assert bullet = Instances.get_map_tile(updated_state, %{row: 1, col: 2})
 
-    assert bullet.character == "°"
+    assert bullet.character == "◦"
   end
 
   test "text" do

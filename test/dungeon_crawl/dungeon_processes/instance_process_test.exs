@@ -115,7 +115,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     tt = insert_tile_template()
 
     map_tiles = [
-        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
         %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "#DIE"}
       ]
@@ -124,10 +124,27 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
 
+    # These tiles will be needed later
+    shooter_tile_id = InstanceProcess.get_tile(instance_process, 1, 2).id
+    east_tile_id = InstanceProcess.get_tile(instance_process, 1, 3).id
+    eastest_tile_id = InstanceProcess.get_tile(instance_process, 1, 4).id
+
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel}
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    # Sanity check that the programs are all there, including the one for the generated bullet
+    bullet_tile_id = InstanceProcess.get_tile(instance_process, 1, 3).id
+
+    assert state = InstanceProcess.get_state(instance_process)
+    # this should still be active
+    assert %{program: %{status: :alive}} = state.program_contexts[bullet_tile_id]
+    # these will be idle
+    assert %{program: %{status: :idle}} = state.program_contexts[shooter_tile_id]
+    assert %{program: %{status: :idle}} = state.program_contexts[east_tile_id]
+    # This one is dead and removed from the contexts
+    refute state.program_contexts[eastest_tile_id]
 
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
@@ -141,6 +158,10 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^dungeon_channel,
             event: "tile_changes",
             payload: %{tiles: [%{row: 1, col: 3, rendering: "<div style='color: white'>M</div>"}]}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>◦</div>"}]}}
     # These were either idle or had no script
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
