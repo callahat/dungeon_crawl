@@ -41,6 +41,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :restore      -> :restore
       :send         -> :send_message
       :shoot        -> :shoot
+      :terminate    -> :terminate
       :text         -> :text
       :try          -> :try
       :unlock       -> :unlock
@@ -620,6 +621,24 @@ defmodule DungeonCrawl.Scripting.Command do
         %{ runner_state | state: state }
     end
   end
+
+  @doc """
+  Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance).
+
+  ## Examples
+
+    iex> Command.terminate(%Runner{program: program, object: %{script: "..."}, state: state}
+    %Runner{program: %{program | pc: -1, status: :dead},
+      object: %{ object | script: ""},
+      state: updated_state }
+  """
+  def terminate(%Runner{program: program, object: object, state: state}, _ignored \\ nil) do
+    {updated_object, updated_state} = Instances.update_map_tile(state, object, %{script: ""})
+    %Runner{program: %{program | status: :dead, pc: -1},
+            object: updated_object,
+            state: updated_state}
+  end
+
 
   @doc """
   Adds text to the responses for showing to a player in particular (ie, one who TOUCHed the object).

@@ -631,6 +631,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert bullet.character == "◦"
   end
 
+  test "TERMINATE" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+
+    %Runner{object: updated_map_tile, program: program, state: state} = Command.terminate(%Runner{program: program, object: map_tile, state: state})
+    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
+    assert program.status == :dead
+    assert program.pc == -1
+    assert updated_map_tile.script == ""
+  end
+
   test "text" do
     program = program_fixture()
     stubbed_object = %{state: "thing: true"}
