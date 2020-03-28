@@ -241,9 +241,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
   end
 
+  test "FACING - derivative when facing state var does not exist" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["clockwise"])
+    assert updated_map_tile.state == "facing: idle"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["counterclockwise"])
+    assert updated_map_tile.state == "facing: idle"
+    %Runner{object: updated_map_tile} = Command.facing(%Runner{program: program, object: map_tile, state: state}, ["reverse"])
+    assert updated_map_tile.state == "facing: idle"
+  end
+
   test "JUMP_IF when state check is TRUE" do
     program = program_fixture()
-    stubbed_object = %{state: "thing: true"}
+    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
     params = [[:state_variable, :thing], "TOUCH"]
 
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object: stubbed_object}, params)
@@ -260,7 +272,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "JUMP_IF when state check is FALSE" do
     program = program_fixture()
-    stubbed_object = %{state: "thing: true"}
+    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
     params = [["!", :check_state, :thing], "TOUCH"]
 
     assert program.status == :alive

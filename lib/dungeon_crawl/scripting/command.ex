@@ -120,10 +120,9 @@ defmodule DungeonCrawl.Scripting.Command do
       state: updated_state }
   """
   def change_state(%Runner{object: object, state: state} = runner_state, params) do
-    {:ok, object_state} = TileState.Parser.parse(object.state)
     [var, op, value] = params
 
-    object_state = Map.put(object_state, var, Maths.calc(object_state[var] || 0, op, value))
+    object_state = Map.put(object.parsed_state, var, Maths.calc(object.parsed_state[var] || 0, op, value))
     object_state_str = TileState.Parser.stringify(object_state)
     {updated_object, updated_state} = Instances.update_map_tile(state, object, %{state: object_state_str, parsed_state: object_state})
 
@@ -262,8 +261,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _facing(new_runner_state, player_direction)
   end
   def facing(%Runner{object: object} = runner_state, ["clockwise"]) do
-    {:ok, object_state} = TileState.Parser.parse(object.state)
-    direction = case object_state.facing do
+    direction = case object.parsed_state[:facing] do
                   "left"  -> "north"
                   "west"  -> "north"
                   "up"    -> "east"
@@ -277,8 +275,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _facing(runner_state, direction)
   end
   def facing(%Runner{object: object} = runner_state, ["counterclockwise"]) do
-    {:ok, object_state} = TileState.Parser.parse(object.state)
-    direction = case object_state.facing do
+    direction = case object.parsed_state[:facing] do
                   "left"  -> "south"
                   "west"  -> "south"
                   "up"    -> "west"
@@ -292,8 +289,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _facing(runner_state, direction)
   end
   def facing(%Runner{object: object} = runner_state, ["reverse"]) do
-    {:ok, object_state} = TileState.Parser.parse(object.state)
-    direction = case object_state.facing do
+    direction = case object.parsed_state[:facing] do
                   "left"  -> "east"
                   "west"  -> "east"
                   "up"    -> "south"
@@ -330,11 +326,9 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   def jump_if(%Runner{program: program, object: object} = runner_state, [[neg, _command, var, op, value], label]) do
-    {:ok, object_state} = DungeonCrawl.TileState.Parser.parse(object.state)
-
     # first active matching label
     with line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, object_state[var], op, value) do
+         true <- Maths.check(neg, object.parsed_state[var], op, value) do
       %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
@@ -441,8 +435,7 @@ defmodule DungeonCrawl.Scripting.Command do
     object.parsed_state[var] || "idle"
   end
   defp _get_real_direction(object, "continue") do
-    {:ok, object_state} = TileState.Parser.parse(object.state)
-    object_state.facing || "idle"
+    object.parsed_state[:facing] || "idle"
   end
   defp _get_real_direction(_object, direction), do: direction
 
