@@ -241,7 +241,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
       player_locations = Map.delete(player_locations, map_tile_id)
-      {map_tile, %Instances{ program_contexts: program_contexts,
+      {map_tile, %Instances{ state |
+                             program_contexts: program_contexts,
                              map_by_ids: by_id,
                              map_by_coords: by_coords,
                              dirty_ids: dirty_ids,
@@ -281,8 +282,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
   def handle_broadcasting(runner_context) do
-    _handle_broadcasts(runner_context.program.broadcasts, "dungeons:#{runner_context.object.map_instance_id}")
-    _handle_broadcasts(runner_context.program.responses, runner_context.event_sender)
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.object.map_instance_id}")
+    _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end
 

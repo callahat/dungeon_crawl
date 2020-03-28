@@ -17,7 +17,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     tt = insert_tile_template()
     map_instance = insert_stubbed_dungeon_instance(
                      %{},
-                     [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#DIE", tile_template_id: tt.id}])
+                     [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE", tile_template_id: tt.id}])
     map_tile = DungeonCrawl.Repo.get_by(MapTile, %{map_instance_id: map_instance.id})
 
     InstanceProcess.load_map(instance_process, [map_tile])
@@ -117,7 +117,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
         %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
-        %{character: "O", row: 1, col: 4, z_index: 0, script: "#DIE"}
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "#TERMINATE"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
@@ -166,9 +166,6 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 1}]}}
-    refute_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            payload: %{tiles: [%{row: 1, col: 4}]}}
   end
 
   test "perform_actions adds messages to programs", %{instance_process: instance_process,

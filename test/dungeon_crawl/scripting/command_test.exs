@@ -184,14 +184,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "DIE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 1, character: "$"})
+    {under_tile, state} = Instances.create_map_tile(state, %MapTile{id: 45, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
 
     %Runner{object: updated_map_tile, program: program, state: state} = Command.die(%Runner{program: program, object: map_tile, state: state})
-    assert updated_map_tile == Instances.get_map_tile(state, map_tile)
+    assert under_tile == Instances.get_map_tile(state, map_tile)
     assert program.status == :dead
     assert program.pc == -1
     assert updated_map_tile.script == ""
+    assert [ ["tile_changes",
+              %{tiles: [%{col: 2, rendering: "<div>.</div>", row: 1}]}
+              ]
+           ] = program.broadcasts
   end
 
   test "GO" do

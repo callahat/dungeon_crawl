@@ -209,9 +209,16 @@ defmodule DungeonCrawl.Scripting.Command do
       state: updated_state }
   """
   def die(%Runner{program: program, object: object, state: state}, _ignored \\ nil) do
-    {updated_object, updated_state} = Instances.update_map_tile(state, object, %{script: ""})
-    %Runner{program: %{program | status: :dead, pc: -1},
-            object: updated_object,
+    {deleted_object, updated_state} = Instances.delete_map_tile(state, object)
+    top_tile = Instances.get_map_tile(updated_state, deleted_object)
+
+    message = ["tile_changes",
+               %{tiles: [
+                   Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+               ]}]
+
+    %Runner{program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
+            object: deleted_object,
             state: updated_state}
   end
 
