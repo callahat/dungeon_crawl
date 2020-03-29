@@ -119,6 +119,30 @@ defmodule DungeonCrawl.DungeonChannelTest do
     refute_broadcast _any_event, _any_payload
   end
 
+  @tag up_tile: "."
+  test "shoot replies with status ok", %{socket: socket} do
+    ref = push socket, "shoot", %{"direction" => "up"}
+    assert_reply ref, :ok, %{}
+  end
+
+  @tag up_tile: "."
+  test "shoot into an empty space spawns a bullet", %{socket: socket} do
+    push socket, "shoot", %{"direction" => "up"}
+    assert_broadcast "tile_changes", %{}
+  end
+
+  @tag up_tile: " "
+  test "shoot into a nil space or idle does nothing", %{socket: socket} do
+    push socket, "shoot", %{"direction" => "gibberish_which_becomes_idle"}
+    refute_broadcast "tile_changes", _anything_really
+  end
+
+  @tag up_tile: "#"
+  test "shoot into a blocking or shootable space spawns no bullet but sends the shot message", %{socket: socket} do
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", _anything_really
+  end
+
   # TODO: refactor the underlying model/channel methods into more testable concerns
   @tag up_tile: "+"
   test "use_door with a valid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles} do

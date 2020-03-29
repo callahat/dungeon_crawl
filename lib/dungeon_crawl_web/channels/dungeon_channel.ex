@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.Action.{Move}
+  alias DungeonCrawl.Action.{Move, Shoot}
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
 
@@ -50,6 +50,27 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
         {:invalid} ->
           {:ok, instance_state}
+      end
+    end)
+
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("shoot", %{"direction" => direction}, socket) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_location = Player.get_location!(socket.assigns.user_id_hash)
+      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+
+      case Shoot.shoot(player_tile, direction, instance_state) do
+        {:invalid} ->
+          {:ok, instance_state}
+
+        {:shot, spawn_tile} ->
+          {:ok, Instances.send_event(instance_state, spawn_tile, "shot", player_location)}
+
+        {:ok, updated_instance} ->
+          {:ok, updated_instance}
       end
     end)
 
