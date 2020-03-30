@@ -257,7 +257,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _cycle_programs([], state), do: {[], state}
   defp _cycle_programs([[pid, program_context] | program_contexts], state) do
     runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object: program_context.object, state: state})
-                              |> Map.put(:event_sender, program_context.event_sender)
+                              |> Map.put(:event_sender, program_context.event_sender) # This might not be needed
                               |> Instances.handle_broadcasting()
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
@@ -278,7 +278,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     program_context = program_contexts[po_id]
     if program_context && program_context.program.message == {} do
       program = program_context.program
-      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label),
+      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender),
                                                                     event_sender: sender}})
     else
       _message_programs(messages, program_contexts)

@@ -252,6 +252,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
       Regex.match?(~r/^(not |! ?)?@.+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
+      Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
     end
   end
@@ -274,6 +275,16 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       _ ->
         :error
+    end
+  end
+
+  def _normalize_special_var(param) do
+    case Regex.named_captures(~r/^\?(?<variable>.*)/i, String.trim(param)) do
+      %{"variable" => "sender"} ->
+        [:event_sender]
+
+      _ ->
+       :error
     end
   end
 end

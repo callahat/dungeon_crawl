@@ -39,6 +39,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
                 :THUD
                 #SEND shot, @facing
                 #DIE
+                :TOUCH
+                #SEND shot, ?sender
+                #DIE
                 """
       })
   end
