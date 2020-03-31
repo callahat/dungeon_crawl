@@ -111,7 +111,11 @@ defmodule DungeonCrawl.DungeonChannelTest do
   @tag up_tile: "."
   test "shoot into an empty space spawns a bullet", %{socket: socket} do
     push socket, "shoot", %{"direction" => "up"}
-    assert_broadcast "tile_changes", %{}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+
+    # but not if one has been fired in the last 100ms
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
   end
 
   @tag up_tile: " "

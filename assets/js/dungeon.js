@@ -81,13 +81,9 @@ let Dungeon = {
     console.log(shoot)
     let payload = {direction: direction}
     document.getElementById("short_comm").innerText = "Moving..."
-    if(shoot) {
-      dungeonChannel.push("shoot", payload)
-                    .receive("error", e => console.log(e))
-    } else {
-      dungeonChannel.push("move", payload)
-                    .receive("error", e => console.log(e))
-    }
+
+    dungeonChannel.push(shoot ? "shoot" : "move", payload)
+                  .receive("error", e => console.log(e))
   },
   open(dungeonChannel, direction, shift = false){
     this._useDoor(dungeonChannel, direction, "OPEN")
