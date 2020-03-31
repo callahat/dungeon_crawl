@@ -192,9 +192,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert [] == program_messages # should be cleared after punting the messages to the actual progams
 
     # The last map tile in this setup has no active program
-    expected = %{ map_tile_id => {"touch", nil},
-                  Enum.at(map_tiles,0).id => {"touch", nil},
-                  Enum.at(map_tiles,1).id => {"touch", nil} }
+    expected = %{ map_tile_id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id}},
+                  Enum.at(map_tiles,0).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id}},
+                  Enum.at(map_tiles,1).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id}} }
 
     actual = program_contexts
              |> Map.to_list

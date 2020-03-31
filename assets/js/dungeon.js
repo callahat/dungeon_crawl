@@ -85,8 +85,6 @@ let Dungeon = {
       dungeonChannel.push("shoot", payload)
                     .receive("error", e => console.log(e))
     } else {
-      dungeonChannel.push("step", payload)
-                    .receive("error", resp => document.getElementById("short_comm").innerHTML = resp.msg)
       dungeonChannel.push("move", payload)
                     .receive("error", e => console.log(e))
     }

@@ -32,6 +32,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
+    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
+
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       player_location = Player.get_location!(socket.assigns.user_id_hash)
@@ -82,10 +84,6 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       %{"direction" => direction, "action" => action},
       "Cannot #{String.downcase(action)} that",
       socket)
-  end
-
-  def handle_in("step", %{"direction" => direction}, socket) do
-    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
