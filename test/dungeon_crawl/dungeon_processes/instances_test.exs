@@ -55,25 +55,25 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     } = state
   end
 
-  test "get_map_tile/1 gets the top map tile at the given coordinates", %{state: state} do
+  test "get_map_tile/2 gets the top map tile at the given coordinates", %{state: state} do
     assert %{id: 999} = Instances.get_map_tile(state, %{row: 1, col: 2})
   end
 
-  test "get_map_tile/2 gets the top map tile in the given direction", %{state: state} do
+  test "get_map_tile/3 gets the top map tile in the given direction", %{state: state} do
     assert %{id: 997} = Instances.get_map_tile(state, %{row: 1, col: 2}, "east")
   end
 
-  test "get_map_tiles/2 gets the map tiles in the given direction", %{state: state} do
+  test "get_map_tiles/3 gets the map tiles in the given direction", %{state: state} do
     assert [map_tile_1, map_tile_2] = Instances.get_map_tiles(state, %{row: 1, col: 2}, "east")
     assert %{id: 997} = map_tile_1
     assert %{id: 998} = map_tile_2
   end
 
-  test "get_map_tiles/2 gets empty array in the given direction", %{state: state} do
+  test "get_map_tiles/3 gets empty array in the given direction", %{state: state} do
     assert [] == Instances.get_map_tiles(state, %{row: 1, col: 2}, "north")
   end
 
-  test "get_map_tile_by_id/1 gets the map tile for the id", %{state: state} do
+  test "get_map_tile_by_id/2 gets the map tile for the id", %{state: state} do
     assert %{id: 999} = Instances.get_map_tile_by_id(state, %{id: 999})
   end
 
@@ -83,7 +83,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute Instances.responds_to_event?(state, %{id: 222}, "ANYTHING")
   end
 
-  test "send_event", %{state: state} do
+  test "send_event/4", %{state: state} do
     player_location = %Location{id: 555}
 
     player_channel = "players:#{player_location.id}"
@@ -142,7 +142,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     } == state
   end
 
-  test "create_map_tile/1 creates a map tile" do
+  test "create_map_tile/2 creates a map tile" do
     new_map_tile = %{id: 1, row: 4, col: 4, z_index: 0, character: "M", state: "", script: ""}
 
     {new_map_tile, state} = Instances.create_map_tile(%Instances{}, new_map_tile)
@@ -151,7 +151,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %Instances{
       program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
-      map_by_coords: %{ {4, 4} => %{0 => 1} }
+      map_by_coords: %{ {4, 4} => %{0 => 1} },
+      new_pids: []
     } == state
 
     # returns the existing tile if it already exists by id
@@ -167,6 +168,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                                               123 => Map.put(map_tile_bad_script, :parsed_state, %{})},
                                 map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}} } == updated_state
            end) =~ ~r/Possible corrupt script for map tile instance:/
+
+    # If there's a program that starts, adds the map_tile_id to new_pids, so Instances._cycle_program
+    # can know to save it and add it back to the map of updated program_contexts.
+    map_tile_good_script = %MapTile{character: "U", row: 1, col: 4, id: 123, script: "#SHOOT north"}
+    {new_map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile_good_script)
+    assert %{id: 123, character: "U"} = new_map_tile
+    assert %Instances{
+      program_contexts: %{123 => _},
+      map_by_ids: %{123 => ^new_map_tile},
+      map_by_coords: %{ {1, 4} => %{0 => 123} },
+      new_pids: [ 123 ]
+    } = state
   end
 
   test "update_map_tile/2 updates the map tile", %{state: state} do

@@ -71,7 +71,7 @@ defmodule DungeonCrawl.Player do
 
     Map.take(empty_floor, [:map_instance_id, :row, :col])
     |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
-    |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color]))
+    |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end
 

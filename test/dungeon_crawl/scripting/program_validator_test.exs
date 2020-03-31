@@ -50,6 +50,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SEND touch
     #SEND thud, all
     #SEND hi, all, toomany
+    #SEND touch, @facing
+    #SHOOT @facing
+    #SHOOT west
+    #SHOOT idle
     """
   end
 
@@ -90,7 +94,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 21: CYCLE command has invalid param `false`",
                "Line 23: ZAP command references nonexistant label `THUD`",
                "Line 25: RESTORE command references nonexistant label `THUD`",
-               "Line 28: SEND command has an invalid number of parameters"
+               "Line 28: SEND command has an invalid number of parameters",
+               "Line 32: SHOOT command references invalid direction `idle`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -107,7 +112,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 21: CYCLE command has invalid param `false`",
                "Line 23: ZAP command references nonexistant label `THUD`",
                "Line 25: RESTORE command references nonexistant label `THUD`",
-               "Line 28: SEND command has an invalid number of parameters"
+               "Line 28: SEND command has an invalid number of parameters",
+               "Line 32: SHOOT command references invalid direction `idle`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

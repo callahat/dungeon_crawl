@@ -27,6 +27,10 @@ pre.dungeon_preview {
   padding: 0.5em;
 }
 
+pre.dungeon_preview table tr td {
+  overflow: hidden;
+}
+
 pre.color_pallette {
   background: #f5f5f5;
   border-radius: 0.25rem;

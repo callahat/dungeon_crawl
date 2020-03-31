@@ -50,11 +50,19 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                :TOUCH
                #SEND do_something, others
                #SEND already_open
+               #SEND touch, @facing
+               #IF ! @open, ALREADY_OPEN
+               #IF @open == false, ALREADY_OPEN
+               #IF not @open == false, ALREADY_OPEN
+               #SHOOT north
+               #SHOOT @facing
+               #TERMINATE
+               #SEND touch, ?sender
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
                                                  2 => [:noop, "TOUCH"],
-                                                 3 => [:jump_if, [["", :check_state, :open, "==", true], "ALREADY_OPEN"]],
+                                                 3 => [:jump_if, [[:state_variable, :open], "ALREADY_OPEN"]],
                                                  4 => [:become, [%{character: "'", color: "white"}]],
                                                  5 => [:text, ["The door creaks open"]],
                                                  6 => [:halt, [""]],
@@ -75,7 +83,15 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  21 => [:restore, ["touch"]],
                                                  22 => [:noop, "TOUCH"],
                                                  23 => [:send_message, ["do_something", "others"]],
-                                                 24 => [:send_message, ["already_open"]]
+                                                 24 => [:send_message, ["already_open"]],
+                                                 25 => [:send_message, ["touch", [:state_variable, :facing]]],
+                                                 26 => [:jump_if, [["!", :state_variable, :open], "ALREADY_OPEN"]],
+                                                 27 => [:jump_if, [[:state_variable, :open, "==", false], "ALREADY_OPEN"]],
+                                                 28 => [:jump_if, [["!", :state_variable, :open, "==", false], "ALREADY_OPEN"]],
+                                                 29 => [:shoot, ["north"]],
+                                                 30 => [:shoot, [[:state_variable, :facing]]],
+                                                 31 => [:terminate, [""]],
+                                                 32 => [:send_message, ["touch", [:event_sender]]],
                                                  },
                                  status: :alive,
                                  pc: 1,

@@ -86,27 +86,11 @@ defmodule DungeonCrawl.DungeonChannelTest do
     refute_broadcast "tile_changes", _anything_really
   end
 
-  @tag up_tile: "."
-  test "step does not reply if nothing happens", %{socket: socket} do
-    ref = push socket, "step", %{"direction" => "up"}
-    refute_reply ref, _, _
-    refute_broadcast _any_event, _any_payload
-  end
-
-  @tag up_tile: "."
-  test "step does not reply if there is no tile", %{socket: socket} do
-    Repo.get_by(DungeonInstances.MapTile, %{row: @player_row-1, col: @player_col})
-    |> Repo.delete!
-    ref = push socket, "step", %{"direction" => "up"}
-    refute_reply ref, _, _
-    refute_broadcast _any_event, _any_payload
-  end
-
   @tag up_tile: "message_tile"
-  test "step replies with messages", %{socket: socket, player_location: player_location} do
+  test "move replies with messages", %{socket: socket, player_location: player_location} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "step", %{"direction" => "up"}
+    push socket, "move", %{"direction" => "up"}
 
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
@@ -116,7 +100,34 @@ defmodule DungeonCrawl.DungeonChannelTest do
         topic: ^player_channel,
         event: "message",
         payload: %{message: "with line o text"}}
-    refute_broadcast _any_event, _any_payload
+  end
+
+  @tag up_tile: "."
+  test "shoot replies with status ok", %{socket: socket} do
+    ref = push socket, "shoot", %{"direction" => "up"}
+    assert_reply ref, :ok, %{}
+  end
+
+  @tag up_tile: "."
+  test "shoot into an empty space spawns a bullet", %{socket: socket} do
+    push socket, "shoot", %{"direction" => "up"}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+
+    # but not if one has been fired in the last 100ms
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+  end
+
+  @tag up_tile: " "
+  test "shoot into a nil space or idle does nothing", %{socket: socket} do
+    push socket, "shoot", %{"direction" => "gibberish_which_becomes_idle"}
+    refute_broadcast "tile_changes", _anything_really
+  end
+
+  @tag up_tile: "#"
+  test "shoot into a blocking or shootable space spawns no bullet but sends the shot message", %{socket: socket} do
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", _anything_really
   end
 
   # TODO: refactor the underlying model/channel methods into more testable concerns

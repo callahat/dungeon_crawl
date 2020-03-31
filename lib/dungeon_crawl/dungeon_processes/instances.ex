@@ -4,7 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: []
+  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: [], new_pids: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -88,7 +88,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
         else
           updated_program_context = %{program: program, object: object, event_sender: sender}
-          %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, updated_program_context)}
+          %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile_id, updated_program_context)}
         end
 
       _ ->
@@ -160,12 +160,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-  defp _start_program(%Instances{program_contexts: program_contexts} = state, map_tile_id, program_context) do
+  defp _start_program(%Instances{program_contexts: program_contexts, new_pids: new_pids} = state, map_tile_id, program_context) do
     if Map.has_key?(program_contexts, map_tile_id) do
       # already a running program for that tile id, or there is no map tile for that id
       state
     else
-      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context)}
+      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context),
+                          new_pids: [map_tile_id | new_pids]}
     end
   end
 
@@ -240,7 +241,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
       player_locations = Map.delete(player_locations, map_tile_id)
-      {map_tile, %Instances{ program_contexts: program_contexts,
+      {map_tile, %Instances{ state |
+                             program_contexts: program_contexts,
                              map_by_ids: by_id,
                              map_by_coords: by_coords,
                              dirty_ids: dirty_ids,
@@ -280,8 +282,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
   def handle_broadcasting(runner_context) do
-    _handle_broadcasts(runner_context.program.broadcasts, "dungeons:#{runner_context.object.map_instance_id}")
-    _handle_broadcasts(runner_context.program.responses, runner_context.event_sender)
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.object.map_instance_id}")
+    _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end
 

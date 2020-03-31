@@ -252,6 +252,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
       Regex.match?(~r/^(not |! ?)?@.+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
+      Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
     end
   end
@@ -261,19 +262,29 @@ defmodule DungeonCrawl.Scripting.Parser do
     case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>[_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<value>.+))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "state_element" => state_element, "op" => "", "value" => ""} ->
-        ["", :check_state, String.trim(state_element) |> String.to_atom(), "==", true]
+        [:state_variable, String.trim(state_element) |> String.to_atom()]
 
       %{"neg" => "", "state_element" => state_element, "op" => op, "value" => value} ->
-        ["", :check_state, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+        [:state_variable, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
 
       %{"neg" => _, "state_element" => state_element, "op" => "", "value" => ""} ->
-        ["!", :check_state, String.trim(state_element) |> String.to_atom(), "==", true]
+        ["!", :state_variable, String.trim(state_element) |> String.to_atom()]
 
       %{"neg" => _, "state_element" => state_element, "op" => op, "value" => value} ->
-        ["!", :check_state, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+        ["!", :state_variable, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
 
       _ ->
         :error
+    end
+  end
+
+  def _normalize_special_var(param) do
+    case Regex.named_captures(~r/^\?(?<variable>.*)/i, String.trim(param)) do
+      %{"variable" => "sender"} ->
+        [:event_sender]
+
+      _ ->
+       :error
     end
   end
 end

@@ -59,36 +59,36 @@ let Dungeon = {
           break
         case(38):
         case(87):
-          this.actionMethod(dungeonChannel, "up")
+          this.actionMethod(dungeonChannel, "up", event.shiftKey)
           break
         case(40):
         case(83):
-          this.actionMethod(dungeonChannel, "down")
+          this.actionMethod(dungeonChannel, "down", event.shiftKey)
           break
         case(37):
         case(65):
-          this.actionMethod(dungeonChannel, "left")
+          this.actionMethod(dungeonChannel, "left", event.shiftKey)
           break
         case(39):
         case(68):
-          this.actionMethod(dungeonChannel, "right")
+          this.actionMethod(dungeonChannel, "right", event.shiftKey)
           break
       }
     })
   },
-  move(dungeonChannel, direction){
+  move(dungeonChannel, direction, shoot = false){
     console.log(direction)
+    console.log(shoot)
     let payload = {direction: direction}
     document.getElementById("short_comm").innerText = "Moving..."
-    dungeonChannel.push("step", payload)
-                  .receive("error", resp => document.getElementById("short_comm").innerHTML = resp.msg)
-    dungeonChannel.push("move", payload)
+
+    dungeonChannel.push(shoot ? "shoot" : "move", payload)
                   .receive("error", e => console.log(e))
   },
-  open(dungeonChannel, direction){
+  open(dungeonChannel, direction, shift = false){
     this._useDoor(dungeonChannel, direction, "OPEN")
   },
-  close(dungeonChannel, direction){
+  close(dungeonChannel, direction, shift = false){
     this._useDoor(dungeonChannel, direction, "CLOSE")
   },
   _useDoor(dungeonChannel, direction, action){
