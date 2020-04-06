@@ -1,5 +1,5 @@
 let Player = {
-  init(socket, element){ if(!element){ return }
+  init(socket, dungeonJs, element){ if(!element){ return }
     let playerUserIdHash = element.getAttribute("data-location-id")
     socket.connect()
 
@@ -7,14 +7,14 @@ let Player = {
 
 
     playerChannel.on("message", (resp) => {
-      document.getElementById("short_comm").innerText = resp.message
+      dungeonJs.renderMessage(resp.message)
     })
 
     playerChannel.on("ping", ({count}) => console.log("PING", count))
 
     playerChannel.join()
       .receive("ok", (resp) => {
-        console.log("joined the players channel!")
+        dungeonJs.renderMessage("Entered the dungeon")
       })
       .receive("error", resp => console.log("join failed", resp))
 

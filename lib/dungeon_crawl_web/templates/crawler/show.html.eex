@@ -3,7 +3,6 @@
   <%= render "stat_sidebar.html" %>
 
   <div class="col-9 offset-3">
-    <pre id="short_comm">Move...</pre>
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />
     <%= render(DungeonCrawlWeb.SharedView,
                "dungeon_instance.html",

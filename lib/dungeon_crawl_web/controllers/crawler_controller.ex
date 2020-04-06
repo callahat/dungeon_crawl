@@ -46,7 +46,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
     |> case do
       {:ok, %{dungeon: _dungeon}} ->
         conn
-        |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: Routes.crawler_path(conn, :show))
     end
   end
@@ -55,7 +54,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
     join_and_broadcast(conn.assigns.instance, conn.assigns[:user_id_hash])
 
     conn
-    |> put_flash(:info, "Dungeon joined successfully.")
     |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
@@ -63,7 +61,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
     join_and_broadcast(conn.assigns.dungeon, conn.assigns[:user_id_hash])
 
     conn
-    |> put_flash(:info, "Dungeon joined successfully.")
     |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
