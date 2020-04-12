@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.Action.Shoot do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.Player.Location
 
   @doc """
   Fires a bullet in the given direction. The bullet will spawn on the tile one away from the object
@@ -9,6 +10,17 @@ defmodule DungeonCrawl.Action.Shoot do
   Otherwise, the bullet will walk in given direction until it hits something, or something
   responds to the "SHOT" message.
   """
+  def shoot(%Location{} = player_location, direction, %Instances{} = state) do
+    player_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+
+    if player_tile.parsed_state[:ammo] && player_tile.parsed_state[:ammo] > 0 do
+      {player_tile, state} = Instances.update_map_tile_state(state, player_tile, %{ammo: player_tile.parsed_state[:ammo] -1})
+      shoot(player_tile, direction, state)
+    else
+      {:no_ammo}
+    end
+  end
+
   def shoot(%MapTile{} = shooter_map_tile, direction, %Instances{} = state) do
     spawn_tile = Instances.get_map_tile(state, shooter_map_tile, direction)
 

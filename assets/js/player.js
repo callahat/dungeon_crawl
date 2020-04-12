@@ -12,6 +12,10 @@ let Player = {
 
     playerChannel.on("ping", ({count}) => console.log("PING", count))
 
+    playerChannel.on("stat_update", (resp) => {
+      this.statUpdate(resp.stats)
+    })
+
     playerChannel.join()
       .receive("ok", (resp) => {
         dungeonJs.renderMessage("Entered the dungeon")
@@ -21,6 +25,12 @@ let Player = {
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
+  },
+  statUpdate(stats){
+    document.getElementById("health").innerText = stats.health
+    document.getElementById("gems").innerText = stats.gems
+    document.getElementById("cash").innerText = stats.cash
+    document.getElementById("ammo").innerText = stats.ammo
   }
 }
 

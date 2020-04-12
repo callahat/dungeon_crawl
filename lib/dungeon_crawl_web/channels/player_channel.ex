@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   def join("players:" <> location_id, _payload, socket) do
     # TODO: verify the player joining the channel is the player
+
     {:ok, %{location_id: location_id}, assign(socket, :location_id, location_id)}
   end
 

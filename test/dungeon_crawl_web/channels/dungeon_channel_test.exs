@@ -25,7 +25,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
                  Map.take(north_tile, [:character,:color,:background_color,:state,:script])),
        Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
                  Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script]))])
-    player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col})
+    player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}"})
                       |> Repo.preload(:map_tile)
 
     {:ok, _, socket} =
@@ -116,6 +116,24 @@ defmodule DungeonCrawl.DungeonChannelTest do
     # but not if one has been fired in the last 100ms
     push socket, "shoot", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+  end
+
+  @tag up_tile: ".", ammo: 0
+  test "does not let the player shoot if out of ammo", %{socket: socket, player_location: player_location} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    assert_broadcast "message", %{message: "Out of ammo"}
+  end
+
+  @tag up_tile: ".", ammo: 1
+  test "updates the players stats including ammo count after shooting", %{socket: socket, player_location: player_location} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "message", %{message: "Out of ammo"}
+    assert_broadcast "stat_update", %{stats: %{ammo: 0}}
   end
 
   @tag up_tile: " "

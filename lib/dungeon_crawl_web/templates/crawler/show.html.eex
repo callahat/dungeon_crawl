@@ -1,6 +1,6 @@
 <%= if @player_location do %>
 <div class="text-center">
-  <%= render "stat_sidebar.html" %>
+  <%= render "stat_sidebar.html", player_map_tile: @player_map_tile %>
 
   <div class="col-9 offset-3">
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />

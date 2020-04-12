@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.MapGenerators.ConnectedRooms
+  alias DungeonCrawl.TileState
   alias Ecto.Multi
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
@@ -22,8 +23,14 @@ defmodule DungeonCrawlWeb.CrawlerController do
     player_location = conn.assigns[:player_location]
 
     dungeons = if player_location, do: [], else: Dungeon.list_active_dungeons_with_player_count()
+    player_map_tile = if player_location do
+                        {:ok, parsed_state} = TileState.Parser.parse(player_location.map_tile.state)
+                        Map.put(player_location.map_tile, :parsed_state, parsed_state)
+                      else
+                        nil
+                      end
 
-    render(conn, "show.html", player_location: player_location, dungeons: dungeons)
+    render(conn, "show.html", player_location: player_location, dungeons: dungeons, player_map_tile: player_map_tile)
   end
 
   def create(conn, _opts) do
@@ -78,6 +85,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
 
   defp assign_player_location(conn, _opts) do
+    # TODO: get this from the instance?
     player_location = Player.get_location(conn.assigns[:user_id_hash])
                       |> Repo.preload(map_tile: [:dungeon])
 

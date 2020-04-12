@@ -15,6 +15,11 @@ defmodule DungeonCrawl.PlayerTest do
     end
 
     test "get_location/1" do
+      location = location_fixture()
+      assert Player.get_location(%{id: location.id}) == location
+    end
+
+    test "get_location!/1" do
       location = location_fixture(%{user_id_hash: "getLocation"})
       assert Player.get_location!("getLocation") == location
     end
