@@ -232,3 +232,7 @@ input#tile_template_character {
   background-color: lightgray;
 }
 
+.help pre{
+  display: inline;
+  background-color: lightgray;
+}

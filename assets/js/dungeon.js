@@ -46,6 +46,9 @@ let Dungeon = {
         e.preventDefault()
       }
       switch(direction){
+        case(72): // h
+          $('#helpDetailModal').modal('show')
+          break
         case(79): // o
           this.renderMessage("Open Direction?")
           this.actionMethod = this.open
