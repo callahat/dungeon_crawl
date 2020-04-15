@@ -45,16 +45,16 @@ let Dungeon = {
       if(suppressDefaultKeys.indexOf(direction) > 0) {
         e.preventDefault()
       }
-      // document.getElementById("short_comm").innerHTML = direction
-      // console.log(direction)
-      // arrow keys or WASD, respectiv
       switch(direction){
+        case(72): // h
+          $('#helpDetailModal').modal('show')
+          break
         case(79): // o
-          document.getElementById("short_comm").innerText = "Open Direction?"
+          this.renderMessage("Open Direction?")
           this.actionMethod = this.open
           break
         case(67): // c
-          document.getElementById("short_comm").innerText = "Close Direction?"
+          this.renderMessage("Close Direction?")
           this.actionMethod = this.close
           break
         case(38):
@@ -80,7 +80,6 @@ let Dungeon = {
     console.log(direction)
     console.log(shoot)
     let payload = {direction: direction}
-    document.getElementById("short_comm").innerText = "Moving..."
 
     dungeonChannel.push(shoot ? "shoot" : "move", payload)
                   .receive("error", e => console.log(e))
@@ -91,14 +90,35 @@ let Dungeon = {
   close(dungeonChannel, direction, shift = false){
     this._useDoor(dungeonChannel, direction, "CLOSE")
   },
+  renderMessage(msg){
+    let template = document.createElement("div")
+    template.setAttribute("class", "d-flex flex-row no-gutters")
+    template.innerHTML = `
+      <div class="col-2">
+        ${this._messageTimestamp()}
+      </div>
+      <div>
+        ${msg}
+      </div>
+    `
+    document.getElementById("sidebar_message_box").appendChild(template)
+    document.getElementById("sidebar_message_box").scrollTop = document.getElementById("sidebar_message_box").scrollHeight
+  },
+  _messageTimestamp(){
+    return new Date().toLocaleTimeString("en-US", this.timestampOptions)
+  },
   _useDoor(dungeonChannel, direction, action){
     let payload = {direction: direction, action: action}
     dungeonChannel.push("use_door", payload)
-                  .receive("error", resp => document.getElementById("short_comm").innerHTML = resp.msg)
+                  .receive("error", resp => this.renderMessage(resp.msg) )
     this.actionMethod = this.move
-    document.getElementById("short_comm").innerText = "Moving..."
   },
-  actionMethod: null
+  actionMethod: null,
+  timestampOptions: {
+         hour12 : false,
+         hour:  "2-digit",
+         minute: "2-digit"
+  },
 }
 
 export default Dungeon

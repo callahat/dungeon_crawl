@@ -171,6 +171,17 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   @doc """
+  Updates the given map tile's state, returns the updated tile and new instance state.
+  `state_attributes` is a map of existing (or new) state values that will replace (or add)
+  values already in the state. An existing state attribute (ie, `blocking`) that is not
+  included in this map will be unaffected.
+  """
+  def update_map_tile_state(%Instances{} = state, map_tile, state_attributes) do
+    state_str = TileState.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
+    update_map_tile(state, map_tile, %{state: state_str})
+  end
+
+  @doc """
   Updates the given map tile in the parent instance process, and returns the updated tile and new state.
   If the new attributes include a script, the program will be updated if the script is valid.
   """

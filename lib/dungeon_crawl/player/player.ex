@@ -22,6 +22,7 @@ defmodule DungeonCrawl.Player do
       ** (Ecto.NoResultsError)
 
   """
+  def get_location(%{id: location_id}), do: Repo.get_by(Location, %{id: location_id})
   def get_location(user_id_hash), do: Repo.get_by(Location, %{user_id_hash: user_id_hash})
   def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
 

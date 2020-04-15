@@ -1,5 +1,5 @@
 let Player = {
-  init(socket, element){ if(!element){ return }
+  init(socket, dungeonJs, element){ if(!element){ return }
     let playerUserIdHash = element.getAttribute("data-location-id")
     socket.connect()
 
@@ -7,20 +7,30 @@ let Player = {
 
 
     playerChannel.on("message", (resp) => {
-      document.getElementById("short_comm").innerText = resp.message
+      dungeonJs.renderMessage(resp.message)
     })
 
     playerChannel.on("ping", ({count}) => console.log("PING", count))
 
+    playerChannel.on("stat_update", (resp) => {
+      this.statUpdate(resp.stats)
+    })
+
     playerChannel.join()
       .receive("ok", (resp) => {
-        console.log("joined the players channel!")
+        dungeonJs.renderMessage("Entered the dungeon")
       })
       .receive("error", resp => console.log("join failed", resp))
 
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
+  },
+  statUpdate(stats){
+    document.getElementById("health").innerText = stats.health
+    document.getElementById("gems").innerText = stats.gems
+    document.getElementById("cash").innerText = stats.cash
+    document.getElementById("ammo").innerText = stats.ammo
   }
 }
 

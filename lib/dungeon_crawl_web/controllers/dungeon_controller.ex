@@ -221,7 +221,6 @@ defmodule DungeonCrawlWeb.DungeonController do
     join_and_broadcast(conn.assigns.dungeon, conn.assigns[:user_id_hash])
 
     conn
-    |> put_flash(:info, "Dungeon joined successfully.")
     |> redirect(to: Routes.crawler_path(conn, :show))
   end
 

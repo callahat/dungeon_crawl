@@ -160,7 +160,6 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     conn = post conn, crawler_path(conn, :join), dungeon_id: dungeon.id
     assert redirected_to(conn) == crawler_path(conn, :show)
     refute get_flash(conn, :error) == "Cannot join that dungeon"
-    assert get_flash(conn, :info) == "Dungeon joined successfully."
   end
 
   # destroy

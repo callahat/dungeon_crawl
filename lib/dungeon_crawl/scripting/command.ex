@@ -428,11 +428,8 @@ defmodule DungeonCrawl.Scripting.Command do
                                                              wait_cycles: object.parsed_state[:wait_cycles] || 5 },
                                         object: new_location,
                                         state: new_state}
-        if direction != "idle" do
-          change_state(updated_runner_state, [:facing, "=", direction])
-        else
-          updated_runner_state
-        end
+
+        change_state(updated_runner_state, [:facing, "=", direction])
 
       {:invalid} ->
         next_actions.invalid_move_handler.(runner_state, retryable)

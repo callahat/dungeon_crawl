@@ -58,7 +58,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   Seeds the DB with the basic player character tile, returning that record.
   """
   def player_character_tile() do
-    TileTemplates.find_or_create_tile_template!(%{character: "@", name: "Player",  description: "Its a player.", state: "blocking: true"})
+    TileTemplates.find_or_create_tile_template!(
+      %{character: "@",
+        name: "Player",
+        description: "Its a player.",
+        state: "blocking: true, health: 100, gems: 0, cash: 0, ammo: 6"}
+    )
   end
 
   # TODO: add single door using states

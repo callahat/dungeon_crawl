@@ -1,0 +1,46 @@
+<!-- Modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="helpDetailModal" aria-labelledby="helpDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tileDetailModalLabel">
+          Help
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-left">
+
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Movement</strong><br/>
+            <span>You can move your character about by pressing <pre>W</pre>, <pre>A</pre>, <pre>S</pre>, <pre>D</pre> or
+                  the corresponding <pre>up</pre>, <pre>left</pre>, <pre>down</pre>, or <pre>right</pre> arrow keys.
+                  Certain tiles will block your movement, such as walls and closed doors.</span>
+          </div>
+        </div>
+        <hr/>
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Doors</strong><br/>
+            <span>Doors can allow movement <pre>'</pre> (open) or block <pre>+</pre> (closed). You can attempt to open a closed door
+                  (or any tile really) by pressing <pre>o</pre> followed by a direction (WASD or arrow keys). You can also attempt to
+                  close an open door by pressing <pre>c</pre> followed by a direction.</span>
+          </div>
+        </div>
+        <hr/>
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Shoot</strong>
+            <span>If you have ammo, press <pre>shift</pre> and a direction to fire a bullet in that direction.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -182,7 +182,19 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     } = state
   end
 
-  test "update_map_tile/2 updates the map tile", %{state: state} do
+  test "update_map_tile_state/3", %{state: state} do
+    map_tile = Instances.get_map_tile(state, %{id: 999, row: 1, col: 2})
+    assert {map_tile, state} = Instances.update_map_tile_state(state, map_tile, %{hamburders: 4})
+    assert map_tile.parsed_state[:hamburders] == 4
+    assert map_tile.state == "hamburders: 4"
+
+    assert {map_tile, state} = Instances.update_map_tile_state(state, map_tile, %{coffee: 2})
+    assert map_tile.parsed_state[:hamburders] == 4
+    assert map_tile.parsed_state[:coffee] == 2
+    assert map_tile.state == "coffee: 2, hamburders: 4"
+  end
+
+  test "update_map_tile/3 updates the map tile", %{state: state} do
     map_tile = Instances.get_map_tile(state, %{id: 999, row: 1, col: 2})
     new_attributes = %{id: 333, row: 2, col: 2, character: "M"}
 
@@ -221,6 +233,45 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{dirty_ids: %{999 => changeset_999, -3 => changeset_neg_3}} = state
     assert changeset_999.changes == MapTile.changeset(%MapTile{},%{character: "X", row: 5, col: 6, z_index: 1}).changes
     assert changeset_neg_3.changes == MapTile.changeset(%MapTile{},%{character: "M"}).changes
+
+    # Adds a program
+    refute state.program_contexts[-3]
+    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{script: "#END\n:TOUCH\n?s"})
+    assert %{-3 => %{program: program, object: ^updated_tile}} = state.program_contexts
+    assert %DungeonCrawl.Scripting.Program{
+             broadcasts: [],
+             instructions: %{
+               1 => [:halt, [""]],
+               2 => [:noop, "TOUCH"],
+               3 => [:compound_move, [{"south", false}]]
+             },
+             labels: %{
+               "touch" => [[2, true]]
+             },
+             locked: false,
+             pc: 1,
+             responses: [],
+             status: :idle,
+             wait_cycles: 0
+           } = program
+
+    # Adds a different program to something with one already
+    assert state.program_contexts[999]
+    assert state.program_contexts[999].program.status == :alive
+    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: 999}, %{script: "?n"})
+    assert %{999 => %{program: program, object: ^updated_tile}} = state.program_contexts
+    assert %DungeonCrawl.Scripting.Program{
+             broadcasts: [],
+             instructions: %{
+               1 => [:compound_move, [{"north", false}]]
+             },
+             labels: %{},
+             locked: false,
+             pc: 1,
+             responses: [],
+             status: :idle,
+             wait_cycles: 0
+           } = program
   end
 
   test "delete_player_map_tile/2 deletes the map tile and unregisters player location", %{state: state} do
