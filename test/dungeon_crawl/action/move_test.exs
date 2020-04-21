@@ -17,7 +17,7 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     destination =     Instances.get_map_tile(state, %{row: 1, col: 1})
 
-    assert {:ok, %{new_location: new_location, old_location: old_location}, state} = Move.go(player_location, destination, state)
+    assert {:ok, %{{1, 1} => new_location, {1, 2} => old_location}, state} = Move.go(player_location, destination, state)
     assert %MapTile{row: 1, col: 2, character: ".", z_index: 0} = old_location
 
     assert %MapTile{row: 1, col: 1, z_index: 1} = new_location
@@ -33,7 +33,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     {floor_b, state} = Instances.create_map_tile(%Instances{}, floor_b)
     {player_location, state} = Instances.create_map_tile(state, player_location)
 
-    assert {:ok, %{new_location: new_location, old_location: old_location}, state} = Move.go(player_location, floor_b, state)
+    assert {:ok, %{{1, 1} => new_location, {1, 2} => old_location}, state} = Move.go(player_location, floor_b, state)
     assert %MapTile{id: nil,  row: 1, col: 2, character: nil} = old_location
     assert %MapTile{id: 1000, row: 1, col: 1, character: "@"} = new_location
     assert Instances.get_map_tiles(state, %{row: 1, col: 2}) == []

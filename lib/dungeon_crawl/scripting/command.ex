@@ -413,20 +413,31 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: program, object: object, state: state} = runner_state
 
     case Move.go(object, destination, state) do
-      {:ok, %{new_location: new_location, old_location: old}, new_state} ->
+      {:ok, tile_changes, new_state} ->
+
+        # this won't update the currently cycling program instances, hence why object_ids should be used, and the state map_by_id's
+        # should be the source of truth for all tiles (including those controlled by program)
+        new_state = if new_state.program_contexts[destination.id] do
+                      program_context = new_state.program_contexts[destination.id]
+                      object = Instances.get_map_tile_by_id(new_state, destination)
+                      %{ new_state | program_contexts: Map.put(new_state.program_contexts, destination.id, %{ program_context | object: object}) }
+                    else
+                      new_state
+                    end
 
         message = ["tile_changes",
-               %{tiles: [
-                     Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
-                     Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
-               ]}]
+                   %{tiles: tile_changes
+                            |> Map.to_list
+                            |> Enum.map(fn({_coords, tile}) ->
+                              Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                            end)}]
 
         updated_runner_state = %Runner{ program: %{program | pc: next_actions.pc,
                                                              lc: next_actions.lc,
                                                              broadcasts: [message | program.broadcasts],
                                                              status: :wait,
                                                              wait_cycles: object.parsed_state[:wait_cycles] || 5 },
-                                        object: new_location,
+                                        object: Instances.get_map_tile_by_id(state, object),
                                         state: new_state}
 
         change_state(updated_runner_state, [:facing, "=", direction])
@@ -448,7 +459,7 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = TileState.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
+          %Runner{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
       retryable ->
           %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
@@ -460,7 +471,7 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = TileState.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %Runner{ runner_state | program: %{program | pc: line_number} }
+          %Runner{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
       retryable ->
           %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->

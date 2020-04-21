@@ -175,8 +175,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{program: program} = Command.compound_move(%Runner{program: program, object: mover, state: state}, [{"south", true}])
 
-    assert %{status: :alive,
-             wait_cycles: 0,
+    assert %{status: :wait,
+             wait_cycles: 5,
              broadcasts: [],
              pc: 4,
              lc: 0
@@ -481,8 +481,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{program: program} = Command.move(%Runner{program: program, object: mover, state: state}, ["south", true])
 
-    assert %{status: :alive,
-             wait_cycles: 0,
+    assert %{status: :wait,
+             wait_cycles: 5,
              broadcasts: [],
              pc: 4
            } = program
