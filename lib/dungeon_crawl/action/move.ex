@@ -12,13 +12,6 @@ defmodule DungeonCrawl.Action.Move do
         case go(destination, pushed_location, state) do
           # TODO: need the new_old_location_map to update all the pushed map tiles in the display
           {:ok, tile_changes, state} ->
-            state = if state.program_contexts[destination.id] do
-                      program_context = state.program_contexts[destination.id]
-                      object = Instances.get_map_tile_by_id(state, destination)
-                      %{ state | program_contexts: Map.put(state.program_contexts, destination.id, %{ program_context | object: object}) }
-                    else
-                      state
-                    end
             _move(entity_map_tile, destination, state, tile_changes)
 
           _ ->

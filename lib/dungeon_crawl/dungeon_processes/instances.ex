@@ -80,14 +80,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
   def send_event(%Instances{program_contexts: program_contexts} = state, %{id: map_tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
     case program_contexts do
-      %{^map_tile_id => %{program: program, object: object}} ->
-        %Runner{program: program, object: object, state: state} = Scripting.Runner.run(%Runner{program: program, object: object, state: state}, event)
+      %{^map_tile_id => %{program: program, object_id: object_id}} ->
+        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program, object_id: object_id, state: state}, event)
                                   |> Map.put(:event_sender, sender)
-                                  |> handle_broadcasting()
+                                  |> handle_broadcasting(state)
         if program.status == :dead do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
         else
-          updated_program_context = %{program: program, object: object, event_sender: sender}
+          updated_program_context = %{program: program, object_id: object_id, event_sender: sender}
           %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile_id, updated_program_context)}
         end
 
@@ -147,7 +147,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     case Scripting.Parser.parse(map_tile.script) do
      {:ok, program} ->
        unless program.status == :dead do
-         {:ok, map_tile, _start_program(state, map_tile.id, %{program: program, object: map_tile, event_sender: nil})}
+         {:ok, map_tile, _start_program(state, map_tile.id, %{program: program, object_id: map_tile.id, event_sender: nil})}
        else
          {:none, map_tile, state}
        end
@@ -176,7 +176,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   values already in the state. An existing state attribute (ie, `blocking`) that is not
   included in this map will be unaffected.
   """
-  def update_map_tile_state(%Instances{} = state, map_tile, state_attributes) do
+  def update_map_tile_state(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id}, state_attributes) do
+    map_tile = by_id[map_tile_id]
     state_str = TileState.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
     update_map_tile(state, map_tile, %{state: state_str})
   end
@@ -292,8 +293,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
-  def handle_broadcasting(runner_context) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.object.map_instance_id}")
+  def handle_broadcasting(runner_context, state) do
+    object = Instances.get_map_tile_by_id(state, %{id: runner_context.object_id})
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{object.map_instance_id}")
     _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end

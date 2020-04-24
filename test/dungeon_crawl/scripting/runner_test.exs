@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.DungeonProcesses.Instances
 
   describe "run" do
     test "executes from current pc" do
@@ -12,12 +13,12 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                Line Two
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: program, object: stubbed_object})
+      %Runner{program: run_program} = Runner.run(%Runner{program: program, object_id: stubbed_object.id})
       assert run_program.responses == ["Line Two", "Line One"]
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | pc: 2}, object: stubbed_object})
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | pc: 2}, object_id: stubbed_object.id})
       assert run_program.responses == ["Line Two"]
     end
 
@@ -28,9 +29,10 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      state = %Instances{map_by_ids: %{1 => stubbed_object}}
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object: stubbed_object}, "Here")
+      %Runner{program: run_program} = Runner.run(%Runner{state: state, program: %{program | status: :idle}, object_id: stubbed_object.id}, "Here")
       assert run_program.responses == ["After label"]
     end
 
@@ -44,14 +46,15 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                Last text
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object: stubbed_object})
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object_id: 1, state: stubbed_state})
       assert run_program.responses == ["Last text"]
       assert run_program.message == {}
 
       # A label passed in overrides the existing message
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object: stubbed_object}, "here")
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object_id: 1, state: stubbed_state}, "here")
       assert run_program.responses == ["After label"]
       assert run_program.message == {}
     end
@@ -65,10 +68,12 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After Active label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | labels: %{"here" => [[2,false], [4,true]]}, status: :idle},
-                                                                              object: stubbed_object},
+                                                         object_id: stubbed_object.id,
+                                                         state: stubbed_state },
                                                  "Here")
       assert run_program.responses == ["After Active label"]
     end
@@ -81,9 +86,10 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: "locked: true", parsed_state: %{locked: true}}
+      stubbed_object = %{id: 1, state: "locked: true", parsed_state: %{locked: true}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object: stubbed_object}, "Here")
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object_id: 1, state: stubbed_state}, "Here")
       assert run_program.pc == 1
       assert run_program.responses == []
     end
@@ -91,42 +97,49 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
     test "when given a label but no label matches" do
       script = "No label"
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
 
-      assert %Runner{object: stubbed_object, program: %{program | status: :idle}} == 
-             Runner.run(%Runner{program: %{program | status: :idle}, object: stubbed_object}, "TOUCH")
+      assert %Runner{state: stubbed_state, program: %{program | status: :idle}, object_id: 1} == 
+             Runner.run(%Runner{program: %{program | status: :idle}, object_id: 1, state: stubbed_state}, "TOUCH")
     end
 
     test "when program is idle it runs nothing and just returns the program and object" do
       program = %Program{status: :idle, pc: 2}
-      stubbed_object = %{state: "", parsed_state: %{}}
-      %Runner{object: object, program: run_program} = Runner.run(%Runner{program: program, object: stubbed_object})
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
+      %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert program == run_program
-      assert object  == stubbed_object
+      assert state  == stubbed_state
     end
 
     test "when program is dead runs nothing and just returns the program and object" do
       program = %Program{status: :dead, pc: 2}
-      stubbed_object = %{state: "", parsed_state: %{}}
-      %Runner{object: object, program: run_program} = Runner.run(%Runner{program: program, object: stubbed_object})
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
+      %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert program == run_program
-      assert object  == stubbed_object
+      assert state  == stubbed_state
     end
 
     test "when program is wait the wait_cycles are decremented" do
       program = %Program{status: :wait, pc: 2, wait_cycles: 3}
-      stubbed_object = %{state: "", parsed_state: %{}}
-      %Runner{object: _object, program: run_program} = Runner.run(%Runner{program: program, object: stubbed_object})
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
+      %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert run_program.wait_cycles == 2
       assert run_program.status == :wait
+      assert state == stubbed_state
     end
 
     test "when program is wait and wait_cycles become zero, program becomes alive" do
       program = %Program{status: :wait, pc: 2, wait_cycles: 1}
-      stubbed_object = %{state: "", parsed_state: %{}}
-      %Runner{object: _object, program: run_program} = Runner.run(%Runner{program: program, object: stubbed_object})
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
+      %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert run_program.wait_cycles == 0
       assert run_program.status == :alive
+      assert state == stubbed_state
     end
   end
 end

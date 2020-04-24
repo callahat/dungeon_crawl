@@ -256,15 +256,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _cycle_programs([], state), do: {[], state}
   defp _cycle_programs([[pid, program_context] | program_contexts], state) do
-    runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object: program_context.object, state: state})
+    runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object_id: program_context.object_id, state: state})
                               |> Map.put(:event_sender, program_context.event_sender) # This might not be needed
-                              |> Instances.handle_broadcasting()
+                              |> Instances.handle_broadcasting(state)
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
     if runner_state.program.status == :dead do
       { other_program_contexts, updated_state}
     else
-      {[ [pid, Map.take(runner_state, [:program, :object, :event_sender])] | other_program_contexts ], updated_state}
+      {[ [pid, Map.take(runner_state, [:program, :object_id, :event_sender])] | other_program_contexts ], updated_state}
     end
   end
 

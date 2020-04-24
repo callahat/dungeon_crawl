@@ -37,10 +37,10 @@ defmodule DungeonCrawl.InstanceProcessTest do
                        map_by_ids: by_id,
                        map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert %{^map_tile_id => %{event_sender: nil,
-                       object: %MapTile{},
+                       object_id: ^map_tile_id,
                        program: %Program{status: :alive}},
              236 => %{event_sender: nil,
-                       object: map_tile_with_script,
+                       object_id: 236,
                        program: %Program{status: :alive}}
             } = programs
 
@@ -62,7 +62,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
                        map_by_ids: _,
                        map_by_coords: _ } = InstanceProcess.get_state(instance_process)
     assert %{^map_tile_id => %{event_sender: nil,
-                       object: %MapTile{},
+                       object_id: ^map_tile_id,
                        program: %Program{status: :alive}}
             } = programs
   end
