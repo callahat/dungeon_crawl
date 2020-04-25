@@ -550,7 +550,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert state.program_messages == [{1337, "touch", stubbed_id}]
 
     # program_messages has more recent messages at the front of the list
-    %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id, state: state}, ["tap", "self"])
+    %Runner{state: state} = Command.send_message(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["tap", "self"])
     assert state.program_messages == [{1337, "tap", stubbed_id}, {1337, "touch", stubbed_id}]
   end
 

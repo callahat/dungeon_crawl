@@ -52,6 +52,68 @@ defmodule DungeonCrawl.Action.MoveTest do
     assert {:invalid} = Move.go(player_location, wall, state)
   end
 
+  test "pushing an object" do
+    floor             = %MapTile{id: 996, row: 1, col: 1, z_index: 0, character: ".", state: "blocking: false"}
+    ball              = %MapTile{id: 997, row: 1, col: 2, z_index: 1, character: "o", state: "pushable: true, blocking: true"}
+    player_location   = %MapTile{id: 1000,  row: 1, col: 3, z_index: 1, character: "@"}
+
+    {floor, state} = Instances.create_map_tile(%Instances{}, floor)
+    {ball, state} = Instances.create_map_tile(state, ball)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
+
+    assert {:ok, %{{1, 2} => new_location,
+                   {1, 3} => old_location,
+                   {1, 1} => ball_new_location},
+            updated_state} = Move.go(player_location, ball, state)
+    assert %MapTile{id:  nil, row: 1, col: 3, character: nil} = old_location
+    assert %MapTile{id: 1000, row: 1, col: 2, character: "@"} = new_location
+    assert %MapTile{id:  997, row: 1, col: 1, character: "o"} = ball_new_location
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [ball_new_location, floor]
+
+    # Something not pushy does not push
+    bullet_location   = %MapTile{id: 1001,  row: 1, col: 3, z_index: 2, character: "-", state: "not_pushy: true"}
+    {bullet_location, state} = Instances.create_map_tile(state, bullet_location)
+    
+    assert {:invalid} = Move.go(bullet_location, ball, state)
+  end
+
+  test "pushing a line of objects" do
+    floor             = %MapTile{id: 996, row: 1, col: 1, z_index: 0, character: ".", state: "blocking: false"}
+    ball              = %MapTile{id: 997, row: 1, col: 2, z_index: 1, character: "o", state: "pushable: true"}
+    player_location   = %MapTile{id: 1000,  row: 1, col: 3, z_index: 1, character: "@"}
+    floor2             = %MapTile{id: 994, row: 1, col: 0, z_index: 0, character: ".", state: "blocking: false"}
+    ball2              = %MapTile{id: 995, row: 1, col: 1, z_index: 1, character: "o", state: "pushable: true"}
+
+    {floor, state} = Instances.create_map_tile(%Instances{}, floor)
+    {ball, state} = Instances.create_map_tile(state, ball)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
+    {floor2, state} = Instances.create_map_tile(state, floor2)
+    {_ball2, state} = Instances.create_map_tile(state, ball2)
+
+    assert {:ok, %{{1, 2} => new_location,
+                   {1, 3} => old_location,
+                   {1, 1} => ball_new_location,
+                   {1, 0} => ball2_new_location},
+            updated_state} = Move.go(player_location, ball, state)
+
+    assert %MapTile{id:  nil, row: 1, col: 3, character: nil} = old_location
+    assert %MapTile{id: 1000, row: 1, col: 2, character: "@"} = new_location
+    assert %MapTile{id:  997, row: 1, col: 1, character: "o"} = ball_new_location
+    assert %MapTile{id:  995, row: 1, col: 0, character: "o"} = ball2_new_location
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [ball_new_location, floor]
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 0}) == [ball2_new_location, floor2]
+
+    # cannot push into blocking
+    wall            = %MapTile{id: 1001, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
+    {_wall, state} = Instances.create_map_tile(state, wall)
+
+    assert {:invalid} = Move.go(player_location, ball, state)
+  end
+
   test "moving to something that is not a map tile" do
     player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
 

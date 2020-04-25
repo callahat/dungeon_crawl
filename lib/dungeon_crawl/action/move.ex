@@ -70,12 +70,12 @@ defmodule DungeonCrawl.Action.Move do
   # assumes orthogonal direction, no diagonal
   defp _get_direction(entity_map_tile, destination) do
     {row_delta, col_delta} = {destination.row - entity_map_tile.row, destination.col - entity_map_tile.col}
+
     cond do
       row_delta < 0 -> "north"
       row_delta > 0 -> "south"
       col_delta > 0 -> "east"
-      col_delta < 0 -> "west"
-      true -> "idle" #should never get this
+      true ->          "west" # col_delta < 0 -> "west" #this is the last valid push option; cannot push in idle direction
     end
   end
 end
