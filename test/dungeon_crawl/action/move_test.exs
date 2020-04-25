@@ -79,6 +79,18 @@ defmodule DungeonCrawl.Action.MoveTest do
     assert {:invalid} = Move.go(bullet_location, ball, state)
   end
 
+  test "pushing an object directionally wrong way" do
+    floor             = %MapTile{id: 996, row: 1, col: 1, z_index: 0, character: ".", state: "blocking: false"}
+    ball              = %MapTile{id: 997, row: 1, col: 2, z_index: 1, character: "o", state: "pushable: east, blocking: true"}
+    player_location   = %MapTile{id: 1000,  row: 1, col: 3, z_index: 1, character: "@"}
+
+    {_floor, state} = Instances.create_map_tile(%Instances{}, floor)
+    {ball, state} = Instances.create_map_tile(state, ball)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
+
+    assert {:invalid} = Move.go(player_location, ball, state)
+  end
+
   test "pushing a line of objects" do
     floor             = %MapTile{id: 996, row: 1, col: 1, z_index: 0, character: ".", state: "blocking: false"}
     ball              = %MapTile{id: 997, row: 1, col: 2, z_index: 1, character: "o", state: "pushable: true"}
