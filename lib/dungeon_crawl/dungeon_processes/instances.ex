@@ -4,7 +4,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
-  defstruct program_contexts: %{}, map_by_ids: %{}, map_by_coords: %{}, dirty_ids: %{}, player_locations: %{}, program_messages: [], new_pids: []
+  defstruct instance_id: nil,
+            program_contexts: %{},
+            map_by_ids: %{},
+            map_by_coords: %{},
+            dirty_ids: %{},
+            player_locations: %{},
+            program_messages: [],
+            new_pids: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -294,8 +301,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
   def handle_broadcasting(runner_context, state) do
-    object = Instances.get_map_tile_by_id(state, %{id: runner_context.object_id})
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{object.map_instance_id}")
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{state.instance_id}")
     _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end

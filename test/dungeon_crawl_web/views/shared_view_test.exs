@@ -75,6 +75,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
 
+    InstanceProcess.set_instance_id(instance_process, instance.id)
     InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
 
     rows = dungeon_as_table(instance, instance.width, instance.height)

@@ -8,6 +8,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.TileState
 
   ## Client API
 
@@ -19,6 +20,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  @doc """
+  Sets the instance id
+  """
+  def set_instance_id(instance, instance_id) do
+    GenServer.cast(instance, {:set_instance_id, {instance_id}})
   end
 
   @doc """
@@ -176,6 +184,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
+  def handle_cast({:set_instance_id, {instance_id}}, %Instances{} = state) do
+    {:noreply, %{ state | instance_id: instance_id }}
+  end
+
+  @impl true
   def handle_cast({:create_map_tile, {map_tile}}, %Instances{} = state) do
     {_map_tile, state} = Instances.create_map_tile(state, map_tile)
     {:noreply, state}
@@ -241,6 +254,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, %Instances{ state | dirty_ids: %{}}}
   end
 
+  # TODO: move these private functions to a new module and make them public so tests can isolate behaviors.
   #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
   #will be broadcast. Typically this will only be called by the scheduler.
   # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
@@ -251,7 +265,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
                        |> Map.merge(Map.take(state.program_contexts, state.new_pids))
-    _message_programs(%{ state | program_contexts: program_contexts })
+
+    _standard_behaviors(state.program_messages, %{ state | program_contexts: program_contexts })
+    |> _message_programs()
   end
 
   defp _cycle_programs([], state), do: {[], state}
@@ -282,6 +298,26 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                                                                     event_sender: sender}})
     else
       _message_programs(messages, program_contexts)
+    end
+  end
+
+  defp _standard_behaviors([], state), do: state
+  defp _standard_behaviors([ {map_tile_id, label, sender} | messages ], state) do
+    case String.downcase(label) do
+      "shot" ->
+        _destroyable_behavior([ {map_tile_id, label, sender} | messages ], state)
+      _ ->
+        _standard_behaviors(messages, state)
+    end
+  end
+
+  defp _destroyable_behavior([ {map_tile_id, label, _} | messages ], state) do
+    object = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+    if object && TileState.get_bool(object, :destroyable) do
+      {_map_tile, state} = Instances.delete_map_tile(state, object)
+      _standard_behaviors(messages, state)
+    else
+      _standard_behaviors(messages, state)
     end
   end
 end

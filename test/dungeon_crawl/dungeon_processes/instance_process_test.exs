@@ -20,9 +20,18 @@ defmodule DungeonCrawl.InstanceProcessTest do
                      [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE", tile_template_id: tt.id}])
     map_tile = DungeonCrawl.Repo.get_by(MapTile, %{map_instance_id: map_instance.id})
 
+    InstanceProcess.set_instance_id(instance_process, map_instance.id)
     InstanceProcess.load_map(instance_process, [map_tile])
 
     %{instance_process: instance_process, map_tile_id: map_tile.id, map_instance: map_instance}
+  end
+
+  test "set_instance_id" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    map_instance = insert_stubbed_dungeon_instance()
+    map_instance_id = map_instance.id
+    InstanceProcess.set_instance_id(instance_process, map_instance_id)
+    assert %{ instance_id: ^map_instance_id } = InstanceProcess.get_state(instance_process)
   end
 
   test "load_map", %{instance_process: instance_process, map_tile_id: map_tile_id} do
@@ -46,10 +55,11 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     # Does not load a program overtop an already running program for that map_tile id
     assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: map_tile_id, script: "#DIE"}])
-    assert %Instances{ program_contexts: programs,
-                       map_by_ids: by_id,
-                       map_by_coords: by_coord,
-                       new_pids: [236, map_tile_id] } == InstanceProcess.get_state(instance_process)
+    assert %Instances{ program_contexts: ^programs,
+                       map_by_ids: ^by_id,
+                       map_by_coords: ^by_coord,
+                       new_pids: [236, ^map_tile_id],
+                       instance_id: _ } = InstanceProcess.get_state(instance_process)
   end
 
   test "start_scheduler", %{instance_process: instance_process} do
@@ -202,6 +212,37 @@ defmodule DungeonCrawl.InstanceProcessTest do
              |> Enum.into(%{})
 
     assert actual == expected
+  end
+
+  test "perform_actions handles behavior 'destroyable'", %{instance_process: instance_process,
+                                                           map_instance: map_instance,
+                                                           map_tile_id: map_tile_id} do
+    dungeon_channel = "dungeons:#{map_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+
+    tt = insert_tile_template()
+
+    map_tiles = [
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SEND shot, others\n#SEND shot, a nonprog", state: "destroyable: true"},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "destroyable: true", name: "a nonprog"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    shooter_map_tile_id = Enum.at(map_tiles, 0).id
+    non_prog_tile_id = Enum.at(map_tiles, 1).id
+
+    assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{state: "destroyable: true"})
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    %Instances{ program_contexts: program_contexts,
+                map_by_ids: map_by_ids,
+                dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
+
+    assert [ ^shooter_map_tile_id ] = Map.keys(program_contexts)
+    assert [ ^shooter_map_tile_id ] = Map.keys(map_by_ids)
+    assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
   end
 
   test "write_db", %{instance_process: instance_process, map_instance: map_instance} do

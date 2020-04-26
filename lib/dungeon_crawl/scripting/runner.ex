@@ -16,7 +16,7 @@ require Logger
   there.
   """
   def run(%Runner{program: program, object_id: object_id, state: state} = runner_state, label) do
-    with object <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+    with object when not(is_nil(object)) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
          false <- TileState.get_bool(object, :locked),
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
          program <- %{program | pc: next_pc, lc: 0, status: :alive, message: {}} do
