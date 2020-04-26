@@ -311,10 +311,19 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
   end
 
-  defp _destroyable_behavior([ {map_tile_id, label, _} | messages ], state) do
+  defp _destroyable_behavior([ {map_tile_id, _label, _} | messages ], state) do
     object = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
     if object && TileState.get_bool(object, :destroyable) do
-      {_map_tile, state} = Instances.delete_map_tile(state, object)
+      {deleted_tile, state} = Instances.delete_map_tile(state, object)
+
+      if deleted_tile do
+        top_tile = Instances.get_map_tile(state, deleted_tile)
+        payload = %{tiles: [
+                     Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+                    ]}
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+      end
+
       _standard_behaviors(messages, state)
     else
       _standard_behaviors(messages, state)

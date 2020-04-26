@@ -236,6 +236,15 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 4, rendering: "<div> </div>"}]}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 1, rendering: "<div> </div>"}]}}
+
     %Instances{ program_contexts: program_contexts,
                 map_by_ids: map_by_ids,
                 dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
