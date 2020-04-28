@@ -145,7 +145,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     # Sanity check that the programs are all there, including the one for the generated bullet
-    bullet_tile_id = InstanceProcess.get_tile(instance_process, 1, 3).id
+    bullet_tile_id = InstanceProcess.get_tile(instance_process, 1, 2).id
 
     assert state = InstanceProcess.get_state(instance_process)
     # this should still be active
@@ -168,10 +168,6 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^dungeon_channel,
             event: "tile_changes",
             payload: %{tiles: [%{row: 1, col: 3, rendering: "<div style='color: white'>M</div>"}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>◦</div>"}]}}
     # These were either idle or had no script
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,

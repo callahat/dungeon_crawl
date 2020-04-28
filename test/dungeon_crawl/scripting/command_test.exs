@@ -647,7 +647,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # shooting into an empty space spawns a bullet heading in that direction
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["north"])
-    assert bullet = Instances.get_map_tile(updated_state, %{row: 1, col: 2})
+    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
 
     assert bullet.character == "◦"
     assert bullet.parsed_state[:facing] == "north"
@@ -656,12 +656,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.new_pids == [bullet.id]
     assert updated_state.program_contexts[bullet.id].program.status == :alive
 
-    # shooting into a nil space does nothing (not even throw an exception
-    %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["east"])
-    refute Instances.get_map_tile(updated_state, %{row: 2, col: 3})
-
-    assert updated_state == state
-
     # bad direction / idle also does not spawn a bullet or do anything
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["gibberish"])
     tile = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
@@ -669,22 +663,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert tile.character == "@"
     assert updated_state == state
 
-    # shooting something blocking (or that responds to the SHOT message) sends it that message
-    # and does not spawn a bullet
-    %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["south"])
-    assert wall = Instances.get_map_tile(updated_state, %{row: 3, col: 2})
-
-    assert wall.character == "#"
-    assert updated_state.program_contexts == state.program_contexts
-    assert updated_state.map_by_ids == state.map_by_ids
-    assert updated_state.map_by_coords == state.map_by_coords
-    assert updated_state.program_messages == [{wall.id, "shot", %{map_tile_id: obj.id}}]
-
     # can use the state variable
 #    obj = %{obj | parsed_state: %{facing: "north"}}
     {obj, state} = Instances.update_map_tile_state(updated_state, obj, %{facing: "north"})
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, [[:state_variable, :facing]])
-    assert bullet = Instances.get_map_tile(updated_state, %{row: 1, col: 2})
+    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
 
     assert bullet.character == "◦"
   end

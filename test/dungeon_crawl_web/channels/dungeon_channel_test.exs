@@ -109,13 +109,14 @@ defmodule DungeonCrawl.DungeonChannelTest do
   end
 
   @tag up_tile: "."
-  test "shoot into an empty space spawns a bullet", %{socket: socket} do
+  test "shoot into an empty space spawns a bullet but does not broadcast", %{socket: socket} do
+    # Not sure how to check that something was set in the socket
     push socket, "shoot", %{"direction" => "up"}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    refute_broadcast "tile_changes", %{tiles: [%{col: 2, rendering: "<div>◦</div>", row: 2}] }
 
     # but not if one has been fired in the last 100ms
     push socket, "shoot", %{"direction" => "up"}
-    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    refute_broadcast "tile_changes", %{tiles: [%{col: 2, rendering: "<div>◦</div>", row: 2}] }
   end
 
   @tag up_tile: ".", ammo: 0
