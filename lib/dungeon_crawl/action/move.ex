@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Action.Move do
   # todo: rename this
   def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state) do
     cond do
-      !entity_map_tile.parsed_state[:not_pushy] && _is_pushable(destination.parsed_state[:pushable], entity_map_tile, destination) ->
+      _is_pushable(destination.parsed_state[:pushable], entity_map_tile, destination) ->
         direction = _get_direction(entity_map_tile, destination)
         pushed_location = Instances.get_map_tile(state, destination, direction)
 
@@ -15,11 +15,20 @@ defmodule DungeonCrawl.Action.Move do
             _move(entity_map_tile, destination, state, tile_changes)
 
           _ ->
-            {:invalid}
+            if destination.parsed_state[:squishable] do
+              {squashed_tile, state} = Instances.delete_map_tile(state, destination)
+              _move(entity_map_tile, squashed_tile, state, %{})
+            else
+              {:invalid}
+            end
         end
 
       destination.parsed_state[:blocking] ->
         {:invalid}
+
+      _is_squishable(destination, entity_map_tile) ->
+        {squashed_tile, state} = Instances.delete_map_tile(state, destination)
+        _move(entity_map_tile, destination, state, %{})
 
       true ->
         _move(entity_map_tile, destination, state, %{})
@@ -44,15 +53,27 @@ defmodule DungeonCrawl.Action.Move do
   end
 
   defp _is_pushable(pushable, entity_map_tile, destination) do
-    case pushable do
-      true  -> _is_pushable("nsew", entity_map_tile, destination)
+    if entity_map_tile.parsed_state[:not_pushing] do
+      false
+    else
+      case pushable do
+        true  -> _is_pushable("nsew", entity_map_tile, destination)
 
-      directions when is_binary(directions) ->
-        directions
-        |> String.split("",trim: true)
-        |> Enum.any?(&_in_direction(&1, entity_map_tile, destination))
+        directions when is_binary(directions) ->
+          directions
+          |> String.split("",trim: true)
+          |> Enum.any?(&_in_direction(&1, entity_map_tile, destination))
 
-      _ -> false
+        _ -> false
+      end
+    end
+  end
+
+  defp _is_squishable(destination, entity_map_tile) do
+    if entity_map_tile.parsed_state[:not_squishing] do
+      false
+    else
+      destination.parsed_state[:squishable]
     end
   end
 

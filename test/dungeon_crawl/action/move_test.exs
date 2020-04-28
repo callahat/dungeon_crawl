@@ -72,8 +72,8 @@ defmodule DungeonCrawl.Action.MoveTest do
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [ball_new_location, floor]
 
-    # Something not pushy does not push
-    bullet_location   = %MapTile{id: 1001,  row: 1, col: 3, z_index: 2, character: "-", state: "not_pushy: true"}
+    # Something not pushing does not push
+    bullet_location   = %MapTile{id: 1001,  row: 1, col: 3, z_index: 2, character: "-", state: "not_pushing: true"}
     {bullet_location, state} = Instances.create_map_tile(state, bullet_location)
     
     assert {:invalid} = Move.go(bullet_location, ball, state)
@@ -124,6 +124,59 @@ defmodule DungeonCrawl.Action.MoveTest do
     {_wall, state} = Instances.create_map_tile(state, wall)
 
     assert {:invalid} = Move.go(player_location, ball, state)
+  end
+
+  test "a squishable object" do
+    floor           = %MapTile{id: 996, row: 1, col: 1, z_index: 0, character: ".", state: "blocking: false"}
+    balloon         = %MapTile{id: 997, row: 1, col: 2, z_index: 1, character: "o", state: "squishable: true"}
+    player_location = %MapTile{id: 1000,  row: 1, col: 3, z_index: 1, character: "@"}
+
+    {floor, state} = Instances.create_map_tile(%Instances{}, floor)
+    {balloon, state} = Instances.create_map_tile(state, balloon)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
+
+    # squishable object is gone
+    assert {:ok, %{{1, 2} => new_location,
+                   {1, 3} => old_location},
+            updated_state} = Move.go(player_location, balloon, state)
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [floor]
+
+    # Something not squishing does not squish
+    bullet_location   = %MapTile{id: 1001,  row: 1, col: 3, z_index: 2, character: "-", state: "not_squishing: true"}
+    {bullet_location, state} = Instances.create_map_tile(state, bullet_location)
+
+    assert {:ok, %{{1, 2} => new_bullet_location,
+                   {1, 3} => old_bullet_location},
+            updated_state} = Move.go(bullet_location, balloon, state)
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_bullet_location, balloon]
+  end
+
+  test "a squishable pushable object" do
+    floor           = %MapTile{id: 996, row: 1, col: 1, z_index: 0, character: ".", state: "blocking: false"}
+    balloon         = %MapTile{id: 997, row: 1, col: 2, z_index: 1, character: "o", state: "squishable: true, pushable: true"}
+    player_location = %MapTile{id: 1000,  row: 1, col: 3, z_index: 1, character: "@"}
+
+    {floor, state} = Instances.create_map_tile(%Instances{}, floor)
+    {balloon, state} = Instances.create_map_tile(state, balloon)
+    {player_location, state} = Instances.create_map_tile(state, player_location)
+
+    assert {:ok, %{{1, 1} => new_balloon_location,
+                   {1, 2} => new_location,
+                   {1, 3} => old_location},
+            updated_state} = Move.go(player_location, balloon, state)
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [new_balloon_location, floor]
+
+    # with no place to be pushed, the object is squashed (deleted)
+    assert {:ok, %{{1, 1} => new_location,
+                   {1, 2} => old_location},
+            updated_state} = Move.go(new_location, new_balloon_location, updated_state)
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == []
+    assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [new_location, floor]
   end
 
   test "moving to something that is not a map tile" do
