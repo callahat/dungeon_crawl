@@ -44,13 +44,14 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       destination = Instances.get_map_tile(instance_state, player_tile, direction)
 
       case Move.go(player_tile, destination, instance_state) do
-        {:ok, %{new_location: new_location, old_location: old}, instance_state} ->
+        {:ok, tile_changes, instance_state} ->
           broadcast socket,
                     "tile_changes",
-                    %{tiles: [
-                       Map.put(Map.take(new_location, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_location)),
-                       Map.put(Map.take(old, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(old))
-                      ]}
+                    %{tiles: tile_changes
+                              |> Map.to_list
+                              |> Enum.map(fn({_coords, tile}) ->
+                                Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                              end)}
           {:ok, instance_state}
 
         {:invalid} ->

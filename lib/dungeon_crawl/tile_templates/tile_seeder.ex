@@ -33,7 +33,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
       %{character: "◦",
         name: "Bullet",
         description: "Its a bullet.",
-        state: "blocking: false, wait_cycles: 1",
+        state: "blocking: false, wait_cycles: 1, not_pushing: true, not_squishing: true",
         script: """
                 #WALK @facing
                 :THUD
@@ -62,7 +62,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
       %{character: "@",
         name: "Player",
         description: "Its a player.",
-        state: "blocking: true, health: 100, gems: 0, cash: 0, ammo: 6"}
+        state: "blocking: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6"}
     )
   end
 

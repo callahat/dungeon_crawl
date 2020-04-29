@@ -23,8 +23,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %Instances{
       program_contexts: %{999 => %{
                   event_sender: nil,
-                  object: %{ id: 999, character: "B", # ...
-                  },
+                  object_id: 999,
                   program: %DungeonCrawl.Scripting.Program{
                     broadcasts: [],
                     instructions: %{
@@ -237,7 +236,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # Adds a program
     refute state.program_contexts[-3]
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{script: "#END\n:TOUCH\n?s"})
-    assert %{-3 => %{program: program, object: ^updated_tile}} = state.program_contexts
+    assert %{-3 => %{program: program, object_id: -3}} = state.program_contexts
+    assert %{map_by_ids: %{-3 => %MapTile{script: "#END\n:TOUCH\n?s"}}} = state
     assert %DungeonCrawl.Scripting.Program{
              broadcasts: [],
              instructions: %{
@@ -259,7 +259,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert state.program_contexts[999]
     assert state.program_contexts[999].program.status == :alive
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: 999}, %{script: "?n"})
-    assert %{999 => %{program: program, object: ^updated_tile}} = state.program_contexts
+    assert %{999 => %{program: program, object_id: 999}} = state.program_contexts
+    assert %{map_by_ids: %{999 => %MapTile{script: "?n"}}} = state
     assert %DungeonCrawl.Scripting.Program{
              broadcasts: [],
              instructions: %{

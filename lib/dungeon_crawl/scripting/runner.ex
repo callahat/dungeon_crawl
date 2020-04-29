@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.TileState
 
-  defstruct program: %Program{}, object: %{}, state: %Instances{}, event_sender: nil
+  defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil
 
 require Logger
   @doc """
@@ -15,8 +15,9 @@ require Logger
   first priority for updating the pc and executing the script from
   there.
   """
-  def run(%Runner{program: program, object: object} = runner_state, label) do
-    with false <- TileState.get_bool(object, :locked),
+  def run(%Runner{program: program, object_id: object_id, state: state} = runner_state, label) do
+    with object when not(is_nil(object)) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+         false <- TileState.get_bool(object, :locked),
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
          program <- %{program | pc: next_pc, lc: 0, status: :alive, message: {}} do
       _run(%Runner{ runner_state | program: program})
@@ -35,7 +36,8 @@ require Logger
     end
   end
 
-  def _run(%Runner{program: program, object: object} = runner_state) do
+  def _run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]

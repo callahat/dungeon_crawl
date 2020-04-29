@@ -132,6 +132,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
 
   defp _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs}) do
     {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
+    InstanceProcess.set_instance_id(instance_process, instance_id)
     InstanceProcess.load_map(instance_process, dungeon_map_tiles)
     InstanceProcess.start_scheduler(instance_process)
     ref = Process.monitor(instance_process)
