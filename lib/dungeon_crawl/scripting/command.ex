@@ -638,10 +638,6 @@ defmodule DungeonCrawl.Scripting.Command do
       {:invalid} ->
         runner_state
 
-      {:shot, spawn_tile} ->
-        _send_message_via_ids(runner_state, "shot", [spawn_tile.id])
-        #send_message(runner_state, ["shot", direction])
-
       {:ok, updated_state} ->
         %{ runner_state | state: updated_state }
     end
