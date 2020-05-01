@@ -47,7 +47,7 @@ Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
 Logger.info inspect object.state
-Logger.info inspect object && object.state
+Logger.info inspect runner_state.event_sender
         runner_state = apply(Command, command, [runner_state, params])
 
         # increment program counter, check for end of program

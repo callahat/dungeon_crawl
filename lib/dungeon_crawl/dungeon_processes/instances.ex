@@ -88,8 +88,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   def send_event(%Instances{program_contexts: program_contexts} = state, %{id: map_tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
     case program_contexts do
       %{^map_tile_id => %{program: program, object_id: object_id}} ->
-        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program, object_id: object_id, state: state}, event)
-                                  |> Map.put(:event_sender, sender)
+        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
+                                                                               object_id: object_id,
+                                                                               state: state,
+                                                                               event_sender: sender},
+                                                                       event)
                                   |> handle_broadcasting(state)
         if program.status == :dead do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
@@ -310,8 +313,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
     _handle_broadcasts(messages, socket)
   end
-  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.Player.Location{}) do
-    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
+  defp _handle_broadcasts([{type, payload} | messages], player_location = %DungeonCrawl.Player.Location{}) do
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", type, payload
     _handle_broadcasts(messages, player_location)
   end
   # If this should be implemented, this is what broadcasting to a "program" method would look like.

@@ -11,7 +11,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   (ie, stats are needed outside of `InstanceProcess.run_with` or outside of a `Command` method)
   a `user_id_hash` should be used along to get the stats for that player's current location.
   """
-  def current_stats(%Instances{} = state, %MapTile{id: map_tile_id} = _player_tile) do
+  def current_stats(%Instances{} = state, %{id: map_tile_id} = _player_tile) do
     case player_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id}) do
       nil ->
         %{}

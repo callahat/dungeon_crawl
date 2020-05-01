@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   alias DungeonCrawl.Action.{Move, Shoot}
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
@@ -254,10 +255,15 @@ defmodule DungeonCrawl.Scripting.Command do
     _give(runner_state, [what, amount, to_whom])
   end
 
-  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender]]) do
+  defp _give(%Runner{event_sender: event_sender, state: state} = runner_state, [what, amount, [:event_sender]]) do
     case event_sender do
       %{map_tile_id: id} -> _give(runner_state, [what, amount, [id]])
-      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id]])
+
+      %Location{map_tile_instance_id: id} ->
+        runner_state = _give(runner_state, [what, amount, [id]])
+        payload = %{stats: PlayerInstance.current_stats(runner_state.state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
+        %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] } }
+
       nil              -> runner_state
     end
   end
@@ -742,7 +748,7 @@ defmodule DungeonCrawl.Scripting.Command do
     if params != [""] do
       # TODO: probably allow this to be refined by whomever the message is for
       message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")
-      %Runner{ runner_state | program: %{program | responses: [ message | program.responses] } }
+      %Runner{ runner_state | program: %{program | responses: [ {"message", %{message: message}} | program.responses] } }
     else
       runner_state
     end
