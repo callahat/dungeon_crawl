@@ -29,6 +29,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
+    assert Command.get_command(:give) == :give
     assert Command.get_command(:go) == :go
     assert Command.get_command(:if) == :jump_if
     assert Command.get_command(:lock) == :lock
@@ -202,6 +203,44 @@ defmodule DungeonCrawl.Scripting.CommandTest do
               %{tiles: [%{col: 2, rendering: "<div>.</div>", row: 1}]}
               ]
            ] = program.broadcasts
+  end
+
+  test "GIVE" do
+    {receiving_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 1"})
+    {giver, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "medkits: 3"})
+
+    runner_state = %Runner{object_id: giver.id, state: state}
+
+    # give state var in direction
+    %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, ["health", [:state_variable, :medkits], "north"])
+    assert map[receiving_tile.id].parsed_state[:health] == 4
+
+    # Does nothing when there's no map tile
+    %Runner{state: updated_state} = Command.give(runner_state, ["health", [:state_variable, :medkits], "south"])
+    assert updated_state == state
+
+    # Does nothing when the direction is invalid
+    %Runner{state: updated_state} = Command.give(runner_state, ["health", [:state_variable, :medkits], "norf"])
+    assert updated_state == state
+
+    # give state var to event sender (tile)
+    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state | event_sender: %{map_tile_id: receiving_tile.id}},
+                                                      ["ammo", 12, [:event_sender]])
+    assert map[receiving_tile.id].parsed_state[:ammo] == 12
+
+    # give state var to event sender (player)
+    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
+                                                      ["gems", 1, [:event_sender]])
+    assert map[receiving_tile.id].parsed_state[:gems] == 1
+
+    # give handles null state variable
+    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
+                                                      ["health", [:state_variable, :nonexistant], [:event_sender]])
+    assert map[receiving_tile.id].parsed_state[:health] == 1
+
+    # Does nothing when there is no event sender
+    %Runner{state: updated_state} = Command.give(%{runner_state | event_sender: nil}, [:health, [:state_variable, :nonexistant], [:event_sender]])
+    assert updated_state == state
   end
 
   test "GO" do

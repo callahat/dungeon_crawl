@@ -27,7 +27,7 @@ defmodule DungeonCrawl.Action.Move do
         {:invalid}
 
       _is_squishable(destination, entity_map_tile) ->
-        {squashed_tile, state} = Instances.delete_map_tile(state, destination)
+        {_squashed_tile, state} = Instances.delete_map_tile(state, destination)
         _move(entity_map_tile, destination, state, %{})
 
       true ->

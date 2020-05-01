@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   alias DungeonCrawl.Action.{Move, Shoot}
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
@@ -33,6 +34,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :die          -> :die
       :end          -> :halt
       :facing       -> :facing
+      :give         -> :give
       :go           -> :go
       :if           -> :jump_if
       :lock         -> :lock
@@ -228,6 +230,72 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
             object_id: object_id,
             state: updated_state}
+  end
+
+  @doc """
+  Give a tile an amount of something. This modifies the state of that tile by adding the amount to
+  whatever is at that key is at (creating it if not already present). First parameter is `what` (the
+  state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
+  value for the giving tile. Third is the receiving tile of it.
+
+  Valid tiles can be a direction - ie, north, south east, west; additionally
+  the specail varialble `?sender` can be used to give to the program/player
+  that sent the last event. For example, if a player touches a certain object,
+  that object could give them gems.
+
+  ## Examples
+
+    iex> Command.give(%Runner{}, [:cash, :420, [:event_sender]])
+    %Runner{}
+    iex> Command.give(%Runner{}, [:ammo, [:state_variable, :rounds], "north"])
+    %Runner{}
+  """
+  def give(%Runner{} = runner_state, [what, amount, to_whom]) do
+    _give(runner_state, [what, amount, to_whom])
+  end
+
+  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender]]) do
+    case event_sender do
+      %{map_tile_id: id} -> _give(runner_state, [what, amount, [id]])
+      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id]])
+      nil              -> runner_state
+    end
+  end
+
+  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, [:state_variable, var], [id]]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    amount = object.parsed_state[var]
+    _give(runner_state, [what, amount, [id]])
+  end
+
+  defp _give(%Runner{} = runner_state, [what, amount, [id]]) do
+    _give_via_id(runner_state, [what, amount, [id]])
+  end
+
+  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction]) do
+    if direction in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      object = Instances.get_map_tile_by_id(state, %{id: object_id})
+      map_tile = Instances.get_map_tile(state, object, direction)
+
+      if map_tile do
+        _give(runner_state, [what, amount, [map_tile.id]])
+      else
+        runner_state
+      end
+    else
+      runner_state
+    end
+  end
+
+  defp _give_via_id(%Runner{state: state} = runner_state, [what, amount, [id]]) do
+    if is_number(amount) and amount > 0 do
+      what = String.to_atom(what)
+      receiver = Instances.get_map_tile_by_id(state, %{id: id})
+      {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => (receiver.parsed_state[what] || 0) + amount})
+      %{ runner_state | state: state}
+    else
+      runner_state
+    end
   end
 
   @doc """

@@ -17,6 +17,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #MOVE south, true
     #GO south
     #CYCLE 3
+    #GIVE ammo, 3, ?sender
     """
   end
 
@@ -54,6 +55,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SHOOT @facing
     #SHOOT west
     #SHOOT idle
+    #GIVE ammo, 3, ?sender
+    #GIVE ammo, 3, idle
+    #GIVE ammo, -1, ?sender
+    #GIVE ammo, -1, goof
     """
   end
 
@@ -96,6 +101,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 25: RESTORE command references nonexistant label `THUD`",
                "Line 28: SEND command has an invalid number of parameters",
                "Line 32: SHOOT command references invalid direction `idle`",
+               "Line 34: GIVE command references invalid direction `idle`",
+               "Line 35: GIVE command has invalid amount `-1`",
+               "Line 36: GIVE command has invalid amount `-1`",
+               "Line 36: GIVE command references invalid direction `goof`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -114,6 +123,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 25: RESTORE command references nonexistant label `THUD`",
                "Line 28: SEND command has an invalid number of parameters",
                "Line 32: SHOOT command references invalid direction `idle`",
+               "Line 34: GIVE command references invalid direction `idle`",
+               "Line 35: GIVE command has invalid amount `-1`",
+               "Line 36: GIVE command has invalid amount `-1`",
+               "Line 36: GIVE command references invalid direction `goof`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

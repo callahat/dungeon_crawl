@@ -24,7 +24,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       {:ok, program} -> {:ok, program}
 
       {:error, messages, program} ->
-        {:error, Enum.reverse(messages), program}
+        # For large programs, it seems that the list order is not consistent, so an Enum.reverse isn't sufficient
+        # to get the order right, so Enum.reverse(messages) gets a scrambled order anyway when the program gets longer.
+        messages_sorted = Enum.sort(messages, fn(a,b) ->
+          String.to_integer(Regex.named_captures(~r/(?<num>\d+):/, a)["num"]) < String.to_integer(Regex.named_captures(~r/(?<num>\d+):/, b)["num"]) end)
+        {:error, messages_sorted, program}
     end
   end
 
@@ -88,6 +92,16 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:give, [_what, amount, who] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0,
+               do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+               do: ["Line #{line_no}: GIVE command references invalid direction `#{who}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:go, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
@@ -141,7 +155,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
   end
 
-  defp _validate(program, [ {line_no, [:shoot, [[_state_variable, var]] ]} | instructions], errors, user) do
+  defp _validate(program, [ {_line_no, [:shoot, [[_state_variable, _var]] ]} | instructions], errors, user) do
     _validate(program, instructions, errors, user)
   end
   defp _validate(program, [ {line_no, [:shoot, [direction] ]} | instructions], errors, user) do

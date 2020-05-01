@@ -58,6 +58,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #SHOOT @facing
                #TERMINATE
                #SEND touch, ?sender
+               #GIVE ammo, @rounds, ?sender
+               #GIVE health, 10, ?sender
+               #GIVE gems, 1, north
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -92,6 +95,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  30 => [:shoot, [[:state_variable, :facing]]],
                                                  31 => [:terminate, [""]],
                                                  32 => [:send_message, ["touch", [:event_sender]]],
+                                                 33 => [:give, ["ammo", [:state_variable, :rounds], [:event_sender]]],
+                                                 34 => [:give, ["health", 10, [:event_sender]]],
+                                                 35 => [:give, ["gems", 1, "north"]],
                                                  },
                                  status: :alive,
                                  pc: 1,
