@@ -35,6 +35,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:lock) == :lock
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
+    assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
     assert Command.get_command(:try) == :try
     assert Command.get_command(:unlock) == :unlock
@@ -229,12 +230,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map[receiving_tile.id].parsed_state[:ammo] == 12
 
     # give state var to event sender (player)
-    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
+    runner_state_with_player = %{ runner_state |
+                                    state: %{ runner_state.state |
+                                                player_locations: %{receiving_tile.id => %Location{map_tile_instance_id: receiving_tile.id} }}}
+    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
                                                       ["gems", 1, [:event_sender]])
     assert map[receiving_tile.id].parsed_state[:gems] == 1
 
     # give handles null state variable
-    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
+    %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
                                                       ["health", [:state_variable, :nonexistant], [:event_sender]])
     assert map[receiving_tile.id].parsed_state[:health] == 1
 
@@ -711,6 +715,75 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert bullet.character == "◦"
   end
 
+  test "TAKE" do
+    script = """
+             #END
+             :toopoor
+             /i
+             You don't have enough
+             """
+    {losing_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10"})
+    {taker, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script})
+
+    program = program_fixture(script)
+
+    runner_state = %Runner{object_id: taker.id, state: state, program: program}
+
+    # take state var in direction
+    %Runner{state: %{map_by_ids: map}} = Command.take(runner_state, ["health", [:state_variable, :damage], "north"])
+    assert map[losing_tile.id].parsed_state[:health] == 7
+
+    # take nothing when there's no map tile
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", [:state_variable, :damage], "south"])
+    assert updated_state == state
+
+    # take nothing when the direction is invalid
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", [:state_variable, :damage], "norf"])
+    assert updated_state == state
+
+    # take but not enough
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", 20, "south"])
+    assert updated_state == state
+
+    # take but not state entry
+    %Runner{state: updated_state} = Command.take(runner_state, ["gems", 20, "south"])
+    assert updated_state == state
+
+    # take but not enough and label given, but no event sender
+    %Runner{state: updated_state} = Command.take(runner_state, ["gems", 2, "north", "toopoor"])
+    assert updated_state == state
+
+    # take but not enough and label given
+    runner_state_with_player = %{ runner_state |
+                                    state: %{ runner_state.state |
+                                                player_locations: %{losing_tile.id => %Location{map_tile_instance_id: losing_tile.id} }}}
+    %Runner{state: updated_state, program: up} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
+                                                 ["gems", 2, "north", "toopoor"])
+    assert up == runner_state.program
+    refute updated_state == state
+    assert [{3, "toopoor", player_location}] = updated_state.program_messages
+    assert player_location.map_tile_instance_id == losing_tile.id
+
+    # take state var to event sender (tile)
+    %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state | event_sender: %{map_tile_id: losing_tile.id}},
+                                                      ["health", 2, [:event_sender]])
+    assert map[losing_tile.id].parsed_state[:health] == 8
+
+    # take state var to event sender (player)
+    %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
+                                                      ["health", 1, [:event_sender]])
+    assert map[losing_tile.id].parsed_state[:health] == 9
+
+    # take handles null state variable
+    %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
+                                                      ["health", [:state_variable, :nonexistant], [:event_sender]])
+    assert map[losing_tile.id].parsed_state[:health] == 10
+
+    # Does nothing when there is no event sender
+    %Runner{state: updated_state} = Command.take(%{runner_state | event_sender: nil}, [:health, [:state_variable, :nonexistant], [:event_sender]])
+    assert updated_state == state
+  end
+
   test "TERMINATE" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
@@ -729,7 +802,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     state = %Instances{map_by_ids: %{1 => stubbed_object}}
 
     %Runner{program: program} = Command.text(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["I am just a simple text."])
-    assert program.responses == ["I am just a simple text."]
+    assert program.responses == [{"message", %{message: "I am just a simple text."}}]
     assert program.status == :alive
     assert program.pc == 1
   end

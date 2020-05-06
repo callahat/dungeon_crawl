@@ -166,6 +166,29 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:take, [_what, amount, who] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0,
+               do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+               do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:take, [_what, amount, who, label] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0,
+               do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+               do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
+               else: errors
+    errors = unless Program.line_for(program, label),
+               do: ["Line #{line_no}: TAKE command references nonexistant label `#{label}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
