@@ -643,9 +643,10 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def send_message(%Runner{event_sender: event_sender} = runner_state, [label, [:event_sender]]) do
     case event_sender do
-      %{map_tile_id: id} -> _send_message_via_ids(runner_state, label, [id])
+      %{map_tile_id: id} -> _send_message_via_ids(runner_state, label, [id]) # basic tile
+      %{map_tile_instance_id: id} -> _send_message_via_ids(runner_state, label, [id]) # player tile
       # Right now, if the actor was a player, this does nothing. Might change later.
-      nil              -> runner_state
+      _                  -> runner_state
     end
   end
   def send_message(%Runner{} = runner_state, [label, target]) do
@@ -653,7 +654,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{map_tile_id: object.id}} | state.program_messages] } }
+    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{map_tile_id: object.id, parsed_state: object.parsed_state}} |
+                                                            state.program_messages] } }
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "others"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -666,7 +668,6 @@ defmodule DungeonCrawl.Scripting.Command do
     if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
       _send_message_in_direction(runner_state, label, target)
     else
-     # TODO: implement this by NAME
       map_tile_ids = state.map_by_ids
                      |> Map.to_list
                      |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
@@ -691,8 +692,10 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _send_message_via_ids(runner_state, _label, []), do: runner_state
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id}} | state.program_messages] } },
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state}} |
+                                                              state.program_messages] } },
       label,
       program_object_ids
     )

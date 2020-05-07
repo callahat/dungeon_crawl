@@ -6,6 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.TileState
@@ -311,22 +312,55 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
   end
 
-  defp _destroyable_behavior([ {map_tile_id, _label, _} | messages ], state) do
+  defp _destroyable_behavior([ {map_tile_id, _label, sender} | messages ], state) do
     object = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
-    if object && TileState.get_bool(object, :destroyable) do
-      {deleted_tile, state} = Instances.delete_map_tile(state, object)
 
-      if deleted_tile do
-        top_tile = Instances.get_map_tile(state, deleted_tile)
-        payload = %{tiles: [
-                     Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-                    ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+    cond do
+      object && TileState.get_int(object, :health) ->
+        _damaged_tile(object, sender, messages, state)
+
+      object && TileState.get_bool(object, :destroyable) ->
+        _destroyed_tile(object, messages, state)
+
+      true ->
+        _standard_behaviors(messages, state)
+    end
+  end
+
+  defp _damaged_tile(object, sender, messages, state) do
+    health = TileState.get_int(object, :health) - TileState.get_int(sender, :damage, 0)
+    player_location = state.player_locations[object.id]
+
+    {_object, state} = Instances.update_map_tile_state(state, object, %{health: health})
+
+    if player_location do
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
+    end
+
+    if health <= 0 do
+      if player_location do
+        # TODO: prompt user to respawn or leave dungeon (either should clean up the tile, or leave a 'corpse' tile)
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
+        _standard_behaviors(messages, state)
+      else
+        _destroyed_tile(object, messages, state)
       end
-
-      _standard_behaviors(messages, state)
     else
       _standard_behaviors(messages, state)
     end
+  end
+
+  defp _destroyed_tile(object, messages, state) do
+    {deleted_tile, state} = Instances.delete_map_tile(state, object)
+
+    if deleted_tile do
+      top_tile = Instances.get_map_tile(state, deleted_tile)
+      payload = %{tiles: [
+                   Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+                  ]}
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+    end
+
+    _standard_behaviors(messages, state)
   end
 end
