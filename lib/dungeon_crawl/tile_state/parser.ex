@@ -49,8 +49,8 @@ defmodule DungeonCrawl.TileState.Parser do
       Regex.match?(~r/^nil$/i, param) -> nil
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
-      Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
-      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^-?\d+\.\d+$/, param) -> String.to_float(param)
+      Regex.match?(~r/^-?\d+$/, param) -> String.to_integer(param)
       true -> param # just a string
     end
   end

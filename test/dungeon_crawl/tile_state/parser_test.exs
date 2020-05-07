@@ -16,7 +16,8 @@ defmodule DungeonCrawl.TileState.ParserTest do
     end
 
     test "many state items with different types" do
-      assert {:ok, %{blocking: false, health: 98.6, foo: 3, name: "BobJohntrue"}} == Parser.parse("blocking: false, health: 98.6, foo: 3, name: BobJohntrue")
+      assert {:ok, %{blocking: false, health: 98.6, foo: 3, neg: -1, name: "BobJohntrue"}} ==
+             Parser.parse("blocking: false, health: 98.6, foo: 3, neg: -1, name: BobJohntrue")
     end
 
     test "bad state string" do
