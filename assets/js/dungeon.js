@@ -94,7 +94,7 @@ let Dungeon = {
     let template = document.createElement("div")
     template.setAttribute("class", "d-flex flex-row no-gutters")
     template.innerHTML = `
-      <div class="col-2">
+      <div class="col-2 timestamp">
         ${this._messageTimestamp()}
       </div>
       <div>

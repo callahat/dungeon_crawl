@@ -2,6 +2,7 @@ defmodule DungeonCrawl.Action.Shoot do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
+  alias DungeonCrawl.TileState
 
   @doc """
   Fires a bullet in the given direction. The bullet will spawn on the tile one away from the object
@@ -33,8 +34,13 @@ defmodule DungeonCrawl.Action.Shoot do
                |> Map.merge(Map.take(bullet_tile_template, [:character, :color, :background_color, :script]))
                |> Map.put(:state, bullet_tile_template.state <> ", facing: " <> direction)
                |> DungeonCrawl.DungeonInstances.create_map_tile!()
-      {_, state} = Instances.create_map_tile(state, bullet)
-      {:ok, state}
+      {bullet, state} = Instances.create_map_tile(state, bullet)
+      if bullet_damage = TileState.get_int(shooter_map_tile, :bullet_damage) do
+        {_, state} = Instances.update_map_tile_state(state, bullet, %{damage: bullet_damage})
+        {:ok, state}
+      else
+        {:ok, state}
+      end
     end
   end
 end

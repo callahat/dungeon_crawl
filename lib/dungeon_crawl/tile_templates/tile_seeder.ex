@@ -62,7 +62,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
       %{character: "@",
         name: "Player",
         description: "Its a player.",
-        state: "blocking: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6"}
+        state: "blocking: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6, bullet_damage: 10"}
     )
   end
 

@@ -585,9 +585,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "SEND message to self" do
     program = program_fixture()
-    stubbed_object = %MapTile{id: 1337}
+    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
     state = %Instances{map_by_ids: %{1337 => stubbed_object}}
-    stubbed_id = %{map_tile_id: stubbed_object.id}
+    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
 
     %Runner{state: state} = Command.send_message(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["touch"])
     assert state.program_messages == [{1337, "touch", stubbed_id}]
@@ -599,9 +599,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "SEND message to event sender" do
     sender = %{map_tile_id: 9001}
-    stubbed_object = %MapTile{id: 1337}
+    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
     state = %Instances{map_by_ids: %{1337 => stubbed_object}}
-    stubbed_id = %{map_tile_id: stubbed_object.id}
+    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
 
     %Runner{state: state} = Command.send_message(%Runner{object_id: stubbed_object.id, event_sender: sender, state: state}, ["touch", [:event_sender]])
     assert state.program_messages == [{9001, "touch", stubbed_id}]
@@ -613,8 +613,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "SEND message to others" do
     program = program_fixture()
-    stubbed_object = %MapTile{id: 1337}
-    stubbed_id = %{map_tile_id: stubbed_object.id}
+    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
+    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
     state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}, map_by_ids: %{1337 => stubbed_object}}
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["tap", "others"])
@@ -623,8 +623,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "SEND message to all" do
     program = program_fixture()
-    stubbed_object = %MapTile{id: 1337}
-    stubbed_id = %{map_tile_id: stubbed_object.id}
+    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
+    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
     state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}, map_by_ids: %{1337 => stubbed_object}}
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["dance", "all"])
@@ -637,7 +637,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
-    obj_id = %{map_tile_id: obj.id}
+    obj_id = %{map_tile_id: obj.id, parsed_state: obj.parsed_state}
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "north"])
     assert updated_state.program_messages == [{123, "touch", obj_id}, {255, "touch", obj_id}]
@@ -660,7 +660,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
-    obj_id = %{map_tile_id: obj.id}
+    obj_id = %{map_tile_id: obj.id, parsed_state: %{}}
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "a"])
     assert updated_state.program_messages == [{255, "name", obj_id}, {123, "name", obj_id}]
