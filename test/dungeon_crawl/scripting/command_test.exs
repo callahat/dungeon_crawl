@@ -609,6 +609,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # program_messages has more recent messages at the front of the list
     %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: sender}, ["tap", [:event_sender]])
     assert state.program_messages == [{9001, "tap", stubbed_id}, {9001, "touch", stubbed_id}]
+
+    # also works when sender was a player
+    player = %Location{map_tile_instance_id: 12345}
+    stubbed_player_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
+    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: player}, ["tap", [:event_sender]])
+    assert state.program_messages == [{12345, "tap", stubbed_player_id}, {9001, "tap", stubbed_id}, {9001, "touch", stubbed_id}]
+
+    # doesnt break when event sender is junk
+    state = %Instances{map_by_ids: %{1337 => stubbed_object}}
+    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: nil}, ["tap", [:event_sender]])
+    assert state.program_messages == []
   end
 
   test "SEND message to others" do
