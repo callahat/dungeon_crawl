@@ -6,7 +6,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.MapGenerators.ConnectedRooms
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
   alias Ecto.Multi
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
@@ -24,7 +24,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     dungeons = if player_location, do: [], else: Dungeon.list_active_dungeons_with_player_count()
     player_map_tile = if player_location do
-                        {:ok, parsed_state} = TileState.Parser.parse(player_location.map_tile.state)
+                        {:ok, parsed_state} = StateValue.Parser.parse(player_location.map_tile.state)
                         Map.put(player_location.map_tile, :parsed_state, parsed_state)
                       else
                         nil

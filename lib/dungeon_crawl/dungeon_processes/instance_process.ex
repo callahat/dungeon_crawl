@@ -9,7 +9,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
 
   ## Client API
 
@@ -316,10 +316,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     object = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
 
     cond do
-      object && TileState.get_int(object, :health) ->
+      object && StateValue.get_int(object, :health) ->
         _damaged_tile(object, sender, messages, state)
 
-      object && TileState.get_bool(object, :destroyable) ->
+      object && StateValue.get_bool(object, :destroyable) ->
         _destroyed_tile(object, messages, state)
 
       true ->
@@ -328,7 +328,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    health = TileState.get_int(object, :health) - TileState.get_int(sender, :damage, 0)
+    health = StateValue.get_int(object, :health) - StateValue.get_int(sender, :damage, 0)
     player_location = state.player_locations[object.id]
 
     {_object, state} = Instances.update_map_tile_state(state, object, %{health: health})

@@ -16,7 +16,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
@@ -129,7 +129,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   defp _with_parsed_state(map_tile) do
-    case TileState.Parser.parse(map_tile.state) do
+    case StateValue.Parser.parse(map_tile.state) do
       {:ok, state} -> Map.put(map_tile, :parsed_state, state)
       _            -> map_tile
     end
@@ -188,7 +188,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
   def update_map_tile_state(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id}, state_attributes) do
     map_tile = by_id[map_tile_id]
-    state_str = TileState.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
+    state_str = StateValue.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
     update_map_tile(state, map_tile, %{state: state_str})
   end
 

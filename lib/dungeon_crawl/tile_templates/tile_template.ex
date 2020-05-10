@@ -5,7 +5,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   @color_match ~r/\A(?:[a-z]+|#(?:[\da-f]{3}){1,2})\z/i
 
   alias DungeonCrawl.Scripting
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
 
   schema "tile_templates" do
     field :active, :boolean, default: false
@@ -72,7 +72,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
 
   defp _validate_state(changeset, nil), do: changeset
   defp _validate_state(changeset, state) do
-    case TileState.Parser.parse(state) do
+    case StateValue.Parser.parse(state) do
       {:error, message} -> add_error(changeset, :state, message)
       {:ok, _}          -> changeset
     end

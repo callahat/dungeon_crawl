@@ -10,7 +10,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
   @doc """
@@ -132,7 +132,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object_state = Map.put(object.parsed_state, var, Maths.calc(object.parsed_state[var] || 0, op, value))
-    object_state_str = TileState.Parser.stringify(object_state)
+    object_state_str = StateValue.Parser.stringify(object_state)
     {_updated_object, updated_state} = Instances.update_map_tile(state, object, %{state: object_state_str, parsed_state: object_state})
 
     %Runner{ runner_state | state: updated_state }
@@ -482,7 +482,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def move(%Runner{program: program, object_id: object_id, state: state} = runner_state, ["idle", _]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: TileState.get_int(object, :wait_cycles, 5) } }
+    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: StateValue.get_int(object, :wait_cycles, 5) } }
   end
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
@@ -501,7 +501,7 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
-                                                 wait_cycles: TileState.get_int(object, :wait_cycles, 5) }}
+                                                 wait_cycles: StateValue.get_int(object, :wait_cycles, 5) }}
   end
   defp _move(%Runner{object_id: object_id, state: state} = runner_state, direction, retryable, next_actions) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -548,7 +548,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _invalid_compound_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
+    wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
@@ -561,7 +561,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _invalid_simple_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
+    wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
           %Runner{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
@@ -907,7 +907,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _direction_of_player(%Runner{object_id: object_id, state: state} = runner_state) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    target_player_map_tile_id = TileState.get_int(object, :target_player_map_tile_id)
+    target_player_map_tile_id = StateValue.get_int(object, :target_player_map_tile_id)
     _direction_of_player(runner_state, target_player_map_tile_id)
   end
   defp _direction_of_player(%Runner{state: state} = runner_state, nil) do

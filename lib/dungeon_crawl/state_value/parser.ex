@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.TileState.Parser do
+defmodule DungeonCrawl.StateValue.Parser do
   @doc """
   Parses a key/value state string.
   State values are of the form "<key>: <value>" and comma sparated.

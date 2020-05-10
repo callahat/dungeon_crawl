@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.TileState.ParserTest do
+defmodule DungeonCrawl.StateValue.ParserTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.TileState.Parser
+  alias DungeonCrawl.StateValue.Parser
 
   doctest Parser
 
