@@ -30,5 +30,6 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
     |> cast(attrs, [:row, :col, :map_instance_id, :tile_template_id, :z_index, :character, :color, :background_color, :state, :script, :name])
     |> validate_required([:row, :col, :map_instance_id, :z_index])
     |> TileTemplate.validate_renderables
+    |> TileTemplate.validate_state_values
   end
 end

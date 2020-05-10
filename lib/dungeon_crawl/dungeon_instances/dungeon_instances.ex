@@ -43,7 +43,7 @@ defmodule DungeonCrawl.DungeonInstances do
   """
   def create_map(%Dungeon.Map{} = map) do
     Multi.new()
-    |> Multi.insert(:dungeon, Map.changeset(%Map{}, Elixir.Map.merge(%{map_id: map.id}, Elixir.Map.take(map, [:name, :width, :height]))))
+    |> Multi.insert(:dungeon, Map.changeset(%Map{}, Elixir.Map.merge(%{map_id: map.id}, Elixir.Map.take(map, [:name, :width, :height, :state]))))
     |> Multi.run(:dungeon_map_tiles, fn(_repo, %{dungeon: dungeon}) ->
         result = _map_tile_instances(dungeon.id, map)
                  |> Enum.chunk_every(1_000,1_000,[])

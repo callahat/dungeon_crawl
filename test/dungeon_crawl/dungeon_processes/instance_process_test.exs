@@ -34,6 +34,14 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ instance_id: ^map_instance_id } = InstanceProcess.get_state(instance_process)
   end
 
+  test "set_state_values" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    map_instance = insert_stubbed_dungeon_instance()
+    map_instance_id = map_instance.id
+    InstanceProcess.set_state_values(instance_process, %{flag: false})
+    assert %{ state_values: %{flag: false} } = InstanceProcess.get_state(instance_process)
+  end
+
   test "load_map", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     map_tile_with_script = %MapTile{id: 236, character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"}
     map_tiles = [%MapTile{id: 123, character: "O", row: 1, col: 1, z_index: 0},

@@ -360,4 +360,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # Target is in a diagonal direction, both blocked, one is picked
     assert Enum.member?(["north", "west"], Instances.direction_of_map_tile(state, map_tile_me, map_tile_nw))
   end
+
+  test "set_state_value/3" do
+    state = Instances.set_state_value(%Instances{}, :bacon, "good")
+    assert state.state_values == %{bacon: "good"}
+  end
+
+  test "get_state_value/2" do
+    assert true == Instances.get_state_value(%Instances{state_values: %{flag: true}}, :flag)
+  end
 end

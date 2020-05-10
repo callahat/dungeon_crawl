@@ -29,7 +29,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
   test "create/2", %{instance_registry: instance_registry} do
     button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
-    instance = insert_stubbed_dungeon_instance(%{},
+    instance = insert_stubbed_dungeon_instance(%{state: "flag: false"},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
                  Map.take(button_tile, [:character,:color,:background_color,:state,:script]))])
 
@@ -39,7 +39,10 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
 
     # the instance map is loaded
-    assert %Instances{program_contexts: programs, map_by_ids: map_by_ids} = InstanceProcess.get_state(instance_process)
+    assert %Instances{program_contexts: programs,
+                      map_by_ids: map_by_ids,
+                      state_values: state_values,
+                      instance_id: instance_id} = InstanceProcess.get_state(instance_process)
     assert programs == %{map_tile.id => %{
                                            object_id: map_tile.id,
                                            program: %Program{broadcasts: [],
@@ -57,27 +60,36 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                         }
                        }
     assert map_by_ids[map_tile.id] == Map.put(map_tile, :parsed_state, %{blocking: true})
+    assert state_values == %{flag: false}
+    assert instance_id == instance.id
   end
 
-  test "create/3", %{instance_registry: instance_registry} do
+  test "create/3/4", %{instance_registry: instance_registry} do
     map_tile = %{id: 999, map_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: "", script: ""}
 
     dungeon_map_tiles = [map_tile]
 
-    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles)
+    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, %{flag: false})
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, map_tile.map_instance_id)
 
     # the instance map is loaded
-    assert %Instances{program_contexts: programs, map_by_ids: by_ids, map_by_coords: by_coords} = InstanceProcess.get_state(instance_process)
+    assert %Instances{program_contexts: programs,
+                      map_by_ids: by_ids,
+                      map_by_coords: by_coords,
+                      state_values: %{flag: false}} = InstanceProcess.get_state(instance_process)
     assert by_ids == %{map_tile.id => Map.put(map_tile, :parsed_state, %{})}
     assert by_coords ==  %{ {map_tile.row, map_tile.col} => %{map_tile.z_index => map_tile.id} }
     assert programs == %{}
 
     # if no instance_id is given, it gets an available id and returns it
+    # if no state values are given, defaults to empty map
     assert instance_id = InstanceRegistry.create(instance_registry, nil, dungeon_map_tiles)
     refute instance_id == map_tile.map_instance_id
     assert {:ok, instance_process2} = InstanceRegistry.lookup(instance_registry, instance_id)
-    assert %Instances{program_contexts: programs, map_by_ids: by_ids, map_by_coords: by_coords} = InstanceProcess.get_state(instance_process2)
+    assert %Instances{program_contexts: programs,
+                      map_by_ids: by_ids,
+                      map_by_coords: by_coords,
+                      state_values: %{}} = InstanceProcess.get_state(instance_process2)
     assert by_ids == %{map_tile.id => Map.merge(map_tile, %{map_instance_id: instance_id, parsed_state: %{}})}
   end
 

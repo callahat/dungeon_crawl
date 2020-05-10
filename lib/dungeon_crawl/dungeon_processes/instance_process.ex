@@ -31,6 +31,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Sets the instance state values
+  """
+  def set_state_values(instance, state_values) do
+    GenServer.cast(instance, {:set_state_values, {state_values}})
+  end
+
+  @doc """
   Initializes the dungeon map instance and starts the programs.
   """
   def load_map(instance, map_tiles) do
@@ -187,6 +194,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_cast({:set_instance_id, {instance_id}}, %Instances{} = state) do
     {:noreply, %{ state | instance_id: instance_id }}
+  end
+
+  @impl true
+  def handle_cast({:set_state_values, {state_values}}, %Instances{} = state) do
+    {:noreply, %{ state | state_values: state_values }}
   end
 
   @impl true

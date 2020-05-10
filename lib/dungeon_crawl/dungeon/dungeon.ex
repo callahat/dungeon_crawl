@@ -32,14 +32,14 @@ defmodule DungeonCrawl.Dungeon do
              where: m.user_id == ^user.id,
              where: is_nil(m.deleted_at))
   end
-  def list_dungeons() do
-    Repo.all(from m in Map,
-             where: is_nil(m.deleted_at))
-  end
   def list_dungeons(:soft_deleted) do
     Repo.all(from m in Map,
              where: not(is_nil(m.deleted_at)),
              order_by: [:name, :version])
+  end
+  def list_dungeons() do
+    Repo.all(from m in Map,
+             where: is_nil(m.deleted_at))
   end
 
   @doc """

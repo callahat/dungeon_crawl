@@ -5,6 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
 
   defstruct instance_id: nil,
+            state_values: %{},
             program_contexts: %{},
             map_by_ids: %{},
             map_by_coords: %{},
@@ -354,6 +355,20 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                   _                  -> %{z_index => map_tile_id}
                 end
     Map.put(by_coords, {row, col}, z_indexes)
+  end
+
+  @doc """
+  Sets a state value for the instance. Returns the updated state
+  """
+  def set_state_value(%Instances{} = state, key, value) do
+    %{ state | state_values: Map.put(state.state_values, key, value) }
+  end
+
+  @doc """
+  Gets a state value from the instance. Returns the value.
+  """
+  def get_state_value(%Instances{} = state, key) do
+    state.state_values[key]
   end
 end
 

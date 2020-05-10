@@ -6,6 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   alias DungeonCrawl.DungeonProcesses.{InstanceProcess,Supervisor}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Repo
+  alias DungeonCrawl.StateValue
 
   ## Client API
 
@@ -56,8 +57,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   If instance_id is nil, an available one will be assigned, and injected into
   all the `dungeon_map_tiles`. Returns the `instance_id`.
   """
-  def create(server, instance_id, dungeon_map_tiles) do
-    GenServer.call(server, {:create, instance_id, dungeon_map_tiles})
+  def create(server, instance_id, dungeon_map_tiles, state_values \\ %{}) do
+    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, state_values})
   end
 
   @doc """
@@ -83,18 +84,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   end
 
   @impl true
-  def handle_call({:create, nil, dungeon_map_tiles}, _from, {instance_ids, refs}) do
+  def handle_call({:create, nil, dungeon_map_tiles, state_values}, _from, {instance_ids, refs}) do
     instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
     dungeon_map_tiles = Enum.map(dungeon_map_tiles, fn(dmt) -> Map.put(dmt, :map_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs})}
+    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
   end
 
   @impl true
-  def handle_call({:create, instance_id, dungeon_map_tiles}, _from, {instance_ids, refs}) do
+  def handle_call({:create, instance_id, dungeon_map_tiles, state_values}, _from, {instance_ids, refs}) do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs}}
     else
-      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs})}
+      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
     end
   end
 
@@ -104,7 +105,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
       {:noreply, {instance_ids, refs}}
     else
       with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
-        {:noreply, _create_instance(instance_id, Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles, {instance_ids, refs})}
+        {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
+        dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
+        {:noreply, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
       else
         _ -> Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
         {:noreply, {instance_ids, refs}}
@@ -130,9 +133,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {:noreply, state}
   end
 
-  defp _create_instance(instance_id, dungeon_map_tiles, {instance_ids, refs}) do
+  defp _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs}) do
     {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
     InstanceProcess.set_instance_id(instance_process, instance_id)
+    InstanceProcess.set_state_values(instance_process, state_values)
     InstanceProcess.load_map(instance_process, dungeon_map_tiles)
     InstanceProcess.start_scheduler(instance_process)
     ref = Process.monitor(instance_process)

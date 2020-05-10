@@ -33,7 +33,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     |> validate_required([:name, :description])
     |> validate_renderables
     |> validate_script(tile_template) # seems like an clumsy way to get a user just to validate a TTID in a script
-    |> validate_state
+    |> validate_state_values
   end
 
   @doc false
@@ -65,13 +65,13 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_state(changeset) do
+  def validate_state_values(changeset) do
     state = get_field(changeset, :state)
-    _validate_state(changeset, state)
+    _validate_state_values(changeset, state)
   end
 
-  defp _validate_state(changeset, nil), do: changeset
-  defp _validate_state(changeset, state) do
+  defp _validate_state_values(changeset, nil), do: changeset
+  defp _validate_state_values(changeset, state) do
     case StateValue.Parser.parse(state) do
       {:error, message} -> add_error(changeset, :state, message)
       {:ok, _}          -> changeset

@@ -40,6 +40,14 @@
   </div>
 
   <div class="row">
+    <div class="form-group col">
+      <%= label f, :state, class: "control-label" %>
+      <%= text_input f, :state, class: "form-control" %>
+      <%= error_tag f, :state %>
+    </div>
+  </div>
+
+  <div class="row">
     <div class="form-group">
       <%= submit "Submit", class: "btn btn-primary" %>
     </div>
