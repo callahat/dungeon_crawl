@@ -449,7 +449,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:direction, direction}, var) do
     base = Instances.get_map_tile_by_id(state, %{id: object_id})
     object = Instances.get_map_tile(state, base, direction)
-    object.parsed_state[var]
+    object && object.parsed_state[var]
   end
 
   @doc """
