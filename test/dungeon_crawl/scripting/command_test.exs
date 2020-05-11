@@ -340,7 +340,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
     program = program_fixture()
 #    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
-    params = [["!", :check_state, :thing], "TOUCH"]
+    params = [["!", :state_variable, :thing], "TOUCH"]
 
     assert program.status == :alive
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
@@ -348,7 +348,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
 
     # with explicit check
-    params = [["!", :check_state, :thing, "==", true], "TOUCH"]
+    params = [["!", :state_variable, :thing, "==", true], "TOUCH"]
 
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_program.status == :alive
@@ -359,12 +359,53 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
     program = program_fixture()
 #    stubbed_object = %{state: "thing: true"}
-    params = [["!", :check_state, :thing], "TOUCH"]
+    params = [["!", :state_variable, :thing], "TOUCH"]
 
     program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
     %Runner{program: program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "JUMP_IF when using a check against a variable on the event sender" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1})
+    event_sender = %{parsed_state: %{health: "50"}}
+    program = program_fixture()
+#    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
+    params = [[:event_sender_variable, :health, ">", 25], "TOUCH"]
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state, event_sender: event_sender}
+
+    assert program.status == :alive
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
+  end
+
+  test "JUMP_IF when using a check against an instance state value" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{state_values: %{red_flag: true}}, %MapTile{id: 1})
+    program = program_fixture()
+#    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
+    params = [[:instance_state_variable, :red_flag], "TOUCH"]
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+
+    assert program.status == :alive
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
+  end
+
+  test "JUMP_IF when using a check against a tile in a direction" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, row: 1, col: 1})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, row: 0, col: 1, state: "password: bob"})
+    program = program_fixture()
+#    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
+    params = [[{:direction, "north"}, :password, "==", "bob"], "TOUCH"]
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+
+    assert program.status == :alive
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
   end
 
   test "LOCK" do

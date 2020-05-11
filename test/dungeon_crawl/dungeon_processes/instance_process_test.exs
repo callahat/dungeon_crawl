@@ -36,8 +36,6 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   test "set_state_values" do
     {:ok, instance_process} = InstanceProcess.start_link([])
-    map_instance = insert_stubbed_dungeon_instance()
-    map_instance_id = map_instance.id
     InstanceProcess.set_state_values(instance_process, %{flag: false})
     assert %{ state_values: %{flag: false} } = InstanceProcess.get_state(instance_process)
   end

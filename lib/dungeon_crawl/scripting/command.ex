@@ -416,25 +416,40 @@ defmodule DungeonCrawl.Scripting.Command do
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
   """
-  def jump_if(%Runner{} = runner_state, [[command, var], label]) when is_atom(command) do
+  def jump_if(%Runner{} = runner_state, [[command, var], label]) when is_atom(command) or is_tuple(command) do
     jump_if(runner_state, [["", command, var, "==", true], label])
   end
-  def jump_if(%Runner{} = runner_state, [[neg, command, var], label]) when is_atom(command) do
+  def jump_if(%Runner{} = runner_state, [[neg, command, var], label]) when is_atom(command) or is_tuple(command) do
     jump_if(runner_state, [[neg, command, var, "==", true], label])
   end
-  def jump_if(%Runner{} = runner_state, [[command, var, op, value], label]) when is_atom(command) do
+  def jump_if(%Runner{} = runner_state, [[command, var, op, value], label]) when is_atom(command) or is_tuple(command) do
     jump_if(runner_state, [["", command, var, op, value], label])
   end
 
-  def jump_if(%Runner{program: program, object_id: object_id, state: state} = runner_state, [[neg, _command, var, op, value], label]) do
+  def jump_if(%Runner{program: program} = runner_state, [[neg, command, var, op, value], label]) do
     # first active matching label
-    with object <- Instances.get_map_tile_by_id(state, %{id: object_id}),
-         line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, object.parsed_state[var], op, value) do
+    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
+         true <- Maths.check(neg, _resolve_variable(runner_state, command, var), op, value) do
       %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
     end
+  end
+
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, :state_variable, var) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.parsed_state[var]
+  end
+  defp _resolve_variable(%Runner{event_sender: event_sender}, :event_sender_variable, var) do
+    event_sender && event_sender.parsed_state[var]
+  end
+  defp _resolve_variable(%Runner{state: state}, :instance_state_variable, var) do
+    state.state_values[var]
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:direction, direction}, var) do
+    base = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_map_tile(state, base, direction)
+    object.parsed_state[var]
   end
 
   @doc """

@@ -63,6 +63,10 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #GIVE gems, 1, north
                #TAKE gems, 1, north
                #TAKE cash, 10, ?sender, toopoor
+               #IF ?@open, TOUCH
+               #IF ?sender@blocking, TOUCH
+               #IF ! ?north@blocking, TOUCH
+               #IF @@flag, TOUCH
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -102,6 +106,10 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  35 => [:give, ["gems", 1, "north"]],
                                                  36 => [:take, ["gems", 1, "north"]],
                                                  37 => [:take, ["cash", 10, [:event_sender], "toopoor"]],
+                                                 38 => [:jump_if, [[:event_sender_variable, :open], "TOUCH"]],
+                                                 39 => [:jump_if, [[:event_sender_variable, :blocking], "TOUCH"]],
+                                                 40 => [:jump_if, [["!", {:direction, "north"}, :blocking], "TOUCH"]],
+                                                 41 => [:jump_if, [[:instance_state_variable, :flag], "TOUCH"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

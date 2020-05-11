@@ -251,7 +251,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
-      Regex.match?(~r/^(not |! ?)?@.+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
+      Regex.match?(~r/^(not |! ?)?(\?[^@]*?@|@@|@).+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
     end
@@ -259,22 +259,40 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)@(?<state_element>[_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<value>.+))?$/i,
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)(?<type>\?[^@]*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<value>.+))?$/i,
                               String.trim(param)) do
-      %{"neg" => "", "state_element" => state_element, "op" => "", "value" => ""} ->
-        [:state_variable, String.trim(state_element) |> String.to_atom()]
+      %{"neg" => "", "type" => type, "state_element" => state_element, "op" => "", "value" => ""} ->
+        [_conditional_var_type(type), String.trim(state_element) |> String.to_atom()]
 
-      %{"neg" => "", "state_element" => state_element, "op" => op, "value" => value} ->
-        [:state_variable, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+      %{"neg" => "", "type" => type, "state_element" => state_element, "op" => op, "value" => value} ->
+        [_conditional_var_type(type), String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
 
-      %{"neg" => _, "state_element" => state_element, "op" => "", "value" => ""} ->
-        ["!", :state_variable, String.trim(state_element) |> String.to_atom()]
+      %{"neg" => _, "type" => type, "state_element" => state_element, "op" => "", "value" => ""} ->
+        ["!", _conditional_var_type(type), String.trim(state_element) |> String.to_atom()]
 
-      %{"neg" => _, "state_element" => state_element, "op" => op, "value" => value} ->
-        ["!", :state_variable, String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+      %{"neg" => _, "type" => type, "state_element" => state_element, "op" => op, "value" => value} ->
+        ["!", _conditional_var_type(type), String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
 
-      _ ->
-        :error
+      _ -> :error
+    end
+  end
+
+  defp _conditional_var_type(type) do
+    case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>[^@]*?)(?<tail>@|)$/, type) do
+      %{"lead" => "@", "mid" => "", "tail" => ""} ->
+        :state_variable
+
+      %{"lead" => "@@", "mid" => "", "tail" => ""} ->
+        :instance_state_variable
+
+      %{"lead" => "?", "mid" => who, "tail" => "@"} ->
+        case who do
+          "sender"  -> :event_sender_variable
+          ""        -> :event_sender_variable
+          direction -> {:direction, direction}
+        end
+
+      _ -> :error # should not even get here given the regex should have failed out in an upstream function
     end
   end
 
