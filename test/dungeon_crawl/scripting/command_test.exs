@@ -26,6 +26,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(" BECOME  ") == :become
     assert Command.get_command(:become) == :become
     assert Command.get_command(:change_state) == :change_state
+    assert Command.get_command(:change_instance_state) == :change_instance_state
     assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
@@ -89,6 +90,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.change_state(%Runner{program: program, object_id: map_tile.id, state: state}, [:new, "+=", 1])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
+  end
+
+  test "CHANGE_INSTANCE_STATE" do
+    {_map_tile, state} = Instances.create_map_tile(%Instances{state_values: %{one: 100, add: 8}}, %MapTile{id: 123, row: 1, col: 2, character: "."})
+
+    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:add, "+=", 1])
+    assert updated_state.state_values == %{add: 9, one: 100}
+    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:one, "=", 432])
+    assert updated_state.state_values == %{add: 8, one: 432}
+    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:new, "+=", 1])
+    assert updated_state.state_values == %{add: 8, new: 1, one: 100}
   end
 
   test "CYCLE" do

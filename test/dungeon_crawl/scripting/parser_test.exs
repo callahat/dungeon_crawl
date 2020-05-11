@@ -67,6 +67,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF ?sender@blocking, TOUCH
                #IF ! ?north@blocking, TOUCH
                #IF @@flag, TOUCH
+               @@red_flag = true
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -110,6 +111,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  39 => [:jump_if, [[:event_sender_variable, :blocking], "TOUCH"]],
                                                  40 => [:jump_if, [["!", {:direction, "north"}, :blocking], "TOUCH"]],
                                                  41 => [:jump_if, [[:instance_state_variable, :flag], "TOUCH"]],
+                                                 42 => [:change_instance_state, [:red_flag, "=", true]],
                                                  },
                                  status: :alive,
                                  pc: 1,
@@ -170,7 +172,21 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       script = """
                @$blabel = 9
                """
-      assert {:error, "Invalid state setting: `$blabel = 9`", program = %Program{}} = Parser.parse(script)
+      assert {:error, "Invalid change_state setting: `$blabel = 9`", program = %Program{}} = Parser.parse(script)
+      assert program == %Program{instructions: %{},
+                                 status: :dead,
+                                 pc: 1,
+                                 labels: %{},
+                                 locked: false,
+                                 broadcasts: [],
+                                 responses: []}
+    end
+
+    test "a bad instance state setting" do
+      script = """
+               @@$blabel = 9
+               """
+      assert {:error, "Invalid change_instance_state setting: `$blabel = 9`", program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{},
                                  status: :dead,
                                  pc: 1,
@@ -182,7 +198,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
     test "a bad state assignment" do
       script = """
-               @thing + 2049
+               @@thing + 2049
                """
       assert {:error, "Invalid state assignment: ` + 2049`", program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{},

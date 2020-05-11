@@ -59,7 +59,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_line(line, program) do
-    case Regex.named_captures(~r/^(?<type>#|:|@|\/|\?)(?<instruction>.*)$/, line) do
+    case Regex.named_captures(~r/^(?<type>#|:|@@|@|\/|\?)(?<instruction>.*)$/, line) do
       %{"type" => "/", "instruction" => _command} ->
         _parse_shorthand_movement(line, program)
 
@@ -73,7 +73,10 @@ defmodule DungeonCrawl.Scripting.Parser do
         _parse_label(label, program)
 
       %{"type" => "@", "instruction" => state_element} ->
-        _parse_state_change(state_element, program)
+        _parse_state_change(:change_state, state_element, program)
+
+      %{"type" => "@@", "instruction" => state_element} ->
+        _parse_state_change(:change_instance_state, state_element, program)
 
       _ -> # If the last item in the program is also text, concat the two
         _handle_text(line, program)
@@ -153,15 +156,15 @@ defmodule DungeonCrawl.Scripting.Parser do
     end
   end
 
-  defp _parse_state_change(element, program) do
+  defp _parse_state_change(type, element, program) do
     with state_element <- String.trim(String.downcase(element)),
          %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
          element = String.to_atom(element),
          {:ok, op, value} <- _parse_state_setting(setting),
          line_number <- Enum.count(program.instructions) + 1 do
-      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:change_state, [element, op, value]]) } }
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [type, [element, op, value]]) } }
     else
-      nil               -> {:error, "Invalid state setting: `#{element}`", program}
+      nil               -> {:error, "Invalid #{type} setting: `#{element}`", program}
       {:error, message} -> {:error, message, program}
     end
   end

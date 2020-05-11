@@ -31,6 +31,7 @@ defmodule DungeonCrawl.Scripting.Command do
     case name do
       :become       -> :become
       :change_state -> :change_state
+      :change_instance_state -> :change_instance_state
       :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
@@ -136,6 +137,25 @@ defmodule DungeonCrawl.Scripting.Command do
     {_updated_object, updated_state} = Instances.update_map_tile(state, object, %{state: object_state_str, parsed_state: object_state})
 
     %Runner{ runner_state | state: updated_state }
+  end
+
+  @doc """
+  Changes the instance state_values element given in params. (Similar to change_state)
+
+  ## Examples
+
+    iex> Command.change_instance_state(%Runner{program: program,
+                                               state: %Instances{state_values: %{}}},
+                                       [:counter, "+=", 3])
+    %Runner{program: program,
+            state: %Instances{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
+  """
+  def change_instance_state(%Runner{state: state} = runner_state, params) do
+    [var, op, value] = params
+
+    state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
+
+    %Runner{ runner_state | state: %{ state | state_values: state_values } }
   end
 
   @doc """
