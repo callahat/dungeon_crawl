@@ -241,7 +241,7 @@ defmodule DungeonCrawl.Scripting.Command do
             object_id: object_id,
             state: %Instances{ map_by_ids: %{ ... } } }
   """
-  def die(%Runner{program: program, object_id: object_id, state: state}, _ignored \\ nil) do
+  def die(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
     {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: object_id})
     top_tile = Instances.get_map_tile(updated_state, deleted_object)
 
@@ -250,8 +250,8 @@ defmodule DungeonCrawl.Scripting.Command do
                    Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                ]}]
 
-    %Runner{program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
-            object_id: object_id,
+    %Runner{runner_state |
+            program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
             state: updated_state}
   end
 
@@ -359,7 +359,7 @@ defmodule DungeonCrawl.Scripting.Command do
             state: state }
   """
   def halt(%Runner{program: program} = runner_state, _ignored \\ nil) do
-    %Runner{ runner_state | program: %{program | status: :idle, pc: -1} }
+    %{ runner_state | program: %{program | status: :idle, pc: -1} }
   end
 
   @doc """
@@ -428,7 +428,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def _facing(runner_state, direction) do
     runner_state = change_state(runner_state, [:facing, "=", direction])
-    %Runner{ runner_state | program: %{runner_state.program | status: :wait, wait_cycles: 1 } }
+    %{ runner_state | program: %{runner_state.program | status: :wait, wait_cycles: 1 } }
   end
 
   @doc """
@@ -450,7 +450,7 @@ defmodule DungeonCrawl.Scripting.Command do
     # first active matching label
     with line_number when not is_nil(line_number) <- Program.line_for(program, label),
          true <- Maths.check(neg, _resolve_variable(runner_state, command, var), op, value) do
-      %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
+      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
     end
@@ -517,7 +517,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def move(%Runner{program: program, object_id: object_id, state: state} = runner_state, ["idle", _]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: StateValue.get_int(object, :wait_cycles, 5) } }
+    %{ runner_state | program: %{program | status: :wait, wait_cycles: StateValue.get_int(object, :wait_cycles, 5) } }
   end
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
@@ -533,7 +533,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _move(%Runner{program: program, object_id: object_id, state: state} = runner_state, "idle", _retryable, next_actions) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %Runner{ runner_state | program: %{program | pc: next_actions.pc,
+    %{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
                                                  wait_cycles: StateValue.get_int(object, :wait_cycles, 5) }}
@@ -558,12 +558,12 @@ defmodule DungeonCrawl.Scripting.Command do
                               Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
                             end)}]
 
-        updated_runner_state = %Runner{ program: %{program | pc: next_actions.pc,
+        updated_runner_state = %Runner{ runner_state |
+                                        program: %{program | pc: next_actions.pc,
                                                              lc: next_actions.lc,
                                                              broadcasts: [message | program.broadcasts],
                                                              status: :wait,
                                                              wait_cycles: object.parsed_state[:wait_cycles] || 5 },
-                                        object_id: object_id,
                                         state: new_state}
 
         change_state(updated_runner_state, [:facing, "=", direction])
@@ -586,11 +586,11 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %Runner{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
@@ -599,11 +599,11 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %Runner{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
@@ -861,10 +861,9 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def terminate(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
     {_updated_object, updated_state} = Instances.update_map_tile(state, %{id: object_id}, %{script: ""})
-    %Runner{ runner_state |
-             program: %{program | status: :dead, pc: -1},
-             object_id: object_id,
-             state: updated_state}
+    %{ runner_state |
+       program: %{program | status: :dead, pc: -1},
+       state: updated_state}
   end
 
 
@@ -880,7 +879,7 @@ defmodule DungeonCrawl.Scripting.Command do
     if params != [""] do
       # TODO: probably allow this to be refined by whomever the message is for
       message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")
-      %Runner{ runner_state | program: %{program | responses: [ {"message", %{message: message}} | program.responses] } }
+      %{ runner_state | program: %{program | responses: [ {"message", %{message: message}} | program.responses] } }
     else
       runner_state
     end
