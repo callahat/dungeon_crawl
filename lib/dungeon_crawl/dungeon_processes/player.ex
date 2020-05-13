@@ -1,6 +1,5 @@
 defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
-  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
 
   @doc """
@@ -12,7 +11,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   a `user_id_hash` should be used along to get the stats for that player's current location.
   """
   def current_stats(%Instances{} = state, %{id: map_tile_id} = _player_tile) do
-    case player_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id}) do
+    case Instances.get_map_tile_by_id(state, %{id: map_tile_id}) do
       nil ->
         %{}
       player_tile ->
@@ -33,6 +32,14 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _current_stats(tile) do
+    keys = tile.parsed_state
+           |> Map.to_list
+           |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
+           |> Enum.map(fn {k,_} -> String.replace_suffix(to_string(k), "_key","") end)
+           |> Enum.map(fn color -> "<pre class='tile_template_preview'><span style='color: #{color};'>♀</span></pre>" end)
+           |> Enum.join("")
+
     Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo])
+    |> Map.put(:keys, keys)
   end
 end
