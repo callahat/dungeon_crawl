@@ -260,27 +260,49 @@ defmodule DungeonCrawl.Scripting.Parser do
     end
   end
 
+  defp _cast_simple_param(param) do
+    cond do
+      Regex.match?(~r/^true$/i, param) -> true
+      Regex.match?(~r/^false$/i, param) -> false
+      Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
+      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^(\?[^@]*?@|@@|@).+?$/i, param) -> _normalize_state_arg(param)
+      Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
+      true -> param # just a string
+    end
+  end
+
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)(?<type>\?[^@]*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<value>.+))?$/i,
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9]+?))?$/i,
                               String.trim(param)) do
-      %{"neg" => "", "type" => type, "state_element" => state_element, "op" => "", "value" => ""} ->
-        [_conditional_var_type(type), String.trim(state_element) |> String.to_atom()]
+      %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->
+        _normalize_state_arg(left)
 
-      %{"neg" => "", "type" => type, "state_element" => state_element, "op" => op, "value" => value} ->
-        [_conditional_var_type(type), String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+      %{"neg" => "", "left" => left, "op" => op, "right" => right} ->
+        [_normalize_state_arg(left), op, _cast_simple_param(right)]
 
-      %{"neg" => _, "type" => type, "state_element" => state_element, "op" => "", "value" => ""} ->
-        ["!", _conditional_var_type(type), String.trim(state_element) |> String.to_atom()]
+      %{"neg" => _, "left" => left, "op" => "", "right" => ""} ->
+        ["!", _normalize_state_arg(left)]
 
-      %{"neg" => _, "type" => type, "state_element" => state_element, "op" => op, "value" => value} ->
-        ["!", _conditional_var_type(type), String.trim(state_element) |> String.to_atom(), op, _cast_param(value)]
+      %{"neg" => _, "left" => left, "op" => op, "right" => right} ->
+        ["!", _normalize_state_arg(left), op, _cast_simple_param(right)]
 
       _ -> :error
     end
   end
 
-  defp _conditional_var_type(type) do
+  defp _normalize_state_arg(arg) do
+    case Regex.named_captures(~r/^(?<type>\?[^@]*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?$/i, String.trim(arg)) do
+      %{"type" => type, "state_element" => state_element} ->
+        {_state_var_type(type), String.trim(state_element) |> String.to_atom()}
+
+      _ -> # if this happens, then this method is being called in the wrong place
+        :error
+    end
+  end
+
+  defp _state_var_type(type) do
     case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>[^@]*?)(?<tail>@|)$/, type) do
       %{"lead" => "@", "mid" => "", "tail" => ""} ->
         :state_variable
@@ -295,7 +317,7 @@ defmodule DungeonCrawl.Scripting.Parser do
           direction -> {:direction, direction}
         end
 
-      _ -> :error # should not even get here given the regex should have failed out in an upstream function
+      #_ -> :error # should not even get here given the regex should have failed out in an upstream function
     end
   end
 

@@ -111,14 +111,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [ :jump_if, [params, label] ]} | instructions], errors, user)
+         when params != :error
          when length(params) == 2
-         when length(params) == 4
          when length(params) == 3
-         when length(params) == 5 do
-    if Program.line_for(program, label) do
-      _validate(program, instructions, errors, user)
-    else
-      _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
+         when length(params) == 4 do
+    cond do
+      (is_list(params) && Enum.any?(params, fn param -> param == :error end)) ->
+        _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
+      Program.line_for(program, label) ->
+        _validate(program, instructions, errors, user)
+      true ->
+        _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
     end
   end
 
@@ -155,7 +158,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
   end
 
-  defp _validate(program, [ {_line_no, [:shoot, [[_state_variable, _var]] ]} | instructions], errors, user) do
+  defp _validate(program, [ {_line_no, [:shoot, [{_state_variable, _var}] ]} | instructions], errors, user) do
     _validate(program, instructions, errors, user)
   end
   defp _validate(program, [ {line_no, [:shoot, [direction] ]} | instructions], errors, user) do
