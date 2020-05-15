@@ -75,6 +75,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
     assert %{blocking: true} = updated_map_tile.parsed_state
+
+    # BECOME a ttid with no script, when currently has script
+    fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'"})
+    params = [{:ttid, fake_door.id}]
+
+    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+
+    refute Map.take(updated_map_tile, [:script]) == %{script: squeaky_door.script}
+    assert Map.take(updated_map_tile, [:character]) == Map.take(fake_door, [:character])
+    assert program.status == :dead
   end
 
   test "CHANGE_STATE" do
@@ -225,15 +236,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     runner_state = %Runner{object_id: giver.id, state: state}
 
     # give state var in direction
-    %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, ["health", [:state_variable, :medkits], "north"])
+    %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, ["health", {:state_variable, :medkits}, "north"])
     assert map[receiving_tile.id].parsed_state[:health] == 4
 
     # Does nothing when there's no map tile
-    %Runner{state: updated_state} = Command.give(runner_state, ["health", [:state_variable, :medkits], "south"])
+    %Runner{state: updated_state} = Command.give(runner_state, ["health", {:state_variable, :medkits}, "south"])
     assert updated_state == state
 
     # Does nothing when the direction is invalid
-    %Runner{state: updated_state} = Command.give(runner_state, ["health", [:state_variable, :medkits], "norf"])
+    %Runner{state: updated_state} = Command.give(runner_state, ["health", {:state_variable, :medkits}, "norf"])
     assert updated_state == state
 
     # give state var to event sender (tile)
@@ -251,11 +262,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # give handles null state variable
     %Runner{state: %{map_by_ids: map}} = Command.give(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: receiving_tile.id}},
-                                                      ["health", [:state_variable, :nonexistant], [:event_sender]])
+                                                      ["health", {:state_variable, :nonexistant}, [:event_sender]])
     assert map[receiving_tile.id].parsed_state[:health] == 1
 
     # Does nothing when there is no event sender
-    %Runner{state: updated_state} = Command.give(%{runner_state | event_sender: nil}, [:health, [:state_variable, :nonexistant], [:event_sender]])
+    %Runner{state: updated_state} = Command.give(%{runner_state | event_sender: nil}, [:health, {:state_variable, :nonexistant}, [:event_sender]])
     assert updated_state == state
   end
 
@@ -334,14 +345,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     program = program_fixture()
 #    map_tile = %{id: 1, state: "thing: true", parsed_state: %{thing: true}}
 #    state = %Instances{map_by_ids: %{1 => stubbed_object}}
-    params = [[:state_variable, :thing], "TOUCH"]
+    params = [{:state_variable, :thing}, "TOUCH"]
 
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_program.status == :alive
     assert updated_program.pc == 3
 
     # with explicit check
-    params = [[:state_variable, :thing, "==", true], "TOUCH"]
+    params = [[{:state_variable, :thing}, "==", true], "TOUCH"]
 
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_program.status == :alive
@@ -352,7 +363,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
     program = program_fixture()
 #    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
-    params = [["!", :state_variable, :thing], "TOUCH"]
+    params = [["!", {:state_variable, :thing}], "TOUCH"]
 
     assert program.status == :alive
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
@@ -360,7 +371,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
 
     # with explicit check
-    params = [["!", :state_variable, :thing, "==", true], "TOUCH"]
+    params = [["!", {:state_variable, :thing}, "==", true], "TOUCH"]
+
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
+
+    # with explicit check
+    params = [["!", {:state_variable, :thing}, "==", {:state_variable, :thing}], "TOUCH"]
 
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_program.status == :alive
@@ -371,7 +389,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
     program = program_fixture()
 #    stubbed_object = %{state: "thing: true"}
-    params = [["!", :state_variable, :thing], "TOUCH"]
+    params = [["!", {:state_variable, :thing}], "TOUCH"]
 
     program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
     %Runner{program: program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
@@ -383,7 +401,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1})
     event_sender = %{parsed_state: %{health: "50"}}
     program = program_fixture()
-    params = [[:event_sender_variable, :health, ">", 25], "TOUCH"]
+    params = [[{:event_sender_variable, :health}, ">", 25], "TOUCH"]
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state, event_sender: event_sender}
 
     assert program.status == :alive
@@ -401,7 +419,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "JUMP_IF when using a check against an instance state value" do
     {map_tile, state} = Instances.create_map_tile(%Instances{state_values: %{red_flag: true}}, %MapTile{id: 1})
     program = program_fixture()
-    params = [[:instance_state_variable, :red_flag], "TOUCH"]
+    params = [{:instance_state_variable, :red_flag}, "TOUCH"]
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
     assert program.status == :alive
@@ -414,7 +432,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, row: 1, col: 1})
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, row: 0, col: 1, state: "password: bob"})
     program = program_fixture()
-    params = [[{:direction, "north"}, :password, "==", "bob"], "TOUCH"]
+    params = [[{{:direction, "north"}, :password}, "==", "bob"], "TOUCH"]
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
     assert program.status == :alive
@@ -423,7 +441,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 3
 
     # No tile in that direction
-    params = [[{:direction, "south"}, :password, "==", "bob"], "TOUCH"]
+    params = [[{{:direction, "south"}, :password}, "==", "bob"], "TOUCH"]
     %Runner{program: updated_program} = Command.jump_if(runner_state, params)
     assert updated_program.status == :alive
     assert updated_program.pc == 1
@@ -584,7 +602,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"})
 
-    %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, [[:state_variable, :facing], true])
+    %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, [{:state_variable, :facing}, true])
     mover = Instances.get_map_tile_by_id(state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
@@ -719,11 +737,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.program_messages == [{999, "touch", obj_id}]
 
     # Also works if the direction is in a state variable
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", [:state_variable, :facing]])
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :facing}])
     assert updated_state.program_messages == [{123, "touch", obj_id}, {255, "touch", obj_id}]
 
     # Doesnt break if nonexistant state var
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", [:state_variable, :fake]])
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :fake}])
     assert updated_state.program_messages == []
   end
 
@@ -782,7 +800,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # can use the state variable
 #    obj = %{obj | parsed_state: %{facing: "north"}}
     {obj, state} = Instances.update_map_tile_state(updated_state, obj, %{facing: "north"})
-    %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, [[:state_variable, :facing]])
+    %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, [{:state_variable, :facing}])
     assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
 
     assert bullet.character == "◦"
@@ -803,15 +821,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     runner_state = %Runner{object_id: taker.id, state: state, program: program}
 
     # take state var in direction
-    %Runner{state: %{map_by_ids: map}} = Command.take(runner_state, ["health", [:state_variable, :damage], "north"])
+    %Runner{state: %{map_by_ids: map}} = Command.take(runner_state, ["health", {:state_variable, :damage}, "north"])
     assert map[losing_tile.id].parsed_state[:health] == 7
 
     # take nothing when there's no map tile
-    %Runner{state: updated_state} = Command.take(runner_state, ["health", [:state_variable, :damage], "south"])
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", {:state_variable, :damage}, "south"])
     assert updated_state == state
 
     # take nothing when the direction is invalid
-    %Runner{state: updated_state} = Command.take(runner_state, ["health", [:state_variable, :damage], "norf"])
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", {:state_variable, :damage}, "norf"])
     assert updated_state == state
 
     # take but not enough
@@ -849,11 +867,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # take handles null state variable
     %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
-                                                      ["health", [:state_variable, :nonexistant], [:event_sender]])
+                                                      ["health", {:state_variable, :nonexistant}, [:event_sender]])
     assert map[losing_tile.id].parsed_state[:health] == 10
 
     # Does nothing when there is no event sender
-    %Runner{state: updated_state} = Command.take(%{runner_state | event_sender: nil}, [:health, [:state_variable, :nonexistant], [:event_sender]])
+    %Runner{state: updated_state} = Command.take(%{runner_state | event_sender: nil}, [:health, {:state_variable, :nonexistant}, [:event_sender]])
     assert updated_state == state
   end
 

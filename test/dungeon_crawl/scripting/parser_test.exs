@@ -4,6 +4,12 @@ defmodule DungeonCrawl.Scripting.ParserTest do
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Program
 
+  # To verify the parsed stuff feeds into the commands, might move this elsewhere
+  alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.Scripting.Command
+  alias DungeonCrawl.Scripting.Runner
+
   doctest Parser
 
   describe "parse" do
@@ -119,6 +125,28 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                  locked: false,
                                  broadcasts: [],
                                  responses: []}
+
+      # Check that the parsed stuff matches the command signatures. Kinda a kludge, but no other better place for this check
+      # without duplicating a bunch of other stuff
+      map_instance = insert_stubbed_dungeon_instance()
+      map_tile_params = %MapTile{map_instance_id: map_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
+      {map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile_params)
+
+      runner_state = %Runner{object_id: map_tile.id, program: program, state: state}
+
+      assert  program.instructions
+              |> Map.to_list
+              |> Enum.map(fn {_line_number, [command, params]} ->
+                   try do
+                     apply(Command, command, [runner_state, params])
+                     :ok
+                   rescue
+                     e in FunctionClauseError -> [Map.take(e,[:function, :module]), command, params]
+                   end
+                 end )
+                 |> Enum.reject(fn e -> e == :ok end)
+                 |> Enum.map(fn e -> inspect e end)
+                 |> Enum.join("\n") == ""
     end
 
     test "a bad command" do
