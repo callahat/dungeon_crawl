@@ -454,6 +454,19 @@ defmodule DungeonCrawl.Scripting.Command do
     jump_if(runner_state, [["", left, "==", true], label])
   end
 
+
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, "color"}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.color
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, "background_color"}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.background_color
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, "name"}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.name
+  end
   defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.parsed_state[var]
