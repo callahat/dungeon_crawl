@@ -42,12 +42,14 @@ require Logger
       :alive ->
         [command, params] = program.instructions[program.pc]
 # Logging is expensive, comment/remove later
+if System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
 Logger.info "Running:"
 Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
 Logger.info inspect object.state
 Logger.info inspect runner_state.event_sender
+end
         runner_state = apply(Command, command, [runner_state, params])
 
         # increment program counter, check for end of program
