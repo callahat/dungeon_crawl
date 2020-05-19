@@ -262,7 +262,10 @@ defmodule DungeonCrawl.Scripting.Command do
   Give a tile an amount of something. This modifies the state of that tile by adding the amount to
   whatever is at that key is at (creating it if not already present). First parameter is `what` (the
   state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
-  value for the giving tile. Third is the receiving tile of it.
+  value for the giving tile. Third is the receiving tile of it. Fourth and fifth parameters are max amount
+  the recieving tile may have (the command will give up to this amount if present). If receiving tile is already
+  at max, then the fifth parameter is the label where the script will continue running from. Forth and fifth are
+  optional, but the fifth parameter will require a valid fourth parameter.
 
   Valid tiles can be a direction - ie, north, south east, west; additionally
   the specail varialble `?sender` can be used to give to the program/player
@@ -275,32 +278,42 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{}
     iex> Command.give(%Runner{}, [:ammo, {:state_variable, :rounds}, "north"])
     %Runner{}
+    iex> Command.give(%Runner{}, [:health, 100, "north", 100, "HEALEDUP"])
+    %Runner{}
   """
   def give(%Runner{} = runner_state, [what, amount, to_whom]) do
-    _give(runner_state, [what, amount, to_whom])
+    _give(runner_state, [what, amount, to_whom, nil, nil])
   end
 
-  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender]]) do
-    case event_sender do
-      %{map_tile_id: id} -> _give(runner_state, [what, amount, [id]])
+  def give(%Runner{} = runner_state, [what, amount, to_whom, max]) do
+    _give(runner_state, [what, amount, to_whom, max, nil])
+  end
 
-      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id]])
+  def give(%Runner{} = runner_state, [what, amount, to_whom, max, label]) do
+    _give(runner_state, [what, amount, to_whom, max, label])
+  end
+
+  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender], max, label]) do
+    case event_sender do
+      %{map_tile_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+
+      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id], max, label])
 
       nil              -> runner_state
     end
   end
 
-  defp _give(%Runner{} = runner_state, [what, amount, [id]]) do
-    _give_via_id(runner_state, [what, amount, [id]])
+  defp _give(%Runner{} = runner_state, [what, amount, [id], max, label]) do
+    _give_via_id(runner_state, [what, amount, [id], max, label])
   end
 
-  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction]) do
+  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction, max, label]) do
     if direction in ["north", "up", "south", "down", "east", "right", "west", "left"] do
       object = Instances.get_map_tile_by_id(state, %{id: object_id})
       map_tile = Instances.get_map_tile(state, object, direction)
 
       if map_tile do
-        _give(runner_state, [what, amount, [map_tile.id]])
+        _give(runner_state, [what, amount, [map_tile.id], max, label])
       else
         runner_state
       end
@@ -309,22 +322,64 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _give_via_id(%Runner{state: state} = runner_state, [what, amount, [id]]) do
+#  defp _give_via_id(%Runner{state: state} = runner_state, [what, amount, [id], nil, _]) do
+#    amount = _resolve_variable(runner_state, amount)
+
+#    if is_number(amount) and amount > 0 do
+#      what = String.to_atom(what)
+#      receiver = Instances.get_map_tile_by_id(state, %{id: id})
+#      {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => (receiver.parsed_state[what] || 0) + amount})
+
+#      if state.player_locations[id] do
+#        payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
+#        %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
+#      else
+#        %{ runner_state | state: state }
+#      end
+#    else
+#      runner_state
+#    end
+#  end
+
+  defp _give_via_id(%Runner{state: state, object_id: object_id, event_sender: sender} = runner_state, [what, amount, [id], max, label]) do
     amount = _resolve_variable(runner_state, amount)
 
     if is_number(amount) and amount > 0 do
-      what = String.to_atom(what)
+      max = _resolve_variable(runner_state, max)
       receiver = Instances.get_map_tile_by_id(state, %{id: id})
-      {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => (receiver.parsed_state[what] || 0) + amount})
+      what = String.to_atom(what)
+      current_value = receiver.parsed_state[what] || 0
+      adjusted_amount = _adjust_amount_to_give(amount, max, current_value)
+      new_value = current_value + adjusted_amount
 
-      if state.player_locations[id] do
-        payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
-        %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
-      else
-        %{ runner_state | state: state }
+      cond do
+        adjusted_amount > 0 ->
+          {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => new_value})
+
+          if state.player_locations[id] do
+            payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
+            %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
+          else
+            %{ runner_state | state: state }
+          end
+
+        is_number(max) && label ->
+          state = %{ state | program_messages: [ {object_id, label, sender} | state.program_messages] }
+          %{ runner_state | state: state, program: state.program_contexts[object_id].program }
+
+        true ->
+          runner_state
       end
     else
       runner_state
+    end
+  end
+
+  defp _adjust_amount_to_give(amount, max, current_amount) do
+    if is_number(max) and current_amount + amount >= max do
+      max - current_amount
+    else
+      amount
     end
   end
 
@@ -455,15 +510,15 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
 
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, "color"}) do
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.color
   end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, "background_color"}) do
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :background_color}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.background_color
   end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, "name"}) do
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :name}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.name
   end
