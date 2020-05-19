@@ -236,7 +236,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              Already at full health
              """
     {receiving_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 1"})
-    {giver, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "medkits: 3", script: script})
+    {giver, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "medkits: 3", script: script, color: "red"})
 
     program = program_fixture(script)
 
@@ -275,6 +275,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # Does nothing when there is no event sender
     %Runner{state: updated_state} = Command.give(%{runner_state | event_sender: nil}, [:health, {:state_variable, :nonexistant}, [:event_sender]])
     assert updated_state == state
+
+    # Give a state variable
+    %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, [{:state_variable, :color}, 1, "north", 1, "fullhealth"])
+    assert map[receiving_tile.id].parsed_state[:red] == 1
 
     # Give up to the max
     assert map[receiving_tile.id].parsed_state[:health] == 1
@@ -851,8 +855,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              /i
              You don't have enough
              """
-    {losing_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10"})
-    {taker, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script})
+    {losing_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1"})
+    {taker, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", color: "red", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script})
 
     program = program_fixture(script)
 
@@ -861,6 +865,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # take state var in direction
     %Runner{state: %{map_by_ids: map}} = Command.take(runner_state, ["health", {:state_variable, :damage}, "north"])
     assert map[losing_tile.id].parsed_state[:health] == 7
+
+    # Take a state variable as the attrbiute
+    %Runner{state: %{map_by_ids: map}} = Command.take(runner_state, [{:state_variable, :color}, 1, "north", "toopoor"])
+    assert map[losing_tile.id].parsed_state[:red] == 0
 
     # take nothing when there's no map tile
     %Runner{state: updated_state} = Command.take(runner_state, ["health", {:state_variable, :damage}, "south"])

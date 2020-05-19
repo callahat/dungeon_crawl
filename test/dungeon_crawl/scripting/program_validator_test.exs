@@ -66,6 +66,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #TAKE ammo, 3, ?sender
     #IF @@bio == tho, touch
     #IF ?@@ == tho, touch
+    #GIVE ammo, 3, ?sender, -3
+    #GIVE ammo, 1, ?sender, 3, touch
+    #GIVE ammo, 1, ?sender, 3, badtouch
     """
   end
 
@@ -118,6 +121,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 40: TAKE command has invalid amount `one`",
                "Line 40: TAKE command references invalid direction `goof`",
                "Line 43: IF command malformed",
+               "Line 44: GIVE command has invalid maximum amount `-3`",
+               "Line 46: GIVE command references nonexistant label `badtouch`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -146,6 +151,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 40: TAKE command has invalid amount `one`",
                "Line 40: TAKE command references invalid direction `goof`",
                "Line 43: IF command malformed",
+               "Line 44: GIVE command has invalid maximum amount `-3`",
+               "Line 46: GIVE command references nonexistant label `badtouch`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

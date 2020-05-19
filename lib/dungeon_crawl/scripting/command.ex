@@ -322,29 +322,11 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-#  defp _give_via_id(%Runner{state: state} = runner_state, [what, amount, [id], nil, _]) do
-#    amount = _resolve_variable(runner_state, amount)
-
-#    if is_number(amount) and amount > 0 do
-#      what = String.to_atom(what)
-#      receiver = Instances.get_map_tile_by_id(state, %{id: id})
-#      {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => (receiver.parsed_state[what] || 0) + amount})
-
-#      if state.player_locations[id] do
-#        payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
-#        %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
-#      else
-#        %{ runner_state | state: state }
-#      end
-#    else
-#      runner_state
-#    end
-#  end
-
   defp _give_via_id(%Runner{state: state, object_id: object_id, event_sender: sender} = runner_state, [what, amount, [id], max, label]) do
     amount = _resolve_variable(runner_state, amount)
+    what = _resolve_variable(runner_state, what)
 
-    if is_number(amount) and amount > 0 do
+    if is_number(amount) and amount > 0 and is_binary(what) do
       max = _resolve_variable(runner_state, max)
       receiver = Instances.get_map_tile_by_id(state, %{id: id})
       what = String.to_atom(what)
@@ -883,8 +865,9 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _take_via_id(%Runner{object_id: object_id, state: state, event_sender: sender} = runner_state, what, amount, id, label) do
     amount = _resolve_variable(runner_state, amount)
+    what = _resolve_variable(runner_state, what)
 
-    if is_number(amount) and amount > 0 do
+    if is_number(amount) and amount > 0 and is_binary(what) do
       what = String.to_atom(what)
       receiver = Instances.get_map_tile_by_id(state, %{id: id})
       new_value = (receiver.parsed_state[what] || 0) - amount

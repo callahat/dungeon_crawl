@@ -92,13 +92,28 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
-  defp _validate(program, [ {line_no, [:give, [_what, amount, who] ]} | instructions], errors, user) do
-    errors = unless is_number(amount) and amount > 0,
+  defp _validate(program, [ {line_no, [:give, [what, amount, who] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:give, [what, amount, who, nil, nil] ]} | instructions], errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:give, [what, amount, who, max] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:give, [what, amount, who, max, nil] ]} | instructions], errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:give, [_what, amount, who, max, label] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],
                else: errors
     errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
                do: ["Line #{line_no}: GIVE command references invalid direction `#{who}`" | errors],
                else: errors
+    errors = unless is_nil(max) or (is_number(max) and max > 0 || is_tuple(max)),
+               do: ["Line #{line_no}: GIVE command has invalid maximum amount `#{max}`" | errors],
+               else: errors
+    errors = unless is_nil(label) or Program.line_for(program, label),
+               do: ["Line #{line_no}: GIVE command references nonexistant label `#{label}`" | errors],
+               else: errors
+
     _validate(program, instructions, errors, user)
   end
 
@@ -180,7 +195,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [:take, [_what, amount, who, label] ]} | instructions], errors, user) do
-    errors = unless is_number(amount) and amount > 0,
+    errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
                else: errors
     errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
