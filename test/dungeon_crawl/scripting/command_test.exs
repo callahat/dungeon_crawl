@@ -296,6 +296,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.map_by_ids[receiving_tile.id].parsed_state[:health] == 1
     assert up == runner_state.program
     assert [{3, "fullhealth", _}] = updated_state.program_messages
+
+    # Give using interpolated value
+    %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, [{:state_variable, :color, "_key"}, 1, "north", 1])
+    assert map[receiving_tile.id].parsed_state[:red_key] == 1
+
+    # Give using interpolated value that is not a string. (Giving param 1 must resolve to a binary, otherwise nothing is given)
+    %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, [{:state_variable, :medkits, "_key"}, 1, "north"])
+    assert map[receiving_tile.id].parsed_state == %{health: 1}
   end
 
   test "GO" do

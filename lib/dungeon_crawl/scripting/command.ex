@@ -491,7 +491,14 @@ defmodule DungeonCrawl.Scripting.Command do
     jump_if(runner_state, [["", left, "==", true], label])
   end
 
-
+  defp _resolve_variable(%Runner{} = runner_state, {type, var, concat}) do
+    resolved_variable = _resolve_variable(runner_state, {type, var})
+    if is_binary(resolved_variable) do
+      resolved_variable <> concat
+    else
+      resolved_variable
+    end
+  end
   defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.color

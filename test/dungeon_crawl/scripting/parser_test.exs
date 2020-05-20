@@ -74,6 +74,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF ! ?north@blocking, TOUCH
                #IF @@flag, TOUCH
                @@red_flag = true
+               #GIVE @color+_key, 1, ?sender, 1
+               #GIVE @color+_key, 1, ?sender, 1, alreadyhave
+               :ALREADYHAVE
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -118,10 +121,13 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  40 => [:jump_if, [["!", {{:direction, "north"}, :blocking}], "TOUCH"]],
                                                  41 => [:jump_if, [{:instance_state_variable, :flag}, "TOUCH"]],
                                                  42 => [:change_instance_state, [:red_flag, "=", true]],
+                                                 43 => [:give, [{:state_variable, :color, "_key"}, 1, [:event_sender], 1]],
+                                                 44 => [:give, [{:state_variable, :color, "_key"}, 1, [:event_sender], 1, "alreadyhave"]],
+                                                 45 => [:noop, "ALREADYHAVE"],
                                                  },
                                  status: :alive,
                                  pc: 1,
-                                 labels: %{"already_open" => [[7, true]], "touch" => [[2, true],[22,true]]},
+                                 labels: %{"already_open" => [[7, true]], "touch" => [[2, true],[22,true]], "alreadyhave" => [[45, true]]},
                                  locked: false,
                                  broadcasts: [],
                                  responses: []}
