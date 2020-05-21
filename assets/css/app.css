@@ -240,3 +240,7 @@ input#tile_template_character {
   display: inline;
   background-color: lightgray;
 }
+
+.smaller {
+  font-size: smaller;
+}
