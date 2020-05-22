@@ -294,8 +294,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # If already at max and there's a label, jump to it
     %Runner{state: updated_state, program: up} = Command.give(runner_state, ["health", 1, "north", 1, "fullhealth"])
     assert updated_state.map_by_ids[receiving_tile.id].parsed_state[:health] == 1
-    assert up == runner_state.program
-    assert [{3, "fullhealth", _}] = updated_state.program_messages
+    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
+    assert [] = updated_state.program_messages
 
     # Give using interpolated value
     %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, [{:state_variable, :color, "_key"}, 1, "north", 1])
@@ -904,9 +904,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                                                 player_locations: %{losing_tile.id => %Location{map_tile_instance_id: losing_tile.id} }}}
     %Runner{state: updated_state, program: up} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
                                                  ["gems", 2, "north", "toopoor"])
-    assert up == runner_state.program
-    assert [{3, "toopoor", player_location}] = updated_state.program_messages
-    assert player_location.map_tile_instance_id == losing_tile.id
+    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
+    assert [] = updated_state.program_messages
 
     # take state var to event sender (tile)
     %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state | event_sender: %{map_tile_id: losing_tile.id}},

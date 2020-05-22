@@ -322,7 +322,7 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _give_via_id(%Runner{state: state, object_id: object_id, event_sender: sender} = runner_state, [what, amount, [id], max, label]) do
+  defp _give_via_id(%Runner{state: state, object_id: object_id, event_sender: sender, program: program} = runner_state, [what, amount, [id], max, label]) do
     amount = _resolve_variable(runner_state, amount)
     what = _resolve_variable(runner_state, what)
 
@@ -330,12 +330,12 @@ defmodule DungeonCrawl.Scripting.Command do
       max = _resolve_variable(runner_state, max)
       receiver = Instances.get_map_tile_by_id(state, %{id: id})
       what = String.to_atom(what)
-      current_value = receiver.parsed_state[what] || 0
+      current_value = receiver && receiver.parsed_state[what] || 0
       adjusted_amount = _adjust_amount_to_give(amount, max, current_value)
       new_value = current_value + adjusted_amount
 
       cond do
-        adjusted_amount > 0 ->
+        receiver && adjusted_amount > 0 ->
           {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => new_value})
 
           if state.player_locations[id] do
@@ -346,8 +346,8 @@ defmodule DungeonCrawl.Scripting.Command do
           end
 
         is_number(max) && label ->
-          state = %{ state | program_messages: [ {object_id, label, sender} | state.program_messages] }
-          %{ runner_state | state: state, program: state.program_contexts[object_id].program }
+          updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+          %{ runner_state | state: state, program: updated_program }
 
         true ->
           runner_state
@@ -870,18 +870,19 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _take_via_id(%Runner{object_id: object_id, state: state, event_sender: sender} = runner_state, what, amount, id, label) do
+  defp _take_via_id(%Runner{object_id: object_id, state: state, event_sender: sender, program: program} = runner_state, what, amount, id, label) do
     amount = _resolve_variable(runner_state, amount)
     what = _resolve_variable(runner_state, what)
 
     if is_number(amount) and amount > 0 and is_binary(what) do
       what = String.to_atom(what)
-      receiver = Instances.get_map_tile_by_id(state, %{id: id})
-      new_value = (receiver.parsed_state[what] || 0) - amount
+      loser = Instances.get_map_tile_by_id(state, %{id: id})
+
+      new_value = (loser && loser.parsed_state[what] || 0) - amount
 
       cond do
         new_value >= 0 ->
-          {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => new_value})
+          {_loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_value})
 
           if state.player_locations[id] do
             payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
@@ -891,8 +892,8 @@ defmodule DungeonCrawl.Scripting.Command do
           end
 
         label && sender ->
-          state = %{ state | program_messages: [ {object_id, label, sender} | state.program_messages] }
-          %{ runner_state | state: state, program: state.program_contexts[object_id].program }
+          updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+          %{ runner_state | state: state, program: updated_program }
 
         true ->
           runner_state

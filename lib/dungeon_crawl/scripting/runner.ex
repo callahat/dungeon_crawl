@@ -44,6 +44,7 @@ require Logger
 # Logging is expensive, comment/remove later
 if System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
 Logger.info "Running:"
+Logger.info inspect object_id
 Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
