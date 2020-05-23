@@ -1,11 +1,18 @@
 <h2>Show tile template</h2>
 
-<pre class="tile_template_preview embiggen_most"><%= DungeonCrawlWeb.SharedView.tile_and_style(@tile_template, :safe) %></pre>
-
 <ul>
+  <li>
+    <pre class="tile_template_preview embiggen_most"><%= DungeonCrawlWeb.SharedView.tile_and_style(@tile_template, :safe) %></pre>
+  </li>
+
   <li>
     <strong>Owner:</strong>
     <%= @owner_name %>
+  </li>
+
+  <li>
+    <strong>Slug:</strong>
+    <%= @tile_template.slug %>
   </li>
 
   <li>

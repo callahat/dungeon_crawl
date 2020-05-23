@@ -13,6 +13,7 @@
     <thead>
       <tr>
         <th>Id</th>
+        <th>Slug</th>
         <th>Name</th>
         <th>Character</th>
         <th>Color</th>
@@ -29,6 +30,7 @@
 <%= for tile_template <- @tile_templates do %>
       <tr>
         <td><%= tile_template.id %></td>
+        <td><%= tile_template.slug %></td>
         <td><%= tile_template.name %></td>
         <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre></td>
         <td><%= tile_template.color %></td>
