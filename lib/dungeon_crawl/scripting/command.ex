@@ -322,7 +322,7 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _give_via_id(%Runner{state: state, object_id: object_id, event_sender: sender, program: program} = runner_state, [what, amount, [id], max, label]) do
+  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, [id], max, label]) do
     amount = _resolve_variable(runner_state, amount)
     what = _resolve_variable(runner_state, what)
 
@@ -870,7 +870,7 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _take_via_id(%Runner{object_id: object_id, state: state, event_sender: sender, program: program} = runner_state, what, amount, id, label) do
+  defp _take_via_id(%Runner{state: state, program: program} = runner_state, what, amount, id, label) do
     amount = _resolve_variable(runner_state, amount)
     what = _resolve_variable(runner_state, what)
 
@@ -891,7 +891,7 @@ defmodule DungeonCrawl.Scripting.Command do
             %{ runner_state | state: state }
           end
 
-        label && sender ->
+        label ->
           updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
           %{ runner_state | state: state, program: updated_program }
 

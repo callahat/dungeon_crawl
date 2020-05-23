@@ -887,11 +887,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
 
     # take but not enough
-    %Runner{state: updated_state} = Command.take(runner_state, ["health", 20, "south"])
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", 20, "north"])
     assert updated_state == state
 
     # take but not state entry
-    %Runner{state: updated_state} = Command.take(runner_state, ["gems", 20, "south"])
+    %Runner{state: updated_state} = Command.take(runner_state, ["gems", 20, "north"])
     assert updated_state == state
 
     # take but not enough and label given, but no event sender
