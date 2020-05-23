@@ -1,6 +1,11 @@
 <h2><%= @dungeon.name %> (<%= @dungeon.height %>x<%= @dungeon.width %>)</h2>
 <p><b>Owner:</b> <%= @owner_name %></p>
 <p><b>Version:</b> <%= @dungeon.version %> (<%= if @dungeon.active, do: "A", else: "Ina" %>ctive)</p>
+<div>
+  <b>State:</b>
+  <pre class="script" style="display: inline"><%= @dungeon.state %></pre>
+</div>
+
 
 <div class="text-center">
 

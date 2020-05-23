@@ -30,5 +30,6 @@ defmodule DungeonCrawl.Dungeon.MapTile do
     |> validate_required([:row, :col, :dungeon_id, :z_index])
     |> validate_length(:name, max: 32)
     |> TileTemplate.validate_renderables
+    |> TileTemplate.validate_state_values
   end
 end

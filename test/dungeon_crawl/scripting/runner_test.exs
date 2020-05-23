@@ -16,10 +16,10 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_object = %{id: 1, state: "", parsed_state: %{}}
 
       %Runner{program: run_program} = Runner.run(%Runner{program: program, object_id: stubbed_object.id})
-      assert run_program.responses == ["Line Two", "Line One"]
+      assert run_program.responses == [{"message", %{message: "Line Two"}}, {"message", %{message: "Line One"}}]
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | pc: 2}, object_id: stubbed_object.id})
-      assert run_program.responses == ["Line Two"]
+      assert run_program.responses == [{"message", %{message: "Line Two"}}]
     end
 
     test "when given a label executes from that" do
@@ -33,7 +33,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       state = %Instances{map_by_ids: %{1 => stubbed_object}}
 
       %Runner{program: run_program} = Runner.run(%Runner{state: state, program: %{program | status: :idle}, object_id: stubbed_object.id}, "Here")
-      assert run_program.responses == ["After label"]
+      assert run_program.responses == [{"message", %{message: "After label"}}]
     end
 
     test "when there are messages in the queue" do
@@ -50,12 +50,12 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object_id: 1, state: stubbed_state})
-      assert run_program.responses == ["Last text"]
+      assert run_program.responses == [{"message", %{message: "Last text"}}]
       assert run_program.message == {}
 
       # A label passed in overrides the existing message
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object_id: 1, state: stubbed_state}, "here")
-      assert run_program.responses == ["After label"]
+      assert run_program.responses == [{"message", %{message: "After label"}}]
       assert run_program.message == {}
     end
 
@@ -75,7 +75,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                                                          object_id: stubbed_object.id,
                                                          state: stubbed_state },
                                                  "Here")
-      assert run_program.responses == ["After Active label"]
+      assert run_program.responses == [{"message", %{message: "After Active label"}}]
     end
 
     test "when given a label but the program is locked it does not change the pc to the label" do

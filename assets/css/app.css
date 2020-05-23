@@ -214,6 +214,10 @@ input#tile_template_character {
   overflow-y: scroll;
 }
 
+#sidebar_message_box .timestamp {
+  min-width: 3em;
+}
+
 #message_field {
   resize: none;
   height: 2.5rem;
@@ -235,4 +239,8 @@ input#tile_template_character {
 .help pre{
   display: inline;
   background-color: lightgray;
+}
+
+.smaller {
+  font-size: smaller;
 }

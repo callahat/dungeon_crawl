@@ -1,7 +1,7 @@
 <%= if @player_location do %>
 <div class="text-center">
-  <%= render "stat_sidebar.html", player_map_tile: @player_map_tile %>
-  <%= render "help_modal.html", player_map_tile: @player_map_tile %>
+  <%= render "stat_sidebar.html", player_stats: @player_stats %>
+  <%= render "help_modal.html" %>
 
   <div class="col-9 offset-3">
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />

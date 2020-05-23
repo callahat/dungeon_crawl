@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
 
   defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil
 
@@ -17,7 +17,7 @@ require Logger
   """
   def run(%Runner{program: program, object_id: object_id, state: state} = runner_state, label) do
     with object when not(is_nil(object)) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
-         false <- TileState.get_bool(object, :locked),
+         false <- StateValue.get_bool(object, :locked),
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
          program <- %{program | pc: next_pc, lc: 0, status: :alive, message: {}} do
       _run(%Runner{ runner_state | program: program})
@@ -42,12 +42,15 @@ require Logger
       :alive ->
         [command, params] = program.instructions[program.pc]
 # Logging is expensive, comment/remove later
+if System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
 Logger.info "Running:"
+Logger.info inspect object_id
 Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
 Logger.info inspect object.state
-Logger.info inspect object && object.state
+Logger.info inspect runner_state.event_sender
+end
         runner_state = apply(Command, command, [runner_state, params])
 
         # increment program counter, check for end of program

@@ -1,6 +1,5 @@
 defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
-  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
 
   @doc """
@@ -11,8 +10,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   (ie, stats are needed outside of `InstanceProcess.run_with` or outside of a `Command` method)
   a `user_id_hash` should be used along to get the stats for that player's current location.
   """
-  def current_stats(%Instances{} = state, %MapTile{id: map_tile_id} = _player_tile) do
-    case player_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id}) do
+  def current_stats(%Instances{} = state, %{id: map_tile_id} = _player_tile) do
+    case Instances.get_map_tile_by_id(state, %{id: map_tile_id}) do
       nil ->
         %{}
       player_tile ->
@@ -33,6 +32,17 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _current_stats(tile) do
+    keys = tile.parsed_state
+           |> Map.to_list
+           |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
+           |> Enum.map(fn {k,v} -> {String.replace_suffix(to_string(k), "_key",""), v} end)
+           |> Enum.map(fn {color, count} ->
+                num = if count > 1, do: "<span class='smaller'>x#{count}</span>", else: ""
+                "<pre class='tile_template_preview'><span style='color: #{color};'>♀</span>#{num}</pre>"
+              end)
+           |> Enum.join("")
+
     Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo])
+    |> Map.put(:keys, keys)
   end
 end

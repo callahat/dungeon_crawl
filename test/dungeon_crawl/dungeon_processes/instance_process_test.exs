@@ -34,6 +34,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ instance_id: ^map_instance_id } = InstanceProcess.get_state(instance_process)
   end
 
+  test "set_state_values" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    InstanceProcess.set_state_values(instance_process, %{flag: false})
+    assert %{ state_values: %{flag: false} } = InstanceProcess.get_state(instance_process)
+  end
+
   test "load_map", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     map_tile_with_script = %MapTile{id: 236, character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"}
     map_tiles = [%MapTile{id: 123, character: "O", row: 1, col: 1, z_index: 0},
@@ -198,9 +204,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert [] == program_messages # should be cleared after punting the messages to the actual progams
 
     # The last map tile in this setup has no active program
-    expected = %{ map_tile_id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id}},
-                  Enum.at(map_tiles,0).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id}},
-                  Enum.at(map_tiles,1).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id}} }
+    expected = %{ map_tile_id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}},
+                  Enum.at(map_tiles,0).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}},
+                  Enum.at(map_tiles,1).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}} }
 
     actual = program_contexts
              |> Map.to_list
@@ -208,6 +214,79 @@ defmodule DungeonCrawl.InstanceProcessTest do
              |> Enum.into(%{})
 
     assert actual == expected
+  end
+
+  test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
+                                                                               map_instance: map_instance} do
+    map_tiles = [
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND shot, player", state: "damage: 5"},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10", name: "player"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    _shooter_map_tile = Enum.at(map_tiles, 0)
+    non_prog_tile = Enum.at(map_tiles, 1)
+    player_tile = Enum.at(map_tiles, 2)
+
+    player_location = %Location{id: 555, map_tile_instance_id: player_tile.id}
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      Instances.create_player_map_tile(state, player_tile, player_location)
+    end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    %Instances{ map_by_ids: map_by_ids,
+                dirty_ids: _dirty_ids } = InstanceProcess.get_state(instance_process)
+
+    # Wounded tiles
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{health: 5}}}
+
+    assert map_by_ids[non_prog_tile.id].parsed_state[:health] == 5
+    assert map_by_ids[player_tile.id].parsed_state[:health] == 5
+
+    shooter2 = DungeonInstances.create_map_tile!(%{
+      character: "O",
+      row: 1,
+      col: 2,
+      z_index: 1,
+      script: "#SEND shot, a nonprog\n#SEND shot, player",
+      state: "damage: 5",
+      map_instance_id: map_instance.id})
+
+    assert :ok = InstanceProcess.load_map(instance_process, [shooter2])
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    %Instances{ map_by_ids: map_by_ids,
+                dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
+
+    # Dead tiles
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{health: 0}}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "message",
+            payload: %{message: "You died!"}}
+
+    refute map_by_ids[non_prog_tile.id]
+    assert map_by_ids[player_tile.id].parsed_state[:health] == 0
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    non_prog_tile_id = non_prog_tile.id
+    player_tile_id = player_tile.id
+    assert dirty_ids[non_prog_tile_id] == :deleted
+    refute dirty_ids[player_tile_id] == :deleted
   end
 
   test "perform_actions handles behavior 'destroyable'", %{instance_process: instance_process,

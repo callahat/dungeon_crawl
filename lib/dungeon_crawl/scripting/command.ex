@@ -5,10 +5,12 @@ defmodule DungeonCrawl.Scripting.Command do
 
   alias DungeonCrawl.Action.{Move, Shoot}
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
   @doc """
@@ -29,10 +31,12 @@ defmodule DungeonCrawl.Scripting.Command do
     case name do
       :become       -> :become
       :change_state -> :change_state
+      :change_instance_state -> :change_instance_state
       :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
       :facing       -> :facing
+      :give         -> :give
       :go           -> :go
       :if           -> :jump_if
       :lock         -> :lock
@@ -42,6 +46,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :send         -> :send_message
       :shoot        -> :shoot
       :terminate    -> :terminate
+      :take         -> :take
       :text         -> :text
       :try          -> :try
       :unlock       -> :unlock
@@ -75,7 +80,7 @@ defmodule DungeonCrawl.Scripting.Command do
     new_attrs = Map.take(params, [:character, :color, :background_color, :state, :script, :tile_template_id])
     _become(runner_state, new_attrs)
   end
-  def _become(%Runner{program: program, object_id: object_id, state: state}, new_attrs) do
+  def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs) do
     {object, state} = Instances.update_map_tile(
                       state,
                       %{id: object_id},
@@ -86,15 +91,19 @@ defmodule DungeonCrawl.Scripting.Command do
                    Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
                ]}]
 
-    current_program = if Map.has_key?(new_attrs, :script) do
-                        # A changed script will update the program, so get the current
-                        Map.get(state.program_contexts, object.id).program
-                      else
-                        program
+    current_program = cond do
+                        is_nil(Map.get(state.program_contexts, object.id)) ->
+                          %{ program | status: :dead }
+                        Map.has_key?(new_attrs, :script) ->
+                          # A changed script will update the program, so get the current
+                          Map.get(state.program_contexts, object.id).program
+                        true ->
+                          program
                       end
-    %Runner{ program: %{current_program | broadcasts: [message | program.broadcasts] },
-             object_id: object_id,
-             state: state }
+    %{ runner_state |
+         program: %{current_program | broadcasts: [message | program.broadcasts] },
+         object_id: object_id,
+         state: state }
   end
 
   @doc """
@@ -127,10 +136,29 @@ defmodule DungeonCrawl.Scripting.Command do
 
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object_state = Map.put(object.parsed_state, var, Maths.calc(object.parsed_state[var] || 0, op, value))
-    object_state_str = TileState.Parser.stringify(object_state)
+    object_state_str = StateValue.Parser.stringify(object_state)
     {_updated_object, updated_state} = Instances.update_map_tile(state, object, %{state: object_state_str, parsed_state: object_state})
 
     %Runner{ runner_state | state: updated_state }
+  end
+
+  @doc """
+  Changes the instance state_values element given in params. (Similar to change_state)
+
+  ## Examples
+
+    iex> Command.change_instance_state(%Runner{program: program,
+                                               state: %Instances{state_values: %{}}},
+                                       [:counter, "+=", 3])
+    %Runner{program: program,
+            state: %Instances{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
+  """
+  def change_instance_state(%Runner{state: state} = runner_state, params) do
+    [var, op, value] = params
+
+    state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
+
+    %Runner{ runner_state | state: %{ state | state_values: state_values } }
   end
 
   @doc """
@@ -216,7 +244,7 @@ defmodule DungeonCrawl.Scripting.Command do
             object_id: object_id,
             state: %Instances{ map_by_ids: %{ ... } } }
   """
-  def die(%Runner{program: program, object_id: object_id, state: state}, _ignored \\ nil) do
+  def die(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
     {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: object_id})
     top_tile = Instances.get_map_tile(updated_state, deleted_object)
 
@@ -225,9 +253,116 @@ defmodule DungeonCrawl.Scripting.Command do
                    Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                ]}]
 
-    %Runner{program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
-            object_id: object_id,
+    %Runner{runner_state |
+            program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
             state: updated_state}
+  end
+
+  @doc """
+  Give a tile an amount of something. This modifies the state of that tile by adding the amount to
+  whatever is at that key is at (creating it if not already present). First parameter is `what` (the
+  state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
+  value for the giving tile. Third is the receiving tile of it. Fourth and fifth parameters are max amount
+  the recieving tile may have (the command will give up to this amount if present). If receiving tile is already
+  at max, then the fifth parameter is the label where the script will continue running from. Forth and fifth are
+  optional, but the fifth parameter will require a valid fourth parameter.
+
+  Valid tiles can be a direction - ie, north, south east, west; additionally
+  the specail varialble `?sender` can be used to give to the program/player
+  that sent the last event. For example, if a player touches a certain object,
+  that object could give them gems.
+
+  ## Examples
+
+    iex> Command.give(%Runner{}, [:cash, :420, [:event_sender]])
+    %Runner{}
+    iex> Command.give(%Runner{}, [:ammo, {:state_variable, :rounds}, "north"])
+    %Runner{}
+    iex> Command.give(%Runner{}, [:health, 100, "north", 100, "HEALEDUP"])
+    %Runner{}
+  """
+  def give(%Runner{} = runner_state, [what, amount, to_whom]) do
+    _give(runner_state, [what, amount, to_whom, nil, nil])
+  end
+
+  def give(%Runner{} = runner_state, [what, amount, to_whom, max]) do
+    _give(runner_state, [what, amount, to_whom, max, nil])
+  end
+
+  def give(%Runner{} = runner_state, [what, amount, to_whom, max, label]) do
+    _give(runner_state, [what, amount, to_whom, max, label])
+  end
+
+  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender], max, label]) do
+    case event_sender do
+      %{map_tile_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+
+      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+
+      nil              -> runner_state
+    end
+  end
+
+  defp _give(%Runner{} = runner_state, [what, amount, [id], max, label]) do
+    _give_via_id(runner_state, [what, amount, [id], max, label])
+  end
+
+  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction, max, label]) do
+    if direction in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      object = Instances.get_map_tile_by_id(state, %{id: object_id})
+      map_tile = Instances.get_map_tile(state, object, direction)
+
+      if map_tile do
+        _give(runner_state, [what, amount, [map_tile.id], max, label])
+      else
+        runner_state
+      end
+    else
+      runner_state
+    end
+  end
+
+  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, [id], max, label]) do
+    amount = _resolve_variable(runner_state, amount)
+    what = _resolve_variable(runner_state, what)
+
+    if is_number(amount) and amount > 0 and is_binary(what) do
+      max = _resolve_variable(runner_state, max)
+      receiver = Instances.get_map_tile_by_id(state, %{id: id})
+      what = String.to_atom(what)
+      current_value = receiver && receiver.parsed_state[what] || 0
+      adjusted_amount = _adjust_amount_to_give(amount, max, current_value)
+      new_value = current_value + adjusted_amount
+
+      cond do
+        receiver && adjusted_amount > 0 ->
+          {_receiver, state} = Instances.update_map_tile_state(state, receiver, %{what => new_value})
+
+          if state.player_locations[id] do
+            payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
+            %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
+          else
+            %{ runner_state | state: state }
+          end
+
+        is_number(max) && label ->
+          updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+          %{ runner_state | state: state, program: updated_program }
+
+        true ->
+          runner_state
+      end
+    else
+      runner_state
+    end
+  end
+
+  defp _adjust_amount_to_give(amount, max, current_amount) do
+    if is_number(max) and current_amount + amount >= max do
+      max - current_amount
+    else
+      amount
+    end
   end
 
   @doc """
@@ -260,7 +395,7 @@ defmodule DungeonCrawl.Scripting.Command do
             state: state }
   """
   def halt(%Runner{program: program} = runner_state, _ignored \\ nil) do
-    %Runner{ runner_state | program: %{program | status: :idle, pc: -1} }
+    %{ runner_state | program: %{program | status: :idle, pc: -1} }
   end
 
   @doc """
@@ -329,7 +464,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def _facing(runner_state, direction) do
     runner_state = change_state(runner_state, [:facing, "=", direction])
-    %Runner{ runner_state | program: %{runner_state.program | status: :wait, wait_cycles: 1 } }
+    %{ runner_state | program: %{runner_state.program | status: :wait, wait_cycles: 1 } }
   end
 
   @doc """
@@ -337,25 +472,62 @@ defmodule DungeonCrawl.Scripting.Command do
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
   """
-  def jump_if(%Runner{} = runner_state, [[command, var], label]) when is_atom(command) do
-    jump_if(runner_state, [["", command, var, "==", true], label])
-  end
-  def jump_if(%Runner{} = runner_state, [[neg, command, var], label]) when is_atom(command) do
-    jump_if(runner_state, [[neg, command, var, "==", true], label])
-  end
-  def jump_if(%Runner{} = runner_state, [[command, var, op, value], label]) when is_atom(command) do
-    jump_if(runner_state, [["", command, var, op, value], label])
-  end
-
-  def jump_if(%Runner{program: program, object_id: object_id, state: state} = runner_state, [[neg, _command, var, op, value], label]) do
+  def jump_if(%Runner{program: program} = runner_state, [[neg, left, op, right], label]) do
     # first active matching label
-    with object <- Instances.get_map_tile_by_id(state, %{id: object_id}),
-         line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, object.parsed_state[var], op, value) do
-      %Runner{ runner_state | program: %{program | pc: line_number, lc: 0} }
+    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
+         true <- Maths.check(neg, _resolve_variable(runner_state, left), op, _resolve_variable(runner_state, right)) do
+      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
     end
+  end
+  def jump_if(%Runner{} = runner_state, [[left, op, right], label]) do
+    jump_if(runner_state, [["", left, op, right], label])
+  end
+  def jump_if(%Runner{} = runner_state, [[neg, left], label]) do
+    jump_if(runner_state, [[neg, left, "==", true], label])
+  end
+  def jump_if(%Runner{} = runner_state, [left, label]) do
+    jump_if(runner_state, [["", left, "==", true], label])
+  end
+
+  defp _resolve_variable(%Runner{} = runner_state, {type, var, concat}) do
+    resolved_variable = _resolve_variable(runner_state, {type, var})
+    if is_binary(resolved_variable) do
+      resolved_variable <> concat
+    else
+      resolved_variable
+    end
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.color
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :background_color}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.background_color
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :name}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.name
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.parsed_state[var]
+  end
+  defp _resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
+    event_sender && event_sender.parsed_state[var]
+  end
+  defp _resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
+    state.state_values[var]
+  end
+  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {{:direction, direction}, var}) do
+    base = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_map_tile(state, base, direction)
+    object && object.parsed_state[var]
+  end
+  defp _resolve_variable(%Runner{}, literal) do
+    literal
   end
 
   @doc """
@@ -403,7 +575,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def move(%Runner{program: program, object_id: object_id, state: state} = runner_state, ["idle", _]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: TileState.get_int(object, :wait_cycles, 5) } }
+    %{ runner_state | program: %{program | status: :wait, wait_cycles: StateValue.get_int(object, :wait_cycles, 5) } }
   end
   def move(%Runner{} = runner_state, [direction]) do
     move(runner_state, [direction, false])
@@ -419,10 +591,10 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _move(%Runner{program: program, object_id: object_id, state: state} = runner_state, "idle", _retryable, next_actions) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %Runner{ runner_state | program: %{program | pc: next_actions.pc,
+    %{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
-                                                 wait_cycles: TileState.get_int(object, :wait_cycles, 5) }}
+                                                 wait_cycles: StateValue.get_int(object, :wait_cycles, 5) }}
   end
   defp _move(%Runner{object_id: object_id, state: state} = runner_state, direction, retryable, next_actions) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -444,12 +616,12 @@ defmodule DungeonCrawl.Scripting.Command do
                               Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
                             end)}]
 
-        updated_runner_state = %Runner{ program: %{program | pc: next_actions.pc,
+        updated_runner_state = %Runner{ runner_state |
+                                        program: %{program | pc: next_actions.pc,
                                                              lc: next_actions.lc,
                                                              broadcasts: [message | program.broadcasts],
                                                              status: :wait,
                                                              wait_cycles: object.parsed_state[:wait_cycles] || 5 },
-                                        object_id: object_id,
                                         state: new_state}
 
         change_state(updated_runner_state, [:facing, "=", direction])
@@ -459,7 +631,7 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _get_real_direction(object, [:state_variable, var]) do
+  defp _get_real_direction(object, {:state_variable, var}) do
     object.parsed_state[var] || "idle"
   end
   defp _get_real_direction(object, "continue") do
@@ -469,27 +641,27 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _invalid_compound_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
+    wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %Runner{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: program.pc - 1, lc: program.lc + 1,  status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
   defp _invalid_simple_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    wait_cycles = TileState.get_int(object, :wait_cycles, 5)
+    wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %Runner{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
       retryable ->
-          %Runner{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
-          %Runner{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
+          %{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
     end
   end
 
@@ -558,15 +730,16 @@ defmodule DungeonCrawl.Scripting.Command do
   that sent the event.
   """
   def send_message(%Runner{} = runner_state, [label]), do: _send_message(runner_state, [label, "self"])
-  def send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, [:state_variable, var]]) do
+  def send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, {:state_variable, var}]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message(runner_state, [label, object.parsed_state[var]])
   end
   def send_message(%Runner{event_sender: event_sender} = runner_state, [label, [:event_sender]]) do
     case event_sender do
-      %{map_tile_id: id} -> _send_message_via_ids(runner_state, label, [id])
+      %{map_tile_id: id} -> _send_message_via_ids(runner_state, label, [id]) # basic tile
+      %{map_tile_instance_id: id} -> _send_message_via_ids(runner_state, label, [id]) # player tile
       # Right now, if the actor was a player, this does nothing. Might change later.
-      nil              -> runner_state
+      _                  -> runner_state
     end
   end
   def send_message(%Runner{} = runner_state, [label, target]) do
@@ -574,7 +747,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{map_tile_id: object.id}} | state.program_messages] } }
+    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{map_tile_id: object.id, parsed_state: object.parsed_state}} |
+                                                            state.program_messages] } }
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "others"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -587,7 +761,6 @@ defmodule DungeonCrawl.Scripting.Command do
     if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
       _send_message_in_direction(runner_state, label, target)
     else
-     # TODO: implement this by NAME
       map_tile_ids = state.map_by_ids
                      |> Map.to_list
                      |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
@@ -612,8 +785,10 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _send_message_via_ids(runner_state, _label, []), do: runner_state
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id}} | state.program_messages] } },
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state}} |
+                                                              state.program_messages] } },
       label,
       program_object_ids
     )
@@ -626,7 +801,7 @@ defmodule DungeonCrawl.Scripting.Command do
   Otherwise, the bullet will walk in given direction until it hits something, or something
   responds to the "SHOT" message.
   """
-  def shoot(%Runner{state: state, object_id: object_id} = runner_state, [[:state_variable, var]]) do
+  def shoot(%Runner{state: state, object_id: object_id} = runner_state, [{:state_variable, var}]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     shoot(runner_state, [object.parsed_state[var]])
   end
@@ -644,6 +819,92 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Take from a tile an amount of something. This modifies the state of that tile by subtracting the amount from
+  whatever is at that key is at (creating it if not already present). If there is not enough to take, nothing is taken
+  and optionally a label can be given to continue at. First parameter is `what` (the
+  state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
+  value for the giving tile. Third is the losing tile of it. Fourth, optional, is the label to have the program use
+  if the target tile does not have enough to take.
+
+  Valid tiles can be a direction - ie, north, south east, west; additionally
+  the special varialble `?sender` can be used to give to the program/player
+  that sent the last event. For example, if a player touches a certain object,
+  that object could give them gems.
+
+  ## Examples
+
+    iex> Command.take(%Runner{}, [:cash, :420, [:event_sender], "toopoor"])
+    %Runner{}
+    iex> Command.take(%Runner{}, [:ammo, {:state_variable, :rounds}, "north"])
+    %Runner{}
+  """
+  def take(%Runner{} = runner_state, [what, amount, to_whom]) do
+    _take(runner_state, what, amount, to_whom, nil)
+  end
+  def take(%Runner{} = runner_state, [what, amount, to_whom, label]) do
+    _take(runner_state, what, amount, to_whom, label)
+  end
+
+  defp _take(%Runner{event_sender: event_sender} = runner_state, what, amount, [:event_sender], label) do
+    case event_sender do
+      %{map_tile_id: id} -> _take(runner_state, what, amount, id, label)
+
+      %Location{map_tile_instance_id: id} -> _take(runner_state, what, amount, id, label)
+
+      nil              -> runner_state
+    end
+  end
+
+  defp _take(%Runner{} = runner_state, what, amount, id, label) when is_integer(id) do
+    _take_via_id(runner_state, what, amount, id, label)
+  end
+
+  defp _take(%Runner{object_id: object_id, state: state} = runner_state, what, amount, direction, label) do
+    with direction when direction in ["north", "up", "south", "down", "east", "right", "west", "left"] <- direction,
+         object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+         map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
+      _take(runner_state, what, amount, map_tile.id, label)
+    else
+      _ ->
+        runner_state
+    end
+  end
+
+  defp _take_via_id(%Runner{state: state, program: program} = runner_state, what, amount, id, label) do
+    amount = _resolve_variable(runner_state, amount)
+    what = _resolve_variable(runner_state, what)
+
+    if is_number(amount) and amount > 0 and is_binary(what) do
+      what = String.to_atom(what)
+      loser = Instances.get_map_tile_by_id(state, %{id: id})
+
+      new_value = (loser && loser.parsed_state[what] || 0) - amount
+
+      cond do
+        new_value >= 0 ->
+          {_loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_value})
+
+          if state.player_locations[id] do
+            payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
+            %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
+          else
+            %{ runner_state | state: state }
+          end
+
+        label ->
+          updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+          %{ runner_state | state: state, program: updated_program }
+
+        true ->
+          runner_state
+      end
+    else
+      runner_state
+    end
+  end
+
+
+  @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance).
 
   ## Examples
@@ -654,11 +915,11 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: %{program | pc: -1, status: :dead},
             state: %Instances{ map_by_ids: %{object_id => %{ script: "" } } }}
   """
-  def terminate(%Runner{program: program, object_id: object_id, state: state}, _ignored \\ nil) do
+  def terminate(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
     {_updated_object, updated_state} = Instances.update_map_tile(state, %{id: object_id}, %{script: ""})
-    %Runner{program: %{program | status: :dead, pc: -1},
-            object_id: object_id,
-            state: updated_state}
+    %{ runner_state |
+       program: %{program | status: :dead, pc: -1},
+       state: updated_state}
   end
 
 
@@ -674,7 +935,7 @@ defmodule DungeonCrawl.Scripting.Command do
     if params != [""] do
       # TODO: probably allow this to be refined by whomever the message is for
       message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")
-      %Runner{ runner_state | program: %{program | responses: [ message | program.responses] } }
+      %{ runner_state | program: %{program | responses: [ {"message", %{message: message}} | program.responses] } }
     else
       runner_state
     end
@@ -736,7 +997,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _direction_of_player(%Runner{object_id: object_id, state: state} = runner_state) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    target_player_map_tile_id = TileState.get_int(object, :target_player_map_tile_id)
+    target_player_map_tile_id = StateValue.get_int(object, :target_player_map_tile_id)
     _direction_of_player(runner_state, target_player_map_tile_id)
   end
   defp _direction_of_player(%Runner{state: state} = runner_state, nil) do

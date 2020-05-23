@@ -70,10 +70,10 @@ defmodule DungeonCrawl.Scripting.Maths do
   def check(_, a, op, b),   do: check(a, op, b)
   def check(a, "!=", b),    do: a != b
   def check(a, "==", b),    do: a == b
-  def check(a, "<=", b),    do: a <= b
-  def check(a, ">=", b),    do: a >= b
-  def check(a, "<",  b),    do: a <  b
-  def check(a, ">",  b),    do: a > b
+  def check(a, "<=", b) when is_number(a) and is_number(b), do: a <= b
+  def check(a, ">=", b) when is_number(a) and is_number(b), do: a >= b
+  def check(a, "<",  b) when is_number(a) and is_number(b), do: a <  b
+  def check(a, ">",  b) when is_number(a) and is_number(b), do: a > b
   def check(a, _,    _),    do: !!a
 
 end

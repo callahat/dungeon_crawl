@@ -11,8 +11,18 @@ defmodule DungeonCrawl.Dungeon.MapTileTest do
     assert changeset.valid?
   end
 
+  test "changeset with valid state values" do
+    changeset = MapTile.changeset(%MapTile{}, Map.put(@valid_attrs, :state, "health: 100"))
+    assert changeset.valid?
+  end
+
   test "changeset with invalid attributes" do
     changeset = MapTile.changeset(%MapTile{}, @invalid_attrs)
+    refute changeset.valid?
+  end
+
+  test "changeset with invalid state values" do
+    changeset = MapTile.changeset(%MapTile{}, Map.put(@valid_attrs, :state, "derp"))
     refute changeset.valid?
   end
 end

@@ -24,7 +24,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       {:ok, program} -> {:ok, program}
 
       {:error, messages, program} ->
-        {:error, Enum.reverse(messages), program}
+        # For large programs, it seems that the list order is not consistent, so an Enum.reverse isn't sufficient
+        # to get the order right, so Enum.reverse(messages) gets a scrambled order anyway when the program gets longer.
+        messages_sorted = Enum.sort(messages, fn(a,b) ->
+          String.to_integer(Regex.named_captures(~r/(?<num>\d+):/, a)["num"]) < String.to_integer(Regex.named_captures(~r/(?<num>\d+):/, b)["num"]) end)
+        {:error, messages_sorted, program}
     end
   end
 
@@ -88,6 +92,31 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:give, [what, amount, who] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:give, [what, amount, who, nil, nil] ]} | instructions], errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:give, [what, amount, who, max] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:give, [what, amount, who, max, nil] ]} | instructions], errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:give, [_what, amount, who, max, label] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
+               do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+               do: ["Line #{line_no}: GIVE command references invalid direction `#{who}`" | errors],
+               else: errors
+    errors = unless is_nil(max) or (is_number(max) and max > 0 || is_tuple(max)),
+               do: ["Line #{line_no}: GIVE command has invalid maximum amount `#{max}`" | errors],
+               else: errors
+    errors = unless is_nil(label) or Program.line_for(program, label),
+               do: ["Line #{line_no}: GIVE command references nonexistant label `#{label}`" | errors],
+               else: errors
+
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:go, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) do
       _validate(program, instructions, errors, user)
@@ -97,14 +126,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [ :jump_if, [params, label] ]} | instructions], errors, user)
+         when params != :error
          when length(params) == 2
-         when length(params) == 4
          when length(params) == 3
-         when length(params) == 5 do
-    if Program.line_for(program, label) do
-      _validate(program, instructions, errors, user)
-    else
-      _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
+         when length(params) == 4 do
+    cond do
+      (is_list(params) && Enum.any?(params, fn param -> param == :error end)) ->
+        _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
+      Program.line_for(program, label) ->
+        _validate(program, instructions, errors, user)
+      true ->
+        _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
     end
   end
 
@@ -141,7 +173,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
   end
 
-  defp _validate(program, [ {line_no, [:shoot, [[_state_variable, var]] ]} | instructions], errors, user) do
+  defp _validate(program, [ {_line_no, [:shoot, [{_state_variable, _var}] ]} | instructions], errors, user) do
     _validate(program, instructions, errors, user)
   end
   defp _validate(program, [ {line_no, [:shoot, [direction] ]} | instructions], errors, user) do
@@ -150,6 +182,29 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     else
       _validate(program, instructions, ["Line #{line_no}: SHOOT command references invalid direction `#{direction}`" | errors], user)
     end
+  end
+
+  defp _validate(program, [ {line_no, [:take, [_what, amount, who] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0,
+               do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+               do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:take, [_what, amount, who, label] ]} | instructions], errors, user) do
+    errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
+               do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+               do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
+               else: errors
+    errors = unless Program.line_for(program, label),
+               do: ["Line #{line_no}: TAKE command references nonexistant label `#{label}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do

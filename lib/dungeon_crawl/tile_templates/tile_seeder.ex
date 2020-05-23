@@ -33,7 +33,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
       %{character: "◦",
         name: "Bullet",
         description: "Its a bullet.",
-        state: "blocking: false, wait_cycles: 1, not_pushing: true, not_squishing: true",
+        state: "blocking: false, wait_cycles: 1, not_pushing: true, not_squishing: true, damage: 5",
         script: """
                 #WALK @facing
                 :THUD
@@ -62,7 +62,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
       %{character: "@",
         name: "Player",
         description: "Its a player.",
-        state: "blocking: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6"}
+        state: "blocking: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6, bullet_damage: 10, player: true"}
     )
   end
 
@@ -101,8 +101,58 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
               """
       })
   end
-
+  # ☠
   defp create_with_defaults!(params) do
     TileTemplates.find_or_create_tile_template! Map.merge(params, %{active: true, public: true})
+  end
+
+  # https://www.utf8-chartable.de/unicode-utf8-table.pl
+  def color_keys_and_doors() do
+    ["red", "green", "blue", "gray", "purple", "orange"]
+    |> Enum.map(fn color ->
+      TileTemplates.find_or_create_tile_template!(
+        %{character: "♀",
+          name: "#{color} key",
+          description: "a #{color} key",
+          color: color,
+          state: "",
+          public: true,
+          active: true,
+          script: """
+                  #END
+                  :TOUCH
+                  #IF ! ?sender@player, DONE
+                  #IF ?sender@#{color}_key == 1, ALREADY_HAVE
+                  #GIVE #{color}_key, 1, ?sender
+                  You picked up a #{color} key
+                  #DIE
+                  :ALREADY_HAVE
+                  You already have a #{color} key.
+                  :DONE
+                  """
+      })
+
+      TileTemplates.find_or_create_tile_template!(
+        %{character: "∙",
+          name: "#{color} door",
+          description: "a #{color} door",
+          color: "white",
+          background_color: color,
+          state: "blocking: true",
+          public: true,
+          active: true,
+          script: """
+                  #END
+                  :TOUCH
+                  #TAKE #{color}_key, 1, ?sender, NOKEY
+                  You unlock the #{color} door
+                  #DIE
+                  :NOKEY
+                  You need a #{color} key to unlock.
+                  :DONE
+                  """
+      })
+    end )
+    :ok
   end
 end

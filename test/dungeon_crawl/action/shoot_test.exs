@@ -36,6 +36,19 @@ defmodule DungeonCrawl.Action.ShootTest do
     assert updated_state.program_contexts[bullet.id].program.status == :alive
   end
 
+  test "shoot/3 spawns a bullet utilizing the shooters bullet damage", %{state: state, shooter: shooter} do
+    # damage defaults to five if shooter does not have bullet_damage in their state
+    assert {:ok, updated_state} = Shoot.shoot(shooter, "north", state)
+    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+    assert bullet.parsed_state[:damage] == 5
+
+    # when shooter has state var bullet_damage set
+    {shooter, state} = Instances.update_map_tile_state(state, shooter, %{bullet_damage: 20})
+    assert {:ok, updated_state} = Shoot.shoot(shooter, "north", state)
+    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+    assert bullet.parsed_state[:damage] == 20
+  end
+
   test "shoot/3 idle does nothing", %{state: state, shooter: shooter} do
     assert {:invalid} = Shoot.shoot(shooter, "gibberish", state)
     tile = Instances.get_map_tile(state, %{row: 2, col: 2})

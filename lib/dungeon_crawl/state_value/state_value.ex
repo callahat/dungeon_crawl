@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.TileState do
+defmodule DungeonCrawl.StateValue do
   @doc """
   Gets an integer from the state element matching the given key. If the key does not
   exist, or the value is not an integer, nil is returned.
@@ -7,13 +7,13 @@ defmodule DungeonCrawl.TileState do
 
   ## Examples
 
-      iex> TileState.get_int(%{parsed_state: %{wait_cycles: 4}}, :wait_cycles)
+      iex> StateValue.get_int(%{parsed_state: %{wait_cycles: 4}}, :wait_cycles)
       4
 
-      iex> TileState.get_int(%{parsed_state: %{facing: "west"}}, :facing)
+      iex> StateValue.get_int(%{parsed_state: %{facing: "west"}}, :facing)
       nil
 
-      iex> TileState.get_int(%{parsed_state: %{}}, :wait_cycles, 5)
+      iex> StateValue.get_int(%{parsed_state: %{}}, :wait_cycles, 5)
       5
   """
   def get_int(object, key, default \\ nil) do
@@ -28,16 +28,16 @@ defmodule DungeonCrawl.TileState do
 
   ## Examples
 
-    ie> TileState.get_bool(%{parsed_state: %{locked: true}}, :locked)
+    ie> StateValue.get_bool(%{parsed_state: %{locked: true}}, :locked)
     true
 
-    ie> TileState.get_bool(%{parsed_state: %{locked: nil}}, :locked)
+    ie> StateValue.get_bool(%{parsed_state: %{locked: nil}}, :locked)
     false
 
-    ie> TileState.get_bool(%{parsed_state: %{locked: yup}}, :locked)
+    ie> StateValue.get_bool(%{parsed_state: %{locked: yup}}, :locked)
     true
 
-    ie> TileState.get_bool(%{parsed_state: %{}}, :locked)
+    ie> StateValue.get_bool(%{parsed_state: %{}}, :locked)
     false
   """
   def get_bool(object, key) do

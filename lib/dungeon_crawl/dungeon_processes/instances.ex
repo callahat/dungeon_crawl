@@ -5,6 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
 
   defstruct instance_id: nil,
+            state_values: %{},
             program_contexts: %{},
             map_by_ids: %{},
             map_by_coords: %{},
@@ -16,7 +17,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.TileState
+  alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
@@ -88,8 +89,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   def send_event(%Instances{program_contexts: program_contexts} = state, %{id: map_tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
     case program_contexts do
       %{^map_tile_id => %{program: program, object_id: object_id}} ->
-        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program, object_id: object_id, state: state}, event)
-                                  |> Map.put(:event_sender, sender)
+        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
+                                                                               object_id: object_id,
+                                                                               state: state,
+                                                                               event_sender: sender},
+                                                                       event)
                                   |> handle_broadcasting(state)
         if program.status == :dead do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
@@ -126,7 +130,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   defp _with_parsed_state(map_tile) do
-    case TileState.Parser.parse(map_tile.state) do
+    case StateValue.Parser.parse(map_tile.state) do
       {:ok, state} -> Map.put(map_tile, :parsed_state, state)
       _            -> map_tile
     end
@@ -185,7 +189,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
   def update_map_tile_state(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id}, state_attributes) do
     map_tile = by_id[map_tile_id]
-    state_str = TileState.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
+    state_str = StateValue.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
     update_map_tile(state, map_tile, %{state: state_str})
   end
 
@@ -310,8 +314,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
     _handle_broadcasts(messages, socket)
   end
-  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.Player.Location{}) do
-    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: message}
+  defp _handle_broadcasts([{type, payload} | messages], player_location = %DungeonCrawl.Player.Location{}) do
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", type, payload
     _handle_broadcasts(messages, player_location)
   end
   # If this should be implemented, this is what broadcasting to a "program" method would look like.
@@ -351,6 +355,20 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                   _                  -> %{z_index => map_tile_id}
                 end
     Map.put(by_coords, {row, col}, z_indexes)
+  end
+
+  @doc """
+  Sets a state value for the instance. Returns the updated state
+  """
+  def set_state_value(%Instances{} = state, key, value) do
+    %{ state | state_values: Map.put(state.state_values, key, value) }
+  end
+
+  @doc """
+  Gets a state value from the instance. Returns the value.
+  """
+  def get_state_value(%Instances{} = state, key) do
+    state.state_values[key]
   end
 end
 
