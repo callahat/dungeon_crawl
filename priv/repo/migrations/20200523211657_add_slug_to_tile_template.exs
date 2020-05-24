@@ -20,6 +20,8 @@ defmodule DungeonCrawl.Repo.Migrations.AddSlugToTileTemplate do
               """
       _trickle_slugs()
     end
+
+    create index(:tile_templates, [:slug])
   end
 
   defp _trickle_slugs() do

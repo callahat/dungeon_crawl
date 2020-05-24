@@ -554,6 +554,13 @@ CREATE INDEX tile_templates_deleted_at_index ON public.tile_templates USING btre
 
 
 --
+-- Name: tile_templates_slug_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX tile_templates_slug_index ON public.tile_templates USING btree (slug);
+
+
+--
 -- Name: tile_templates_user_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
