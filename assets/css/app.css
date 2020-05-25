@@ -113,8 +113,8 @@ input#tile_template_character {
  */
 
 .table-responsive{
-  height: calc(100vh - 120px);
-  overflow-y: scroll;
+/*  height: calc(100vh - 120px); */
+/*  overflow-y: scroll;*/
   border-top: 1px black solid;
 }
 
@@ -191,6 +191,10 @@ input#tile_template_character {
   [role="main"] {
     padding-top: 56px; /* Space for fixed navbar */
   }
+}
+
+.listing-full-height {
+  height: calc(100vh - 56px);
 }
 
 /*
