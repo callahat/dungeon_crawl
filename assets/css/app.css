@@ -113,8 +113,6 @@ input#tile_template_character {
  */
 
 .table-responsive{
-/*  height: calc(100vh - 120px); */
-/*  overflow-y: scroll;*/
   border-top: 1px black solid;
 }
 
