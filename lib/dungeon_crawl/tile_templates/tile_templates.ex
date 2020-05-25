@@ -67,11 +67,31 @@ defmodule DungeonCrawl.TileTemplates do
 
       iex> get_tile_template!(456)
       ** (Ecto.NoResultsError)
-
   """
   def get_tile_template(nil),  do: %TileTemplate{}
   def get_tile_template(id),  do: Repo.get(TileTemplate, id)
   def get_tile_template!(id), do: Repo.get!(TileTemplate, id)
+
+  @doc """
+  Gets the most recent active non deleted tile_template for the given slug.
+
+  Returns `nil` if none found.
+
+  ## Examples
+
+      iex> get_tile_template_by_slug("banana")
+      %TileTemplate{}
+
+      iex> get_tile_template_by_slug("nonehere")
+      nil
+  """
+  def get_tile_template_by_slug(slug) when is_binary(slug) do
+    Repo.one(from tt in TileTemplate,
+             where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
+             order_by: [desc: :id],
+             limit: 1)
+  end
+  def get_tile_template_by_slug(_), do: nil
 
   @doc """
   Returns a boolean indicating wether or not the given tile template has a next version, or is the most current one.

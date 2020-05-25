@@ -59,6 +59,20 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.get_tile_template(tile_template.id) == tile_template
     end
 
+    test "get_tile_template_by_slug/1 returns the tile_template with given slug" do
+      tile_template = tile_template_fixture(%{active: true})
+      assert TileTemplates.get_tile_template_by_slug(tile_template.slug) == tile_template
+    end
+
+    test "get_tile_template_by_slug/1 returns nil on bad slug" do
+      refute TileTemplates.get_tile_template_by_slug("fake")
+    end
+
+    test "get_tile_template_by_slug/1 returns nil on slug with no active tile template" do
+      tile_template = tile_template_fixture(%{active: false})
+      refute TileTemplates.get_tile_template_by_slug(tile_template.slug)
+    end
+
     test "next_version_exists?/1 is true if the tile_template has a next version" do
       tile_template = tile_template_fixture()
       tile_template_fixture(%{previous_version_id: tile_template.id})

@@ -13,6 +13,8 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
+  require Logger
+
   @doc """
   Returns the script command for given name. If the name has no corresponding command, then nil is returned.
   This can be useful for validating if a command exists or not.
@@ -73,12 +75,22 @@ defmodule DungeonCrawl.Scripting.Command do
             state: updated_state }
   """
   def become(%Runner{} = runner_state, [{:ttid, ttid}]) do
-    new_attrs = Map.take(TileTemplates.get_tile_template!(ttid), [:character, :color, :background_color, :state, :script])
+    tile_template = TileTemplates.get_tile_template!(ttid)
+    Logger.warn "DEPRECATION - BECOME command used `TTID:#{ttid}`, replace this with `slug: #{tile_template.slug}`"
+    new_attrs = Map.take(tile_template, [:character, :color, :background_color, :state, :script])
     _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid))
   end
   def become(%Runner{} = runner_state, [params]) do
-    new_attrs = Map.take(params, [:character, :color, :background_color, :state, :script, :tile_template_id])
-    _become(runner_state, new_attrs)
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    new_attrs = if slug_tile do
+                  Map.take(slug_tile, [:character, :color, :background_color, :state, :script])
+                  |> Map.put(:tile_template_id, slug_tile.id)
+                else
+                  %{}
+                end
+                |> Map.merge(Map.take(params, [:character, :color, :background_color]))
+
+      _become(runner_state, new_attrs)
   end
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs) do
     {object, state} = Instances.update_map_tile(

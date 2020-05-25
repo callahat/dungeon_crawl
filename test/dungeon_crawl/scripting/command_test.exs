@@ -9,6 +9,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
 
+  import ExUnit.CaptureLog
+
   def program_fixture(script \\ nil) do
     script = script ||
              """
@@ -66,8 +68,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
 
-    refute Map.take(updated_map_tile, [:state]) == %{script: map_tile.state}
-    refute Map.take(updated_map_tile, [:parsed_state]) == %{script: map_tile.parsed_state}
+    refute Map.take(updated_map_tile, [:state]) == %{state: map_tile.state}
+    refute Map.take(updated_map_tile, [:parsed_state]) == %{parsed_state: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
     assert program.status == :idle
@@ -80,12 +82,66 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'"})
     params = [{:ttid, fake_door.id}]
 
-    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
-    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    %Runner{program: program, state: updated_state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
 
     refute Map.take(updated_map_tile, [:script]) == %{script: squeaky_door.script}
     assert Map.take(updated_map_tile, [:character]) == Map.take(fake_door, [:character])
     assert program.status == :dead
+  end
+
+  test "BECOME a ttid deprecated log" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
+    params = [{:ttid, squeaky_door.id}]
+
+    assert capture_log(fn ->
+        Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+      end) =~ ~r/\[warn\] DEPRECATION - BECOME command used `TTID:#{squeaky_door.id}`, replace this with `slug: #{squeaky_door.slug}`/
+  end
+
+  test "BECOME a SLUG" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
+    params = [%{slug: squeaky_door.slug, character: "?"}]
+
+    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+
+    refute updated_map_tile.state == map_tile.state
+    refute updated_map_tile.parsed_state == map_tile.parsed_state
+    refute updated_map_tile.script == map_tile.script
+    # Other kwarg can overwrite fields from the SLUG
+    refute updated_map_tile.character == squeaky_door.character
+    assert updated_map_tile.character == "?"
+    assert Map.take(updated_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
+    assert program.status == :idle
+    assert %{1 => [:halt, [""]],
+             2 => [:noop, "TOUCH"],
+             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+    assert %{blocking: true} = updated_map_tile.parsed_state
+
+    # BECOME a slug with no script, when currently has script
+    fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'", active: true})
+    params = [%{slug: fake_door.slug}]
+
+    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+
+    refute updated_map_tile.script == squeaky_door.script
+    assert updated_map_tile.character == fake_door.character
+    assert program.status == :dead
+
+    # BECOME a nonexistant slug does nothing
+    params = [%{slug: "notreal"}]
+
+    %Runner{state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    not_updated_map_tile = Instances.get_map_tile_by_id(state, updated_map_tile)
+
+    assert updated_map_tile.script == not_updated_map_tile.script
+    assert updated_map_tile.character == not_updated_map_tile.character
   end
 
   test "CHANGE_STATE" do

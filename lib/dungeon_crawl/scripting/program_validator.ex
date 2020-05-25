@@ -36,21 +36,15 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate(program, [], errors, _user), do: {:error, errors, program}
 
   # only definind specific _validate b/c not all commands will have input that could be invalid if it gets past the parser
-  defp _validate(program, [ {_line_no, [ :become, [{:ttid, _ttid}]]} | instructions], errors, nil) do
-    _validate(program, instructions, errors, nil)
-  end
   defp _validate(program, [ {line_no, [ :become, [{:ttid, ttid}]]} | instructions], errors, user) do
-    tt = TileTemplates.get_tile_template!(ttid)
-    if user.is_admin || (user.id == tt.user_id && tt.active && ! tt.deleted_at) do
-      _validate(program, instructions, errors, user)
-    else
-      _validate(program, instructions, ["Line #{line_no}: BECOME command references a TTID that you can't use `#{ttid}`" | errors], user)
-    end
+      _validate(program, instructions, ["Line #{line_no}: BECOME command has deprecated param `TTID:#{ttid}`" | errors], user)
   end
   defp _validate(program, [ {line_no, [ :become, [params] ]} | instructions], errors, user) when is_map(params) do
     dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-    settable_fields = [:character, :color, :background_color, :state, :script, :tile_template_id]
+    settable_fields = [:character, :color, :background_color]
     changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
+
+    errors = _validate_become_slug(line_no, params, errors, user)
 
     if changeset.errors == [] do
       _validate(program, instructions, errors, user)
@@ -225,5 +219,22 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   defp _validate(program, [ _nothing_to_validate | instructions], errors, user) do
     _validate(program, instructions, errors, user)
+  end
+
+  defp _validate_become_slug(line_no, params, errors, user) do
+    tt = TileTemplates.get_tile_template_by_slug(params[:slug])
+    cond do
+      is_nil(params[:slug]) || is_nil(user) ->
+        errors
+
+      is_nil(tt) ->
+        ["Line #{line_no}: BECOME command references a SLUG that does not match an active template `#{params[:slug]}`" | errors]
+
+      user.is_admin || (user.id == tt.user_id) ->
+        errors
+
+      true ->
+        ["Line #{line_no}: BECOME command references a SLUG that you can't use `#{params[:slug]}`" | errors]
+    end
   end
 end
