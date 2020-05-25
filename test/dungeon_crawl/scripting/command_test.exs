@@ -52,11 +52,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "BECOME" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
-    params = [%{character: "~", color: "puce"}]
+    params = [%{character: "~", color: "puce", health: 20}]
 
     %Runner{state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert Map.take(updated_map_tile, [:character, :color]) == %{character: "~", color: "puce"}
+    assert updated_map_tile.state == "health: 20"
+    assert updated_map_tile.parsed_state == %{health: 20}
   end
 
   test "BECOME a ttid" do
@@ -125,11 +127,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # BECOME a slug with no script, when currently has script
     fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'", active: true})
-    params = [%{slug: fake_door.slug}]
+    params = [%{slug: fake_door.slug, blocking: false}]
 
     %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
 
+    assert updated_map_tile.state == "blocking: false"
+    refute updated_map_tile.state == squeaky_door.state
+    assert updated_map_tile.parsed_state == %{blocking: false}
     refute updated_map_tile.script == squeaky_door.script
     assert updated_map_tile.character == fake_door.character
     assert program.status == :dead

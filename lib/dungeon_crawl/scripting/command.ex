@@ -60,9 +60,11 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Transforms the object refernced by the id in some way. Changes can include character, color, background color, state, script
-  and tile_template_id. Just changing the tile_template_id does not copy all other attributes of that tile template
-  to the object.
+  Transforms the object refernced by the id in some way. Changes can include character, color, background color.
+  Additionally, if given a `slug`, the tile will be replaced with the matching tile template corresponding to the
+  given slug. Other changes given, such as character, color, background color, will override the values from
+  the matching tile template. Other values not mentioned above will set state values.
+  Just changing the tile_template_id does not copy all other attributes of that tile template to the object.
 
   Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
   occurred.
@@ -78,7 +80,7 @@ defmodule DungeonCrawl.Scripting.Command do
     tile_template = TileTemplates.get_tile_template!(ttid)
     Logger.warn "DEPRECATION - BECOME command used `TTID:#{ttid}`, replace this with `slug: #{tile_template.slug}`"
     new_attrs = Map.take(tile_template, [:character, :color, :background_color, :state, :script])
-    _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid))
+    _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid), %{})
   end
   def become(%Runner{} = runner_state, [params]) do
     slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
@@ -89,14 +91,18 @@ defmodule DungeonCrawl.Scripting.Command do
                   %{}
                 end
                 |> Map.merge(Map.take(params, [:character, :color, :background_color]))
-
-      _become(runner_state, new_attrs)
+    new_state_attrs = Map.take(params, Map.keys(params) -- Map.keys(%TileTemplates.TileTemplate{}))
+    _become(runner_state, new_attrs, new_state_attrs)
   end
-  def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs) do
+  def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
     {object, state} = Instances.update_map_tile(
                       state,
                       %{id: object_id},
                       new_attrs)
+    {object, state} = Instances.update_map_tile_state(
+                      state,
+                      object,
+                      new_state_attrs)
 
     message = ["tile_changes",
                %{tiles: [
