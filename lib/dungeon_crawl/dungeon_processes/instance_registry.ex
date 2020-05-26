@@ -106,6 +106,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     else
       with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
         {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
+        state_values = Map.merge(state_values, %{rows: dungeon_instance.height, cols: dungeon_instance.width})
         dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
         {:noreply, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
       else

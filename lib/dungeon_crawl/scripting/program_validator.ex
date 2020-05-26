@@ -44,7 +44,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     settable_fields = [:character, :color, :background_color]
     changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
 
-    errors = _validate_become_slug(line_no, params, errors, user)
+    errors = _validate_slug("BECOME", line_no, params, errors, user)
 
     if changeset.errors == [] do
       _validate(program, instructions, errors, user)
@@ -149,6 +149,39 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [ :put, [params] ]} | instructions], errors, user) when is_map(params) do
+    dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
+    settable_fields = [:character, :color, :background_color]
+    changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
+
+    errors = _validate_slug("PUT", line_no, params, errors, user)
+    errors = if (params[:row] && is_nil(params[:col])) || (is_nil(params[:row]) && params[:col]) do
+               ["Line #{line_no}: PUT command must have both row and col or neither: `row: #{params[:row]}, col: #{params[:col]}`" | errors]
+             else
+               errors
+             end
+
+    if changeset.errors == [] do
+      _validate(program, instructions, errors, user)
+    else
+      errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+                 Enum.reduce(opts, msg, fn {key, value}, acc ->
+                   String.replace(acc, "%{#{key}}", to_string(value))
+                 end)
+               end)
+      error_messages = errs
+        |> Map.keys
+        |> Enum.map(fn(k) -> "#{k} - #{errs[k]}" end)
+        |> Enum.join("; ")
+
+      _validate(program, instructions, ["Line #{line_no}: PUT command has errors: `#{error_messages}`" | errors], user)
+    end
+  end
+
+  defp _validate(program, [ {line_no, [ :put, params ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: PUT command params not being detected as kwargs `#{inspect params}`" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [:restore, [label] ]} | instructions], errors, user) do
     if program.labels[String.downcase(label)] do
       _validate(program, instructions, errors, user)
@@ -221,20 +254,20 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
 
-  defp _validate_become_slug(line_no, params, errors, user) do
+  defp _validate_slug(command, line_no, params, errors, user) do
     tt = TileTemplates.get_tile_template_by_slug(params[:slug])
     cond do
       is_nil(params[:slug]) || is_nil(user) ->
         errors
 
       is_nil(tt) ->
-        ["Line #{line_no}: BECOME command references a SLUG that does not match an active template `#{params[:slug]}`" | errors]
+        ["Line #{line_no}: #{command} command references a SLUG that does not match an active template `#{params[:slug]}`" | errors]
 
       user.is_admin || (user.id == tt.user_id) ->
         errors
 
       true ->
-        ["Line #{line_no}: BECOME command references a SLUG that you can't use `#{params[:slug]}`" | errors]
+        ["Line #{line_no}: #{command} command references a SLUG that you can't use `#{params[:slug]}`" | errors]
     end
   end
 end

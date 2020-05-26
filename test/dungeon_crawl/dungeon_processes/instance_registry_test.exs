@@ -60,7 +60,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                         }
                        }
     assert map_by_ids[map_tile.id] == Map.put(map_tile, :parsed_state, %{blocking: true})
-    assert state_values == %{flag: false}
+    assert state_values == %{flag: false, cols: 20, rows: 20}
     assert instance_id == instance.id
   end
 

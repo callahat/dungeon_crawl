@@ -761,6 +761,85 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.noop(runner_state)
   end
 
+  test "PUT" do
+    instance = insert_stubbed_dungeon_instance(%{},
+      [%MapTile{character: ".", row: 1, col: 2, z_index: 0}])
+
+    # Quik and dirty state init
+    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+                 {_, state} = Instances.create_map_tile(state, dmt)
+                 state
+               end)
+    state = Map.put(state, :state_values, %{rows: 20, cols: 20})
+
+    map_tile = Instances.get_map_tile(state, %{row: 1, col: 2})
+
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
+    params = [%{slug: squeaky_door.slug, character: "?", direction: "south"}]
+
+    %Runner{program: program, state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    new_map_tile = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+    assert new_map_tile.character == "?"
+#    assert new_map_tile.slug == squeaky_door.slug
+    assert Map.take(new_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 2}]}]]
+    assert %{blocking: true} = new_map_tile.parsed_state
+
+    # PUT a nonexistant slug does nothing
+    params = [%{slug: "notreal"}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_state == state
+
+    # PUT in a direction that goes off the map does nothing
+    params = [%{slug: squeaky_door.slug, direction: "north"}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_state == state
+  end
+
+  test "PUT using coordinates" do
+    instance = insert_stubbed_dungeon_instance(%{},
+      [%MapTile{character: ".", row: 1, col: 2, z_index: 0}])
+
+    # Quik and dirty state init
+    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+                 {_, state} = Instances.create_map_tile(state, dmt)
+                 state
+               end)
+    state = Map.put(state, :state_values, %{rows: 20, cols: 20})
+
+    map_tile = Instances.get_map_tile(state, %{row: 1, col: 2})
+
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
+    params = [%{slug: squeaky_door.slug, character: "?", row: 4, col: 2}]
+
+    %Runner{program: program, state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    new_map_tile = Instances.get_map_tile(updated_state, %{row: 4, col: 2})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 4}]}]]
+    assert %{blocking: true} = new_map_tile.parsed_state
+    assert new_map_tile.character == "?"
+#    assert new_map_tile.slug == squeaky_door.slug
+
+    # PUT in a direction with coords
+    params = [%{slug: squeaky_door.slug, direction: "north", row: 4, col: 2}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    new_map_tile = Instances.get_map_tile(updated_state, %{row: 3, col: 2})
+    assert new_map_tile.character == "!"
+#    assert new_map_tile.slug == squeaky_door.slug
+
+    # PUT at invalid coords does nothing
+    params = [%{slug: squeaky_door.slug, row: 33, col: 33}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_state == state
+  end
+
   test "RESTORE" do
     program = %Program{ labels: %{"thud" => [[1, false], [5, false], [9, true]]} }
 

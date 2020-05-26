@@ -44,6 +44,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :put          -> :put
       :restore      -> :restore
       :send         -> :send_message
       :shoot        -> :shoot
@@ -85,13 +86,13 @@ defmodule DungeonCrawl.Scripting.Command do
   def become(%Runner{} = runner_state, [params]) do
     slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
     new_attrs = if slug_tile do
-                  Map.take(slug_tile, [:character, :color, :background_color, :state, :script])
+                  Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
                   |> Map.put(:tile_template_id, slug_tile.id)
                 else
                   %{}
                 end
                 |> Map.merge(Map.take(params, [:character, :color, :background_color]))
-    new_state_attrs = Map.take(params, Map.keys(params) -- Map.keys(%TileTemplates.TileTemplate{}))
+    new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:slug]))
     _become(runner_state, new_attrs, new_state_attrs)
   end
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
@@ -693,6 +694,89 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
+  end
+
+  @doc """
+  Puts a new tile specified by the given `slug` in the given `direction`. If no `direction` is given, then the new tile
+  is placed on top of the tile associated with the running script.
+  Additionally, instead of a direction, `row` and `col` coordinates can be supplied to put the tile in a specific
+  location. Direction can also be given to put the tile one square from the given coordinates in that direction.
+  If both `row` and `col` are not given, then neither are used. If the specified location or direction is invalid/off the map,
+  then nothing is done.
+  Other kwargs can be given, such as character, color, background color, and will override the values from
+  the matching tile template. Other values not mentioned above will set state values.
+
+  Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
+  occurred.
+
+  ## Examples
+
+    iex> Command.put(%Runner{}, [%{slug: "banana", direction: "north"}])
+    %Runner{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>J</div>"}]}] ]},
+            object_id: object_id,
+            state: updated_state }
+  """
+  def put(%Runner{object_id: object_id, state: state, program: program} = runner_state, [params]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    direction = _get_real_direction(object, params[:direction])
+    # TODO: move the coord calculation to its own module. Other places have these calculations that should live
+    # in the common module as well.
+    {row_d, col_d} = _direction_delta(direction)
+    coords = if params[:row] && params[:col] do
+               %{row: params[:row] + row_d, col: params[:col] + col_d}
+             else
+               %{row: object.row + row_d, col: object.col + col_d}
+             end
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+
+    if slug_tile &&
+       coords.row > 0 && coords.row <= state.state_values[:rows] &&
+       coords.col > 0 && coords.col <= state.state_values[:cols] do
+      new_attrs = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
+                  |> Map.put(:tile_template_id, slug_tile.id)
+                  |> Map.merge(Map.take(params, [:character, :color, :background_color]))
+                  |> Map.merge(Map.put(coords, :map_instance_id, object.map_instance_id))
+
+      z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
+
+      new_tile = Map.put(new_attrs, :z_index, z_index)
+                 |> DungeonCrawl.DungeonInstances.create_map_tile!()
+
+      {new_tile, state} = Instances.create_map_tile(state, new_tile)
+
+      new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:direction] ))
+      {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
+
+      message = ["tile_changes",
+                 %{tiles: [
+                     Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
+                 ]}]
+
+      %{ runner_state |
+           program: %{program | broadcasts: [message | program.broadcasts] },
+           object_id: object_id,
+           state: state }
+    else
+      runner_state
+    end
+  end
+
+  # TODO: this should eventually be in a common direction module. Move the stuff from Instances module there too.
+  @directions %{
+    "up"    => {-1,  0},
+    "down"  => { 1,  0},
+    "left"  => { 0, -1},
+    "right" => { 0,  1},
+    "north" => {-1,  0},
+    "south" => { 1,  0},
+    "west"  => { 0, -1},
+    "east"  => { 0,  1}
+  }
+
+  @no_direction { 0,  0}
+
+  defp _direction_delta(direction) do
+    @directions[direction] || @no_direction
   end
 
   @doc """

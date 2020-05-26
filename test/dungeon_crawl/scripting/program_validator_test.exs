@@ -70,6 +70,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GIVE ammo, 1, ?sender, 3, touch
     #GIVE ammo, 1, ?sender, 3, badtouch
     #BECOME slug: noexist
+    #PUT slug: #{slug}, direction: north, color: yellow
+    #PUT slug: noexist, row: 1, character: XXX
+    #PUT garbage, north
     """
   end
 
@@ -126,6 +129,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 44: GIVE command has invalid maximum amount `-3`",
                "Line 46: GIVE command references nonexistant label `badtouch`",
                "Line 47: BECOME command references a SLUG that does not match an active template `noexist`",
+               "Line 48: PUT command references a SLUG that you can't use `original_floor`",
+               "Line 49: PUT command references a SLUG that does not match an active template `noexist`",
+               "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
+               "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
+               "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -158,6 +166,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 44: GIVE command has invalid maximum amount `-3`",
                "Line 46: GIVE command references nonexistant label `badtouch`",
                "Line 47: BECOME command references a SLUG that does not match an active template `noexist`",
+               "Line 49: PUT command references a SLUG that does not match an active template `noexist`",
+               "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
+               "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
+               "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end
