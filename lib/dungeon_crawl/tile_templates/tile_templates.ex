@@ -74,6 +74,9 @@ defmodule DungeonCrawl.TileTemplates do
 
   @doc """
   Gets the most recent active non deleted tile_template for the given slug.
+  Using :validation as the second param is for program validation purposes, where inactive
+  tile templates may be provided. However, the tile template must be active for it to actually
+  be used in a running script.
 
   Returns `nil` if none found.
 
@@ -92,6 +95,13 @@ defmodule DungeonCrawl.TileTemplates do
              limit: 1)
   end
   def get_tile_template_by_slug(_), do: nil
+  def get_tile_template_by_slug(slug, :validation) when is_binary(slug) do
+    Repo.one(from tt in TileTemplate,
+             where: tt.slug == ^slug and is_nil(tt.deleted_at),
+             order_by: [desc: :id],
+             limit: 1)
+  end
+  def get_tile_template_by_slug(_, _), do: nil
 
   @doc """
   Returns a boolean indicating wether or not the given tile template has a next version, or is the most current one.

@@ -73,6 +73,11 @@ defmodule DungeonCrawl.TileTemplatesTest do
       refute TileTemplates.get_tile_template_by_slug(tile_template.slug)
     end
 
+    test "get_tile_template_by_slug/2 returns slug even when no active tile template" do
+      tile_template = tile_template_fixture(%{active: false})
+      assert TileTemplates.get_tile_template_by_slug(tile_template.slug, :validation)
+    end
+
     test "next_version_exists?/1 is true if the tile_template has a next version" do
       tile_template = tile_template_fixture()
       tile_template_fixture(%{previous_version_id: tile_template.id})

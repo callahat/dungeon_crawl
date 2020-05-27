@@ -255,13 +255,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate_slug(command, line_no, params, errors, user) do
-    tt = TileTemplates.get_tile_template_by_slug(params[:slug])
+    tt = TileTemplates.get_tile_template_by_slug(params[:slug], :validation)
     cond do
       is_nil(params[:slug]) || is_nil(user) ->
         errors
 
       is_nil(tt) ->
-        ["Line #{line_no}: #{command} command references a SLUG that does not match an active template `#{params[:slug]}`" | errors]
+        ["Line #{line_no}: #{command} command references a SLUG that does not match a template `#{params[:slug]}`" | errors]
 
       user.is_admin || (user.id == tt.user_id) ->
         errors
