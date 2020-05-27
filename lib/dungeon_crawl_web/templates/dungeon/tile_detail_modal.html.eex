@@ -12,6 +12,11 @@
         </button>
       </div>
       <div class="modal-body">
+        <div class="row">
+          <div class="col-12">
+            <strong>Slug </strong><span id="tile_detail_slug"></span>
+          </div>
+        </div>
 
         <div class="row">
           <div class="col-6">

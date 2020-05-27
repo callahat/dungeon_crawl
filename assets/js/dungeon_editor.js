@@ -290,6 +290,7 @@ let DungeonEditor = {
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
+    this.selectedTileSlug = tag.getAttribute("data-slug")
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
     this.selectedTileScript = tag.getAttribute("data-script")
@@ -303,6 +304,7 @@ let DungeonEditor = {
   },
   updateTileDetail(){
     document.getElementById("tile_detail_name").innerText = document.getElementById("active_tile_name").innerText
+    document.getElementById("tile_detail_slug").innerText = this.selectedTileSlug
     document.getElementById("tile_detail_character").innerHTML = this.selectedTileHtml.outerHTML
     document.getElementById("tile_detail_color").innerText = this.selectedTileColor || "<none>"
     document.getElementById("tile_detail_background_color").innerText = this.selectedTileBackgroundColor || "<none>"
@@ -616,6 +618,7 @@ let DungeonEditor = {
   selectedTileColor: null,
   selectedTileBackgroundColor: null,
   selectedTileName: null,
+  selectedTileSlug: null,
   selectedTileCharacter: null,
   selectedTileState: null,
   selectedTileScript: null,
