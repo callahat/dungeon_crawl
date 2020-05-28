@@ -50,7 +50,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
     params = [%{character: "~", color: "puce", health: 20}]
 
@@ -62,7 +62,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME a ttid" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
     params = [{:ttid, squeaky_door.id}]
@@ -74,7 +74,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute Map.take(updated_map_tile, [:parsed_state]) == %{parsed_state: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
-    assert program.status == :idle
+    assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
@@ -93,7 +93,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME a ttid deprecated log" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
     params = [{:ttid, squeaky_door.id}]
@@ -104,7 +104,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME a SLUG" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
     squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
     params = [%{slug: squeaky_door.slug, character: "?"}]
@@ -119,7 +119,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_map_tile.character == squeaky_door.character
     assert updated_map_tile.character == "?"
     assert Map.take(updated_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
-    assert program.status == :idle
+    assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions

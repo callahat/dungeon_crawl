@@ -239,7 +239,12 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   # Special keywords have an expected format; ie character will be used in become
-  defp _cast_kparam(param, :character), do: param
+  defp _cast_kparam(param, :character) do
+    cond do
+      Regex.match?(~r/^(\?[^@]*?@|@@|@).+?$/i, param) -> _normalize_state_arg(param)
+      true -> param
+    end
+  end
   defp _cast_kparam(param, _keyword), do: _cast_param(param)
 
   defp _cast_param(param) do

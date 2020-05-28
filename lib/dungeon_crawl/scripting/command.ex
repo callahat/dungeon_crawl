@@ -13,6 +13,9 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
+  # TODO: spec for this module
+  import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
+
   require Logger
 
   @doc """
@@ -66,6 +69,8 @@ defmodule DungeonCrawl.Scripting.Command do
   given slug. Other changes given, such as character, color, background color, will override the values from
   the matching tile template. Other values not mentioned above will set state values.
   Just changing the tile_template_id does not copy all other attributes of that tile template to the object.
+  Reference variables can be used instead of literals; however if they resolve to invalid values, then
+  this command will do nothing.
 
   Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
   occurred.
@@ -96,33 +101,45 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, new_attrs, new_state_attrs)
   end
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
-    {object, state} = Instances.update_map_tile(
-                      state,
-                      %{id: object_id},
-                      new_attrs)
-    {object, state} = Instances.update_map_tile_state(
-                      state,
-                      object,
-                      new_state_attrs)
+    new_attrs = resolve_variable_map(runner_state, new_attrs)
+    new_state_attrs = resolve_variable_map(runner_state, new_state_attrs)
 
-    message = ["tile_changes",
-               %{tiles: [
-                   Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
-               ]}]
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
 
-    current_program = cond do
-                        is_nil(Map.get(state.program_contexts, object.id)) ->
-                          %{ program | status: :dead }
-                        Map.has_key?(new_attrs, :script) ->
-                          # A changed script will update the program, so get the current
-                          Map.get(state.program_contexts, object.id).program
-                        true ->
-                          program
-                      end
-    %{ runner_state |
-         program: %{current_program | broadcasts: [message | program.broadcasts] },
-         object_id: object_id,
-         state: state }
+    case DungeonCrawl.DungeonInstances.MapTile.changeset(object, new_attrs).valid? do
+      true -> # all that other stuff below
+        {object, state} = Instances.update_map_tile(
+                          state,
+                          %{id: object_id},
+                          new_attrs)
+        {object, state} = Instances.update_map_tile_state(
+                          state,
+                          object,
+                          new_state_attrs)
+
+        message = ["tile_changes",
+                   %{tiles: [
+                       Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
+                   ]}]
+
+        current_program = cond do
+                            is_nil(Map.get(state.program_contexts, object.id)) ->
+                              %{ program | status: :dead }
+                            Map.has_key?(new_attrs, :script) ->
+                              # A changed script will update the program, so get the current
+                              %{ Map.get(state.program_contexts, object.id).program | pc: 0, lc: 0 }
+                            true ->
+                              program
+                          end
+
+        %{ runner_state |
+             program: %{current_program | broadcasts: [message | program.broadcasts], responses: program.responses },
+             object_id: object_id,
+             state: state }
+
+      false ->
+        runner_state
+    end
   end
 
   @doc """
@@ -342,11 +359,11 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, [id], max, label]) do
-    amount = _resolve_variable(runner_state, amount)
-    what = _resolve_variable(runner_state, what)
+    amount = resolve_variable(runner_state, amount)
+    what = resolve_variable(runner_state, what)
 
     if is_number(amount) and amount > 0 and is_binary(what) do
-      max = _resolve_variable(runner_state, max)
+      max = resolve_variable(runner_state, max)
       receiver = Instances.get_map_tile_by_id(state, %{id: id})
       what = String.to_atom(what)
       current_value = receiver && receiver.parsed_state[what] || 0
@@ -494,7 +511,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def jump_if(%Runner{program: program} = runner_state, [[neg, left, op, right], label]) do
     # first active matching label
     with line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, _resolve_variable(runner_state, left), op, _resolve_variable(runner_state, right)) do
+         true <- Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right)) do
       %{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
@@ -508,45 +525,6 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def jump_if(%Runner{} = runner_state, [left, label]) do
     jump_if(runner_state, [["", left, "==", true], label])
-  end
-
-  defp _resolve_variable(%Runner{} = runner_state, {type, var, concat}) do
-    resolved_variable = _resolve_variable(runner_state, {type, var})
-    if is_binary(resolved_variable) do
-      resolved_variable <> concat
-    else
-      resolved_variable
-    end
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.color
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :background_color}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.background_color
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :name}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.name
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.parsed_state[var]
-  end
-  defp _resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
-    event_sender && event_sender.parsed_state[var]
-  end
-  defp _resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
-    state.state_values[var]
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {{:direction, direction}, var}) do
-    base = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object = Instances.get_map_tile(state, base, direction)
-    object && object.parsed_state[var]
-  end
-  defp _resolve_variable(%Runner{}, literal) do
-    literal
   end
 
   @doc """
@@ -705,6 +683,8 @@ defmodule DungeonCrawl.Scripting.Command do
   then nothing is done.
   Other kwargs can be given, such as character, color, background color, and will override the values from
   the matching tile template. Other values not mentioned above will set state values.
+  Reference variables can be used instead of literals; however if they resolve to invalid values, then
+  this command will do nothing.
 
   Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
   occurred.
@@ -734,28 +714,32 @@ defmodule DungeonCrawl.Scripting.Command do
        coords.col > 0 && coords.col <= state.state_values[:cols] do
       new_attrs = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
                   |> Map.put(:tile_template_id, slug_tile.id)
-                  |> Map.merge(Map.take(params, [:character, :color, :background_color]))
+                  |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
                   |> Map.merge(Map.put(coords, :map_instance_id, object.map_instance_id))
 
       z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
 
-      new_tile = Map.put(new_attrs, :z_index, z_index)
-                 |> DungeonCrawl.DungeonInstances.create_map_tile!()
+      case DungeonCrawl.DungeonInstances.create_map_tile(Map.put(new_attrs, :z_index, z_index)) do
+        {:ok, new_tile} -> # all that other stuff below
+          {new_tile, state} = Instances.create_map_tile(state, new_tile)
 
-      {new_tile, state} = Instances.create_map_tile(state, new_tile)
+          new_state_attrs = resolve_variable_map(runner_state,
+                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:direction] )))
+          {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
 
-      new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:direction] ))
-      {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
+          message = ["tile_changes",
+                     %{tiles: [
+                         Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
+                     ]}]
 
-      message = ["tile_changes",
-                 %{tiles: [
-                     Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
-                 ]}]
+          %{ runner_state |
+               program: %{program | broadcasts: [message | program.broadcasts] },
+               object_id: object_id,
+               state: state }
 
-      %{ runner_state |
-           program: %{program | broadcasts: [message | program.broadcasts] },
-           object_id: object_id,
-           state: state }
+        {:error, _} ->
+          runner_state
+      end
     else
       runner_state
     end
@@ -973,8 +957,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take_via_id(%Runner{state: state, program: program} = runner_state, what, amount, id, label) do
-    amount = _resolve_variable(runner_state, amount)
-    what = _resolve_variable(runner_state, what)
+    amount = resolve_variable(runner_state, amount)
+    what = resolve_variable(runner_state, what)
 
     if is_number(amount) and amount > 0 and is_binary(what) do
       what = String.to_atom(what)

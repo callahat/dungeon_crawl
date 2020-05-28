@@ -3,6 +3,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  import DungeonCrawl.Scripting.VariableResolutionStub, only: [resolve_variable_map: 2, resolve_variable: 2]
+
   @valid_facings ["north", "south", "west", "east", "up", "down", "left", "right", "reverse", "clockwise", "counterclockwise", "player"]
   @valid_directions ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue", "player"]
 
@@ -41,8 +43,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
   defp _validate(program, [ {line_no, [ :become, [params] ]} | instructions], errors, user) when is_map(params) do
     dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-    settable_fields = [:character, :color, :background_color]
-    changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
+    settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
+    changeset =  TileTemplate.changeset(dummy_template, settable_params)
 
     errors = _validate_slug("BECOME", line_no, params, errors, user)
 
@@ -151,8 +153,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   defp _validate(program, [ {line_no, [ :put, [params] ]} | instructions], errors, user) when is_map(params) do
     dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-    settable_fields = [:character, :color, :background_color]
-    changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
+    settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
+    changeset =  TileTemplate.changeset(dummy_template, settable_params)
 
     errors = _validate_slug("PUT", line_no, params, errors, user)
     errors = if (params[:row] && is_nil(params[:col])) || (is_nil(params[:row]) && params[:col]) do
