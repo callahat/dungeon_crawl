@@ -20,6 +20,10 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
       resolved_variable
     end
   end
+  def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :character}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.character
+  end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.color
@@ -45,7 +49,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{state: state, object_id: object_id}, {{:direction, direction}, var}) do
     base = Instances.get_map_tile_by_id(state, %{id: object_id})
     object = Instances.get_map_tile(state, base, direction)
-    object && object.parsed_state[var]
+    object && resolve_variable(%Runner{state: state, object_id: object.id}, {:state_variable, var})
   end
   def resolve_variable(%Runner{}, literal) do
     literal

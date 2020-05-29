@@ -61,6 +61,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.parsed_state == %{health: 20}
   end
 
+  test "BECOME when script should be unaffected" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1, script: "#END\n:TOUCH\n*creak*"})
+    program = state.program_contexts[map_tile.id].program
+    params = [%{character: "~"}]
+
+    %Runner{state: state, program: updated_program} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    assert updated_map_tile.character == "~"
+    assert updated_program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>~</div>", row: 1}]}]]
+    assert Map.take(program, Map.keys(program) -- [:broadcasts]) == Map.take(updated_program, Map.keys(updated_program) -- [:broadcasts])
+  end
+
   test "BECOME a ttid" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
@@ -74,7 +86,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute Map.take(updated_map_tile, [:parsed_state]) == %{parsed_state: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
-    assert program.status == :wait
+    assert program.status == :idle
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
@@ -106,7 +118,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "BECOME a SLUG" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
-    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
     params = [%{slug: squeaky_door.slug, character: "?"}]
 
     %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
@@ -119,11 +131,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_map_tile.character == squeaky_door.character
     assert updated_map_tile.character == "?"
     assert Map.take(updated_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
-    assert program.status == :wait
+    assert program.status == :idle
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
     assert %{blocking: true} = updated_map_tile.parsed_state
+
+    # BECOME with variables that resolve to invalid values does nothing
+    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}}]
+    updated_runner_state = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
 
     # BECOME a slug with no script, when currently has script
     fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'", active: true})
@@ -763,7 +780,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "PUT" do
     instance = insert_stubbed_dungeon_instance(%{},
-      [%MapTile{character: ".", row: 1, col: 2, z_index: 0}])
+      [%MapTile{character: ".", row: 1, col: 2, z_index: 0, color: "orange"}])
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
@@ -786,6 +803,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.take(new_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
     assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 2}]}]]
     assert %{blocking: true} = new_map_tile.parsed_state
+
+    # PUT with varialbes that resolve to invalid values does nothing
+    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}, direction: "south"}]
+    updated_runner_state = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
 
     # PUT a nonexistant slug does nothing
     params = [%{slug: "notreal"}]

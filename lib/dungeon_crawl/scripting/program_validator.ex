@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
-  import DungeonCrawl.Scripting.VariableResolutionStub, only: [resolve_variable_map: 2, resolve_variable: 2]
+  import DungeonCrawl.Scripting.VariableResolutionStub, only: [resolve_variable_map: 2]
 
   @valid_facings ["north", "south", "west", "east", "up", "down", "left", "right", "reverse", "clockwise", "counterclockwise", "player"]
   @valid_directions ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue", "player"]

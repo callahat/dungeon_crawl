@@ -251,7 +251,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
              locked: false,
              pc: 1,
              responses: [],
-             status: :wait,
+             status: :idle,
              wait_cycles: 0
            } = program
 
@@ -270,7 +270,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
              locked: false,
              pc: 1,
              responses: [],
-             status: :wait,
+             status: :idle,
              wait_cycles: 0
            } = program
   end

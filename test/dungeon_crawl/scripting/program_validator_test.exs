@@ -18,6 +18,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GO south
     #CYCLE 3
     #GIVE ammo, 3, ?sender
+    #TAKE @color+_key, 1, ?sender
+    #BECOME character: @char
     """
   end
 

@@ -8,12 +8,11 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   The requirement of a Runner struct has been relaxed here, but the actual Command module
   will use a Runner struct as the first param.
   """
-require Logger
+
   def resolve_variable_map(%{} = runner_state, variable_map) when is_map(variable_map) do
-Logger.info inspect variable_map
     variable_map
     |> Map.to_list()
-    |> Enum.map(fn {key, val} -> Logger.info(inspect(val)); {key, resolve_variable(runner_state, val)} end)
+    |> Enum.map(fn {key, val} -> {key, resolve_variable(runner_state, val)} end)
     |> Enum.into(%{})
   end
   def resolve_variable(%{} = runner_state, {type, var, concat}) do
@@ -25,7 +24,6 @@ Logger.info inspect variable_map
     end
   end
   def resolve_variable(%{}, {:state_variable, :character}) do
-Logger.info "Splach"
     "X"
   end
   def resolve_variable(%{}, {:state_variable, :color}) do

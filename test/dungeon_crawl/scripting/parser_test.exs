@@ -78,6 +78,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #GIVE @color+_key, 1, ?sender, 1, alreadyhave
                :ALREADYHAVE
                #BECOME color: ?north@color
+               #BECOME character: @char
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -126,6 +127,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  44 => [:give, [{:state_variable, :color, "_key"}, 1, [:event_sender], 1, "alreadyhave"]],
                                                  45 => [:noop, "ALREADYHAVE"],
                                                  46 => [:become, [%{color: {{:direction, "north"}, :color}}]],
+                                                 47 => [:become, [%{character: {:state_variable, :char}}]],
                                                  },
                                  status: :alive,
                                  pc: 1,
