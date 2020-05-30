@@ -38,11 +38,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:lock) == :lock
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
+    assert Command.get_command(:put) == :put
+    assert Command.get_command(:remove) == :remove
+    assert Command.get_command(:restore) == :restore
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
     assert Command.get_command(:try) == :try
     assert Command.get_command(:unlock) == :unlock
-    assert Command.get_command(:restore) == :restore
     assert Command.get_command(:walk) == :walk
     assert Command.get_command(:zap) == :zap
 
@@ -860,6 +862,49 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_state == state
+  end
+
+
+  test "REMOVE tile in a direction" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, ["north"])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, ["south"])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
+
+    # Also works if the direction is in a state variable
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [{:state_variable, :facing}])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    # Doesnt break if nonexistant state var
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [{:state_variable, :fake}])
+    assert updated_state == state
+  end
+
+  test "REMOVE tiles by name" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, ["a"])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, ["C"])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, ["noname"])
+    assert updated_state.program_messages == []
   end
 
   test "RESTORE" do

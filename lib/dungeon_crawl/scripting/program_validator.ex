@@ -33,6 +33,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
         {:error, messages_sorted, program}
     end
   end
+  # TODO: more general validator to validaet param list lengths
 
   defp _validate(program, [], [], _user), do: {:ok, program}
   defp _validate(program, [], errors, _user), do: {:error, errors, program}

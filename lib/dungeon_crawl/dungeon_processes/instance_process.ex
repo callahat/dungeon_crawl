@@ -273,7 +273,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
   defp _cycle_programs(%Instances{} = state) do
     {program_contexts, state} = state.program_contexts
-                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
+                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end) # TODO: cycle through program_context ids, and look up the context when needed.
                                 |> _cycle_programs(state)
     # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
