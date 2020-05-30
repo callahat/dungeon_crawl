@@ -765,12 +765,13 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Removes a map tile. Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
+  Removes a map tile. Takes one KWARG, `target`.
+  Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
   that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
   than one tiles there. If there are no tiles matching, nothing is done.
   """
-  def remove(%Runner{} = runner_state, [target]) do
-    if target = resolve_variable(runner_state, target) do
+  def remove(%Runner{} = runner_state, [params]) do
+    if target = resolve_variable(runner_state, params[:target]) do
       _remove(runner_state, [String.downcase(target)])
     else
       runner_state

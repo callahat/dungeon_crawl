@@ -20,6 +20,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GIVE ammo, 3, ?sender
     #TAKE @color+_key, 1, ?sender
     #BECOME character: @char
+    #REMOVE target: north
     """
   end
 
@@ -75,6 +76,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #PUT slug: #{slug}, direction: north, color: yellow
     #PUT slug: noexist, row: 1, character: XXX
     #PUT garbage, north
+    #REMOVE derp: north
     """
   end
 
@@ -136,6 +138,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
                "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
                "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
+               "Line 51: REMOVE command has no target KWARG: `%{derp: \"north\"}`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -172,6 +175,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
                "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
                "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
+               "Line 51: REMOVE command has no target KWARG: `%{derp: \"north\"}`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end
