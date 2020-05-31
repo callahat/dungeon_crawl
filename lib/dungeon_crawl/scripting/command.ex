@@ -801,18 +801,22 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _remove_via_ids(runner_state, []), do: runner_state
   defp _remove_via_ids(%Runner{program: program, state: state} = runner_state, [id | ids]) do
-    {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: id})
-    top_tile = Instances.get_map_tile(updated_state, deleted_object)
+    if Instances.is_player_tile?(state, %{id: id}) do
+      runner_state
+    else
+      {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: id})
+      top_tile = Instances.get_map_tile(updated_state, deleted_object)
 
-    message = ["tile_changes",
-               %{tiles: [
-                   Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-               ]}]
+      message = ["tile_changes",
+                 %{tiles: [
+                     Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+                 ]}]
 
-    _remove_via_ids(
-      %{ runner_state | state: updated_state, program: %{ program | broadcasts: [message | program.broadcasts] } },
-      ids
-    )
+      _remove_via_ids(
+        %{ runner_state | state: updated_state, program: %{ program | broadcasts: [message | program.broadcasts] } },
+        ids
+      )
+    end
   end
 
 

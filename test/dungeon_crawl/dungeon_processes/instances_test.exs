@@ -361,6 +361,19 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert Enum.member?(["north", "west"], Instances.direction_of_map_tile(state, map_tile_me, map_tile_nw))
   end
 
+  test "is_player_tile?/2" do
+    player_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
+    other_map_tile = %MapTile{id: 998, row: 4, col: 4, z_index: 0, character: "."}
+    location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
+
+    {player_tile, state} = Instances.create_player_map_tile(%Instances{}, player_tile, location)
+    {other_map_tile, state} = Instances.create_map_tile(state, other_map_tile)
+
+    assert Instances.is_player_tile?(state, player_tile)
+    refute Instances.is_player_tile?(state, other_map_tile)
+    refute Instances.is_player_tile?(state, %{id: 236346565456})
+  end
+
   test "set_state_value/3" do
     state = Instances.set_state_value(%Instances{}, :bacon, "good")
     assert state.state_values == %{bacon: "good"}
