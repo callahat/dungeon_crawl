@@ -40,34 +40,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   # only definind specific _validate b/c not all commands will have input that could be invalid if it gets past the parser
   defp _validate(program, [ {line_no, [ :become, [{:ttid, ttid}]]} | instructions], errors, user) do
-      _validate(program, instructions, ["Line #{line_no}: BECOME command has deprecated param `TTID:#{ttid}`" | errors], user)
+    _validate(program, instructions, ["Line #{line_no}: BECOME command has deprecated param `TTID:#{ttid}`" | errors], user)
   end
-  defp _validate(program, [ {line_no, [ :become, [params] ]} | instructions], errors, user) when is_map(params) do
-    dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-    settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
-    changeset =  TileTemplate.changeset(dummy_template, settable_params)
-
-    errors = _validate_slug("BECOME", line_no, params, errors, user)
-
-    if changeset.errors == [] do
-      _validate(program, instructions, errors, user)
-    else
-      errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-                 Enum.reduce(opts, msg, fn {key, value}, acc ->
-                   String.replace(acc, "%{#{key}}", to_string(value))
-                 end)
-               end)
-      error_messages = errs
-        |> Map.keys
-        |> Enum.map(fn(k) -> "#{k} - #{errs[k]}" end)
-        |> Enum.join("; ")
-
-      _validate(program, instructions, ["Line #{line_no}: BECOME command has errors: `#{error_messages}`" | errors], user)
-    end
-  end
-
   defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
+    _validate_map_tile_kwargs(line_no, "BECOME", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) when is_integer(wait_cycles) do
@@ -152,44 +128,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
-  defp _validate(program, [ {line_no, [ :put, [params] ]} | instructions], errors, user) when is_map(params) do
-    dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-    settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
-    changeset =  TileTemplate.changeset(dummy_template, settable_params)
-
-    errors = _validate_slug("PUT", line_no, params, errors, user)
-    errors = if (params[:row] && is_nil(params[:col])) || (is_nil(params[:row]) && params[:col]) do
-               ["Line #{line_no}: PUT command must have both row and col or neither: `row: #{params[:row]}, col: #{params[:col]}`" | errors]
-             else
-               errors
-             end
-
-    if changeset.errors == [] do
-      _validate(program, instructions, errors, user)
-    else
-      errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-                 Enum.reduce(opts, msg, fn {key, value}, acc ->
-                   String.replace(acc, "%{#{key}}", to_string(value))
-                 end)
-               end)
-      error_messages = errs
-        |> Map.keys
-        |> Enum.map(fn(k) -> "#{k} - #{errs[k]}" end)
-        |> Enum.join("; ")
-
-      _validate(program, instructions, ["Line #{line_no}: PUT command has errors: `#{error_messages}`" | errors], user)
-    end
-  end
-
   defp _validate(program, [ {line_no, [ :put, params ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: PUT command params not being detected as kwargs `#{inspect params}`" | errors], user)
+    _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
   end
 
-  defp _validate(program, [ {line_no, [:remove, [params] ]} | instructions], errors, user) do
-    case params do
-      %{ target: _ } -> _validate(program, instructions, errors, user)
-      _              -> _validate(program, instructions, ["Line #{line_no}: REMOVE command has no target KWARG: `#{inspect params}`" | errors], user)
-    end
+
+  defp _validate(program, [ {line_no, [ :replace, params ]} | instructions], errors, user) do
+    _validate_map_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:remove, params ]} | instructions], errors, user) do
+    _validate_map_tile_kwargs(line_no, "REMOVE", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [:restore, [label] ]} | instructions], errors, user) do
@@ -262,6 +211,47 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   defp _validate(program, [ _nothing_to_validate | instructions], errors, user) do
     _validate(program, instructions, errors, user)
+  end
+
+  defp _validate_map_tile_kwargs(line_no, command, params, program, instructions, errors, user) do
+    if is_map(Enum.at(params, 0)) && length(params) == 1 do
+      params = Enum.at(params, 0)
+      dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
+      settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
+      changeset =  TileTemplate.changeset(dummy_template, settable_params)
+
+      errors = _validate_slug(command, line_no, params, errors, user)
+      errors = if command == "PUT" &&
+                    ((params[:row] && is_nil(params[:col])) || (is_nil(params[:row]) && params[:col])) do
+                 ["Line #{line_no}: #{command} command must have both row and col or neither: `row: #{params[:row]}, col: #{params[:col]}`" | errors]
+               else
+                 errors
+               end
+      errors = if (command == "REMOVE" || command == "REPLACE") &&
+                    !Enum.any?(Map.keys(params), fn k -> Atom.to_string(k) =~ ~r/^target/ end ) do
+                 ["Line #{line_no}: #{command} command has no target KWARGs: `#{inspect params}`" | errors]
+               else
+                 errors
+               end
+
+      if changeset.errors == [] do
+        _validate(program, instructions, errors, user)
+      else
+        errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+                   Enum.reduce(opts, msg, fn {key, value}, acc ->
+                     String.replace(acc, "%{#{key}}", to_string(value))
+                   end)
+                 end)
+        error_messages = errs
+          |> Map.keys
+          |> Enum.map(fn(k) -> "#{k} - #{errs[k]}" end)
+          |> Enum.join("; ")
+
+        _validate(program, instructions, ["Line #{line_no}: #{command} command has errors: `#{error_messages}`" | errors], user)
+      end
+    else
+      _validate(program, instructions, ["Line #{line_no}: #{command} command params not being detected as kwargs `#{inspect params}`" | errors], user)
+    end
   end
 
   defp _validate_slug(command, line_no, params, errors, user) do

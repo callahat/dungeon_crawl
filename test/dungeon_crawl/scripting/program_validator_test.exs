@@ -21,6 +21,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #TAKE @color+_key, 1, ?sender
     #BECOME character: @char
     #REMOVE target: north
+    #REPLACE target: treasure, slug: scary_monster
     """
   end
 
@@ -77,6 +78,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #PUT slug: noexist, row: 1, character: XXX
     #PUT garbage, north
     #REMOVE derp: north
+    #REPLACE target: north, character: XX
+    #REPLACE garbage params
+    #REPLACE target: north, slug: #{slug}
     """
   end
 
@@ -138,7 +142,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
                "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
                "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
-               "Line 51: REMOVE command has no target KWARG: `%{derp: \"north\"}`",
+               "Line 51: REMOVE command has no target KWARGs: `%{derp: \"north\"}`",
+               "Line 52: REPLACE command has errors: `character - should be at most 1 character(s)`",
+               "Line 53: REPLACE command params not being detected as kwargs `[\"garbage params\"]`",
+               "Line 54: REPLACE command references a SLUG that you can't use `#{tt.slug}`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -175,7 +182,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
                "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
                "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
-               "Line 51: REMOVE command has no target KWARG: `%{derp: \"north\"}`",
+               "Line 51: REMOVE command has no target KWARGs: `%{derp: \"north\"}`",
+               "Line 52: REPLACE command has errors: `character - should be at most 1 character(s)`",
+               "Line 53: REPLACE command params not being detected as kwargs `[\"garbage params\"]`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

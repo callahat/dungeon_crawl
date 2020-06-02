@@ -48,8 +48,9 @@ defmodule DungeonCrawl.Scripting.Command do
       :move         -> :move
       :noop         -> :noop
       :put          -> :put
-      :restore      -> :restore
+      :replace      -> :replace
       :remove       -> :remove
+      :restore      -> :restore
       :send         -> :send_message
       :shoot        -> :shoot
       :terminate    -> :terminate
@@ -135,7 +136,6 @@ defmodule DungeonCrawl.Scripting.Command do
 
         %{ runner_state |
              program: %{current_program | broadcasts: [message | program.broadcasts], responses: program.responses },
-             object_id: object_id,
              state: state }
 
       false ->
@@ -765,34 +765,124 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Removes a map tile. Takes one KWARG, `target`.
-  Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
-  that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
-  than one tiles there. If there are no tiles matching, nothing is done.
+  Replaces a map tile. Uses KWARGs, `target` and attributes prefixed with `target_` can be used to specify which tiles to replace.
+  `target` can be the name of a tile, or a direction. The other `target_` attributes must also match along with the `target`.
+  At least one attribute or slug KWARG should be used to specify what to replace the targeted tile with. If there are many tiles with
+  that name, then all those tiles will be replaced. For a direction, only the top tile will be removed when there are more
+  than one tiles there.
+  If there are no tiles matching, nothing is done. Player tiles will not be replaced.
   """
-  def remove(%Runner{} = runner_state, [params]) do
-    if target = resolve_variable(runner_state, params[:target]) do
-      _remove(runner_state, [String.downcase(target)])
+  def replace(%Runner{} = runner_state, [params]) do
+    [target_conditions, new_params] = params
+                                      |> Enum.map(fn {k, v} -> {Atom.to_string(k), resolve_variable(runner_state, v)} end)
+                                      |> Enum.split_with( fn {k,_} -> Regex.match?( ~r/^target/, k ) end )
+                                      |> Tuple.to_list
+                                      |> Enum.map(fn partition ->
+                                           Enum.map(partition, fn {k, v} -> {String.to_atom(String.replace_leading(k, "target_", "")), v} end)
+                                           |> Enum.into(%{})
+                                         end)
+    _replace(runner_state, target_conditions, new_params)
+  end
+
+  defp _replace(%Runner{state: state} = runner_state, target_conditions, new_params) do
+    {target, target_conditions} = Map.pop(target_conditions, :target)
+    target = if target, do: String.downcase(target), else: nil
+
+    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      _replace_in_direction(runner_state, target, target_conditions, new_params)
+    else
+      map_tile_ids = state.map_by_ids
+                     |> Map.to_list
+                     |> _filter_tiles_with(target, target_conditions)
+                     |> Enum.map(fn {id, _tile} -> id end)
+      _replace_via_ids(runner_state, map_tile_ids, new_params)
+    end
+  end
+
+  defp _replace_in_direction(%Runner{state: state, object_id: object_id} = runner_state, direction, target_conditions, new_params) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    map_tile = Instances.get_map_tile(state, object, direction)
+
+    if map_tile && Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(map_tile, key) == val end) do
+      _replace_via_ids(runner_state, [map_tile.id], new_params)
     else
       runner_state
     end
   end
 
-  def _remove(%Runner{state: state} = runner_state, [target]) do
+  defp _replace_via_ids(runner_state, [], _new_params), do: runner_state
+  defp _replace_via_ids(%Runner{state: state, program: program} = runner_state, [id | ids], new_params) do
+    if Instances.is_player_tile?(state, %{id: id}) do
+      _replace_via_ids(runner_state, ids, new_params)
+    else
+      %Runner{program: other_program, state: state} = become(%{runner_state | object_id: id}, [new_params])
+      _replace_via_ids(%{runner_state | state: state, program: %{ program | broadcasts: other_program.broadcasts}}, ids, new_params)
+    end
+  end
+
+  defp _map_tile_value(map_tile, key) do
+    if Map.has_key?(map_tile, key) do
+      Map.get(map_tile, key)
+    else
+      map_tile.parsed_state[key]
+    end
+  end
+
+  defp _filter_tiles_with(_tile_map, nil, %{} = target_conditions) when map_size(target_conditions) == 0, do: []
+
+  defp _filter_tiles_with(tile_map, nil, target_conditions) do
+    tile_map
+    |> Enum.filter(fn {_id, tile} ->
+         Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(tile, key) == val end)
+       end)
+  end
+
+  defp _filter_tiles_with(tile_map, target, target_conditions) do
+    tile_map
+    |> Enum.filter(fn {_id, tile} ->
+         String.downcase(tile.name || "") == target &&
+           Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(tile, key) == val end)
+       end)
+  end
+
+  @doc """
+  Removes a map tile. Uses kwargs, the `target` KWARG in addition to other attribute targets may be used.
+  Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
+  that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
+  than one tiles there. If there are no tiles matching, nothing is done.
+  Player tiles will not be removed.
+  """
+  def remove(%Runner{} = runner_state, [params]) do
+    target_conditions = params
+                        |> Enum.map(fn {k, v} ->
+                             { Atom.to_string(k) |> String.replace_leading( "target_", "") |> String.to_atom(),
+                               resolve_variable(runner_state, v) }
+                           end)
+                        |> Enum.into(%{})
+
+    _remove(runner_state, target_conditions)
+  end
+
+  def _remove(%Runner{state: state} = runner_state, target_conditions) do
+    {target, target_conditions} = Map.pop(target_conditions, :target)
+    target = if target, do: String.downcase(target), else: nil
+
     if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
-      _remove_in_direction(runner_state, target)
+      _remove_in_direction(runner_state, target, target_conditions)
     else
       map_tile_ids = state.map_by_ids
                      |> Map.to_list
-                     |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
+                     |> _filter_tiles_with(target, target_conditions)
                      |> Enum.map(fn {id, _tile} -> id end)
       _remove_via_ids(runner_state, map_tile_ids)
     end
   end
 
-  defp _remove_in_direction(%Runner{state: state, object_id: object_id} = runner_state, direction) do
+  defp _remove_in_direction(%Runner{state: state, object_id: object_id} = runner_state, direction, target_conditions) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    if map_tile = Instances.get_map_tile(state, object, direction) do
+    map_tile = Instances.get_map_tile(state, object, direction)
+
+    if map_tile && Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(map_tile, key) == val end) do
       _remove_via_ids(runner_state, [map_tile.id])
     else
       runner_state
@@ -802,7 +892,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _remove_via_ids(runner_state, []), do: runner_state
   defp _remove_via_ids(%Runner{program: program, state: state} = runner_state, [id | ids]) do
     if Instances.is_player_tile?(state, %{id: id}) do
-      runner_state
+      _remove_via_ids(runner_state, ids)
     else
       {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: id})
       top_tile = Instances.get_map_tile(updated_state, deleted_object)
@@ -818,7 +908,6 @@ defmodule DungeonCrawl.Scripting.Command do
       )
     end
   end
-
 
   @doc """
   Restores a disabled ('zapped') label. This will allow it to be used when an event

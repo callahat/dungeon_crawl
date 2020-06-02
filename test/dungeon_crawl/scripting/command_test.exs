@@ -39,6 +39,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
     assert Command.get_command(:put) == :put
+    assert Command.get_command(:replace) == :replace
     assert Command.get_command(:remove) == :remove
     assert Command.get_command(:restore) == :restore
     assert Command.get_command(:take) == :take
@@ -864,6 +865,100 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
   end
 
+  test "REPLACE tile in a direction" do
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
+    state = %Instances{}
+    {tile_123, state}  = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
+    {_tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
+    {_tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north", map_instance_id: 1, script: "#end"})
+
+    tile_program = %Program{ pc: 3 }
+    runner_state = %Runner{state: state, object_id: obj.id, program: tile_program}
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "north", target_color: "red", color: "beige", target_foo: "a"}])
+    assert updated_state == state
+    assert program.broadcasts == []
+    assert program.pc == tile_program.pc
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "north", color: "beige"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).color == "beige"
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}).color == tile_123.color
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: beige'>.</div>"}]}]]
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "south", color: "beige"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}).color == "beige"
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div style='color: beige'>c</div>"}]}]]
+
+    # Also works if the direction is in a state variable
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: {:state_variable, :facing}, color: "beige"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).color == "beige"
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 123}).color == "beige"
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: beige'>.</div>"}]}]]
+
+    # Doesnt break if nonexistant state var
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: {:state_variable, :fake}, color: "beige"}])
+    assert updated_state == state
+    assert program.broadcasts == []
+  end
+
+  test "REPLACE tiles by name" do
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
+
+    state = %Instances{}
+    {tile_123, state} = Instances.create_player_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}, %Location{})
+    {tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
+    {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
+
+    tile_program = %Program{ pc: 3 }
+    runner_state = %Runner{state: state, object_id: obj.id, program: tile_program}
+
+    # must match all target kwargs
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "a", target_color: "puce", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}) == tile_255
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
+    assert program.broadcasts == []
+    assert program.pc == tile_program.pc
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "a", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).character == squeaky_door.character
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: red'>!</div>"}]}]]
+    assert program.pc == tile_program.pc
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "C", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}).character == squeaky_door.character
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}) == tile_255
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div style='color: red'>!</div>"}]}]]
+    assert program.pc == tile_program.pc
+
+    %Runner{state: _updated_state, program: program} = Command.replace(runner_state, [%{target: "noname", slug: squeaky_door.slug}])
+    assert program.broadcasts == []
+  end
+
+  test "REPLACE with only target_ kwargs" do
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
+
+    state = %Instances{}
+    {tile_123, state} = Instances.create_player_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}, %Location{})
+    {_tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255, character: ".", row: 1, col: 2, z_index: 1, color: "red", state: "me: true", script: "#END", map_instance_id: 1})
+    {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999, character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
+
+    # must match all target kwargs
+    %Runner{state: updated_state} = Command.replace(%Runner{state: state, object_id: obj.id}, [%{target_me: true, target_color: "red", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).character == squeaky_door.character
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
+    assert updated_state.program_messages == []
+  end
+
   test "REMOVE tile in a direction" do
     state = %Instances{}
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
@@ -871,21 +966,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
 
-    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "north"}])
+    runner_state = %Runner{state: state, object_id: obj.id}
+
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "north"}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div>.</div>"}]}]]
 
-    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "south"}])
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "south"}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div> </div>"}]}]]
 
     # Also works if the direction is in a state variable
-    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: {:state_variable, :facing}}])
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: {:state_variable, :facing}}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div>.</div>"}]}]]
 
     # Doesnt break if nonexistant state var
-    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: {:state_variable, :fake}}])
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: {:state_variable, :fake}}])
     assert updated_state == state
+    assert program.broadcasts == []
   end
 
   test "REMOVE tiles by name" do
@@ -894,6 +995,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "a", target_color: "red"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
 
     %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "a"}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
@@ -904,6 +1009,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "noname"}])
     assert updated_state.program_messages == []
+  end
+
+  test "REMOVE tiles with only other target KWARGS" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, color: "red"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, state: "moo: cow"})
+    {_, state}   = Instances.create_player_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, color: "red"}, %Location{})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0})
+
+    runner_state = %Runner{state: state, object_id: obj.id}
+
+    %Runner{state: updated_state} = Command.remove(runner_state, [%{target_moo: "blu", target_color: "red"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    %Runner{state: updated_state} = Command.remove(runner_state, [%{target_color: "red"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999})
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 123})
   end
 
   test "RESTORE" do
