@@ -53,7 +53,7 @@ Logger.info inspect object_id
 Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
-Logger.info inspect object.state
+if object, do: Logger.info inspect object.state
 Logger.info inspect runner_state.event_sender
 end
         runner_state = apply(Command, command, [runner_state, params])

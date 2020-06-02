@@ -89,7 +89,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute Map.take(updated_map_tile, [:parsed_state]) == %{parsed_state: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
-    assert program.status == :idle
+    assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
@@ -134,7 +134,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_map_tile.character == squeaky_door.character
     assert updated_map_tile.character == "?"
     assert Map.take(updated_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
-    assert program.status == :idle
+    assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions

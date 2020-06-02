@@ -129,7 +129,7 @@ defmodule DungeonCrawl.Scripting.Command do
                               %{ program | status: :dead }
                             Map.has_key?(new_attrs, :script) ->
                               # A changed script will update the program, so get the current
-                              %{ Map.get(state.program_contexts, object.id).program | pc: 0, lc: 0 }
+                              %{ Map.get(state.program_contexts, object.id).program | pc: 0, lc: 0, status: :wait }
                             true ->
                               program
                           end
