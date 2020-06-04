@@ -9,6 +9,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
 
+  import ExUnit.CaptureLog
+
   def program_fixture(script \\ nil) do
     script = script ||
              """
@@ -36,11 +38,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:lock) == :lock
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
+    assert Command.get_command(:put) == :put
+    assert Command.get_command(:replace) == :replace
+    assert Command.get_command(:remove) == :remove
+    assert Command.get_command(:restore) == :restore
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
     assert Command.get_command(:try) == :try
     assert Command.get_command(:unlock) == :unlock
-    assert Command.get_command(:restore) == :restore
     assert Command.get_command(:walk) == :walk
     assert Command.get_command(:zap) == :zap
 
@@ -48,17 +53,31 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "BECOME" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
-    params = [%{character: "~", color: "puce"}]
+    params = [%{character: "~", color: "puce", health: 20}]
 
     %Runner{state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert Map.take(updated_map_tile, [:character, :color]) == %{character: "~", color: "puce"}
+    assert updated_map_tile.state == "health: 20"
+    assert updated_map_tile.parsed_state == %{health: 20}
+  end
+
+  test "BECOME when script should be unaffected" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1, script: "#END\n:TOUCH\n*creak*"})
+    program = state.program_contexts[map_tile.id].program
+    params = [%{character: "~"}]
+
+    %Runner{state: state, program: updated_program} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    assert updated_map_tile.character == "~"
+    assert updated_program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>~</div>", row: 1}]}]]
+    assert Map.take(program, Map.keys(program) -- [:broadcasts]) == Map.take(updated_program, Map.keys(updated_program) -- [:broadcasts])
   end
 
   test "BECOME a ttid" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
     params = [{:ttid, squeaky_door.id}]
@@ -66,11 +85,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
 
-    refute Map.take(updated_map_tile, [:state]) == %{script: map_tile.state}
-    refute Map.take(updated_map_tile, [:parsed_state]) == %{script: map_tile.parsed_state}
+    refute Map.take(updated_map_tile, [:state]) == %{state: map_tile.state}
+    refute Map.take(updated_map_tile, [:parsed_state]) == %{parsed_state: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
-    assert program.status == :idle
+    assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
@@ -80,12 +99,74 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'"})
     params = [{:ttid, fake_door.id}]
 
-    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
-    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    %Runner{program: program, state: updated_state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
 
     refute Map.take(updated_map_tile, [:script]) == %{script: squeaky_door.script}
     assert Map.take(updated_map_tile, [:character]) == Map.take(fake_door, [:character])
     assert program.status == :dead
+  end
+
+  test "BECOME a ttid deprecated log" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
+    params = [{:ttid, squeaky_door.id}]
+
+    assert capture_log(fn ->
+        Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+      end) =~ ~r/\[warn\] DEPRECATION - BECOME command used `TTID:#{squeaky_door.id}`, replace this with `slug: #{squeaky_door.slug}`/
+  end
+
+  test "BECOME a SLUG" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
+    params = [%{slug: squeaky_door.slug, character: "?"}]
+
+    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+
+    refute updated_map_tile.state == map_tile.state
+    refute updated_map_tile.parsed_state == map_tile.parsed_state
+    refute updated_map_tile.script == map_tile.script
+    # Other kwarg can overwrite fields from the SLUG
+    refute updated_map_tile.character == squeaky_door.character
+    assert updated_map_tile.character == "?"
+    assert Map.take(updated_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
+    assert program.status == :wait
+    assert %{1 => [:halt, [""]],
+             2 => [:noop, "TOUCH"],
+             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+    assert %{blocking: true} = updated_map_tile.parsed_state
+
+    # BECOME with variables that resolve to invalid values does nothing
+    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}}]
+    updated_runner_state = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
+
+    # BECOME a slug with no script, when currently has script
+    fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'", active: true})
+    params = [%{slug: fake_door.slug, blocking: false}]
+
+    %Runner{program: program, state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+
+    assert updated_map_tile.state == "blocking: false"
+    refute updated_map_tile.state == squeaky_door.state
+    assert updated_map_tile.parsed_state == %{blocking: false}
+    refute updated_map_tile.script == squeaky_door.script
+    assert updated_map_tile.character == fake_door.character
+    assert program.status == :dead
+
+    # BECOME a nonexistant slug does nothing
+    params = [%{slug: "notreal"}]
+
+    %Runner{state: state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    not_updated_map_tile = Instances.get_map_tile_by_id(state, updated_map_tile)
+
+    assert updated_map_tile.script == not_updated_map_tile.script
+    assert updated_map_tile.character == not_updated_map_tile.character
   end
 
   test "CHANGE_STATE" do
@@ -698,6 +779,254 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object } }
     runner_state = %Runner{object_id: stubbed_object.id, program: program, state: stubbed_state}
     assert runner_state == Command.noop(runner_state)
+  end
+
+  test "PUT" do
+    instance = insert_stubbed_dungeon_instance(%{},
+      [%MapTile{character: ".", row: 1, col: 2, z_index: 0, color: "orange"}])
+
+    # Quik and dirty state init
+    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+                 {_, state} = Instances.create_map_tile(state, dmt)
+                 state
+               end)
+    state = Map.put(state, :state_values, %{rows: 20, cols: 20})
+
+    map_tile = Instances.get_map_tile(state, %{row: 1, col: 2})
+
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
+    params = [%{slug: squeaky_door.slug, character: "?", direction: "south"}]
+
+    %Runner{program: program, state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    new_map_tile = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+    assert new_map_tile.character == "?"
+#    assert new_map_tile.slug == squeaky_door.slug
+    assert Map.take(new_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 2}]}]]
+    assert %{blocking: true} = new_map_tile.parsed_state
+
+    # PUT with varialbes that resolve to invalid values does nothing
+    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}, direction: "south"}]
+    updated_runner_state = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
+
+    # PUT a nonexistant slug does nothing
+    params = [%{slug: "notreal"}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_state == state
+
+    # PUT in a direction that goes off the map does nothing
+    params = [%{slug: squeaky_door.slug, direction: "north"}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_state == state
+  end
+
+  test "PUT using coordinates" do
+    instance = insert_stubbed_dungeon_instance(%{},
+      [%MapTile{character: ".", row: 1, col: 2, z_index: 0}])
+
+    # Quik and dirty state init
+    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+                 {_, state} = Instances.create_map_tile(state, dmt)
+                 state
+               end)
+    state = Map.put(state, :state_values, %{rows: 20, cols: 20})
+
+    map_tile = Instances.get_map_tile(state, %{row: 1, col: 2})
+
+    program = program_fixture()
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
+    params = [%{slug: squeaky_door.slug, character: "?", row: 4, col: 2}]
+
+    %Runner{program: program, state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    new_map_tile = Instances.get_map_tile(updated_state, %{row: 4, col: 2})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 4}]}]]
+    assert %{blocking: true} = new_map_tile.parsed_state
+    assert new_map_tile.character == "?"
+#    assert new_map_tile.slug == squeaky_door.slug
+
+    # PUT in a direction with coords
+    params = [%{slug: squeaky_door.slug, direction: "north", row: 4, col: 2}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    new_map_tile = Instances.get_map_tile(updated_state, %{row: 3, col: 2})
+    assert new_map_tile.character == "!"
+#    assert new_map_tile.slug == squeaky_door.slug
+
+    # PUT at invalid coords does nothing
+    params = [%{slug: squeaky_door.slug, row: 33, col: 33}]
+
+    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    assert updated_state == state
+  end
+
+  test "REPLACE tile in a direction" do
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
+    state = %Instances{}
+    {tile_123, state}  = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
+    {_tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
+    {_tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north", map_instance_id: 1, script: "#end"})
+
+    tile_program = %Program{ pc: 3 }
+    runner_state = %Runner{state: state, object_id: obj.id, program: tile_program}
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "north", target_color: "red", color: "beige", target_foo: "a"}])
+    assert updated_state == state
+    assert program.broadcasts == []
+    assert program.pc == tile_program.pc
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "north", color: "beige"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).color == "beige"
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}).color == tile_123.color
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: beige'>.</div>"}]}]]
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "south", color: "beige"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}).color == "beige"
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div style='color: beige'>c</div>"}]}]]
+
+    # Also works if the direction is in a state variable
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: {:state_variable, :facing}, color: "beige"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).color == "beige"
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 123}).color == "beige"
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: beige'>.</div>"}]}]]
+
+    # Doesnt break if nonexistant state var
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: {:state_variable, :fake}, color: "beige"}])
+    assert updated_state == state
+    assert program.broadcasts == []
+  end
+
+  test "REPLACE tiles by name" do
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
+
+    state = %Instances{}
+    {tile_123, state} = Instances.create_player_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}, %Location{})
+    {tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
+    {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
+
+    tile_program = %Program{ pc: 3 }
+    runner_state = %Runner{state: state, object_id: obj.id, program: tile_program}
+
+    # must match all target kwargs
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "a", target_color: "puce", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}) == tile_255
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
+    assert program.broadcasts == []
+    assert program.pc == tile_program.pc
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "a", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).character == squeaky_door.character
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: red'>!</div>"}]}]]
+    assert program.pc == tile_program.pc
+
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "C", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}).character == squeaky_door.character
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}) == tile_255
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div style='color: red'>!</div>"}]}]]
+    assert program.pc == tile_program.pc
+
+    %Runner{state: _updated_state, program: program} = Command.replace(runner_state, [%{target: "noname", slug: squeaky_door.slug}])
+    assert program.broadcasts == []
+  end
+
+  test "REPLACE with only target_ kwargs" do
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
+    squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
+
+    state = %Instances{}
+    {tile_123, state} = Instances.create_player_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}, %Location{})
+    {_tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255, character: ".", row: 1, col: 2, z_index: 1, color: "red", state: "me: true", script: "#END", map_instance_id: 1})
+    {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999, character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
+
+    # must match all target kwargs
+    %Runner{state: updated_state} = Command.replace(%Runner{state: state, object_id: obj.id}, [%{target_me: true, target_color: "red", slug: squeaky_door.slug}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).character == squeaky_door.character
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
+    assert updated_state.program_messages == []
+  end
+
+  test "REMOVE tile in a direction" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
+
+    runner_state = %Runner{state: state, object_id: obj.id}
+
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "north"}])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div>.</div>"}]}]]
+
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "south"}])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div> </div>"}]}]]
+
+    # Also works if the direction is in a state variable
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: {:state_variable, :facing}}])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div>.</div>"}]}]]
+
+    # Doesnt break if nonexistant state var
+    %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: {:state_variable, :fake}}])
+    assert updated_state == state
+    assert program.broadcasts == []
+  end
+
+  test "REMOVE tiles by name" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "a", target_color: "red"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "a"}])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "C"}])
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
+
+    %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "noname"}])
+    assert updated_state.program_messages == []
+  end
+
+  test "REMOVE tiles with only other target KWARGS" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, color: "red"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, state: "moo: cow"})
+    {_, state}   = Instances.create_player_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, color: "red"}, %Location{})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0})
+
+    runner_state = %Runner{state: state, object_id: obj.id}
+
+    %Runner{state: updated_state} = Command.remove(runner_state, [%{target_moo: "blu", target_color: "red"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 255})
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
+
+    %Runner{state: updated_state} = Command.remove(runner_state, [%{target_color: "red"}])
+    assert Instances.get_map_tile_by_id(updated_state, %{id: 999})
+    refute Instances.get_map_tile_by_id(updated_state, %{id: 123})
   end
 
   test "RESTORE" do

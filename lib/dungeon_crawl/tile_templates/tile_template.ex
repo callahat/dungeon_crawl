@@ -15,6 +15,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :description, :string
     field :deleted_at, :naive_datetime
     field :name, :string
+    field :slug, :string
     field :public, :boolean, default: false
     field :script, :string, default: ""
     field :state, :string

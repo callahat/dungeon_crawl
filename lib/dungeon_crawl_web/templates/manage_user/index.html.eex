@@ -1,34 +1,39 @@
-<h2>Listing users</h2>
-<%= link "New user", to: Routes.manage_user_path(@conn, :new) %>
+<div class="d-flex flex-column listing-full-height">
+  <div class="d-flex flex-row">
+    <h2>Listing users</h2>
+  </div>
+  <div>
+    <%= link "New user", to: Routes.manage_user_path(@conn, :new) %>
+  </div>
 
-<div class="table-responsive">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Id</th>
-        <th>First Name</th>
-        <th>Username</th>
-        <th>Admin?</th>
+  <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>First Name</th>
+          <th>Username</th>
+          <th>Admin?</th>
 
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-<%= for user <- @users do %>
-      <tr>
-        <td><%= user.id %></td>
-        <td><%= first_name user %></td>
-        <td><%= user.username %></td>
-        <td><%= user.is_admin %></td>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  <%= for user <- @users do %>
+        <tr>
+          <td><%= user.id %></td>
+          <td><%= first_name user %></td>
+          <td><%= user.username %></td>
+          <td><%= user.is_admin %></td>
 
-        <td class="text-right">
-          <%= link "Show", to: Routes.manage_user_path(@conn, :show, user), class: "btn btn-info btn-sm" %>
-          <%= link "Edit", to: Routes.manage_user_path(@conn, :edit, user), class: "btn btn-light btn-sm" %>
-          <%= link "Delete", to: Routes.manage_user_path(@conn, :delete, user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
-        </td>
-      </tr>
-<% end %>
-    </tbody>
-  </table>
+          <td class="text-right">
+            <%= link "Show", to: Routes.manage_user_path(@conn, :show, user), class: "btn btn-info btn-sm" %>
+            <%= link "Edit", to: Routes.manage_user_path(@conn, :edit, user), class: "btn btn-light btn-sm" %>
+            <%= link "Delete", to: Routes.manage_user_path(@conn, :delete, user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+          </td>
+        </tr>
+  <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>
-

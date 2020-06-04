@@ -3,6 +3,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  import DungeonCrawl.Scripting.VariableResolutionStub, only: [resolve_variable_map: 2]
+
   @valid_facings ["north", "south", "west", "east", "up", "down", "left", "right", "reverse", "clockwise", "counterclockwise", "player"]
   @valid_directions ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue", "player"]
 
@@ -31,46 +33,17 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
         {:error, messages_sorted, program}
     end
   end
+  # TODO: more general validator to validaet param list lengths
 
   defp _validate(program, [], [], _user), do: {:ok, program}
   defp _validate(program, [], errors, _user), do: {:error, errors, program}
 
   # only definind specific _validate b/c not all commands will have input that could be invalid if it gets past the parser
-  defp _validate(program, [ {_line_no, [ :become, [{:ttid, _ttid}]]} | instructions], errors, nil) do
-    _validate(program, instructions, errors, nil)
-  end
   defp _validate(program, [ {line_no, [ :become, [{:ttid, ttid}]]} | instructions], errors, user) do
-    tt = TileTemplates.get_tile_template!(ttid)
-    if user.is_admin || (user.id == tt.user_id && tt.active && ! tt.deleted_at) do
-      _validate(program, instructions, errors, user)
-    else
-      _validate(program, instructions, ["Line #{line_no}: BECOME command references a TTID that you can't use `#{ttid}`" | errors], user)
-    end
+    _validate(program, instructions, ["Line #{line_no}: BECOME command has deprecated param `TTID:#{ttid}`" | errors], user)
   end
-  defp _validate(program, [ {line_no, [ :become, [params] ]} | instructions], errors, user) when is_map(params) do
-    dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-    settable_fields = [:character, :color, :background_color, :state, :script, :tile_template_id]
-    changeset =  TileTemplate.changeset(dummy_template, Map.take(params, settable_fields))
-
-    if changeset.errors == [] do
-      _validate(program, instructions, errors, user)
-    else
-      errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-                 Enum.reduce(opts, msg, fn {key, value}, acc ->
-                   String.replace(acc, "%{#{key}}", to_string(value))
-                 end)
-               end)
-      error_messages = errs
-        |> Map.keys
-        |> Enum.map(fn(k) -> "#{k} - #{errs[k]}" end)
-        |> Enum.join("; ")
-
-      _validate(program, instructions, ["Line #{line_no}: BECOME command has errors: `#{error_messages}`" | errors], user)
-    end
-  end
-
   defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: BECOME command params not being detected as kwargs `#{inspect params}`" | errors], user)
+    _validate_map_tile_kwargs(line_no, "BECOME", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) when is_integer(wait_cycles) do
@@ -155,6 +128,19 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [ :put, params ]} | instructions], errors, user) do
+    _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
+  end
+
+
+  defp _validate(program, [ {line_no, [ :replace, params ]} | instructions], errors, user) do
+    _validate_map_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:remove, params ]} | instructions], errors, user) do
+    _validate_map_tile_kwargs(line_no, "REMOVE", params, program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:restore, [label] ]} | instructions], errors, user) do
     if program.labels[String.downcase(label)] do
       _validate(program, instructions, errors, user)
@@ -225,5 +211,63 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   defp _validate(program, [ _nothing_to_validate | instructions], errors, user) do
     _validate(program, instructions, errors, user)
+  end
+
+  defp _validate_map_tile_kwargs(line_no, command, params, program, instructions, errors, user) do
+    if is_map(Enum.at(params, 0)) && length(params) == 1 do
+      params = Enum.at(params, 0)
+      dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
+      settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
+      changeset =  TileTemplate.changeset(dummy_template, settable_params)
+
+      errors = _validate_slug(command, line_no, params, errors, user)
+      errors = if command == "PUT" &&
+                    ((params[:row] && is_nil(params[:col])) || (is_nil(params[:row]) && params[:col])) do
+                 ["Line #{line_no}: #{command} command must have both row and col or neither: `row: #{params[:row]}, col: #{params[:col]}`" | errors]
+               else
+                 errors
+               end
+      errors = if (command == "REMOVE" || command == "REPLACE") &&
+                    !Enum.any?(Map.keys(params), fn k -> Atom.to_string(k) =~ ~r/^target/ end ) do
+                 ["Line #{line_no}: #{command} command has no target KWARGs: `#{inspect params}`" | errors]
+               else
+                 errors
+               end
+
+      if changeset.errors == [] do
+        _validate(program, instructions, errors, user)
+      else
+        errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+                   Enum.reduce(opts, msg, fn {key, value}, acc ->
+                     String.replace(acc, "%{#{key}}", to_string(value))
+                   end)
+                 end)
+        error_messages = errs
+          |> Map.keys
+          |> Enum.map(fn(k) -> "#{k} - #{errs[k]}" end)
+          |> Enum.join("; ")
+
+        _validate(program, instructions, ["Line #{line_no}: #{command} command has errors: `#{error_messages}`" | errors], user)
+      end
+    else
+      _validate(program, instructions, ["Line #{line_no}: #{command} command params not being detected as kwargs `#{inspect params}`" | errors], user)
+    end
+  end
+
+  defp _validate_slug(command, line_no, params, errors, user) do
+    tt = TileTemplates.get_tile_template_by_slug(params[:slug], :validation)
+    cond do
+      is_nil(params[:slug]) || is_nil(user) ->
+        errors
+
+      is_nil(tt) ->
+        ["Line #{line_no}: #{command} command references a SLUG that does not match a template `#{params[:slug]}`" | errors]
+
+      user.is_admin || (user.id == tt.user_id) ->
+        errors
+
+      true ->
+        ["Line #{line_no}: #{command} command references a SLUG that you can't use `#{params[:slug]}`" | errors]
+    end
   end
 end

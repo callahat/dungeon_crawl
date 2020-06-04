@@ -27,9 +27,14 @@ require Logger
     end
   end
 
-  def run(%Runner{program: program} = runner_state) do
+  def run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
     if program.message == {} do
-      _run(runner_state)
+      # todo: maybe have the check for active tile live elsewhere
+      if Instances.get_map_tile_by_id(state, %{id: object_id}) do
+        _run(runner_state)
+      else
+        runner_state
+      end
     else
       {label, sender} = program.message
       run(%{ runner_state | event_sender: sender, program: %{ program | message: {} } }, label)
@@ -48,7 +53,7 @@ Logger.info inspect object_id
 Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
-Logger.info inspect object.state
+if object, do: Logger.info inspect object.state
 Logger.info inspect runner_state.event_sender
 end
         runner_state = apply(Command, command, [runner_state, params])

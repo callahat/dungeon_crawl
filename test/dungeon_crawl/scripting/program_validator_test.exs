@@ -18,17 +18,21 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GO south
     #CYCLE 3
     #GIVE ammo, 3, ?sender
+    #TAKE @color+_key, 1, ?sender
+    #BECOME character: @char
+    #REMOVE target: north
+    #REPLACE target: treasure, slug: scary_monster
     """
   end
 
-  def script_with_bad_command_params(ttid \\ 0, ttid2 \\ 1) do
+  def script_with_bad_command_params(slug \\ "", ttid2 \\ 1) do
     """
     #END
     :TOUCH
     #BECOME color: red, character: aa
     You touched it
     #IF @thing, NOLABEL
-    #BECOME TTID:#{ttid}
+    #BECOME slug: #{slug}
     #BECOME TTID:#{ttid2}
     #BECOME character:  , color:red
     #MOVE bananadyne, true
@@ -69,6 +73,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GIVE ammo, 3, ?sender, -3
     #GIVE ammo, 1, ?sender, 3, touch
     #GIVE ammo, 1, ?sender, 3, badtouch
+    #BECOME slug: noexist
+    #PUT slug: #{slug}, direction: north, color: yellow
+    #PUT slug: noexist, row: 1, character: XXX
+    #PUT garbage, north
+    #REMOVE derp: north
+    #REPLACE target: north, character: XX
+    #REPLACE garbage params
+    #REPLACE target: north, slug: #{slug}
     """
   end
 
@@ -90,14 +102,15 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
 
       user = insert_user()
       admin = insert_user(%{is_admin: true})
-      tt = insert_tile_template()
+      tt = insert_tile_template(%{name: "Original Floor", active: true, user_id: admin.id})
       tt2 = insert_tile_template(%{user_id: user.id, active: true})
 
-      {:ok, program} = Parser.parse(script_with_bad_command_params(tt.id, tt2.id))
+      {:ok, program} = Parser.parse(script_with_bad_command_params(tt.slug, tt2.id))
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
-               "Line 6: BECOME command references a TTID that you can't use `#{tt.id}`",
+               "Line 6: BECOME command references a SLUG that you can't use `#{tt.slug}`",
+               "Line 7: BECOME command has deprecated param `TTID:#{tt2.id}`",
                "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`",
                "Line 9: MOVE command references invalid direction `bananadyne`",
                "Line 12: MOVE command references invalid direction `sooth`",
@@ -123,11 +136,22 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 43: IF command malformed",
                "Line 44: GIVE command has invalid maximum amount `-3`",
                "Line 46: GIVE command references nonexistant label `badtouch`",
+               "Line 47: BECOME command references a SLUG that does not match a template `noexist`",
+               "Line 48: PUT command references a SLUG that you can't use `original_floor`",
+               "Line 49: PUT command references a SLUG that does not match a template `noexist`",
+               "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
+               "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
+               "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
+               "Line 51: REMOVE command has no target KWARGs: `%{derp: \"north\"}`",
+               "Line 52: REPLACE command has errors: `character - should be at most 1 character(s)`",
+               "Line 53: REPLACE command params not being detected as kwargs `[\"garbage params\"]`",
+               "Line 54: REPLACE command references a SLUG that you can't use `#{tt.slug}`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
               ["Line 3: BECOME command has errors: `character - should be at most 1 character(s)`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
+               "Line 7: BECOME command has deprecated param `TTID:#{tt2.id}`",
                "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`",
                "Line 9: MOVE command references invalid direction `bananadyne`",
                "Line 12: MOVE command references invalid direction `sooth`",
@@ -153,6 +177,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 43: IF command malformed",
                "Line 44: GIVE command has invalid maximum amount `-3`",
                "Line 46: GIVE command references nonexistant label `badtouch`",
+               "Line 47: BECOME command references a SLUG that does not match a template `noexist`",
+               "Line 49: PUT command references a SLUG that does not match a template `noexist`",
+               "Line 49: PUT command must have both row and col or neither: `row: 1, col: `",
+               "Line 49: PUT command has errors: `character - should be at most 1 character(s)`",
+               "Line 50: PUT command params not being detected as kwargs `[\"garbage\", \"north\"]`",
+               "Line 51: REMOVE command has no target KWARGs: `%{derp: \"north\"}`",
+               "Line 52: REPLACE command has errors: `character - should be at most 1 character(s)`",
+               "Line 53: REPLACE command params not being detected as kwargs `[\"garbage params\"]`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

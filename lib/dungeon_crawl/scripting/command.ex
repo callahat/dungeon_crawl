@@ -13,6 +13,11 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
+  # TODO: spec for this module
+  import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
+
+  require Logger
+
   @doc """
   Returns the script command for given name. If the name has no corresponding command, then nil is returned.
   This can be useful for validating if a command exists or not.
@@ -42,6 +47,9 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :put          -> :put
+      :replace      -> :replace
+      :remove       -> :remove
       :restore      -> :restore
       :send         -> :send_message
       :shoot        -> :shoot
@@ -58,9 +66,13 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Transforms the object refernced by the id in some way. Changes can include character, color, background color, state, script
-  and tile_template_id. Just changing the tile_template_id does not copy all other attributes of that tile template
-  to the object.
+  Transforms the object refernced by the id in some way. Changes can include character, color, background color.
+  Additionally, if given a `slug`, the tile will be replaced with the matching tile template corresponding to the
+  given slug. Other changes given, such as character, color, background color, will override the values from
+  the matching tile template. Other values not mentioned above will set state values.
+  Just changing the tile_template_id does not copy all other attributes of that tile template to the object.
+  Reference variables can be used instead of literals; however if they resolve to invalid values, then
+  this command will do nothing.
 
   Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
   occurred.
@@ -73,37 +85,62 @@ defmodule DungeonCrawl.Scripting.Command do
             state: updated_state }
   """
   def become(%Runner{} = runner_state, [{:ttid, ttid}]) do
-    new_attrs = Map.take(TileTemplates.get_tile_template!(ttid), [:character, :color, :background_color, :state, :script])
-    _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid))
+    tile_template = TileTemplates.get_tile_template!(ttid)
+    Logger.warn "DEPRECATION - BECOME command used `TTID:#{ttid}`, replace this with `slug: #{tile_template.slug}`"
+    new_attrs = Map.take(tile_template, [:character, :color, :background_color, :state, :script])
+    _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid), %{})
   end
   def become(%Runner{} = runner_state, [params]) do
-    new_attrs = Map.take(params, [:character, :color, :background_color, :state, :script, :tile_template_id])
-    _become(runner_state, new_attrs)
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    new_attrs = if slug_tile do
+                  Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
+                  |> Map.put(:tile_template_id, slug_tile.id)
+                else
+                  %{}
+                end
+                |> Map.merge(Map.take(params, [:character, :color, :background_color]))
+    new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:slug]))
+    _become(runner_state, new_attrs, new_state_attrs)
   end
-  def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs) do
-    {object, state} = Instances.update_map_tile(
-                      state,
-                      %{id: object_id},
-                      new_attrs)
+  def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
+    new_attrs = resolve_variable_map(runner_state, new_attrs)
+    new_state_attrs = resolve_variable_map(runner_state, new_state_attrs)
 
-    message = ["tile_changes",
-               %{tiles: [
-                   Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
-               ]}]
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
 
-    current_program = cond do
-                        is_nil(Map.get(state.program_contexts, object.id)) ->
-                          %{ program | status: :dead }
-                        Map.has_key?(new_attrs, :script) ->
-                          # A changed script will update the program, so get the current
-                          Map.get(state.program_contexts, object.id).program
-                        true ->
-                          program
-                      end
-    %{ runner_state |
-         program: %{current_program | broadcasts: [message | program.broadcasts] },
-         object_id: object_id,
-         state: state }
+    case DungeonCrawl.DungeonInstances.MapTile.changeset(object, new_attrs).valid? do
+      true -> # all that other stuff below
+        {object, state} = Instances.update_map_tile(
+                          state,
+                          %{id: object_id},
+                          new_attrs)
+        {object, state} = Instances.update_map_tile_state(
+                          state,
+                          object,
+                          new_state_attrs)
+
+        message = ["tile_changes",
+                   %{tiles: [
+                       Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
+                   ]}]
+
+        current_program = cond do
+                            is_nil(Map.get(state.program_contexts, object.id)) ->
+                              %{ program | status: :dead }
+                            Map.has_key?(new_attrs, :script) ->
+                              # A changed script will update the program, so get the current
+                              %{ Map.get(state.program_contexts, object.id).program | pc: 0, lc: 0, status: :wait }
+                            true ->
+                              program
+                          end
+
+        %{ runner_state |
+             program: %{current_program | broadcasts: [message | program.broadcasts], responses: program.responses },
+             state: state }
+
+      false ->
+        runner_state
+    end
   end
 
   @doc """
@@ -323,11 +360,11 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, [id], max, label]) do
-    amount = _resolve_variable(runner_state, amount)
-    what = _resolve_variable(runner_state, what)
+    amount = resolve_variable(runner_state, amount)
+    what = resolve_variable(runner_state, what)
 
     if is_number(amount) and amount > 0 and is_binary(what) do
-      max = _resolve_variable(runner_state, max)
+      max = resolve_variable(runner_state, max)
       receiver = Instances.get_map_tile_by_id(state, %{id: id})
       what = String.to_atom(what)
       current_value = receiver && receiver.parsed_state[what] || 0
@@ -475,7 +512,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def jump_if(%Runner{program: program} = runner_state, [[neg, left, op, right], label]) do
     # first active matching label
     with line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, _resolve_variable(runner_state, left), op, _resolve_variable(runner_state, right)) do
+         true <- Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right)) do
       %{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
       _ -> runner_state
@@ -489,45 +526,6 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def jump_if(%Runner{} = runner_state, [left, label]) do
     jump_if(runner_state, [["", left, "==", true], label])
-  end
-
-  defp _resolve_variable(%Runner{} = runner_state, {type, var, concat}) do
-    resolved_variable = _resolve_variable(runner_state, {type, var})
-    if is_binary(resolved_variable) do
-      resolved_variable <> concat
-    else
-      resolved_variable
-    end
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.color
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :background_color}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.background_color
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :name}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.name
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object.parsed_state[var]
-  end
-  defp _resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
-    event_sender && event_sender.parsed_state[var]
-  end
-  defp _resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
-    state.state_values[var]
-  end
-  defp _resolve_variable(%Runner{state: state, object_id: object_id}, {{:direction, direction}, var}) do
-    base = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object = Instances.get_map_tile(state, base, direction)
-    object && object.parsed_state[var]
-  end
-  defp _resolve_variable(%Runner{}, literal) do
-    literal
   end
 
   @doc """
@@ -675,6 +673,240 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
+  end
+
+  @doc """
+  Puts a new tile specified by the given `slug` in the given `direction`. If no `direction` is given, then the new tile
+  is placed on top of the tile associated with the running script.
+  Additionally, instead of a direction, `row` and `col` coordinates can be supplied to put the tile in a specific
+  location. Direction can also be given to put the tile one square from the given coordinates in that direction.
+  If both `row` and `col` are not given, then neither are used. If the specified location or direction is invalid/off the map,
+  then nothing is done.
+  Other kwargs can be given, such as character, color, background color, and will override the values from
+  the matching tile template. Other values not mentioned above will set state values.
+  Reference variables can be used instead of literals; however if they resolve to invalid values, then
+  this command will do nothing.
+
+  Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
+  occurred.
+
+  ## Examples
+
+    iex> Command.put(%Runner{}, [%{slug: "banana", direction: "north"}])
+    %Runner{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>J</div>"}]}] ]},
+            object_id: object_id,
+            state: updated_state }
+  """
+  def put(%Runner{object_id: object_id, state: state, program: program} = runner_state, [params]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    direction = _get_real_direction(object, params[:direction])
+    # TODO: move the coord calculation to its own module. Other places have these calculations that should live
+    # in the common module as well.
+    {row_d, col_d} = _direction_delta(direction)
+    coords = if params[:row] && params[:col] do
+               %{row: params[:row] + row_d, col: params[:col] + col_d}
+             else
+               %{row: object.row + row_d, col: object.col + col_d}
+             end
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+
+    if slug_tile &&
+       coords.row > 0 && coords.row <= state.state_values[:rows] &&
+       coords.col > 0 && coords.col <= state.state_values[:cols] do
+      new_attrs = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
+                  |> Map.put(:tile_template_id, slug_tile.id)
+                  |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
+                  |> Map.merge(Map.put(coords, :map_instance_id, object.map_instance_id))
+
+      z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
+
+      case DungeonCrawl.DungeonInstances.create_map_tile(Map.put(new_attrs, :z_index, z_index)) do
+        {:ok, new_tile} -> # all that other stuff below
+          {new_tile, state} = Instances.create_map_tile(state, new_tile)
+
+          new_state_attrs = resolve_variable_map(runner_state,
+                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:direction] )))
+          {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
+
+          message = ["tile_changes",
+                     %{tiles: [
+                         Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
+                     ]}]
+
+          %{ runner_state |
+               program: %{program | broadcasts: [message | program.broadcasts] },
+               object_id: object_id,
+               state: state }
+
+        {:error, _} ->
+          runner_state
+      end
+    else
+      runner_state
+    end
+  end
+
+  # TODO: this should eventually be in a common direction module. Move the stuff from Instances module there too.
+  @directions %{
+    "up"    => {-1,  0},
+    "down"  => { 1,  0},
+    "left"  => { 0, -1},
+    "right" => { 0,  1},
+    "north" => {-1,  0},
+    "south" => { 1,  0},
+    "west"  => { 0, -1},
+    "east"  => { 0,  1}
+  }
+
+  @no_direction { 0,  0}
+
+  defp _direction_delta(direction) do
+    @directions[direction] || @no_direction
+  end
+
+  @doc """
+  Replaces a map tile. Uses KWARGs, `target` and attributes prefixed with `target_` can be used to specify which tiles to replace.
+  `target` can be the name of a tile, or a direction. The other `target_` attributes must also match along with the `target`.
+  At least one attribute or slug KWARG should be used to specify what to replace the targeted tile with. If there are many tiles with
+  that name, then all those tiles will be replaced. For a direction, only the top tile will be removed when there are more
+  than one tiles there.
+  If there are no tiles matching, nothing is done. Player tiles will not be replaced.
+  """
+  def replace(%Runner{} = runner_state, [params]) do
+    [target_conditions, new_params] = params
+                                      |> Enum.map(fn {k, v} -> {Atom.to_string(k), resolve_variable(runner_state, v)} end)
+                                      |> Enum.split_with( fn {k,_} -> Regex.match?( ~r/^target/, k ) end )
+                                      |> Tuple.to_list
+                                      |> Enum.map(fn partition ->
+                                           Enum.map(partition, fn {k, v} -> {String.to_atom(String.replace_leading(k, "target_", "")), v} end)
+                                           |> Enum.into(%{})
+                                         end)
+    _replace(runner_state, target_conditions, new_params)
+  end
+
+  defp _replace(%Runner{state: state} = runner_state, target_conditions, new_params) do
+    {target, target_conditions} = Map.pop(target_conditions, :target)
+    target = if target, do: String.downcase(target), else: nil
+
+    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      _replace_in_direction(runner_state, target, target_conditions, new_params)
+    else
+      map_tile_ids = state.map_by_ids
+                     |> Map.to_list
+                     |> _filter_tiles_with(target, target_conditions)
+                     |> Enum.map(fn {id, _tile} -> id end)
+      _replace_via_ids(runner_state, map_tile_ids, new_params)
+    end
+  end
+
+  defp _replace_in_direction(%Runner{state: state, object_id: object_id} = runner_state, direction, target_conditions, new_params) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    map_tile = Instances.get_map_tile(state, object, direction)
+
+    if map_tile && Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(map_tile, key) == val end) do
+      _replace_via_ids(runner_state, [map_tile.id], new_params)
+    else
+      runner_state
+    end
+  end
+
+  defp _replace_via_ids(runner_state, [], _new_params), do: runner_state
+  defp _replace_via_ids(%Runner{state: state, program: program} = runner_state, [id | ids], new_params) do
+    if Instances.is_player_tile?(state, %{id: id}) do
+      _replace_via_ids(runner_state, ids, new_params)
+    else
+      %Runner{program: other_program, state: state} = become(%{runner_state | object_id: id}, [new_params])
+      _replace_via_ids(%{runner_state | state: state, program: %{ program | broadcasts: other_program.broadcasts}}, ids, new_params)
+    end
+  end
+
+  defp _map_tile_value(map_tile, key) do
+    if Map.has_key?(map_tile, key) do
+      Map.get(map_tile, key)
+    else
+      map_tile.parsed_state[key]
+    end
+  end
+
+  defp _filter_tiles_with(_tile_map, nil, %{} = target_conditions) when map_size(target_conditions) == 0, do: []
+
+  defp _filter_tiles_with(tile_map, nil, target_conditions) do
+    tile_map
+    |> Enum.filter(fn {_id, tile} ->
+         Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(tile, key) == val end)
+       end)
+  end
+
+  defp _filter_tiles_with(tile_map, target, target_conditions) do
+    tile_map
+    |> Enum.filter(fn {_id, tile} ->
+         String.downcase(tile.name || "") == target &&
+           Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(tile, key) == val end)
+       end)
+  end
+
+  @doc """
+  Removes a map tile. Uses kwargs, the `target` KWARG in addition to other attribute targets may be used.
+  Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
+  that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
+  than one tiles there. If there are no tiles matching, nothing is done.
+  Player tiles will not be removed.
+  """
+  def remove(%Runner{} = runner_state, [params]) do
+    target_conditions = params
+                        |> Enum.map(fn {k, v} ->
+                             { Atom.to_string(k) |> String.replace_leading( "target_", "") |> String.to_atom(),
+                               resolve_variable(runner_state, v) }
+                           end)
+                        |> Enum.into(%{})
+
+    _remove(runner_state, target_conditions)
+  end
+
+  def _remove(%Runner{state: state} = runner_state, target_conditions) do
+    {target, target_conditions} = Map.pop(target_conditions, :target)
+    target = if target, do: String.downcase(target), else: nil
+
+    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+      _remove_in_direction(runner_state, target, target_conditions)
+    else
+      map_tile_ids = state.map_by_ids
+                     |> Map.to_list
+                     |> _filter_tiles_with(target, target_conditions)
+                     |> Enum.map(fn {id, _tile} -> id end)
+      _remove_via_ids(runner_state, map_tile_ids)
+    end
+  end
+
+  defp _remove_in_direction(%Runner{state: state, object_id: object_id} = runner_state, direction, target_conditions) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    map_tile = Instances.get_map_tile(state, object, direction)
+
+    if map_tile && Enum.reduce(target_conditions, true, fn {key, val}, acc -> acc && _map_tile_value(map_tile, key) == val end) do
+      _remove_via_ids(runner_state, [map_tile.id])
+    else
+      runner_state
+    end
+  end
+
+  defp _remove_via_ids(runner_state, []), do: runner_state
+  defp _remove_via_ids(%Runner{program: program, state: state} = runner_state, [id | ids]) do
+    if Instances.is_player_tile?(state, %{id: id}) do
+      _remove_via_ids(runner_state, ids)
+    else
+      {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: id})
+      top_tile = Instances.get_map_tile(updated_state, deleted_object)
+
+      message = ["tile_changes",
+                 %{tiles: [
+                     Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+                 ]}]
+
+      _remove_via_ids(
+        %{ runner_state | state: updated_state, program: %{ program | broadcasts: [message | program.broadcasts] } },
+        ids
+      )
+    end
   end
 
   @doc """
@@ -871,8 +1103,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take_via_id(%Runner{state: state, program: program} = runner_state, what, amount, id, label) do
-    amount = _resolve_variable(runner_state, amount)
-    what = _resolve_variable(runner_state, what)
+    amount = resolve_variable(runner_state, amount)
+    what = resolve_variable(runner_state, what)
 
     if is_number(amount) and amount > 0 and is_binary(what) do
       what = String.to_atom(what)

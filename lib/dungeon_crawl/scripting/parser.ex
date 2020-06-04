@@ -84,7 +84,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_shorthand_movement(line, program) do
-    with steps <- line |> String.to_charlist |> Enum.chunk_every(2),
+    with steps <- line |> String.trim() |> String.to_charlist() |> Enum.chunk_every(2),
          {:ok, expanded_steps} <- _parse_shorthand_movements(steps),
          line_number <- Enum.count(program.instructions) + 1 do
       {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:compound_move, expanded_steps]) } }
@@ -239,7 +239,12 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   # Special keywords have an expected format; ie character will be used in become
-  defp _cast_kparam(param, :character), do: param
+  defp _cast_kparam(param, :character) do
+    cond do
+      Regex.match?(~r/^(\?[^@]*?@|@@|@).+?$/i, param) -> _normalize_state_arg(param)
+      true -> param
+    end
+  end
   defp _cast_kparam(param, _keyword), do: _cast_param(param)
 
   defp _cast_param(param) do

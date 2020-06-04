@@ -358,6 +358,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   @doc """
+  Returns true if the given map_tile_id is a player map tile
+  """
+  def is_player_tile?(%Instances{player_locations: player_locations}, %{id: map_tile_id}) do
+    Map.has_key?(player_locations, map_tile_id)
+  end
+
+  @doc """
   Sets a state value for the instance. Returns the updated state
   """
   def set_state_value(%Instances{} = state, key, value) do

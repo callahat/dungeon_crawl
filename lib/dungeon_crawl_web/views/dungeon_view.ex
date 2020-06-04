@@ -30,6 +30,7 @@ defmodule DungeonCrawlWeb.DungeonView do
                 data-color="#{ tile_template.color }"
                 data-background-color="#{ tile_template.background_color }"
                 data-name="#{ Phoenix.HTML.Safe.to_iodata tile_template.name }"
+                data-slug="#{ Phoenix.HTML.Safe.to_iodata tile_template.slug }"
                 data-character="#{ Phoenix.HTML.Safe.to_iodata tile_template.character }"
                 data-state="#{ Phoenix.HTML.Safe.to_iodata tile_template.state }"
                 data-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>

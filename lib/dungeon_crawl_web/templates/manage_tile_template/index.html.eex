@@ -1,52 +1,60 @@
-<h2 class="inline">Listing tile templates</h2>
-<%= link "New tile template", to: Routes.manage_tile_template_path(@conn, :new) %>
-<br/>
+<div class="d-flex flex-column listing-full-height">
+  <div class="d-flex flex-row">
+    <h2 class="inline">Listing tile templates</h2>
+  </div>
+  <div class="d-flex flex-row">
+    <%= link "New tile template", to: Routes.manage_tile_template_path(@conn, :new) %>
+  </div>
 
 <%= if @conn.assigns.current_user.is_admin do %>
-<%= link "All", to: Routes.manage_tile_template_path(@conn, :index) %> |
-<%= link "Mine", to: Routes.manage_tile_template_path(@conn, :index, %{list: "mine"}) %> |
-<%= link "Unowned", to: Routes.manage_tile_template_path(@conn, :index, %{list: "nil"}) %>
+  <div class="d-flex flex-row">
+    <%= link "All", to: Routes.manage_tile_template_path(@conn, :index) %> |
+    <%= link "Mine", to: Routes.manage_tile_template_path(@conn, :index, %{list: "mine"}) %> |
+    <%= link "Unowned", to: Routes.manage_tile_template_path(@conn, :index, %{list: "nil"}) %>
+  </div>
 <% end %>
 
-<div class="table-responsive">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Id</th>
-        <th>Name</th>
-        <th>Character</th>
-        <th>Color</th>
-        <th>B.Color</th>
-        <th>Use Count</th>
-        <th title="Public">P</th>
-        <th title="Active">A</th>
-        <th title="Version">V</th>
+  <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Slug</th>
+          <th>Name</th>
+          <th>Character</th>
+          <th>Color</th>
+          <th>B.Color</th>
+          <th>Use Count</th>
+          <th title="Public">P</th>
+          <th title="Active">A</th>
+          <th title="Version">V</th>
 
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-<%= for tile_template <- @tile_templates do %>
-      <tr>
-        <td><%= tile_template.id %></td>
-        <td><%= tile_template.name %></td>
-        <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre></td>
-        <td><%= tile_template.color %></td>
-        <td><%= tile_template.background_color %></td>
-        <td><%= DungeonCrawl.Dungeon.tile_template_reference_count(tile_template) %></td>
-        <td><%= if tile_template.public, do: "Y", else: "N" %></td>
-        <td><%= if tile_template.active, do: "Y", else: "N" %></td>
-        <td><%= tile_template.version %></td>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  <%= for tile_template <- @tile_templates do %>
+        <tr>
+          <td><%= tile_template.id %></td>
+          <td><%= tile_template.slug %></td>
+          <td><%= tile_template.name %></td>
+          <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre></td>
+          <td><%= tile_template.color %></td>
+          <td><%= tile_template.background_color %></td>
+          <td><%= DungeonCrawl.Dungeon.tile_template_reference_count(tile_template) %></td>
+          <td><%= if tile_template.public, do: "Y", else: "N" %></td>
+          <td><%= if tile_template.active, do: "Y", else: "N" %></td>
+          <td><%= tile_template.version %></td>
 
-        <td class="text-right">
-          <%= activate_or_new_version_button(@conn, tile_template) %>
-          <%= link "Show", to: Routes.manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-light btn-sm" %>
-          <%= unless tile_template.active, do: link "Edit", to: Routes.manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-light btn-sm" %>
-          <%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
-        </td>
-      </tr>
-<% end %>
-    </tbody>
-  </table>
+          <td class="text-right">
+            <%= activate_or_new_version_button(@conn, tile_template) %>
+            <%= link "Show", to: Routes.manage_tile_template_path(@conn, :show, tile_template), class: "btn btn-light btn-sm" %>
+            <%= unless tile_template.active, do: link "Edit", to: Routes.manage_tile_template_path(@conn, :edit, tile_template), class: "btn btn-light btn-sm" %>
+            <%= link "Delete", to: Routes.manage_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+          </td>
+        </tr>
+  <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>
-

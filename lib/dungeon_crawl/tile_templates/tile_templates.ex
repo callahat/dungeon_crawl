@@ -67,11 +67,41 @@ defmodule DungeonCrawl.TileTemplates do
 
       iex> get_tile_template!(456)
       ** (Ecto.NoResultsError)
-
   """
   def get_tile_template(nil),  do: %TileTemplate{}
   def get_tile_template(id),  do: Repo.get(TileTemplate, id)
   def get_tile_template!(id), do: Repo.get!(TileTemplate, id)
+
+  @doc """
+  Gets the most recent active non deleted tile_template for the given slug.
+  Using :validation as the second param is for program validation purposes, where inactive
+  tile templates may be provided. However, the tile template must be active for it to actually
+  be used in a running script.
+
+  Returns `nil` if none found.
+
+  ## Examples
+
+      iex> get_tile_template_by_slug("banana")
+      %TileTemplate{}
+
+      iex> get_tile_template_by_slug("nonehere")
+      nil
+  """
+  def get_tile_template_by_slug(slug) when is_binary(slug) do
+    Repo.one(from tt in TileTemplate,
+             where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
+             order_by: [desc: :id],
+             limit: 1)
+  end
+  def get_tile_template_by_slug(_), do: nil
+  def get_tile_template_by_slug(slug, :validation) when is_binary(slug) do
+    Repo.one(from tt in TileTemplate,
+             where: tt.slug == ^slug and is_nil(tt.deleted_at),
+             order_by: [desc: :id],
+             limit: 1)
+  end
+  def get_tile_template_by_slug(_, _), do: nil
 
   @doc """
   Returns a boolean indicating wether or not the given tile template has a next version, or is the most current one.
@@ -104,11 +134,41 @@ defmodule DungeonCrawl.TileTemplates do
     %TileTemplate{}
     |> TileTemplate.changeset(attrs)
     |> Repo.insert()
+    |> _add_slug()
   end
   def create_tile_template!(attrs \\ %{}) do
     %TileTemplate{}
     |> TileTemplate.changeset(attrs)
     |> Repo.insert!()
+    |> _add_slug!()
+  end
+
+  defp _add_slug({:ok, tile_template}) do
+    _gen_slug_changeset(tile_template)
+    |> Repo.update()
+  end
+  defp _add_slug(error), do: error
+
+  defp _add_slug!(tile_template) do
+    _gen_slug_changeset(tile_template)
+    |> Repo.update!()
+  end
+
+  defp _gen_slug_changeset(tile_template) do
+    tt = Repo.preload(tile_template, :user)
+    slug = String.downcase(tile_template.name)
+           |> String.replace(" ", "_")
+
+    slug = if (tt.user && tt.user.is_admin || is_nil(tt.user)) &&
+              Repo.one(from tt in TileTemplate, where: tt.slug == ^slug, select: count()) == 0 do
+             slug
+           else
+             slug <> "_#{tile_template.id}"
+           end
+
+    tile_template
+    |> TileTemplate.changeset(%{})
+    |> Ecto.Changeset.put_change(:slug, slug)
   end
 
   @doc """
@@ -141,6 +201,7 @@ defmodule DungeonCrawl.TileTemplates do
          new_attrs     <- Elixir.Map.merge(old_attrs, version_attrs)
     do
       TileTemplate.changeset(%TileTemplate{}, new_attrs)
+      |> Ecto.Changeset.put_change(:slug, tile_template.slug)
     end
   end
 

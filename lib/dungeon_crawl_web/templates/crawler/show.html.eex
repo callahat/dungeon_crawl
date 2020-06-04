@@ -16,56 +16,63 @@
   </div>
 </div>
 <% else %>
-Not currently in any dungeon.
-<br/>
+
+<div class="d-flex flex-column listing-full-height">
+  <div class="d-flex flex-row">
+    Not currently in any dungeon.
+  </div>
 <%= if DungeonCrawl.Admin.get_setting.autogen_solo_enabled do %>
+  <div class="d-flex flex-row">
 <%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+  </div>
 <% end %>
 
-<br/>
-<br/>
-Or join:
-<div class="table-responsive">
-  <table class="table table-striped table-sm">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Dimensions (HxW)</th>
-        <th>Instances/Players</th>
-      </tr>
-    </thead>
 
-    <tbody>
-<%= for %{dungeon: dungeon} <- @dungeons do %>
-      <tr>
-        <td><%= dungeon.name %></td>
-        <td><%= dungeon.height %>x<%= dungeon.width %></td>
-        <td>
-          <table class="table table-sm">
-          <%= for instance <- dungeon.map_instances do %>
-            <tr>
-              <td><%= instance.locations |> Enum.count %></td>
-              <td>
-                <span class="pull-right">
-                  <%= link "Join", to: Routes.crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
-                </span>
-              </td>
-            </tr>
-          <% end %>
-            <tr>
-              <td colspan=100%>
-                <span class="pull-right">
-                  <%= if can_start_new_instance(dungeon.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
-                </span>
-              </td>
-            <tr>
-          </table>
-        </td>
+  <div class="d-flex flex-row">
+    Or join:
+  </div>
+  <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
+    <table class="table table-striped table-sm">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Dimensions (HxW)</th>
+          <th>Instances/Players</th>
+        </tr>
+      </thead>
 
-      </tr>
-<% end %>
-    </tbody>
-</table>
+      <tbody>
+  <%= for %{dungeon: dungeon} <- @dungeons do %>
+        <tr>
+          <td><%= dungeon.name %></td>
+          <td><%= dungeon.height %>x<%= dungeon.width %></td>
+          <td>
+            <table class="table table-sm">
+            <%= for instance <- dungeon.map_instances do %>
+              <tr>
+                <td><%= instance.locations |> Enum.count %></td>
+                <td>
+                  <span class="pull-right">
+                    <%= link "Join", to: Routes.crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+              <tr>
+                <td colspan=100%>
+                  <span class="pull-right">
+                    <%= if can_start_new_instance(dungeon.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                  </span>
+                </td>
+              <tr>
+            </table>
+          </td>
+
+        </tr>
+  <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <% end %>

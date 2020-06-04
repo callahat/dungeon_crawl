@@ -59,6 +59,25 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.get_tile_template(tile_template.id) == tile_template
     end
 
+    test "get_tile_template_by_slug/1 returns the tile_template with given slug" do
+      tile_template = tile_template_fixture(%{active: true})
+      assert TileTemplates.get_tile_template_by_slug(tile_template.slug) == tile_template
+    end
+
+    test "get_tile_template_by_slug/1 returns nil on bad slug" do
+      refute TileTemplates.get_tile_template_by_slug("fake")
+    end
+
+    test "get_tile_template_by_slug/1 returns nil on slug with no active tile template" do
+      tile_template = tile_template_fixture(%{active: false})
+      refute TileTemplates.get_tile_template_by_slug(tile_template.slug)
+    end
+
+    test "get_tile_template_by_slug/2 returns slug even when no active tile template" do
+      tile_template = tile_template_fixture(%{active: false})
+      assert TileTemplates.get_tile_template_by_slug(tile_template.slug, :validation)
+    end
+
     test "next_version_exists?/1 is true if the tile_template has a next version" do
       tile_template = tile_template_fixture()
       tile_template_fixture(%{previous_version_id: tile_template.id})
@@ -70,7 +89,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
       refute TileTemplates.next_version_exists?(tile_template)
     end
 
-    test "create_tile_template/1 with valid data creates a tile_template" do
+    test "create_tile_template/1 with valid data and no user creates a tile_template" do
       assert {:ok, %TileTemplate{} = tile_template} = TileTemplates.create_tile_template(@valid_attrs)
       assert tile_template.background_color == "black"
       assert tile_template.character == "X"
@@ -78,19 +97,41 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template.description == "A big capital X"
       assert tile_template.name == "A Big X"
       assert tile_template.script == ""
+      assert tile_template.slug == "a_big_x"
+    end
+
+    test "create tile_template/1 with an admin user sets the slug" do
+      user = insert_user(%{is_admin: true})
+      # creates the slug
+      assert {:ok, %TileTemplate{} = tile_template} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :user_id, user.id))
+      assert tile_template.slug == "a_big_x"
+
+      # when the slug already exists, the id is appended to the slug
+      assert {:ok, %TileTemplate{} = tile_template_2} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :user_id, user.id))
+      assert tile_template_2.slug == "a_big_x_#{tile_template_2.id}"
+
+      # slug cannot be explicitly set
+      assert {:ok, %TileTemplate{} = tile_template_3} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :slug, "goober"))
+      refute tile_template_3.slug == "goober"
+      assert tile_template_3.slug == "a_big_x_#{tile_template_3.id}"
+    end
+
+    test "create tile_template/1 with a normal user sets the slug" do
+      user = insert_user(%{is_admin: false})
+      # creates the slug with id appended
+      assert {:ok, %TileTemplate{} = tile_template} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :user_id, user.id))
+      assert tile_template.slug == "a_big_x_#{tile_template.id}"
     end
 
     test "create_tile_template/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = TileTemplates.create_tile_template(@invalid_attrs)
     end
 
-#TODO: once the script parser is ready
-#    test "create_tile_template/1 with bad script" do
-#      assert {:error, changeset} = TileTemplates.create_tile_template(Map.merge(@valid_attrs, %{script: "junk", character: "BIG"}))
-#      assert "Problem parsing - junk" in errors_on(changeset).script
-#      assert "should be at most 1 character(s)" in errors_on(changeset).character
-#      assert %{script: ["Problem parsing - junk"], character: ["should be at most 1 character(s)"]} = errors_on(changeset)
-#    end
+    test "create_tile_template/1 with bad script" do
+      assert {:error, changeset} = TileTemplates.create_tile_template(Map.merge(@valid_attrs, %{script: "#junk", character: "BIG"}))
+      assert %{script: ["Unknown command: `junk` - near line 1"],
+               character: ["should be at most 1 character(s)"]} == errors_on(changeset)
+    end
 
     test "create_new_tile_template_version/1 does not create a new version of an inactive tile_template" do
       tile_template = tile_template_fixture(%{active: false})
@@ -102,8 +143,8 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert {:ok, new_tile_template} = TileTemplates.create_new_tile_template_version(tile_template)
       assert new_tile_template.version == tile_template.version + 1
       refute new_tile_template.active
-      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script]) ==
-             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script])
+      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script, :slug]) ==
+             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script, :slug])
     end
 
     test "create_new_tile_template_version/1 does not create a new version if the next one exists" do
@@ -136,6 +177,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template.name == "A Big X"
       assert tile_template.state == "blocking: true"
       assert tile_template.script == ""
+      assert tile_template.slug == "a_big_x_#{tile_template.id}"
     end
 
     test "find_or_create_tile_template/1 with invalid data returns error changeset" do
@@ -147,6 +189,12 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert {:ok, tile_template} = TileTemplates.update_tile_template(tile_template, @update_attrs)
       assert %TileTemplate{} = tile_template
       assert tile_template.color == "puce"
+    end
+
+    test "update_tile_template/2 will not update the slug" do
+      tile_template = tile_template_fixture()
+      assert {:ok, tile_template} = TileTemplates.update_tile_template(tile_template, %{slug: "somethingelse"})
+      refute tile_template.slug == "somethingelse"
     end
 
     test "update_tile_template/2 with invalid data returns error changeset" do

@@ -14,11 +14,12 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                """
       {:ok, program} = Parser.parse(script)
       stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      state = %Instances{map_by_ids: %{1 => stubbed_object}}
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: program, object_id: stubbed_object.id})
+      %Runner{program: run_program} = Runner.run(%Runner{state: state, program: program, object_id: stubbed_object.id})
       assert run_program.responses == [{"message", %{message: "Line Two"}}, {"message", %{message: "Line One"}}]
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | pc: 2}, object_id: stubbed_object.id})
+      %Runner{program: run_program} = Runner.run(%Runner{state: state, program: %{program | pc: 2}, object_id: stubbed_object.id})
       assert run_program.responses == [{"message", %{message: "Line Two"}}]
     end
 
