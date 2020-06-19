@@ -20,6 +20,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert basic_tiles[?@]  == basic_tiles["@"]
   end
 
+  test "bullet and player character tiles" do
+    assert bullet_tile = TileSeeder.bullet_tile()
+    assert player_character_tile = TileSeeder.player_character_tile()
+    refute is_nil(bullet_tile.id)
+    refute is_nil(player_character_tile.id)
+  end
+
   test "color_keys_and_doors" do
     assert :ok = TileSeeder.color_keys_and_doors
     ["red", "green", "blue", "gray", "purple", "orange"]
@@ -29,5 +36,10 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
          assert Repo.one(from tt in TileTemplate, where: tt.name == ^color_key)
          assert Repo.one(from tt in TileTemplate, where: tt.name == ^color_door)
        end)
+
+    assert TileSeeder.generic_colored_key
+    assert TileSeeder.generic_colored_door
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Colored Key")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Colored Door")
   end
 end
