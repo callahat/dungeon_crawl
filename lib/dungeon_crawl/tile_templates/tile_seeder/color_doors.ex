@@ -1,5 +1,4 @@
 defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
-  alias DungeonCrawl.Repo
   alias DungeonCrawl.TileTemplates
 
   def color_keys_and_doors() do
@@ -10,7 +9,6 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
           name: "#{color} key",
           description: "a #{color} key",
           color: color,
-          state: "",
           public: true,
           active: true,
           script: """
@@ -57,7 +55,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
         name: "Colored Key",
         description: "A key that can have a color and unlock a matching door",
         color: "white",
-        state: "",
+        background_color: "gray",
         public: true,
         active: true,
         script: """

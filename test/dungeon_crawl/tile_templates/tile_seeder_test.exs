@@ -42,4 +42,32 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Colored Key")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Colored Door")
   end
+
+  test "block walls" do
+    assert TileSeeder.solid_wall
+    assert TileSeeder.normal_wall
+    assert TileSeeder.breakable_wall
+    assert TileSeeder.fake_wall
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Solid Wall")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Normal Wall")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Fake Wall")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Breakable Wall")
+  end
+
+  test "creatures" do
+    assert TileSeeder.expanding_foam
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Expanding Foam")
+  end
+
+  test "seed_all/0" do
+    initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
+    TileSeeder.seed_all()
+    seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
+    assert seeded_count - initial_count == 28
+
+    # does not add the seeds again
+    TileSeeder.seed_all()
+    seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
+    assert seeded_count2 - initial_count == 28
+  end
 end

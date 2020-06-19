@@ -3,6 +3,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
   use DungeonCrawl.TileTemplates.TileSeeder.BasicTiles
   use DungeonCrawl.TileTemplates.TileSeeder.ColorDoors
+  use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
+  use DungeonCrawl.TileTemplates.TileSeeder.Creatures
 
   def seed_all() do
     # basic
@@ -14,5 +16,16 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     color_keys_and_doors()
     generic_colored_key()
     generic_colored_door()
+
+    # block walls
+    solid_wall()
+    normal_wall()
+    breakable_wall()
+    fake_wall()
+
+    # creatures
+    expanding_foam()
+
+    :ok
   end
 end
