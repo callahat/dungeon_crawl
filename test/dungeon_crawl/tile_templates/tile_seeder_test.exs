@@ -59,15 +59,20 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Expanding Foam")
   end
 
+  test "ordinance" do
+    assert TileSeeder.smoke
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Smoke")
+  end
+
   test "seed_all/0" do
     initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
     TileSeeder.seed_all()
     seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count - initial_count == 28
+    assert seeded_count - initial_count == 29
 
     # does not add the seeds again
     TileSeeder.seed_all()
     seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count2 - initial_count == 28
+    assert seeded_count2 - initial_count == 29
   end
 end

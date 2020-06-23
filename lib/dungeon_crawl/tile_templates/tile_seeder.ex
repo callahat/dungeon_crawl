@@ -5,6 +5,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.ColorDoors
   use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
+  use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
 
   def seed_all() do
     # basic
@@ -25,6 +26,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # creatures
     expanding_foam()
+
+    # ordinance
+    smoke()
 
     :ok
   end
