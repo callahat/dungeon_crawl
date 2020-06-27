@@ -19,6 +19,8 @@ defmodule DungeonCrawl.Dungeon.MapTest do
   test "changeset with invalid attributes" do
     changeset = Map.changeset(%Map{}, @invalid_attrs)
     refute changeset.valid?
+    changeset = Map.changeset(%Map{}, %{name: "test"})
+    refute changeset.valid?
   end
 
   test "changeset with invalid state values" do

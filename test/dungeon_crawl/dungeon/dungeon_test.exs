@@ -271,7 +271,7 @@ defmodule DungeonCrawl.DungeonTest do
     end
 
     def map_tile_fixture(attrs \\ %{}, dungeon_id \\ nil) do
-      {:ok, map} = if dungeon_id, do: {:ok, Dungeon.get_map(dungeon_id)}, else: Dungeon.create_map(%{name: "test"})
+      {:ok, map} = if dungeon_id, do: {:ok, Dungeon.get_map(dungeon_id)}, else: Dungeon.create_map(%{name: "test", width: 20, height: 20})
       {:ok, tile_template} = tile_template_fixture()
       {:ok, map_tile} =
         Elixir.Map.merge(%MapTile{}, @valid_attrs)
