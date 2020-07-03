@@ -18,3 +18,4 @@
 
 <%= render "tile_edit_modal.html" %>
 <%= render "tile_detail_modal.html" %>
+<%= render DungeonCrawlWeb.SharedView, "character_select_modal.html" %>

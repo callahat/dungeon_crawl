@@ -20,18 +20,21 @@
               <%= text_input :tile_template, :name, class: "form-control" %>
             </div>
           </div>
-          <div class="col-2">
+          <div class="col-3">
             <div class="form-group">
               <%= label :tile_template, :character, class: "control-label" %>
-              <%= text_input :tile_template, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="show_character_picker">?</span>
+                </div>
+                <%= text_input :tile_template, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+              </div>
             </div>
           </div>
-          <div class="col-2">
+          <div class="col-3">
             <br/>
             <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
-          </div>
-          <div class="col-2">
-            <br/>
+            &nbsp;
             <pre id="character_preview_small" class="tile_template_preview"></pre>
           </div>
         </div>
