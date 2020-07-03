@@ -35,7 +35,7 @@ let DungeonEditor = {
     document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     document.getElementById("color_pallette").oncontextmenu = function (){ return false }
-    window.addEventListener('mouseup', e => {this.disablePainting()} );
+    window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = false; } );
 
 
     document.getElementById("tiletool-tab").addEventListener('click', e => {
@@ -401,12 +401,16 @@ let DungeonEditor = {
       this.lastCoord = this.lastDraggedCoord = targetCoord
       return
     } else if(this.mode == "tile_erase") {
-      this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
-      let visible_tile_div = map_location.parentNode.querySelector("td > div:not([class=hidden]):not([class=placeholder]) ")
+      if(this.erased) { return }
+      this.erased = true
+
+//      this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
+      let visible_tile_div = map_location.parentNode.querySelector("td > div:not(.hidden):not(.placeholder)")
       if(!!visible_tile_div && !visible_tile_div.classList.contains("placeholder")){
-        visible_tile_div.setAttribute("class", "deleted-map-tile")
+        visible_tile_div.classList.add("deleted-map-tile")
         this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
       }
+
       return
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
@@ -430,7 +434,7 @@ let DungeonEditor = {
   },
   findOrCreateActiveTileDiv(map_location_td){
     let div = map_location_td.querySelector("td > div[data-z-index='" + document.getElementById("z_index_current").value + "']")
-    map_location_td.querySelector("td > div:not([class=hidden])").classList.add("hidden")
+    map_location_td.querySelector("td > div:not(.hidden)").classList.add("hidden")
 
     if(!!div) {
       div.classList.remove("hidden")
@@ -493,7 +497,7 @@ let DungeonEditor = {
   getMapLocation(event){
     if(event.target.tagName == "TD"){
       console.log("MISSED THE DIV AND HIT A TD INSTEAD!")
-      return(event.target.querySelector("div:not([class=hidden])"))
+      return(event.target.querySelector("div:not(.hidden)"))
     } else if(event.target.tagName == "DIV" && event.target.parentNode.tagName == "DIV"){
       return(event.target.parentNode)
     } else if(event.target.tagName == "DIV" && event.target.parentNode.tagName == "TD") {
@@ -607,9 +611,9 @@ let DungeonEditor = {
     let visibleTile,
         tiles = Array.from(td.children)
     if(this.onlyShowCurrentLayer){
-      visibleTile = tiles.find((a) => a.getAttribute("data-z-index") == currentZIndex)
+      visibleTile = tiles.find((a) => a.getAttribute("data-z-index") == currentZIndex && !a.classList.contains("deleted-map-tile"))
     } else {
-      visibleTile = tiles.filter((a)=> !(a.classList.contains("deleted-map-tile")) && a.getAttribute("data-z-index") <= currentZIndex )
+      visibleTile = tiles.filter((a)=> (!a.classList.contains("deleted-map-tile")) && a.getAttribute("data-z-index") <= currentZIndex )
                          .sort(function(a,b){
                                  if(a.classList.contains("placeholder") != b.classList.contains("placeholder")){
                                    return(a.classList.contains("placeholder"))
@@ -617,7 +621,9 @@ let DungeonEditor = {
                                  return(a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))
                                })[0]
     }
-    tiles.map((div) => div.classList.add("hidden"))
+
+    tiles.forEach((div) => div.classList.add("hidden"))
+
     if(visibleTile){
       visibleTile.classList.remove("hidden")
     } else {
@@ -647,7 +653,8 @@ let DungeonEditor = {
   selectedBackgroundColor: null,
   zIndexUpperBound: 0,
   zIndexLowerBound: 0,
-  onlyShowCurrentLayer: false
+  onlyShowCurrentLayer: false,
+  erased: false,
 
 }
 
