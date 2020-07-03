@@ -32,7 +32,7 @@ let DungeonEditor = {
       }
     });
     document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintEventHandler(e)} );
-    document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
+    document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false; this.erased=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     document.getElementById("color_pallette").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = false; } );
@@ -366,6 +366,7 @@ let DungeonEditor = {
   paintEventHandler(event){
     if(!this.painting || this.painted) { return }
     if(this.mode == "tile_painting" && this.historicTile) { return }
+    if(this.mode == "tile_erase" && this.erased) { return }
 
     let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
 
@@ -404,13 +405,13 @@ let DungeonEditor = {
       if(this.erased) { return }
       this.erased = true
 
-//      this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
-      let visible_tile_div = map_location.parentNode.querySelector("td > div:not(.hidden):not(.placeholder)")
+      // already accomplished by the findOrCreateActiveTileDiv
+      // this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
+      let visible_tile_div = map_location.parentNode.querySelector("td > div:not(.hidden):not(.placeholder):not(.deleted-map-tile)")
       if(!!visible_tile_div && !visible_tile_div.classList.contains("placeholder")){
         visible_tile_div.classList.add("deleted-map-tile")
-        this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
       }
-
+      this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
       return
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
