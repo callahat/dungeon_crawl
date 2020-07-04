@@ -32,10 +32,10 @@ let DungeonEditor = {
       }
     });
     document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintEventHandler(e)} );
-    document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false; this.erased=false} );
+    document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     document.getElementById("color_pallette").oncontextmenu = function (){ return false }
-    window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = false; } );
+    window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = null} );
 
 
     document.getElementById("tiletool-tab").addEventListener('click', e => {
@@ -366,7 +366,28 @@ let DungeonEditor = {
   paintEventHandler(event){
     if(!this.painting || this.painted) { return }
     if(this.mode == "tile_painting" && this.historicTile) { return }
-    if(this.mode == "tile_erase" && this.erased) { return }
+
+    if(this.mode == "tile_erase") {
+      let map_location_td = this.getMapLocation(event).parentNode,
+          visible_tile_div = map_location_td.querySelector("td > div:not(.hidden):not(.placeholder)"),
+          next_top_coords
+
+      if(!visible_tile_div) { return }
+
+      next_top_coords = map_location_td.id + "_" + visible_tile_div.getAttribute("data-z-index")
+
+      if(this.erased == next_top_coords) { return }
+
+      visible_tile_div.classList.add("deleted-map-tile")
+      this.showVisibleTileAtCoordinate(map_location_td, document.getElementById("z_index_current").value)
+      visible_tile_div = map_location_td.querySelector("td > div:not(.hidden):not(.placeholder)")
+
+      if(!visible_tile_div) { return }
+
+      next_top_coords = map_location_td.id + "_" + visible_tile_div.getAttribute("data-z-index")
+      this.erased = next_top_coords
+      return
+    }
 
     let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
 
@@ -400,18 +421,6 @@ let DungeonEditor = {
       $('#tileEditModal').modal({show: true})
 
       this.lastCoord = this.lastDraggedCoord = targetCoord
-      return
-    } else if(this.mode == "tile_erase") {
-      if(this.erased) { return }
-      this.erased = true
-
-      // already accomplished by the findOrCreateActiveTileDiv
-      // this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
-      let visible_tile_div = map_location.parentNode.querySelector("td > div:not(.hidden):not(.placeholder):not(.deleted-map-tile)")
-      if(!!visible_tile_div && !visible_tile_div.classList.contains("placeholder")){
-        visible_tile_div.classList.add("deleted-map-tile")
-      }
-      this.showVisibleTileAtCoordinate(map_location.parentNode, document.getElementById("z_index_current").value)
       return
     } else {
       console.log("UNKNOWN MODE:" + this.mode)
