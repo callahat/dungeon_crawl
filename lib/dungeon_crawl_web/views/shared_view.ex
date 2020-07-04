@@ -128,5 +128,17 @@ defmodule DungeonCrawlWeb.SharedView do
   defp _tile_and_style(map_tile) do
     "<div style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
   end
+
+# Use this to generate, then drop the markup into the template
+  def character_quick_list_html() do
+    #[?!..?~] |> Enum.map(&Enum.to_list/1) # Generates the top line
+    ("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" <>
+     "Öö¢£¤¥§¶×þƜƱǂΦΨπϮϴ∘∙∗∝∞█▓▒░▲▶▼◀◆●☀☘☠☢☣☥☹☺☿♀♁♂♅♠♣♥♦♪♮♯✝✱")
+    |> String.split("", trim: true)
+    |> Enum.map(fn char ->
+              "<pre class='tile_template_preview embiggen' name='character_picker'><div>#{char}</div></pre>"
+            end)
+    |> Enum.join("\n")
+  end
 end
 

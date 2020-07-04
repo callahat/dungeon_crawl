@@ -32,7 +32,7 @@ defmodule DungeonCrawl.Dungeon.Map do
     |> cast(attrs, [:name,:height,:width,:version,:active,:previous_version_id,:deleted_at,:user_id,:state])
     |> cast_assoc(:dungeon_map_tiles)
     |> validate_length(:name, max: 32)
-    |> validate_required([:name])
+    |> validate_required([:name, :height, :width])
     |> validate_inclusion(:height, 20..max_height, message: "must be between 20 and #{max_height}")
     |> validate_inclusion(:width, 20..max_width, message: "must be between 20 and #{max_width}")
     |> TileTemplate.validate_state_values

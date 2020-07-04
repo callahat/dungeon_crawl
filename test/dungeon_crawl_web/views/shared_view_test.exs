@@ -105,4 +105,8 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r|<td id='1_2'>#{tile_a_0}</td>|
     assert rows =~ ~r|<td id='1_3'>#{tile_b_0}</td>|
   end
+
+  test "character_quick_list_html" do
+    assert is_binary(character_quick_list_html())
+  end
 end
