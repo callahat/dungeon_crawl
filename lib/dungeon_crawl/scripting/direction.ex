@@ -16,16 +16,20 @@ defmodule DungeonCrawl.Scripting.Direction do
     "south" => "south"
   }
 
+  @clockwise "clockwise"
+  @counterclockwise "counterclockwise"
+  @reverse "reverse"
+
   @orthogonal_change %{
-    "clockwise" => %{ "west"  => "north",
+    @clockwise => %{ "west"  => "north",
                       "north" => "east",
                       "east"  => "south",
                       "south" => "west" },
-    "counterclockwise" => %{ "west"  => "south",
+    @counterclockwise => %{ "west"  => "south",
                              "north" => "west",
                              "east"  => "north",
                              "south" => "east" },
-    "reverse" => %{ "west"  => "east",
+    @reverse => %{ "west"  => "east",
                     "north" => "south",
                     "east"  => "west",
                     "south" => "north" }
@@ -45,6 +49,12 @@ defmodule DungeonCrawl.Scripting.Direction do
   """
   def valid_orthogonal?(direction) do
     direction in @orthogonal
+  end
+
+  defmacro is_valid_orthogonal(direction) do
+    quote do
+      unquote(direction) in unquote(@orthogonal)
+    end
   end
 
   @doc """
@@ -78,6 +88,12 @@ defmodule DungeonCrawl.Scripting.Direction do
     Map.has_key? @orthogonal_change, change
   end
 
+  defmacro is_valid_orthogonal_change(change) do
+    quote do
+      unquote(change) in unquote([@clockwise, @counterclockwise, @reverse])
+    end
+  end
+
   @doc """
   Returns a direction based on the current direction and provided change.
   If the rotation is not valid (either the given direction is not orthogonal, or the change by
@@ -98,6 +114,7 @@ defmodule DungeonCrawl.Scripting.Direction do
     "idle"
   """
   def change_direction(direction, change_by) do
-    @orthogonal_change[change_by][normalize_orthogonal(direction)] || direction
+    @orthogonal_change[change_by][normalize_orthogonal(direction)] || direction || "idle"
   end
+
 end
