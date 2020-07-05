@@ -3,6 +3,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   alias DungeonCrawlWeb.DungeonChannel
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.TileTemplates
@@ -25,8 +26,15 @@ defmodule DungeonCrawl.DungeonChannelTest do
                  Map.take(north_tile, [:character,:color,:background_color,:state,:script])),
        Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
                  Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script]))])
+
     player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}"})
                       |> Repo.preload(:map_tile)
+
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_instance.id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      Instances.create_player_map_tile(instance_state, player_location.map_tile, player_location)
+    end)
+
 
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})

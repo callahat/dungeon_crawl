@@ -1,12 +1,11 @@
 defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
-  alias DungeonCrawl.Player
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Action.{Move, Shoot}
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.DungeonProcesses.Player
 
   # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
   # and evesdrop on broadcasts?
@@ -39,7 +38,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_location = Player.get_location!(socket.assigns.user_id_hash)
+      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
       player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
       destination = Instances.get_map_tile(instance_state, player_tile, direction)
 
@@ -64,28 +63,31 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   def handle_in("shoot", %{"direction" => direction}, socket) do
     if _shot_ready(socket) do
-      player_location = Player.get_location!(socket.assigns.user_id_hash)
-      player_channel = "players:#{player_location.id}"
-
       {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
       InstanceProcess.run_with(instance, fn (instance_state) ->
-        case Shoot.shoot(player_location, direction, instance_state) do
-          {:invalid} ->
-            {:ok, instance_state}
+        player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
+        player_channel = "players:#{player_location.id}"
 
-          {:no_ammo} ->
-            DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Out of ammo"}
-            {:ok, instance_state}
+        updated_state = case Shoot.shoot(player_location, direction, instance_state) do
+                          {:invalid} ->
+                            instance_state
 
-          {:shot, spawn_tile} ->
-            {:ok, Instances.send_event(instance_state, spawn_tile, "shot", player_location)}
+                          {:no_ammo} ->
+                            DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Out of ammo"}
+                            instance_state
 
-          {:ok, updated_instance} ->
-            {:ok, updated_instance}
-        end
+                          {:shot, spawn_tile} ->
+                            Instances.send_event(instance_state, spawn_tile, "shot", player_location)
+
+                          {:ok, updated_instance} ->
+                            updated_instance
+                        end
+
+        updated_stats = Player.current_stats(updated_state, %{id: player_location.map_tile_instance_id})
+        DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
+
+        {:ok, updated_state}
       end)
-
-      DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: PlayerInstance.current_stats(socket.assigns.user_id_hash)}
 
       {:reply, :ok, assign(socket, :last_action_at, :os.system_time(:millisecond))}
     else
@@ -103,7 +105,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_location = Player.get_location!(socket.assigns.user_id_hash)
+      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
       player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
       target_tile = Instances.get_map_tile(instance_state, player_tile, direction)
 

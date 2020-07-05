@@ -70,6 +70,19 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   @doc """
+  Gets the player location, returns nil if one is not found. Uses a map with an `id` key to lookup based on the map tile
+  associated with that location. Otherwise lookup is done based on user_id_hash when the parameter is a binary.
+  """
+  def get_player_location(%Instances{player_locations: player_locations} = _state, %{id: map_tile_id}) do
+    player_locations[map_tile_id]
+  end
+  def get_player_location(%Instances{player_locations: player_locations} = _state, user_id_hash) do
+    player_locations
+    |> Map.values
+    |> Enum.find(fn location -> location.user_id_hash == user_id_hash end)
+  end
+
+  @doc """
   Returns true or false, depending on if the given tile_id responds to the event.
   """
   def responds_to_event?(%Instances{program_contexts: program_contexts} = _state, %{id: map_tile_id}, event) do

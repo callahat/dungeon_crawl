@@ -76,6 +76,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{id: 999} = Instances.get_map_tile_by_id(state, %{id: 999})
   end
 
+  test "get_player_location/2", %{state: state} do
+    player_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
+    location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
+    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+
+    # using a map tile id
+    assert Instances.get_player_location(state, %{id: player_tile.id}) == location
+    refute Instances.get_player_location(state, %{id: 99999})
+
+    # using user_id_hash
+    assert Instances.get_player_location(state, "dubs") == location
+    refute Instances.get_player_location(state, "notrealhash")
+  end
+
   test "responds_to_event?/3", %{state: state} do
     assert Instances.responds_to_event?(state, %{id: 999}, "TOUCH")
     refute Instances.responds_to_event?(state, %{id: 999}, "SNIFF")
