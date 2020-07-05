@@ -179,11 +179,8 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
   test "does not destroy current instance if others are crawling", %{conn: conn, user: user} do
     instance = insert_stubbed_dungeon_instance(%{active: true})
     different_user = insert_user(%{username: "someoneelse", user_id_hash: "different dude"})
-    insert_player_location(%{map_instance_id: instance.id, user_id_hash: user.user_id_hash})
-    insert_player_location(%{map_instance_id: instance.id, user_id_hash: different_user.user_id_hash})
-    # Seems that it might not be done propagating the instance_process, below sometimes fails with nil at the delete spot
-    # TODO: remove the sleep, probably after most of the casts have been converted to calls
-    :timer.sleep(100)
+    insert_player_location(%{map_instance_id: instance.id, user_id_hash: user.user_id_hash, row: 2, z_index: 1})
+    insert_player_location(%{map_instance_id: instance.id, user_id_hash: different_user.user_id_hash, row: 3, z_index: 1})
     conn = delete conn, crawler_path(conn, :destroy)
     assert redirected_to(conn) == crawler_path(conn, :show)
     assert get_flash(conn, :info) == "Dungeon cleared."
