@@ -35,6 +35,15 @@ defmodule DungeonCrawl.Scripting.Direction do
                     "south" => "north" }
   }
 
+  @directions %{
+    "north" => {-1,  0},
+    "south" => { 1,  0},
+    "west"  => { 0, -1},
+    "east"  => { 0,  1}
+  }
+
+  @no_direction { 0,  0}
+
   @doc """
   Returns true if the given direction is valid and adjacent (but not diagonal)
 
@@ -117,4 +126,19 @@ defmodule DungeonCrawl.Scripting.Direction do
     @orthogonal_change[change_by][normalize_orthogonal(direction)] || direction || "idle"
   end
 
+  @doc """
+  Returns a tuple represeting the unit vector for a given direction.
+
+  ## Examples
+
+    iex> Direction.delta("down")
+    { 1,  0}
+    iex> Direction.delta("west")
+    { 0, -1}
+    iex> Direction.delta("gibberish")
+    { 0,  0}
+  """
+  def delta(direction) do
+    @directions[normalize_orthogonal(direction)] || @no_direction
+  end
 end
