@@ -665,7 +665,7 @@ defmodule DungeonCrawl.Scripting.Command do
     direction = _get_real_direction(object, params[:direction])
     # TODO: move the coord calculation to its own module. Other places have these calculations that should live
     # in the common module as well.
-    {row_d, col_d} = _direction_delta(direction)
+    {row_d, col_d} = Direction.delta(direction)
     coords = if params[:row] && params[:col] do
                %{row: params[:row] + row_d, col: params[:col] + col_d}
              else
@@ -707,24 +707,6 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       runner_state
     end
-  end
-
-  # TODO: this should eventually be in a common direction module. Move the stuff from Instances module there too.
-  @directions %{
-    "up"    => {-1,  0},
-    "down"  => { 1,  0},
-    "left"  => { 0, -1},
-    "right" => { 0,  1},
-    "north" => {-1,  0},
-    "south" => { 1,  0},
-    "west"  => { 0, -1},
-    "east"  => { 0,  1}
-  }
-
-  @no_direction { 0,  0}
-
-  defp _direction_delta(direction) do
-    @directions[direction] || @no_direction
   end
 
   @doc """
@@ -952,7 +934,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message(%Runner{} = runner_state, [label, "all"]) do
     _send_message_id_filter(runner_state, label, fn _object_id -> true end)
   end
-  defp _send_message(%Runner{state: state} = runner_state, [label, target]) when is_valid_orthogonal(target) do
+  defp _send_message(%Runner{} = runner_state, [label, target]) when is_valid_orthogonal(target) do
     _send_message_in_direction(runner_state, label, target)
   end
   defp _send_message(%Runner{state: state} = runner_state, [label, target]) do

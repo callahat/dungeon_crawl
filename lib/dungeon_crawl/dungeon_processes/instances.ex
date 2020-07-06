@@ -19,6 +19,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
+  alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
 
@@ -28,7 +29,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns the top map tile in the given directon from the provided coordinates.
   """
   def get_map_tile(state, %{row: row, col: col} = _map_tile, direction) do
-    {d_row, d_col} = _direction_delta(direction)
+    {d_row, d_col} = Direction.delta(direction)
     get_map_tile(state, %{row: row + d_row, col: col + d_col})
   end
   def get_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _map_tile) do
@@ -47,7 +48,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns the map tiles in the given directon from the provided coordinates.
   """
   def get_map_tiles(%Instances{} = state, %{row: row, col: col} = _map_tile, direction) do
-    {d_row, d_col} = _direction_delta(direction)
+    {d_row, d_col} = Direction.delta(direction)
     Instances.get_map_tiles(state, %{row: row + d_row, col: col + d_col})
   end
   def get_map_tiles(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _map_tile) do
@@ -336,23 +337,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   # is used to figure out what channel to send text, programs wouldnt really do anythign with it.
 #  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.DungeonInstances.MapTile{}), do: 'implement'
   defp _handle_broadcasts(_, _), do: nil
-
-  @directions %{
-    "up"    => {-1,  0},
-    "down"  => { 1,  0},
-    "left"  => { 0, -1},
-    "right" => { 0,  1},
-    "north" => {-1,  0},
-    "south" => { 1,  0},
-    "west"  => { 0, -1},
-    "east"  => { 0,  1}
-  }
-
-  @no_direction { 0,  0}
-
-  defp _direction_delta(direction) do
-    @directions[direction] || @no_direction
-  end
 
   defp _remove_coord(by_coords, %{row: row, col: col, z_index: z_index}) do
     z_indexes = case Map.fetch(by_coords, {row, col}) do
