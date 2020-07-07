@@ -7,14 +7,15 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
+  alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
-  # TODO: spec for this module
   import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
+  import Direction, only: [is_valid_orthogonal_change: 1, is_valid_orthogonal: 1]
 
   require Logger
 
@@ -345,7 +346,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction, max, label]) do
-    if direction in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+    if Direction.valid_orthogonal?(direction) do
       object = Instances.get_map_tile_by_id(state, %{id: object_id})
       map_tile = Instances.get_map_tile(state, object, direction)
 
@@ -451,49 +452,9 @@ defmodule DungeonCrawl.Scripting.Command do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _facing(new_runner_state, player_direction)
   end
-  def facing(%Runner{object_id: object_id, state: state} = runner_state, ["clockwise"]) do
+  def facing(%Runner{object_id: object_id, state: state} = runner_state, [change]) when is_valid_orthogonal_change(change) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    direction = case object.parsed_state[:facing] do
-                  "left"  -> "north"
-                  "west"  -> "north"
-                  "up"    -> "east"
-                  "north" -> "east"
-                  "right" -> "south"
-                  "east"  -> "south"
-                  "down"  -> "west"
-                  "south" -> "west"
-                  _       -> "idle"
-                end
-    _facing(runner_state, direction)
-  end
-  def facing(%Runner{object_id: object_id, state: state} = runner_state, ["counterclockwise"]) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    direction = case object.parsed_state[:facing] do
-                  "left"  -> "south"
-                  "west"  -> "south"
-                  "up"    -> "west"
-                  "north" -> "west"
-                  "right" -> "north"
-                  "east"  -> "north"
-                  "down"  -> "east"
-                  "south" -> "east"
-                  _       -> "idle"
-                end
-    _facing(runner_state, direction)
-  end
-  def facing(%Runner{object_id: object_id, state: state} = runner_state, ["reverse"]) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    direction = case object.parsed_state[:facing] do
-                  "left"  -> "east"
-                  "west"  -> "east"
-                  "up"    -> "south"
-                  "north" -> "south"
-                  "right" -> "west"
-                  "east"  -> "west"
-                  "down"  -> "north"
-                  "south" -> "north"
-                  _       -> "idle"
-                end
+    direction = Direction.change_direction(object.parsed_state[:facing], change)
     _facing(runner_state, direction)
   end
   def facing(runner_state, [direction]) do
@@ -603,7 +564,7 @@ defmodule DungeonCrawl.Scripting.Command do
     # Might want to be able to pass coordinates, esp if the movement will ever be more than one away
     runner_state = send_message(runner_state, ["touch", direction])
     %Runner{program: program, state: state} = runner_state
-# TODO: does the object really need refreshed here?
+
     case Move.go(object, destination, state) do
       {:ok, tile_changes, new_state} ->
 
@@ -700,9 +661,8 @@ defmodule DungeonCrawl.Scripting.Command do
   def put(%Runner{object_id: object_id, state: state, program: program} = runner_state, [params]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
-    # TODO: move the coord calculation to its own module. Other places have these calculations that should live
-    # in the common module as well.
-    {row_d, col_d} = _direction_delta(direction)
+
+    {row_d, col_d} = Direction.delta(direction)
     coords = if params[:row] && params[:col] do
                %{row: params[:row] + row_d, col: params[:col] + col_d}
              else
@@ -746,24 +706,6 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  # TODO: this should eventually be in a common direction module. Move the stuff from Instances module there too.
-  @directions %{
-    "up"    => {-1,  0},
-    "down"  => { 1,  0},
-    "left"  => { 0, -1},
-    "right" => { 0,  1},
-    "north" => {-1,  0},
-    "south" => { 1,  0},
-    "west"  => { 0, -1},
-    "east"  => { 0,  1}
-  }
-
-  @no_direction { 0,  0}
-
-  defp _direction_delta(direction) do
-    @directions[direction] || @no_direction
-  end
-
   @doc """
   Replaces a map tile. Uses KWARGs, `target` and attributes prefixed with `target_` can be used to specify which tiles to replace.
   `target` can be the name of a tile, or a direction. The other `target_` attributes must also match along with the `target`.
@@ -788,7 +730,7 @@ defmodule DungeonCrawl.Scripting.Command do
     {target, target_conditions} = Map.pop(target_conditions, :target)
     target = if target, do: String.downcase(target), else: nil
 
-    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+    if Direction.valid_orthogonal?(target) do
       _replace_in_direction(runner_state, target, target_conditions, new_params)
     else
       map_tile_ids = state.map_by_ids
@@ -867,7 +809,7 @@ defmodule DungeonCrawl.Scripting.Command do
     {target, target_conditions} = Map.pop(target_conditions, :target)
     target = if target, do: String.downcase(target), else: nil
 
-    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
+    if Direction.valid_orthogonal?(target) do
       _remove_in_direction(runner_state, target, target_conditions)
     else
       map_tile_ids = state.map_by_ids
@@ -989,16 +931,15 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message(%Runner{} = runner_state, [label, "all"]) do
     _send_message_id_filter(runner_state, label, fn _object_id -> true end)
   end
+  defp _send_message(%Runner{} = runner_state, [label, target]) when is_valid_orthogonal(target) do
+    _send_message_in_direction(runner_state, label, target)
+  end
   defp _send_message(%Runner{state: state} = runner_state, [label, target]) do
-    if target in ["north", "up", "south", "down", "east", "right", "west", "left"] do
-      _send_message_in_direction(runner_state, label, target)
-    else
-      map_tile_ids = state.map_by_ids
-                     |> Map.to_list
-                     |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
-                     |> Enum.map(fn {id, _tile} -> id end)
-      _send_message_via_ids(runner_state, label, map_tile_ids)
-    end
+    map_tile_ids = state.map_by_ids
+                   |> Map.to_list
+                   |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
+                   |> Enum.map(fn {id, _tile} -> id end)
+    _send_message_via_ids(runner_state, label, map_tile_ids)
   end
 
   defp _send_message_in_direction(%Runner{state: state, object_id: object_id} = runner_state, label, direction) do
@@ -1092,7 +1033,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take(%Runner{object_id: object_id, state: state} = runner_state, what, amount, direction, label) do
-    with direction when direction in ["north", "up", "south", "down", "east", "right", "west", "left"] <- direction,
+    with direction when is_valid_orthogonal(direction) <- direction,
          object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
          map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
       _take(runner_state, what, amount, map_tile.id, label)
@@ -1134,7 +1075,6 @@ defmodule DungeonCrawl.Scripting.Command do
       runner_state
     end
   end
-
 
   @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance).

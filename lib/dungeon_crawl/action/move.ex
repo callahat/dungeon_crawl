@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.Action.Move do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.Scripting.Direction
 
   # todo: rename this
   def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state) do
@@ -78,25 +79,21 @@ defmodule DungeonCrawl.Action.Move do
   end
 
   defp _in_direction(direction, entity_map_tile, destination) do
-    {row_delta, col_delta} = {destination.row - entity_map_tile.row, destination.col - entity_map_tile.col}
+    #{row_delta, col_delta} = {destination.row - entity_map_tile.row, destination.col - entity_map_tile.col}
+    dirs = Direction.orthogonal_direction(entity_map_tile, destination)
     case direction do
-      "n" -> row_delta < 0 # subject must be south moving north
-      "s" -> row_delta > 0
-      "e" -> col_delta > 0
-      "w" -> col_delta < 0
+      "n" -> Enum.member?(dirs, "north") # subject must be south moving north
+      "s" -> Enum.member?(dirs, "south")
+      "e" -> Enum.member?(dirs, "east")
+      "w" -> Enum.member?(dirs, "west")
       _   -> false
     end
   end
 
-  # assumes orthogonal direction, no diagonal
+  # assumes orthogonal direction, no diagonal; and idle should not be obtained if we made it here.
+  # there should be only one direction
   defp _get_direction(entity_map_tile, destination) do
-    {row_delta, col_delta} = {destination.row - entity_map_tile.row, destination.col - entity_map_tile.col}
-
-    cond do
-      row_delta < 0 -> "north"
-      row_delta > 0 -> "south"
-      col_delta > 0 -> "east"
-      true ->          "west" # col_delta < 0 -> "west" #this is the last valid push option; cannot push in idle direction
-    end
+    Direction.orthogonal_direction(entity_map_tile, destination)
+    |> Enum.at(0)
   end
 end
