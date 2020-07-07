@@ -14,9 +14,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
 
-  # TODO: spec for this module
   import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
-
   import Direction, only: [is_valid_orthogonal_change: 1, is_valid_orthogonal: 1]
 
   require Logger
@@ -566,7 +564,7 @@ defmodule DungeonCrawl.Scripting.Command do
     # Might want to be able to pass coordinates, esp if the movement will ever be more than one away
     runner_state = send_message(runner_state, ["touch", direction])
     %Runner{program: program, state: state} = runner_state
-# TODO: does the object really need refreshed here?
+
     case Move.go(object, destination, state) do
       {:ok, tile_changes, new_state} ->
 
@@ -663,8 +661,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def put(%Runner{object_id: object_id, state: state, program: program} = runner_state, [params]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
-    # TODO: move the coord calculation to its own module. Other places have these calculations that should live
-    # in the common module as well.
+
     {row_d, col_d} = Direction.delta(direction)
     coords = if params[:row] && params[:col] do
                %{row: params[:row] + row_d, col: params[:col] + col_d}
@@ -1078,7 +1075,6 @@ defmodule DungeonCrawl.Scripting.Command do
       runner_state
     end
   end
-
 
   @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance).

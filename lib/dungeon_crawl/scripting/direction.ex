@@ -141,4 +141,40 @@ defmodule DungeonCrawl.Scripting.Direction do
   def delta(direction) do
     @directions[normalize_orthogonal(direction)] || @no_direction
   end
+
+  @doc """
+  Returns the orthogonal direction that the target is in from the origin. The coordinate map
+  can be a map tile struct, but can also be a simple map containing just `row` and `col` keys.
+  If the coordinates are entirely orthogonal (that is, on the same row or same column) to each other,
+  a list containing a single binary is returned. Otherwise, the list is returned with the row direction
+  and the column direction. If the coordinates are the same, `idle` is the direction.
+
+  ## Examples
+
+    iex> Direction.orthogonal_direction(%{row: 0, col: 0}, %{row: 1, col: 0})
+    ["south"]
+    iex> Direction.orthogonal_direction(%{row: 1, col: 4}, %{row: 1, col: 7})
+    ["east"]
+    iex> Direction.orthogonal_direction(%{row: 5, col: 5}, %{row: 1, col: 0})
+    ["north", "west"]
+
+  """
+  def orthogonal_direction(%{row: origin_row, col: origin_col}, %{row: target_row, col: target_col}) do
+    {delta_row, delta_col} = {target_row - origin_row, target_col - origin_col}
+
+    cond do
+      delta_row == 0 && delta_col == 0 ->
+        ["idle"]
+
+      delta_col == 0 ->
+        [if(delta_row > 0, do: "south", else: "north")]
+
+      delta_row == 0 ->
+        [if(delta_col > 0, do: "east", else: "west")]
+
+      true ->
+        [if(delta_row > 0, do: "south", else: "north"),
+         if(delta_col > 0, do: "east", else: "west")]
+    end
+  end
 end

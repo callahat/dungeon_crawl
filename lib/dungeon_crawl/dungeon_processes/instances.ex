@@ -295,21 +295,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   randomly chosen.
   """
   def direction_of_map_tile(state, %MapTile{} = object, %MapTile{} = target_map_tile) do
-    {delta_row, delta_col} = {target_map_tile.row - object.row, target_map_tile.col - object.col}
+    case Direction.orthogonal_direction(object, target_map_tile) do
+      [direction] ->
+        direction
 
-    cond do
-      delta_row == 0 && delta_col == 0 ->
-        "idle"
-
-      delta_row == 0 ->
-        if delta_col > 0, do: "east", else: "west"
-
-      delta_col == 0 ->
-        if delta_row > 0, do: "south", else: "north"
-
-      true ->
-        dirs = [if(delta_row > 0, do: "south", else: "north"),
-                if(delta_col > 0, do: "east", else: "west")]
+      dirs ->
         non_blocking_dirs = Enum.filter(dirs, fn(dir) -> Move.can_move(Instances.get_map_tile(state, object, dir)) end)
         if length(non_blocking_dirs) == 0, do: Enum.random(dirs), else: Enum.random(non_blocking_dirs)
     end
