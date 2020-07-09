@@ -17,7 +17,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
   plug :validate_updateable when action in [:edit, :update]
-  plug :set_sidebar_present_md when action in [:edit, :update]
+  plug :set_sidebar_col when action in [:edit, :update]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
@@ -266,9 +266,9 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  defp set_sidebar_present_md(conn, _opts) do
+  defp set_sidebar_col(conn, _opts) do
     conn
-    |> assign(:sidebar_present_md, true)
+    |> assign(:sidebar_col, 3)
   end
 
   defp _max_dimensions() do

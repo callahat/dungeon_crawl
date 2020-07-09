@@ -4,10 +4,10 @@ defmodule DungeonCrawlWeb.LayoutView do
   alias DungeonCrawl.Admin
 
   def main_tag_class(assigns) do
-    if Map.get(assigns, :sidebar_present_md) do
-      "ml-sm-auto col-md-9 col-lg-9 px-4"
-    else
-      "ml-sm-auto col-md-12 col-lg-12 px-4"
+    case Map.get(assigns, :sidebar_col) do
+      3 -> "ml-sm-auto col-md-9 col-lg-9 px-4"
+      2 -> "ml-sm-auto col-md-10 col-lg-10 px-4"
+      _ -> "ml-sm-auto col-md-12 col-lg-12 px-4"
     end
   end
 

@@ -18,6 +18,7 @@ defmodule DungeonCrawlWeb.Router do
     pipe_through :browser # Use the default browser stack
 
     get "/", PageController, :index
+    get "/reference", PageController, :reference
     # TODO: refactor to use the standard resource words
     get "/crawler", CrawlerController, :show
     post "/crawler", CrawlerController, :create
