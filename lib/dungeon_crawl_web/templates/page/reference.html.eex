@@ -1,7 +1,9 @@
 <h3>Reference</h3>
 
-<div>
-  <h5>The Dungeon Map</h5>
+<div class="reference">
+  <h5 id="general">General</h5>
+
+  <b>The Dungeon Map</b>
 
   <p>The dungeon map is a collection of map tiles. The visible representation is only in two dimensions, but
      there are three dimensions used for denoting the position of a map tile (row and column for the 2d,
@@ -9,7 +11,7 @@
      only on tiles that are not blocking. A row/column coordinate without any tiles is treated as impassable,
      as are the edges outside the board itself.</p>
 
-  <h5>The Dungeon Map Tile</h5>
+  <b>The Dungeon Map Tile</b>
 
   <p>The dungeon map tile is a single element in a dungeon. It makes up everything, from walls, floors,
      monsters, as well as player avatars. The player avatar map tile is similar to other map tiles.
@@ -20,11 +22,11 @@
      The script controls more complicated behavior of the map tile (further reference below).
      </p>
 
-  <h5>State Attributes and Values</h5>
+  <h5 id="state_values">State Attributes and Values</h5>
 
   <p>There are several standard behaviors based on certain state values.</p>
 
-  <table>
+  <table class="table table-sm table-bordered">
     <tr>
       <th>State Attribute</th>
       <th>Standard Behavior</th>
@@ -82,7 +84,7 @@
     </tr>
   </table>
 
-  <h5>Scripting</h5>
+  <h5 id="scripting">Scripting</h5>
 
   <p>A script can be defined which will control additional behavior of the map tile beyond the basic
      built in state values. A script begins running commands starting at the top, and working its way down.
@@ -97,7 +99,7 @@
 
   <p>One instruction per line. Each line may have a prefix, denoting what that line is.</p>
 
-  <table>
+  <table class="table table-sm table-bordered">
     <tr>
       <th>Prefix</th>
       <th>Type</th>
@@ -110,71 +112,370 @@
       <td>When a map tile receives a message, this is where the program will start executing instructions
           at. There can be many of the same label, but the highest active label will be used. Labels
           can be activated and deactivated, but are initially active.</td>
-      <td>:open</td>
+      <td><pre class="script">:open</pre></td>
     </tr>
     <tr>
       <td>@</td>
       <td>State Value</td>
       <td>This is for setting state values. "@", followed by the name of the state value, followed by an operator,
           followed by a value.</td>
-      <td>@open = false<br/>
-          @HEALTH += 30</td>
+      <td><pre class="script">@open = false</pre>
+          <pre class="script">@HEALTH += 30</pre></td>
     </tr>
     <tr>
       <td>@@</td>
       <td>Dungeon value</td>
       <td>Similar to the State Value, however this is for the entire dungeon.</td>
-      <td>@@ALARM = true</td>
+      <td><pre class="script">@@ALARM = true</pre></td>
     </tr>
     <tr>
       <td>/</td>
       <td>Shorthand</td>
       <td>Shorthand for the "GO" command. Slash followed by a n, s, e, or w (for north, south east or west).
           Shorthands can be chained together on the same line</td>
-      <td>/n/s/n/s</td>
+      <td><pre class="script">/n/s/n/s</pre></td>
     </tr>
     <tr>
       <td>?</td>
       <td>Shorthand</td>
       <td>Shorthand for the "TRY" command. Question mark followed by a n, s, e, or w (for north, south east or west)</td>
-      <td>?n?s?n?s<br/>
-          /n?e?e</td>
+      <td><pre class="script">?n?s?n?s</pre>
+          <pre class="script">/n?e?e</pre></td>
     </tr>
     <tr>
       <td>#</td>
       <td>Command</td>
       <td>Run a command. Commands will sometimes have a list of parameters, or a list of keyword arguments (KWARGS).
           See the command reference further down.</td>
-      <td>#BECOME slug: breakable_wall, color: @color<br/>
-          #SEND_MESSAGE north, touch</td>
+      <td><pre class="script">#BECOME slug: breakable_wall, color: @color</pre>
+          <pre class="script">#SEND_MESSAGE north, touch</pre></td>
     </tr>
     <tr>
       <td>&lt;no prefix&gt;</td>
       <td>Text</td>
       <td>This will display a text message to the player that sent the last message (ie, a player tile touches
           a tile and said player sees a message). If there were none, nothing noticable happens.</td>
-      <td>Hello player</td>
+      <td><pre class="script">Hello player</pre></td>
     </tr>
   </table>
 
-  <b>Script Commands</b>
+  <h5 id="script_commands">Script Commands</h5>
 
-  <table>
+  <p>Some of the commands have shorthand equivalents. When available those may be used instead,
+     at a slight cost to readability.</p>
+
+  <p>A successful move will change the tile's facing to the direction it moved.</p>
+
+  <p>Some parameters call for a direction.</p>
+
+  <ul>
+    <li>north</li>
+    <li>south</li>
+    <li>east</li>
+    <li>west</li>
+    <li>up</li>
+    <li>down</li>
+    <li>left</li>
+    <li>right</li>
+    <li>idle - no direction. a movement command given idle as the direction will stay in the same place</li>
+    <li>player - direction towards a targeted player. If none are targeted, one will be selected randomly.</li>
+  </ul>
+
+  <b>Variable prefixes</b>
+
+  <p>Parameters can be a literal value, and sometimes can be a variable. A variable will have a prefix, denoting
+     its type</p>
+
+  <table class="table table-sm table-bordered">
+    <tr>
+      <th>Prefix</th>
+      <th>Description</th>
+      <th>Examples</th>
+    </tr>
+    <tr>
+      <td>@</td>
+      <td>state value for the tile</td>
+      <td><pre class="script">@open</pre>
+          <pre class="script">@facing</pre></td>
+    </tr>
+    <tr>
+      <td>@@</td>
+      <td>state value for the dungeon instance</td>
+      <td><pre class="script">@@flag_1</pre></td>
+    </tr>
+    <tr>
+      <td>?</td>
+      <td>Another map tile. `?sender` refers to the map tile that sent the last message.
+          Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
+          that direction the map tile/object that sent the last message. Some commands require a
+          tile, and some commands require a value.</td>
+      <td><pre class="script">?sender</pre>
+          <pre class="script">?sender@health</pre>
+          <pre class="script">?south@blocking</pre></td>
+    </tr>
+  </table>
+
+  <b>Scripting Commands</b>
+
+  <table class="table table-sm table-bordered">
     <tr>
       <th>Command</th>
       <th>Params</th>
       <th>Description</th>
       <th>Examples</th>
     </tr>
+    <tr>
+      <td>BECOME</td>
+      <td>KWARGS</td>
+      <td>Transforms the object refernced by the id in some way. Changes can include character, color, background color.
+          Additionally, if given a `slug`, the tile will be replaced with the matching tile template corresponding to the
+          given slug. If the slug has a script, that script will replace the currently running one. If the slug has state,
+          the state will be merged on top of the existing state key/values (a key not existing in the slug's state but existing
+          for the tile won't be overwritten). Other changes given, such as character, color, background color, will override the values from
+          the matching tile template. Other values not mentioned above will set state values.</td>
+      <td><pre class="script">#BECOME slug: breakable_wall</pre>
+          <pre class="script">#BECOME character: X, background_color: #000, color: #fab</pre></td>
+    </tr>
+    <tr>
+      <td>CHANGE_STATE</td>
+      <td>list - 3</td>
+      <td>Changes the object's state element given in params. The params also specify what operation is being used,
+          and the value to use in conjunction with the value from the state. When there is no state value;
+          0 is used as default. The shorthand for this command should be used instead.</td>
+      <td><pre class="script">@open = true</pre>
+          <pre class="script">@ammo += 10</pre>
+          <pre class="script">@gems /= 2</pre></td>
+    </tr>
+    <tr>
+      <td>CHANGE_INSTANCE_STATE</td>
+      <td>list - 3</td>
+      <td>Changes the dungeon instance state_values element given in params. (Similar to change_state)</td>
+      <td><pre class="script">@@red_flag = false</pre>
+          <pre class="script">@@locks -= 1</pre></td>
+    </tr>
+    <tr>
+      <td>CYCLE</td>
+      <td>list - 1</td>
+      <td>Sets the cycle speed of the object. The cycle speed is how quickly the object moves.
+          It defaults to 5 (about one move every 5 ticks, where a tick is ~50ms currently).
+          The lower the number the faster. Lowest it can be set is 1.</td>
+      <td><pre class="script">#CYCLE 3</pre></td>
+    </tr>
+    <tr>
+      <td>DIE</td>
+      <td>none</td>
+      <td>Stops and removes the running script for the map tile.</td>
+      <td><pre class="script">#DIE</pre></td>
+    </tr>
+    <tr>
+      <td>END</td>
+      <td>none</td>
+      <td>Changes the program state to idle. No further instructions will run,
+          but the script will respond to messages (ie, a TOUCH event)</td>
+      <td><pre class="script">#END</pre></td>
+    </tr>
+    <tr>
+      <td>FACING</td>
+      <td>list - 1</td>
+      <td>Changes the direction the object is facing. Valid directions include the cardinal directions,
+          (north south east west up down left right) as well as rotations, and "player".
+          Nothing done if the object has no facing if reverse, clockwise, or counterclockwise (the three
+          rotations) are specified. player will cause the object to face the player it is targeting
+          (a player will be picked to target if it is not already targeting one - state value at
+          "target_player_map_tile_id").</td>
+      <td><pre class="script">#FACING player</pre>
+          <pre class="script">#FACING south</pre>
+          <pre class="script">#FACING counterclockwise</pre></td>
+    </tr>
+    <tr>
+      <td>GIVE</td>
+      <td>list - 3, 4, or 5</td>
+      <td>Give a tile an amount of something. This modifies the state of that tile by adding the amount to
+          whatever is at that key is at (creating it if not already present). First parameter is `what` (the
+          state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
+          value for the giving tile. Third is the receiving tile of it. Fourth and fifth parameters are max amount
+          the recieving tile may have (the command will give up to this amount if present). If receiving tile is already
+          at max, then the fifth parameter is the label where the script will continue running from. Forth and fifth are
+          optional, but the fifth parameter will require a valid fourth parameter.<br/><br/>
 
+          Valid tiles can be a direction - ie, north, south east, west; additionally
+          the specail varialble `?sender` can be used to give to the program/player
+          that sent the last event. For example, if a player touches a certain object,
+          that object could give them gems.</td>
+      <td><pre class="script">#GIVE cash, 10, north</pre>
+          <pre class="script">#GIVE ammo, 6, ?sender</pre>
+          <pre class="script">#GIVE health, @heals, ?sender, ?sender@max_health, at_max_health</pre></td>
+    </tr>
+    <tr>
+      <td>GO</td>
+      <td>list - 1</td>
+      <td>Move in the given direction. When the tile cannot move in that direction (ie, its blocked),
+          it will retry until successful. The front slash "/" followed by a direction character (n, s, e, or w) or
+          another character (i for idle, c to continue moving in the direction its facing, or p to move towards the
+          targeted player) is this command's shorthand, and several shorthand commands may be on the same line.</td>
+      <td><pre class="script">#GO player</pre>
+          <pre class="script">/i/i/s/s/c</pre>
+          <pre class="script">/s</pre></td>
+    </tr>
+    <tr>
+      <td>IF</td>
+      <td>list - 2</td>
+      <td>Conditionally jump to a label. If the expression evalutes to true, instructions will be executed
+          starting next at the first active matching label (nothing happens if there is no matching active label).</td>
+      <td><pre class="script">#IF @open, ALREADY_OPEN</pre>
+          <pre class="script">#IF ?sender@blocking, TOUCH</pre>
+          <pre class="script">#IF @timer > 0, CONTINUE</pre></td>
+    </tr>
+    <tr>
+      <td>LOCK</td>
+      <td>none</td>
+      <td>Locks the object. This will prevent it from receiving and acting on any
+          message/event until it is unlocked. The underlying state value `locked`
+          can also be directly set via the state shorthand `@locked=true`.</td>
+      <td><pre class="script">#LOCK</pre></td>
+    </tr>
+    <tr>
+      <td>PUT</td>
+      <td>KWARGS</td>
+      <td>Puts a new tile specified by the given "slug" in the given "direction". If no "direction" is given, then the new tile
+          is placed on top of the tile associated with the running script.
+          Additionally, instead of a direction, "row" and "col" coordinates can be supplied to put the tile in a specific
+          location. Direction can also be given to put the tile one square from the given coordinates in that direction.
+          If both "row" and "col" are not given, then neither are used. If the specified location or direction is invalid/off the map,
+          then nothing is done.
+          Other kwargs can be given, such as character, color, background color, and will override the values from
+          the matching tile template. Other values not mentioned above will set state values.
+          Reference variables can be used instead of literals; however if they resolve to invalid values, then
+          this command will do nothing.</td>
+      <td><pre class="script">#PUT slug: expanding_foam, direction: south, color: @color</pre>
+          <pre class="script">#PUT slug: wall, row: 1, col: 1</pre></td>
+    </tr>
+    <tr>
+      <td>REPLACE</td>
+      <td>KWARGS</td>
+      <td>Replaces a map tile. Uses KWARGs, `target` and attributes prefixed with `target_` can be used to specify which tiles to replace.
+          `target` can be the name of a tile, or a direction. The other `target_` attributes must also match along with the `target`.
+          At least one attribute or slug KWARG should be used to specify what to replace the targeted tile with. If there are many tiles with
+          that name, then all those tiles will be replaced. For a direction, only the top tile will be removed when there are more
+          than one tiles there.
+          If there are no tiles matching, nothing is done. Player tiles will not be replaced.</td>
+      <td><pre class="script">#REPLACE target_color: red, color: blue</pre>
+          <pre class="script">#REPLACE target: wall, target_color: green, slug: floor</pre></td>
+    </tr>
+    <tr>
+      <td>REMOVE</td>
+      <td>KWARGS</td>
+      <td>Removes a map tile. Uses kwargs, the `target` KWARG in addition to other attribute targets may be used.
+          Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
+          that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
+          than one tiles there. If there are no tiles matching, nothing is done.
+          Player tiles will not be removed.</td>
+      <td><pre class="script">#REMOVE target_color: green</pre>
+          <pre class="script">#REMOVE target: south</pre>
+          <pre class="script">#REMOVE target: locked door</pre></td>
+    </tr>
+    <tr>
+      <td>RESTORE</td>
+      <td>list - 1</td>
+      <td>Restores a disabled ('zapped') label. This will allow it to be used when an event
+          is sent to the object/program. Nothing is done if all labels that match the given one
+          are active. Reactivates labels prioritizing the one closer to the end of the script.</td>
+      <td><pre class="script">#RESTORE touch</pre>
+          <pre class="script">#RESTORE thud</pre></td>
+    </tr>
+    <tr>
+      <td>SEND</td>
+      <td>list - 1 or two</td>
+      <td>Sends a message. A message can be sent to the current running program, or to another program.
+          The first parameter is the message to send, and the second (optional) param is the target.
+          Both the label and the name are case insensitive. Valid targets include: self (this is used
+          when no target explicitly given), all (all running scripts will be sent this message, including
+          this one), others (all other running scripts will be sent this message), a direction, or the name of
+          a tile. A direction takes priority over a tile name. The specail varialble `?sender` can be used
+          to send the message to the program that sent the event.</td>
+      <td><pre class="script">#SEND touch, ?sender</pre>
+          <pre class="script">#SEND close, all</pre>
+          <pre class="script">#SEND done</pre></td>
+    </tr>
+    <tr>
+      <td>SHOOT</td>
+      <td>list - 1</td>
+      <td>Fires a bullet in the given direction. The bullet will spawn on the same tile as the object.
+          The bullet will walk in given direction until it hits something, or something
+          responds to the "SHOT" message.</td>
+      <td><pre class="script">#SHOOT north</pre>
+          <pre class="script">#SHOOT @facing</pre></td>
+    </tr>
+    <tr>
+      <td>TAKE</td>
+      <td>list - 3 or 4</td>
+      <td>Take from a tile an amount of something. This modifies the state of that tile by subtracting the amount from
+          whatever is at that key is at (creating it if not already present). If there is not enough to take, nothing is taken
+          and optionally a label can be given to jump script execution. First parameter is `what` (the
+          state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
+          value for the giving tile. Third is the losing tile of it. Fourth, optional, is the label to have the program use
+          if the target tile does not have enough to take.
+
+          Valid tiles can be a direction - ie, north, south east, west; additionally
+          the special varialble `?sender` can be used to give to the program/player
+          that sent the last event. For example, if a player touches a certain object,
+          that object could give them gems.</td>
+      <td><pre class="script">#TAKE gems, 1, north</pre>
+          <pre class="script">#TAKE cash, 10, ?sender, toopoor</pre></td>
+    </tr>
+    <tr>
+      <td>TERMINATE</td>
+      <td>none</td>
+      <td>Ends the running script and removes it. The map tile will no longer have a running script,
+          and will not respond to messages (other than standard behaviors). Useful when you want a map tile
+          to stop doing things, but don't want the map tile removed outright.</td>
+      <td><pre class="script">#TERMINATE</pre></td>
+    </tr>
+    <tr>
+      <td>TRY</td>
+      <td>list - 1</td>
+      <td>Attempt to move in the given direction, if blocked the object doesn't move and moves on to the
+          next command. The question mark "?" followed by a direction character (n, s, e, or w) or
+          another character (i for idle, c to continue moving in the direction its facing, or p to move towards the
+          targeted player) is this command's shorthand, and several shorthand commands may be on the same line.</td>
+      <td><pre class="script">#TRY west</pre>
+          <pre class="script">?w?w?c</pre>
+          <pre class="script">?i</pre></td>
+    </tr>
+    <tr>
+      <td>UNLOCK</td>
+      <td>none</td>
+      <td>Unlocks the object. This will allow it to receive and act on any
+          message/event it may receive. The underlying state value `locked`
+          can also be directly set via the state shorthand `@`.</td>
+      <td><pre class="script">#UNLOCK</pre>
+          <pre class="script">@locked = false</pre></td>
+    </tr>
+    <tr>
+      <td>WALK</td>
+      <td>list - 1</td>
+      <td>Continue to move in the given direction until bumping into something.
+          Similar to `TRY` but repeats until it cannot move in the given direction anymore.
+          This can be used when the distance a tile should go is unknown, instead of chaining
+          together multiple tries in a direction.</td>
+      <td><pre class="script">#WALK west</pre>
+          <pre class="script">#WALK player</pre></td>
+    </tr>
+    <tr>
+      <td>ZAP</td>
+      <td>list - 1</td>
+      <td>Disables a label. This will prevent the label from being used to change the pc when
+          the program/object recieves an event. Nothing is done if all labels that match the
+          given one are inactive. Disables labels prioritizing the one closer to the top of the script.</td>
+      <td><pre class="script">#ZAP touch</pre></td>
+    </tr>
   </table>
 
-
-  <b>System messages</b>
+  <h5 id="system_messages">System messages</h5>
 
   <p>Currently there are only a few messages that will be sent when certain things happen.</p>
 
-  <table>
+  <table class="table table-sm table-bordered">
     <tr>
       <th>Message</th>
       <th>When Sent</th>
@@ -197,14 +498,6 @@
       <td>Sent by a player tile when a player hits the C key plus a direction.</td>
     </tr>
   </table>
-
-(limit div width to max 600 px, want a decent readable column width)
-
-
-Available scripting commands, and what each line prefix does. And list of standard messages and when they will be sent.
-
-
-
 </div>
 
 
@@ -214,7 +507,26 @@ Available scripting commands, and what each line prefix does. And list of standa
     <div class="sidebar-sticky">
       <ul class="nav flex-column">
         <li class="nav-item px-2">
-          Reference - Todo expand this 
+          <a class="nav-link active" href="#">Reference</a>
+          <div class="pl-4">
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="#general">General</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#state_values">State Values</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#scripting">Scripting</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#script_commands">Script Commands</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#system_messages">System Messages</a>
+              </li>
+            </ul>
+          </div>
         </li>
       </ul>
     </div>
