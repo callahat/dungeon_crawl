@@ -248,3 +248,19 @@ input#tile_template_character {
 .smaller {
   font-size: smaller;
 }
+
+.reference h5 {
+  padding-top: 56px;
+}
+
+.reference table {
+  font-size: 90%;
+}
+
+.reference pre {
+  margin-bottom: 0;
+}
+
+.reference p {
+  max-width: 45em;
+}

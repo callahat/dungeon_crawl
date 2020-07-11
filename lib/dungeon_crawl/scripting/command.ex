@@ -260,7 +260,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
     iex> Command.cycle(%Runner{}, [1])
     %Runner{program: program,
-            state: %Instances{ map_by_ids: %{object_id => %{ object | state: "cycle: 1" } } } }
+            state: %Instances{ map_by_ids: %{object_id => %{ object | state: "wait_cycles: 1" } } } }
   """
   def cycle(runner_state, [wait_cycles]) do
     if wait_cycles < 1 do
@@ -438,7 +438,9 @@ defmodule DungeonCrawl.Scripting.Command do
 
   @doc """
   Changes the direction the object is facing. Nothing done if the object has no facing if
-  reverse, clockwise, or counterclockwise is specified.
+  reverse, clockwise, or counterclockwise is specified. player will cause the object
+  to face the player it is targeting (a player will be picked to target if it is not
+  already targeting one - state value at "target_player_map_tile_id").
 
   north, up
   south, down
@@ -447,6 +449,12 @@ defmodule DungeonCrawl.Scripting.Command do
   reverse - reverses the current facing direction (ie, north becomes south)
   clockwise - turns the current facing clockwise (ie, north becomes west)
   counterclockwise - turns the current facing counter clockwise (ie, north becomes east)
+  player - faces the player it is targeting
+
+  ## Examples
+
+    iex> Command.facing(%Runner{program: program, state: state}, ["player"])
+    iex> Command.facing(%Runner{program: program, state: state}, ["reverse"])
   """
   def facing(%Runner{} = runner_state, ["player"]) do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
@@ -968,10 +976,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Fires a bullet in the given direction. The bullet will spawn on the tile one away from the object
-  in the direction, unless that tile is blocking or responds to "SHOT", in which case that tile
-  will be sent the "SHOT" message and no bullet will spawn.
-  Otherwise, the bullet will walk in given direction until it hits something, or something
+  Fires a bullet in the given direction. The bullet will spawn on the same tile as the object.
+  The bullet will walk in given direction until it hits something, or something
   responds to the "SHOT" message.
   """
   def shoot(%Runner{state: state, object_id: object_id} = runner_state, [{:state_variable, var}]) do
@@ -1133,8 +1139,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Locks the object. This will prevent it from receiving and acting on any
-  message/event until it is unlocked. The underlying state value `locked`
+  Unlocks the object. This will allow it to receive and act on any
+  message/event it may receive. The underlying state value `locked`
   can also be directly set via the state shorthand `@`.
 
   ## Examples

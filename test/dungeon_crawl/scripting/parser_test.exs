@@ -80,6 +80,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #BECOME color: ?north@color
                #BECOME character: @char
                #REPLACE target_color: red, color: blue
+               #PUT slug: expanding_foam, direction: south, color: @color
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -130,6 +131,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  46 => [:become, [%{color: {{:direction, "north"}, :color}}]],
                                                  47 => [:become, [%{character: {:state_variable, :char}}]],
                                                  48 => [:replace, [%{target_color: "red", color: "blue"}]],
+                                                 49 => [:put, [%{slug: "expanding_foam", direction: "south", color: {:state_variable, :color}}]],
                                                  },
                                  status: :alive,
                                  pc: 1,

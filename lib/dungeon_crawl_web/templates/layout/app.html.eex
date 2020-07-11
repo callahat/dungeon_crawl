@@ -24,6 +24,7 @@
         <ul class="navbar-nav mr-0">
           <%= if @current_user do %>
             <li class="nav-item"><%= link @current_user.username, to: Routes.user_path(@conn, :show), class: "nav-link" %></li>
+            <li class="nav-item"><%= link "Reference", to: Routes.page_path(@conn, :reference), class: "nav-link" %></li>
             <%= if user_can_edit_dungeons(@current_user) do %>
             <li class="nav-item"><%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %></li>
             <% end %>
