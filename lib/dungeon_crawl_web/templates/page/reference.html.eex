@@ -213,6 +213,16 @@
           <pre class="script">?sender@health</pre>
           <pre class="script">?south@blocking</pre></td>
     </tr>
+    <tr>
+      <td>&lt;prefix&gt;&lt;variable&gt;+&lt;string&gt;</td>
+      <td>An interpolated value can also be defined by a variable followed by a plus "+"
+          and a string. This is useful for certain things, such as giving a color key based on the
+          map tile's color, and using it to unlock a color door (based on the doors color).</td>
+      <td><pre class="script">@color+_key</pre> might be used for a GIVE command, and might be resolved
+          as "red_key". Similarly, the door could have a TAKE command that uses "@color_+key" for the
+          thing to take, and jump to a different label if the player did not have 1 (or more) stored as
+          the "red_key" state value.</td>
+    </tr>
   </table>
 
   <b>Scripting Commands</b>
