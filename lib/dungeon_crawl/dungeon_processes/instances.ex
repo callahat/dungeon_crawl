@@ -256,7 +256,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   defp _update_program(previous_program, {:ok, map_tile, state}) do
     new_program = state.program_contexts[map_tile.id].program
                   |> Map.merge(Map.take(previous_program, [:broadcasts, :responses]))
-                  |> Map.put(:status, :idle)
+                  |> Map.put(:status, :wait)
 
     updated_context = %{ state.program_contexts[map_tile.id] | program: new_program }
 
