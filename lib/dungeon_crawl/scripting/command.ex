@@ -48,6 +48,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :push         -> :push
       :put          -> :put
       :replace      -> :replace
       :remove       -> :remove
@@ -643,6 +644,62 @@ defmodule DungeonCrawl.Scripting.Command do
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
   end
+
+  @doc """
+  Pushes a nearby (or above) tile in the given direction if that tile hash the `pushable` standard behavior.
+  Tiles may be pushed up to the given `range` (default of 1) away. For example, a pushable tile immediately to the
+  west would be pushed one more space to the west when `direction` is west and `range` is one.
+  A tile in range will be pushed up to one space for each invocation of a push method.
+
+  ## Examples
+
+    iex> Command.push(%Runner{}, ["north"])
+    iex> Command.push(%Runner{}, ["west", 3])
+  """
+  def push(%Runner{} = runner_state, [direction]) do
+    push(runner_state, [direction, 1])
+  end
+
+  def push(%Runner{object_id: object_id, state: state} = runner_state, [direction, range]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    direction = _get_real_direction(object, direction)
+    range = resolve_variable(runner_state, range)
+
+    {row_d, col_d} = Direction.delta(direction)
+
+    _push(runner_state, object, direction, {row_d, col_d}, range)
+  end
+
+  defp _push(%Runner{state: state, program: program} = runner_state, object, direction, {row_d, col_d}, range) when range >= 0 do
+    case Instances.get_map_tile(state, %{row: object.row + row_d * range, col: object.col + col_d * range}) do
+      nil ->
+        _push(runner_state, object, direction, {row_d, col_d}, range - 1)
+
+      pushee ->
+        case pushee.parsed_state[:pushable] &&
+             pushee.id != object.id &&
+             Move.go(pushee, Instances.get_map_tile(state, pushee, direction), state) do
+          {:ok, tile_changes, new_state} ->
+
+            message = ["tile_changes",
+                       %{tiles: tile_changes
+                                |> Map.to_list
+                                |> Enum.map(fn({_coords, tile}) ->
+                                  Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                                end)}]
+
+            %Runner{ runner_state |
+                     program: %{program | broadcasts: [message | program.broadcasts] },
+                     state: new_state}
+
+          _ ->
+            runner_state
+        end
+        |> _push(object, direction, {row_d, col_d}, range - 1)
+    end
+  end
+
+  defp _push(runner_state, _, _, _, _), do: runner_state
 
   @doc """
   Puts a new tile specified by the given `slug` in the given `direction`. If no `direction` is given, then the new tile

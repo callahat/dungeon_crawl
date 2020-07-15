@@ -128,10 +128,32 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {_line_no, [:push, [{_state_variable, _var}, {_state_variable2, _var2}] ]} | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {_line_no, [:push, [{_state_variable, _var}] ]} | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:push, [direction] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:push, [direction, 1] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:push, [{_state_variable, _var}, range] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:push, ["south", range] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:push, [direction, range] ]} | instructions], errors, user) do
+    errors = unless @valid_directions |> Enum.member?(direction),
+               do: ["Line #{line_no}: PUSH command references invalid direction `#{direction}`" | errors],
+               else: errors
+    errors = unless is_number(range) && range >= 0,
+               do: ["Line #{line_no}: PUSH command has invalid range `#{range}`" | errors],
+               else: errors
+
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [ :put, params ]} | instructions], errors, user) do
     _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
   end
-
 
   defp _validate(program, [ {line_no, [ :replace, params ]} | instructions], errors, user) do
     _validate_map_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)

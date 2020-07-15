@@ -38,6 +38,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:lock) == :lock
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
+    assert Command.get_command(:push) == :push
     assert Command.get_command(:put) == :put
     assert Command.get_command(:replace) == :replace
     assert Command.get_command(:remove) == :remove
@@ -779,6 +780,41 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object } }
     runner_state = %Runner{object_id: stubbed_object.id, program: program, state: stubbed_state}
     assert runner_state == Command.noop(runner_state)
+  end
+
+  test "PUSH" do
+    state = %Instances{}
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 5, character: "@", row: 0, col: 1, z_index: 1, state: "pushable: true, blocking: true"})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: ".", row: 2, col: 1, z_index: 0})
+    {pusher, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "P", row: 3, col: 1, z_index: 0, state: "facing: north, side: norf, pushable: true"})
+
+    # Nothing in range
+    runner_state = %Runner{object_id: pusher.id, state: state}
+    updated_runner_state = Command.push(runner_state, ["left"])
+    assert runner_state == updated_runner_state
+
+    # Pushable cannot be pushed
+    updated_runner_state = Command.push(runner_state, ["left", 3])
+    assert runner_state == updated_runner_state
+
+    # Pushes
+    {pushed, state} = Instances.create_map_tile(state, %MapTile{id: 6, character: "2", row: 2, col: 1, z_index: 1, state: "pushable: true, blocking: true"})
+    runner_state = %Runner{object_id: pusher.id, state: state}
+    %Runner{program: program, state: state} = Command.push(runner_state, [{:state_variable, :facing}, 3])
+    pushed = Instances.get_map_tile_by_id(state, pushed)
+    assert %{broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>2</div>", row: 1},
+                      %{col: 1, rendering: "<div>.</div>", row: 2}
+                    ]
+                  }
+                ]]
+           } = program
+    assert %{row: 1, col: 1, character: "2", z_index: 1} = pushed
   end
 
   test "PUT" do
