@@ -26,6 +26,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #PUSH @facing
     #PUSH @facing, @power
     #PUSH @facing, 1
+    #SHIFT clockwise
     """
   end
 
