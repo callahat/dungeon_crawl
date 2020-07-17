@@ -23,6 +23,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #REMOVE target: north
     #REPLACE target: treasure, slug: scary_monster
     #PUSH south
+    #PUSH @facing
+    #PUSH @facing, @power
+    #PUSH @facing, 1
     """
   end
 

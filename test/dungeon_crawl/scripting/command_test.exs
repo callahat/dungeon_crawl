@@ -1257,6 +1257,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              wait_cycles: 5,
              broadcasts: []
            } = program
+
+    %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["counterclockwise"])
+    assert %{id: 601, row: 1, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
+    assert %{id: 602, row: 3, col: 3, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 602})
+    assert %{id: 603, row: 3, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{row: 1, col: 1, rendering: "<div>o</div>"},
+                      %{row: 1, col: 2, rendering: "<div>.</div>"},
+                      %{row: 3, col: 1, rendering: "<div>.</div>"},
+                      %{row: 3, col: 2, rendering: "<div>o</div>"},
+                      %{row: 3, col: 3, rendering: "<div>o</div>"},
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = program
   end
 
   test "SHOOT" do

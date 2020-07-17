@@ -1073,10 +1073,14 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _shifting(%Runner{} = runner_state, [], tile_changes), do: {runner_state, [], tile_changes}
   defp _shifting(%Runner{} = runner_state, shiftables, tile_changes) do
     {runner_state, shifts_pending, tile_changes} = _shifting(runner_state, shiftables, [], tile_changes)
+
     if length(shifts_pending) == length(shiftables) do
       {runner_state, [], tile_changes}
     else
-      _shifting(runner_state, Enum.reverse(shifts_pending), tile_changes)
+      refreshed_shifts_pending = Enum.reverse(shifts_pending)
+                               |> Enum.map(fn({tile, dest_tile}) -> {tile, Instances.get_map_tile(runner_state.state, dest_tile)} end)
+
+      _shifting(runner_state, refreshed_shifts_pending, tile_changes)
     end
   end
 
