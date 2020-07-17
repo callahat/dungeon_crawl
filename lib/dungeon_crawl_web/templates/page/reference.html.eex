@@ -345,6 +345,16 @@
       <td><pre class="script">#LOCK</pre></td>
     </tr>
     <tr>
+      <td>PUSH</td>
+      <td>list - 1 or 2</td>
+      <td>Pushes a nearby (or above) tile in the given direction if that tile hash the `pushable` standard behavior.
+          Tiles may be pushed up to the given `range` (default of 1) away. For example, a pushable tile immediately to the
+          west would be pushed one more space to the west when `direction` is west and `range` is one.
+          A tile in range will be pushed up to one space for each invocation of a push method.</td>
+      <td><pre class="script">#PUSH north</pre>
+          <pre class="script">#PUSH @facing, 3</pre></td>
+    </tr>
+    <tr>
       <td>PUT</td>
       <td>KWARGS</td>
       <td>Puts a new tile specified by the given "slug" in the given "direction". If no "direction" is given, then the new tile
@@ -406,6 +416,16 @@
       <td><pre class="script">#SEND touch, ?sender</pre>
           <pre class="script">#SEND close, all</pre>
           <pre class="script">#SEND done</pre></td>
+    </tr>
+    <tr>
+      <td>SHIFT</td>
+      <td>list - 1</td>
+      <td>Rotates all the `pushable` tiles in the 8 adjacent squares about the object.
+          Valid parameters are `clockwise` or `counterclockwise` to rotate in those respective
+          directions. If a `pushable` tile is blocked by a blocking tile that cannot be pushed,
+          that tile will not be moved.</td>
+      <td><pre class="script">#SHIFT clockwise</pre>
+          <pre class="script">#SHIFT counterclockwise</pre></td>
     </tr>
     <tr>
       <td>SHOOT</td>
