@@ -4,6 +4,9 @@ defmodule DungeonCrawl.Action.Move do
   alias DungeonCrawl.Scripting.Direction
 
   # todo: rename this
+  def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state, :absolute, tile_changes) do
+    _move(entity_map_tile, destination, state, tile_changes)
+  end
   def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state) do
     cond do
       _is_pushable(destination.parsed_state[:pushable], entity_map_tile, destination) ->

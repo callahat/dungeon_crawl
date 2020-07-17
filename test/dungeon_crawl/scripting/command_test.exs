@@ -43,6 +43,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:replace) == :replace
     assert Command.get_command(:remove) == :remove
     assert Command.get_command(:restore) == :restore
+    assert Command.get_command(:shift) == :shift
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
     assert Command.get_command(:try) == :try
@@ -1176,6 +1177,86 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "noname"])
     assert updated_state.program_messages == []
+  end
+
+  test "SHIFT" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 1, z_index: 0})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 601,  character: "o", row: 1, col: 1, z_index: 1, state: "blocking: true, pushable: true"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 124,  character: ".", row: 1, col: 2, z_index: 0})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 125,  character: "#", row: 1, col: 3, z_index: 0, state: "blocking: true"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 126,  character: ".", row: 2, col: 3, z_index: 0})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 602,  character: "o", row: 2, col: 3, z_index: 1, state: "blocking: true, pushable: true"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 127,  character: ".", row: 3, col: 1, z_index: 0})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 128,  character: ".", row: 3, col: 2, z_index: 0})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 603,  character: "o", row: 3, col: 2, z_index: 1, state: "blocking: true, pushable: true"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 129,  character: ".", row: 3, col: 3, z_index: 0})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "/", row: 2, col: 2, z_index: 0})
+
+    obj_123 = Instances.get_map_tile_by_id(state, %{id: 123})
+    obj_124 = Instances.get_map_tile_by_id(state, %{id: 124})
+    obj_125 = Instances.get_map_tile_by_id(state, %{id: 125})
+    obj_126 = Instances.get_map_tile_by_id(state, %{id: 126})
+    obj_127 = Instances.get_map_tile_by_id(state, %{id: 127})
+    obj_128 = Instances.get_map_tile_by_id(state, %{id: 128})
+    obj_129 = Instances.get_map_tile_by_id(state, %{id: 129})
+
+    %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: state, object_id: obj.id}, ["clockwise"])
+    assert %{id: 601, row: 1, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
+    assert %{id: 602, row: 3, col: 3, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 602})
+    assert %{id: 603, row: 3, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{row: 1, col: 1, rendering: "<div>.</div>"},
+                      %{row: 1, col: 2, rendering: "<div>o</div>"},
+                      %{row: 2, col: 3, rendering: "<div>.</div>"},
+                      %{row: 3, col: 1, rendering: "<div>o</div>"},
+                      %{row: 3, col: 2, rendering: "<div>.</div>"},
+                      %{row: 3, col: 3, rendering: "<div>o</div>"},
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = program
+
+    assert obj_123 == Instances.get_map_tile_by_id(updated_state, %{id: 123})
+    assert obj_124 == Instances.get_map_tile_by_id(updated_state, %{id: 124})
+    assert obj_125 == Instances.get_map_tile_by_id(updated_state, %{id: 125})
+    assert obj_126 == Instances.get_map_tile_by_id(updated_state, %{id: 126})
+    assert obj_127 == Instances.get_map_tile_by_id(updated_state, %{id: 127})
+    assert obj_128 == Instances.get_map_tile_by_id(updated_state, %{id: 128})
+    assert obj_129 == Instances.get_map_tile_by_id(updated_state, %{id: 129})
+
+    %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["clockwise"])
+    assert %{id: 601, row: 1, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
+    assert %{id: 602, row: 3, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 602})
+    assert %{id: 603, row: 3, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{row: 3, col: 2, rendering: "<div>o</div>"},
+                      %{row: 3, col: 3, rendering: "<div>.</div>"},
+                    ]
+                  }
+                ]],
+             pc: 1
+           } = program
+
+    %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["clockwise"])
+    assert %{id: 601, row: 1, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
+    assert %{id: 602, row: 3, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 602})
+    assert %{id: 603, row: 3, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
+    assert %{status: :wait,
+             wait_cycles: 5,
+             broadcasts: []
+           } = program
   end
 
   test "SHOOT" do

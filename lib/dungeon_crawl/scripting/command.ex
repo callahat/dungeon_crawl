@@ -54,6 +54,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :remove       -> :remove
       :restore      -> :restore
       :send         -> :send_message
+      :shift        -> :shift
       :shoot        -> :shoot
       :terminate    -> :terminate
       :take         -> :take
@@ -1030,6 +1031,85 @@ defmodule DungeonCrawl.Scripting.Command do
       label,
       program_object_ids
     )
+  end
+
+  @doc """
+  Rotates all the `pushable` tiles in the 8 adjacent squares about the object.
+  Valid parameters are `clockwise` or `counterclockwise` to rotate in those respective
+  directions.
+  """
+  def shift(%Runner{state: state, object_id: object_id, program: program} = runner_state, [direction]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+
+    shiftables = _shift_coords(direction, _shift_adj_coords())
+                 |> Enum.map(fn({{row_d, col_d}, {dest_row_d, dest_col_d}}) -> 
+                      { Instances.get_map_tile(state, %{row: object.row + row_d, col: object.col + col_d}),
+                        Instances.get_map_tile(state, %{row: object.row + dest_row_d, col: object.col + dest_col_d}) }
+                    end)
+                 |> Enum.filter(fn({tile, _dest_tile}) -> tile && tile.parsed_state[:pushable] end)
+                 |> Enum.reject(fn({_tile, dest_tile}) -> !dest_tile || dest_tile.parsed_state[:blocking] && !dest_tile.parsed_state[:pushable] end)
+
+    {runner_state, _, tile_changes} = _shifting(runner_state, shiftables, %{})
+
+    message = if tile_changes == %{} do
+                nil
+              else
+                ["tile_changes",
+                 %{tiles: tile_changes
+                          |> Map.to_list
+                          |> Enum.map(fn({_coords, tile}) ->
+                            Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                          end)}]
+              end
+    broadcasts = if message, do: [message | program.broadcasts], else: program.broadcasts
+
+    %Runner{ runner_state |
+             program: %{program | 
+                        broadcasts: broadcasts,
+                        status: :wait,
+                        wait_cycles: object.parsed_state[:wait_cycles] || 5 } }
+  end
+
+  defp _shifting(%Runner{} = runner_state, [], tile_changes), do: {runner_state, [], tile_changes}
+  defp _shifting(%Runner{} = runner_state, shiftables, tile_changes) do
+    {runner_state, shifts_pending, tile_changes} = _shifting(runner_state, shiftables, [], tile_changes)
+    if length(shifts_pending) == length(shiftables) do
+      {runner_state, [], tile_changes}
+    else
+      _shifting(runner_state, Enum.reverse(shifts_pending), tile_changes)
+    end
+  end
+
+  defp _shifting(%Runner{} = runner_state, [], shifts_pending, tile_changes), do: {runner_state, shifts_pending, tile_changes}
+  defp _shifting(%Runner{state: state} = runner_state, [{tile, dest_tile} | other_pairs], shifts_pending, tile_changes) do
+    if dest_tile.parsed_state[:blocking] do
+      _shifting(runner_state, other_pairs, [ {tile, dest_tile} | shifts_pending], tile_changes)
+    else
+      {_, tile_changes, state} = Move.go(tile, dest_tile, state, :absolute, tile_changes)
+      _shifting(%{runner_state | state: state}, other_pairs, shifts_pending, tile_changes)
+    end
+  end
+
+  defp _shift_adj_coords() do
+    [{-1, -1},
+     {-1,  0},
+     {-1,  1},
+     { 0,  1},
+     { 1,  1},
+     { 1,  0},
+     { 1, -1},
+     { 0, -1}]
+  end
+
+  defp _shift_coords("clockwise", [ head | tail ] = adj) do
+    shifted = Enum.reverse([ head | Enum.reverse(tail)])
+    Enum.zip(adj, shifted)
+  end
+
+  defp _shift_coords("counterclockwise", adj) do
+    [last | front_tail] = Enum.reverse(adj)
+    shifted = [ last | Enum.reverse(front_tail) ]
+    Enum.zip(adj, shifted)
   end
 
   @doc """

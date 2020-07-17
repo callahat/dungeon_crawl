@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   import DungeonCrawl.Scripting.VariableResolutionStub, only: [resolve_variable_map: 2]
 
+  @valid_shifts ["clockwise", "counterclockwise"]
   @valid_facings ["north", "south", "west", "east", "up", "down", "left", "right", "reverse", "clockwise", "counterclockwise", "player"]
   @valid_directions ["north", "south", "west", "east", "up", "down", "left", "right", "idle", "continue", "player"]
 
@@ -179,6 +180,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
   defp _validate(program, [ {line_no, [:send_message, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
+  end
+
+  defp _validate(program, [ {line_no, [:shift, [rotation] ]} | instructions], errors, user) do
+    if @valid_shifts |> Enum.member?(rotation) do
+      _validate(program, instructions, errors, user)
+    else
+      _validate(program, instructions, ["Line #{line_no}: SHIFT command references invalid rotation `#{rotation}`" | errors], user)
+    end
   end
 
   defp _validate(program, [ {_line_no, [:shoot, [{_state_variable, _var}] ]} | instructions], errors, user) do

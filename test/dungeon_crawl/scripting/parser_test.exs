@@ -83,6 +83,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #PUT slug: expanding_foam, direction: south, color: @color
                #PUSH north, 1
                #PUSH @facing
+               #SHIFT clockwise
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -136,6 +137,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  49 => [:put, [%{slug: "expanding_foam", direction: "south", color: {:state_variable, :color}}]],
                                                  50 => [:push, ["north", 1]],
                                                  51 => [:push, [{:state_variable, :facing}]],
+                                                 52 => [:shift, ["clockwise"]],
                                                  },
                                  status: :alive,
                                  pc: 1,
