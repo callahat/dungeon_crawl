@@ -69,6 +69,10 @@ defmodule DungeonCrawl.Action.PullTest do
                 {3, 3} => %MapTile{character: "~"}} = tile_changes
       assert length(Map.keys(tile_changes)) == 4
     end
+
+    test "cant pull bad inputs" do
+      assert {:invalid} == Pull.pull("anything", "that", "doesnt match the params")
+    end
   end
 
   describe "can_pull/3" do

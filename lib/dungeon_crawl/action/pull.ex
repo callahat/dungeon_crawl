@@ -23,6 +23,7 @@ defmodule DungeonCrawl.Action.Pull do
     if Move.can_move(destination) do
       movements =_pull_chain(lead_map_tile, destination, state)
       Enum.reduce(movements, {:ok, %{}, state}, fn({lead_map_tile, destination}, {_, tile_changes, state}) ->
+          destination = Instances.get_map_tile(state, destination) # ensures its up to date
           Move.go(lead_map_tile, destination, state, :absolute, tile_changes)
         end)
     else

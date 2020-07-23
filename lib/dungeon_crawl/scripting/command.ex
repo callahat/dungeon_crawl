@@ -667,7 +667,7 @@ defmodule DungeonCrawl.Scripting.Command do
   def pull(%Runner{} = runner_state, [direction]) do
     pull(runner_state, [direction, false])
   end
-  def pull(%Runner{object_id: object_id, state: state, program: program} = runner_state, [direction, retry_until_successful]) do
+  def pull(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
     next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
     _move(runner_state, direction, retry_until_successful, next_actions, &Pull.pull/3)
   end

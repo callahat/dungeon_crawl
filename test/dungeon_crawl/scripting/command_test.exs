@@ -783,6 +783,60 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.noop(runner_state)
   end
 
+  test "PULL" do
+    state = %Instances{}
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0})
+    {pulled, state} = Instances.create_map_tile(state, %MapTile{id: 5, character: "P", row: 0, col: 1, z_index: 1, state: "pullable: true"})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 1, z_index: 0})
+    {puller, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "@", row: 1, col: 1, z_index: 1, script: "#PULL south\n#NOOP"})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: ".", row: 2, col: 1, z_index: 0})
+
+    program = program_fixture("""
+                              #PULL south
+                              #END
+                              #END
+                              :THUD
+                              #BECOME character: X
+                              """)
+
+    # pull
+    runner_state = %Runner{object_id: puller.id, state: state, program: program}
+    %Runner{program: program, state: state} = Command.pull(runner_state, ["south"])
+    pulled = Instances.get_map_tile_by_id(state, pulled)
+    puller = Instances.get_map_tile_by_id(state, puller)
+    assert %{broadcasts: [[
+                  "tile_changes",
+                  %{
+                    tiles: [
+                      %{col: 1, rendering: "<div>.</div>", row: 0},
+                      %{col: 1, rendering: "<div>P</div>", row: 1},
+                      %{col: 1, rendering: "<div>@</div>", row: 2}
+                    ]
+                  }
+                ]],
+            status: :wait,
+            wait_cycles: 5,
+            pc: 1
+           } = program
+
+    assert %{row: 1, col: 1, character: "P", z_index: 1} = Instances.get_map_tile_by_id(state, pulled)
+    assert %{row: 2, col: 1, character: "@", z_index: 1} = Instances.get_map_tile_by_id(state, puller)
+
+    # Pull, but blocked
+    updated_runner_state = Command.pull(runner_state, ["west"])
+    assert updated_runner_state == %{ runner_state | program: %{ runner_state.program | pc: 4, status: :wait, wait_cycles: 5}}
+
+    # pull with second param as false is the same as without it
+    assert Command.pull(runner_state, ["west"]) == Command.pull(runner_state, ["west", false])
+    assert Command.pull(runner_state, ["south"]) == Command.pull(runner_state, ["south", false])
+    assert Command.pull(runner_state, ["north"]) == Command.pull(runner_state, ["north", false])
+
+    # Pull, but blocked and retry
+    %Runner{program: program, state: state} = Command.pull(runner_state, ["west", true])
+    assert state == runner_state.state
+    assert program == %{ runner_state.program | pc: 4, status: :wait, wait_cycles: 5}
+  end
+
   test "PUSH" do
     state = %Instances{}
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0})
