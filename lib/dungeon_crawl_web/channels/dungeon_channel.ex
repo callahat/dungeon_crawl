@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.Action.{Move, Shoot}
+  alias DungeonCrawl.Action.{Move, Pull, Shoot}
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
@@ -34,31 +34,11 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
+    _motion(direction, &Move.go/3, socket)
+  end
 
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-    InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
-      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
-      destination = Instances.get_map_tile(instance_state, player_tile, direction)
-
-      case Move.go(player_tile, destination, instance_state) do
-        {:ok, tile_changes, instance_state} ->
-          broadcast socket,
-                    "tile_changes",
-                    %{tiles: tile_changes
-                              |> Map.to_list
-                              |> Enum.map(fn({_coords, tile}) ->
-                                Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                              end)}
-          {:ok, instance_state}
-
-        {:invalid} ->
-          {:ok, instance_state}
-      end
-    end)
-
-    {:reply, :ok, socket}
+  def handle_in("pull", %{"direction" => direction}, socket) do
+    _motion(direction, &Pull.pull/3, socket)
   end
 
   def handle_in("shoot", %{"direction" => direction}, socket) do
@@ -100,6 +80,34 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       %{"direction" => direction, "action" => action},
       "Cannot #{String.downcase(action)} that",
       socket)
+  end
+
+  defp _motion(direction, move_func, socket) do
+    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
+
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
+      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+      destination = Instances.get_map_tile(instance_state, player_tile, direction)
+
+      case move_func.(player_tile, destination, instance_state) do
+        {:ok, tile_changes, instance_state} ->
+          broadcast socket,
+                    "tile_changes",
+                    %{tiles: tile_changes
+                              |> Map.to_list
+                              |> Enum.map(fn({_coords, tile}) ->
+                                Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                              end)}
+          {:ok, instance_state}
+
+        {:invalid} ->
+          {:ok, instance_state}
+      end
+    end)
+
+    {:reply, :ok, socket}
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do

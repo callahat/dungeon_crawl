@@ -6,6 +6,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
   use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
+  use DungeonCrawl.TileTemplates.TileSeeder.Terrain
 
   def seed_all() do
     # basic
@@ -29,6 +30,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # ordinance
     smoke()
+
+    # terrain
+    boulder()
 
     :ok
   end

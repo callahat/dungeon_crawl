@@ -111,6 +111,14 @@ defmodule DungeonCrawl.DungeonChannelTest do
   end
 
   @tag up_tile: "."
+  test "pull replies with status ok", %{socket: socket} do
+    # Pull is tested more in depth elsewhere, this is just verifying the channel responds to this event.
+    # as far as sending broadcasts this is sufficiently covered in the move tests
+    ref = push socket, "pull", %{"direction" => "up"}
+    assert_reply ref, :ok, %{}
+  end
+
+  @tag up_tile: "."
   test "shoot replies with status ok", %{socket: socket} do
     ref = push socket, "shoot", %{"direction" => "up"}
     assert_reply ref, :ok, %{}

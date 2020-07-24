@@ -45,6 +45,9 @@ let Dungeon = {
       if(suppressDefaultKeys.indexOf(direction) > 0) {
         e.preventDefault()
       }
+
+      keysPressed[direction] = true
+
       switch(direction){
         case(72): // h
           $('#helpDetailModal').modal('show')
@@ -59,29 +62,48 @@ let Dungeon = {
           break
         case(38):
         case(87):
-          this.actionMethod(dungeonChannel, "up", event.shiftKey)
+          this.actionMethod(dungeonChannel, "up", keysPressed)
           break
         case(40):
         case(83):
-          this.actionMethod(dungeonChannel, "down", event.shiftKey)
+          this.actionMethod(dungeonChannel, "down", keysPressed)
           break
         case(37):
         case(65):
-          this.actionMethod(dungeonChannel, "left", event.shiftKey)
+          this.actionMethod(dungeonChannel, "left", keysPressed)
           break
         case(39):
         case(68):
-          this.actionMethod(dungeonChannel, "right", event.shiftKey)
+          this.actionMethod(dungeonChannel, "right", keysPressed)
           break
       }
     })
+
+    window.addEventListener("keyup", e => {
+      delete keysPressed[e.keyCode || e.which]
+    })
+
+    window.addEventListener("focus", e => {
+      keysPressed = {}
+    })
   },
-  move(dungeonChannel, direction, shoot = false){
+  move(dungeonChannel, direction, keysPressed){
     console.log(direction)
     console.log(shoot)
-    let payload = {direction: direction}
+    let payload = {direction: direction},
+        shoot = keysPressed[16], // shift key
+        pull = keysPressed[80],  // p
+        action
 
-    dungeonChannel.push(shoot ? "shoot" : "move", payload)
+    if(shoot) {
+      action = "shoot"
+    } else if(pull) {
+      action = "pull"
+    } else {
+      action = "move"
+    }
+
+    dungeonChannel.push(action, payload)
                   .receive("error", e => console.log(e))
   },
   open(dungeonChannel, direction, shift = false){

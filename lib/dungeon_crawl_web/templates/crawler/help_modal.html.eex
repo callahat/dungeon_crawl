@@ -18,6 +18,7 @@
             <span>You can move your character about by pressing <pre>W</pre>, <pre>A</pre>, <pre>S</pre>, <pre>D</pre> or
                   the corresponding <pre>up</pre>, <pre>left</pre>, <pre>down</pre>, or <pre>right</pre> arrow keys.
                   Certain tiles will block your movement, such as walls and closed doors.</span>
+            <span>Holding down <pre>P</pre> and moving will allow you to pull adjacent tiles if able.</span>
           </div>
         </div>
         <hr/>
