@@ -87,7 +87,9 @@
       <td>Indicates a tile is pullable. When true, the tile will follow when pulled (when false, it wont).
           If `linear`, then the tile may only be pulled the same direction the puller is moving. Pullable
           directions may be specified by any combination of the `nsew` characters. Finally, when this is set
-          (at runtime) as a `map_tile_id`, then it may only be pulled by the tile with a matching id.
+          (at runtime) as a `map_tile_id`, then it may only be pulled by the tile with a matching id. This
+          setting is treated as "pullable: true" for the first pull, and that objects "pullable" state value
+          will be set to the first map tile id that pulls it.
           Defaults as false.</td>
     </tr>
     <tr>
