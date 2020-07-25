@@ -23,7 +23,8 @@ defmodule DungeonCrawl.Action.Pull do
     if Move.can_move(destination) do
       movements =_pull_chain(lead_map_tile, destination, state)
       Enum.reduce(movements, {:ok, %{}, state}, fn({lead_map_tile, destination}, {_, tile_changes, state}) ->
-          destination = Instances.get_map_tile(state, destination) # ensures its up to date
+          destination = (Instances.get_map_tile(state, destination) # ensures its up to date
+                        || Map.merge(destination, %{z_index: -1}) )
           Move.go(lead_map_tile, destination, state, :absolute, tile_changes)
         end)
     else
@@ -40,7 +41,7 @@ defmodule DungeonCrawl.Action.Pull do
   defp _pull_chain(lead_map_tile, destination, state, pull_chain) do
     pulled_tile = ["north", "south", "east", "west"]
                   |> Enum.map(fn(direction) -> Instances.get_map_tile(state, lead_map_tile, direction) end)
-                  |> Enum.filter(fn(adjacent) -> can_pull(lead_map_tile, adjacent, destination) end)
+                  |> Enum.filter(fn(adjacent) -> can_pull(lead_map_tile, adjacent, destination, pull_chain) end)
                   |> Enum.shuffle()
                   |> Enum.at(0) # in case there are several pullable candidates, and because Enum.random errors when given empty list
 
@@ -60,11 +61,12 @@ defmodule DungeonCrawl.Action.Pull do
   Various conditions exist (such as if the adjacent tile cannot be pulled, or can only
   be pulled in certain directions) that this will check, returning true or false.
   """
-  def can_pull(%MapTile{} = tile, %MapTile{} = adjacent_tile, %MapTile{} = destination) do
-    can_pull(tile, adjacent_tile, _get_direction(tile, destination))
+  def can_pull(tile, adjacent_tile, destination, pull_chain \\ [])
+  def can_pull(%MapTile{} = tile, %MapTile{} = adjacent_tile, %MapTile{} = destination, pull_chain) do
+    can_pull(tile, adjacent_tile, _get_direction(tile, destination), pull_chain)
   end
-  def can_pull(%MapTile{} = tile, %MapTile{} = adjacent_tile, direction) do
-    if direction == _get_direction(tile, adjacent_tile) do
+  def can_pull(%MapTile{} = tile, %MapTile{} = adjacent_tile, direction, pull_chain) do
+    if direction == _get_direction(tile, adjacent_tile) || _already_pulling(adjacent_tile, pull_chain) do
       false
     else
       case adjacent_tile.parsed_state[:pullable] do
@@ -79,7 +81,7 @@ defmodule DungeonCrawl.Action.Pull do
       end
     end
   end
-  def can_pull(_, _, _), do: false
+  def can_pull(_, _, _, _), do: false
 
   defp _in_direction(direction, entity_map_tile, destination) do
     #{row_delta, col_delta} = {destination.row - entity_map_tile.row, destination.col - entity_map_tile.col}
@@ -98,5 +100,10 @@ defmodule DungeonCrawl.Action.Pull do
   defp _get_direction(entity_map_tile, destination) do
     Direction.orthogonal_direction(entity_map_tile, destination)
     |> Enum.at(0)
+  end
+
+  defp _already_pulling(_tile, []), do: false
+  defp _already_pulling(tile, [ {leader, _follower } | pull_chain]) do
+    tile == leader || _already_pulling(tile, pull_chain)
   end
 end

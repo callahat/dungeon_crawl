@@ -11,7 +11,11 @@ defmodule DungeonCrawl.Action.PullTest do
        %MapTile{character: ".", row: 2, col: 2, z_index: 0},
        %MapTile{character: "-", row: 3, col: 2, z_index: 0},
        %MapTile{character: "~", row: 3, col: 3, z_index: 0},
-       %MapTile{character: "@", row: 2, col: 2, z_index: 1}])
+       %MapTile{character: "@", row: 2, col: 2, z_index: 1},
+       %MapTile{character: ".", row: 4, col: 1, z_index: 0},
+       %MapTile{character: ".", row: 4, col: 2, z_index: 0},
+       %MapTile{character: ".", row: 3, col: 1, z_index: 0}
+      ])
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
@@ -68,6 +72,26 @@ defmodule DungeonCrawl.Action.PullTest do
                 {3, 2} => %MapTile{character: "Y"},
                 {3, 3} => %MapTile{character: "~"}} = tile_changes
       assert length(Map.keys(tile_changes)) == 4
+    end
+
+    test "pull a chain of items that form a circuit", %{state: state, puller: puller, destination: destination} do
+      object1           = %MapTile{id: 990, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      object2           = %MapTile{id: 991, row: 3, col: 1, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      object3           = %MapTile{id: 992, row: 4, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      object4           = %MapTile{id: 993, row: 4, col: 1, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      {_object1, state} = Instances.create_map_tile(state, object1)
+      {_object2, state} = Instances.create_map_tile(state, object2)
+      {_object3, state} = Instances.create_map_tile(state, object3)
+      {_object4, state} = Instances.create_map_tile(state, object4)
+
+      assert {:ok, tile_changes, updated_state} = Pull.pull(puller, destination, state)
+      assert %{ {1, 2} => %MapTile{character: "@"},
+                {2, 2} => %MapTile{character: "X"},
+                {3, 2} => %MapTile{character: "X"},
+                {4, 2} => %MapTile{},
+                {4, 1} => %MapTile{},
+                {3, 1} => %MapTile{}} = tile_changes
+      assert length(Map.keys(tile_changes)) == 6
     end
 
     test "cant pull bad inputs" do
@@ -127,6 +151,18 @@ defmodule DungeonCrawl.Action.PullTest do
 
     test "cant pull bad inputs" do
       refute Pull.can_pull("anything", "that", "doesnt match the params")
+    end
+  end
+
+  describe "can_pull/4" do
+    test "takes into account tiles already being pulled", %{state: state, puller: puller, destination: destination} do
+      object1           = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      object2           = %MapTile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      {object1, state} = Instances.create_map_tile(state, object1)
+      {object2, _state} = Instances.create_map_tile(state, object2)
+
+      assert Pull.can_pull(puller, object1, destination, [{object2, puller}])
+      refute Pull.can_pull(puller, object1, destination, [{object1, object2}, {object2, puller}])
     end
   end
 end
