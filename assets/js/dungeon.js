@@ -37,7 +37,8 @@ let Dungeon = {
     })
   },
   setupWindowListeners(dungeonChannel){
-    let suppressDefaultKeys = [37,38,39,40]
+    let suppressDefaultKeys = [37,38,39,40],
+        keysPressed
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
