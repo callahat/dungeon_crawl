@@ -27,6 +27,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # creatures
     expanding_foam()
+    pede_head()
+    pede_body()
 
     # ordinance
     smoke()
