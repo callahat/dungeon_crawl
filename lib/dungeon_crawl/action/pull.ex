@@ -22,16 +22,32 @@ defmodule DungeonCrawl.Action.Pull do
     # later.
     if Move.can_move(destination) do
       movements =_pull_chain(lead_map_tile, destination, state)
-      Enum.reduce(movements, {:ok, %{}, state}, fn({lead_map_tile, destination}, {_, tile_changes, state}) ->
-          destination = (Instances.get_map_tile(state, destination) # ensures its up to date
-                        || Map.merge(destination, %{z_index: -1}) )
-          Move.go(lead_map_tile, destination, state, :absolute, tile_changes)
-        end)
+      _execute_pull_chain({:ok, %{}, state}, movements)
     else
       {:invalid}
     end
   end
   def pull(_, _, _), do: {:invalid}
+
+  defp _execute_pull_chain(_tile_changes_and_state_tuple, _pull_chain, _puller_id \\ nil)
+  defp _execute_pull_chain({:ok, tile_changes, state}, [], _puller_id), do: {:ok, tile_changes, state}
+  defp _execute_pull_chain({:ok, tile_changes, state}, [ {lead_map_tile, destination} | pull_chain ], puller_id) do
+    direction = Direction.orthogonal_direction(lead_map_tile, destination) |> Enum.at(0)
+
+    {lead_map_tile, state} = cond do
+                               puller_id && lead_map_tile.parsed_state[:pullable] == "map_tile_id" ->
+                                 Instances.update_map_tile_state(state, lead_map_tile, %{pullable: puller_id, facing: direction})
+                               direction != lead_map_tile.parsed_state[:facing] ->
+                                 Instances.update_map_tile_state(state, lead_map_tile, %{facing: direction})
+                               true ->
+                                 {lead_map_tile, state}
+                             end
+
+    destination = (Instances.get_map_tile(state, destination) # really only care about row,col and z_index here
+                  || Map.merge(destination, %{z_index: -1}) )
+    Move.go(lead_map_tile, destination, state, :absolute, tile_changes)
+    |> _execute_pull_chain(pull_chain, lead_map_tile.id)
+  end
 
   defp _pull_chain(lead_map_tile, destination, state) do
     _pull_chain(lead_map_tile, destination, state, [])
@@ -43,6 +59,9 @@ defmodule DungeonCrawl.Action.Pull do
                   |> Enum.map(fn(direction) -> Instances.get_map_tile(state, lead_map_tile, direction) end)
                   |> Enum.filter(fn(adjacent) -> can_pull(lead_map_tile, adjacent, destination, pull_chain) end)
                   |> Enum.shuffle()
+                  |> Enum.sort_by(fn pulled_tile ->
+                       {pulled_tile.parsed_state[:pullable] == lead_map_tile.id, pulled_tile.parsed_state[:pullable] == "map_tile_id"}
+                     end, &>=/2)
                   |> Enum.at(0) # in case there are several pullable candidates, and because Enum.random errors when given empty list
 
     if pulled_tile do
@@ -70,9 +89,10 @@ defmodule DungeonCrawl.Action.Pull do
       false
     else
       case adjacent_tile.parsed_state[:pullable] do
-        true        -> true
-        false       -> false
-        "linear"    -> _get_direction(adjacent_tile, tile) == direction
+        true          -> true
+        false         -> false
+        "linear"      -> _get_direction(adjacent_tile, tile) == direction
+        "map_tile_id" -> true
         directions when is_binary(directions) ->
             directions
             |> String.split("",trim: true)

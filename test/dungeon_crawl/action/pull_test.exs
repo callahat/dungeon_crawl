@@ -61,7 +61,7 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "pull a chain of items", %{state: state, puller: puller, destination: destination} do
-      object1           = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: true"}
+      object1           = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: true, facing: north"}
       object2           = %MapTile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: "pullable: true"}
       {_object1, state} = Instances.create_map_tile(state, object1)
       {_object2, state} = Instances.create_map_tile(state, object2)
@@ -92,6 +92,27 @@ defmodule DungeonCrawl.Action.PullTest do
                 {4, 1} => %MapTile{},
                 {3, 1} => %MapTile{}} = tile_changes
       assert length(Map.keys(tile_changes)) == 6
+    end
+
+    test "map_tile_id is replaced with the pullers id", %{state: state, puller: puller, destination: destination} do
+      object1          = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: map_tile_id, pulling: true"}
+      object2          = %MapTile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: "pullable: map_tile_id"}
+
+      {object1, state} = Instances.create_map_tile(state, object1)
+      {object2, state} = Instances.create_map_tile(state, object2)
+
+      assert {:ok, tile_changes, updated_state} = Pull.pull(puller, destination, state)
+      assert %{ {1, 2} => %MapTile{character: "@"},
+                {2, 2} => %MapTile{character: "X"},
+                {3, 2} => %MapTile{character: "Y"},
+                {4, 2} => %MapTile{character: "."}} = tile_changes
+      assert length(Map.keys(tile_changes)) == 4
+      object1 = Instances.get_map_tile_by_id(updated_state, object1)
+      object2 = Instances.get_map_tile_by_id(updated_state, object2)
+      assert object1.parsed_state[:pullable] == puller.id
+      assert object2.parsed_state[:pullable] == object1.id
+      assert object1.parsed_state[:facing] == "north"
+      assert object2.parsed_state[:facing] == "north"
     end
 
     test "cant pull bad inputs" do
@@ -142,11 +163,14 @@ defmodule DungeonCrawl.Action.PullTest do
       # this could be generic, then set automatically at runtime
       object1           = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: #{puller.id}"}
       object2           = %MapTile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: "pullable: 12345"}
+      object3           = %MapTile{id: 992, row: 2, col: 1, z_index: 1, character: "X", state: "pullable: map_tile_id"}
       {object1, state} = Instances.create_map_tile(state, object1)
-      {object2, _state} = Instances.create_map_tile(state, object2)
+      {object2, state} = Instances.create_map_tile(state, object2)
+      {object3, _state} = Instances.create_map_tile(state, object3)
 
       assert Pull.can_pull(puller, object1, destination)
       refute Pull.can_pull(puller, object2, destination)
+      assert Pull.can_pull(puller, object3, destination)
     end
 
     test "cant pull bad inputs" do
