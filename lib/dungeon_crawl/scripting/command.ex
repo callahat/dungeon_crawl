@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Scripting.Command do
   The various scripting commands available to a program.
   """
 
-  alias DungeonCrawl.Action.{Move, Shoot}
+  alias DungeonCrawl.Action.{Move, Pull, Shoot}
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
@@ -48,11 +48,14 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :pull         -> :pull
+      :push         -> :push
       :put          -> :put
       :replace      -> :replace
       :remove       -> :remove
       :restore      -> :restore
       :send         -> :send_message
+      :shift        -> :shift
       :shoot        -> :shoot
       :terminate    -> :terminate
       :take         -> :take
@@ -244,7 +247,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
       {direction, retry_until_successful} ->
         next_actions = %{pc: program.pc - 1, lc: program.lc + 1, invalid_move_handler: &_invalid_compound_command/2}
-        _move(runner_state, direction, retry_until_successful, next_actions)
+        _move(runner_state, direction, retry_until_successful, next_actions, &Move.go/3)
     end
   end
 
@@ -549,21 +552,21 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def move(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
     next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
-    _move(runner_state, direction, retry_until_successful, next_actions)
+    _move(runner_state, direction, retry_until_successful, next_actions, &Move.go/3)
   end
 
-  defp _move(runner_state, "player", retryable, next_actions) do
+  defp _move(runner_state, "player", retryable, next_actions, move_func) do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
-    _move(new_runner_state, player_direction, retryable, next_actions)
+    _move(new_runner_state, player_direction, retryable, next_actions, move_func)
   end
-  defp _move(%Runner{program: program, object_id: object_id, state: state} = runner_state, "idle", _retryable, next_actions) do
+  defp _move(%Runner{program: program, object_id: object_id, state: state} = runner_state, "idle", _retryable, next_actions, _) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     %{ runner_state | program: %{program | pc: next_actions.pc,
                                                  lc: next_actions.lc,
                                                  status: :wait,
                                                  wait_cycles: StateValue.get_int(object, :wait_cycles, 5) }}
   end
-  defp _move(%Runner{object_id: object_id, state: state} = runner_state, direction, retryable, next_actions) do
+  defp _move(%Runner{object_id: object_id, state: state} = runner_state, direction, retryable, next_actions, move_func) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, direction)
 
@@ -573,7 +576,7 @@ defmodule DungeonCrawl.Scripting.Command do
     runner_state = send_message(runner_state, ["touch", direction])
     %Runner{program: program, state: state} = runner_state
 
-    case Move.go(object, destination, state) do
+    case move_func.(object, destination, state) do
       {:ok, tile_changes, new_state} ->
 
         message = ["tile_changes",
@@ -643,6 +646,87 @@ defmodule DungeonCrawl.Scripting.Command do
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
   end
+
+  @doc """
+  Similar to the TRY command. The main difference is that the object will pull an adjacent map tile into its
+  previous location if able. If the pulled tile has the state value `pulling` set then that tile may also pull an
+  adjacent tile to where it was (this can be chained).
+
+  See the `move` command for valid directions.
+
+  ## Examples
+
+    iex> Command.pull(%Runner{program: %Program{},
+                              object_id: object_id,
+                              state: state},
+                      ["north"])
+    %Runner{program: %{ program | status: :wait, wait_cycles: 5 },
+            state: %Instances{ map_by_ids: %{object_id => %{object | row: object.row - 1},
+                                             pulled_object_id => %{pulled_object | row: object.row } } }}
+  """
+  def pull(%Runner{} = runner_state, [direction]) do
+    pull(runner_state, [direction, false])
+  end
+  def pull(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
+    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    _move(runner_state, direction, retry_until_successful, next_actions, &Pull.pull/3)
+  end
+
+  @doc """
+  Pushes a nearby (or above) tile in the given direction if that tile hash the `pushable` standard behavior.
+  Tiles may be pushed up to the given `range` (default of 1) away. For example, a pushable tile immediately to the
+  west would be pushed one more space to the west when `direction` is west and `range` is one.
+  A tile in range will be pushed up to one space for each invocation of a push method.
+
+  ## Examples
+
+    iex> Command.push(%Runner{}, ["north"])
+    iex> Command.push(%Runner{}, ["west", 3])
+  """
+  def push(%Runner{} = runner_state, [direction]) do
+    push(runner_state, [direction, 1])
+  end
+
+  def push(%Runner{object_id: object_id, state: state} = runner_state, [direction, range]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    direction = _get_real_direction(object, direction)
+    range = resolve_variable(runner_state, range)
+
+    {row_d, col_d} = Direction.delta(direction)
+
+    _push(runner_state, object, direction, {row_d, col_d}, range)
+  end
+
+  defp _push(%Runner{state: state, program: program} = runner_state, object, direction, {row_d, col_d}, range) when range >= 0 do
+    case Instances.get_map_tile(state, %{row: object.row + row_d * range, col: object.col + col_d * range}) do
+      nil ->
+        _push(runner_state, object, direction, {row_d, col_d}, range - 1)
+
+      pushee ->
+        case pushee.parsed_state[:pushable] &&
+             pushee.id != object.id &&
+             Move.go(pushee, Instances.get_map_tile(state, pushee, direction), state) do
+          {:ok, tile_changes, new_state} ->
+
+            message = ["tile_changes",
+                       %{tiles: tile_changes
+                                |> Map.to_list
+                                |> Enum.map(fn({_coords, tile}) ->
+                                  Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                                end)}]
+
+            %Runner{ runner_state |
+                     program: %{program | broadcasts: [message | program.broadcasts] },
+                     state: new_state}
+
+          _ ->
+            runner_state
+        end
+        |> _push(object, direction, {row_d, col_d}, range - 1)
+    end
+  end
+
+  defp _push(runner_state, _, _, _, _), do: runner_state
 
   @doc """
   Puts a new tile specified by the given `slug` in the given `direction`. If no `direction` is given, then the new tile
@@ -976,6 +1060,89 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Rotates all the `pushable` tiles in the 8 adjacent squares about the object.
+  Valid parameters are `clockwise` or `counterclockwise` to rotate in those respective
+  directions.
+  """
+  def shift(%Runner{state: state, object_id: object_id, program: program} = runner_state, [direction]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+
+    shiftables = _shift_coords(direction, _shift_adj_coords())
+                 |> Enum.map(fn({{row_d, col_d}, {dest_row_d, dest_col_d}}) -> 
+                      { Instances.get_map_tile(state, %{row: object.row + row_d, col: object.col + col_d}),
+                        Instances.get_map_tile(state, %{row: object.row + dest_row_d, col: object.col + dest_col_d}) }
+                    end)
+                 |> Enum.filter(fn({tile, _dest_tile}) -> tile && tile.parsed_state[:pushable] end)
+                 |> Enum.reject(fn({_tile, dest_tile}) -> !dest_tile || dest_tile.parsed_state[:blocking] && !dest_tile.parsed_state[:pushable] end)
+
+    {runner_state, _, tile_changes} = _shifting(runner_state, shiftables, %{})
+
+    message = if tile_changes == %{} do
+                nil
+              else
+                ["tile_changes",
+                 %{tiles: tile_changes
+                          |> Map.to_list
+                          |> Enum.map(fn({_coords, tile}) ->
+                            Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                          end)}]
+              end
+    broadcasts = if message, do: [message | program.broadcasts], else: program.broadcasts
+
+    %Runner{ runner_state |
+             program: %{program | 
+                        broadcasts: broadcasts,
+                        status: :wait,
+                        wait_cycles: object.parsed_state[:wait_cycles] || 5 } }
+  end
+
+  defp _shifting(%Runner{} = runner_state, [], tile_changes), do: {runner_state, [], tile_changes}
+  defp _shifting(%Runner{} = runner_state, shiftables, tile_changes) do
+    {runner_state, shifts_pending, tile_changes} = _shifting(runner_state, shiftables, [], tile_changes)
+
+    if length(shifts_pending) == length(shiftables) do
+      {runner_state, [], tile_changes}
+    else
+      refreshed_shifts_pending = Enum.reverse(shifts_pending)
+                               |> Enum.map(fn({tile, dest_tile}) -> {tile, Instances.get_map_tile(runner_state.state, dest_tile)} end)
+
+      _shifting(runner_state, refreshed_shifts_pending, tile_changes)
+    end
+  end
+
+  defp _shifting(%Runner{} = runner_state, [], shifts_pending, tile_changes), do: {runner_state, shifts_pending, tile_changes}
+  defp _shifting(%Runner{state: state} = runner_state, [{tile, dest_tile} | other_pairs], shifts_pending, tile_changes) do
+    if dest_tile.parsed_state[:blocking] do
+      _shifting(runner_state, other_pairs, [ {tile, dest_tile} | shifts_pending], tile_changes)
+    else
+      {_, tile_changes, state} = Move.go(tile, dest_tile, state, :absolute, tile_changes)
+      _shifting(%{runner_state | state: state}, other_pairs, shifts_pending, tile_changes)
+    end
+  end
+
+  defp _shift_adj_coords() do
+    [{-1, -1},
+     {-1,  0},
+     {-1,  1},
+     { 0,  1},
+     { 1,  1},
+     { 1,  0},
+     { 1, -1},
+     { 0, -1}]
+  end
+
+  defp _shift_coords("clockwise", [ head | tail ] = adj) do
+    shifted = Enum.reverse([ head | Enum.reverse(tail)])
+    Enum.zip(adj, shifted)
+  end
+
+  defp _shift_coords("counterclockwise", adj) do
+    [last | front_tail] = Enum.reverse(adj)
+    shifted = [ last | Enum.reverse(front_tail) ]
+    Enum.zip(adj, shifted)
+  end
+
+  @doc """
   Fires a bullet in the given direction. The bullet will spawn on the same tile as the object.
   The bullet will walk in given direction until it hits something, or something
   responds to the "SHOT" message.
@@ -1170,7 +1337,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def walk(%Runner{program: program} = runner_state, [direction]) do
     next_actions = %{pc: program.pc - 1, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
-    _move(runner_state, direction, false, next_actions)
+    _move(runner_state, direction, false, next_actions, &Move.go/3)
   end
 
   defp _direction_of_player(%Runner{object_id: object_id, state: state} = runner_state) do

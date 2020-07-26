@@ -82,6 +82,20 @@
       <td>How many cycles a script will wait until executing the next instruction after it executes an instruction
           that causes it to wait (ie, a movement instruction). Defaults to 5. Each cycle is approximately 50ms.</td>
     </tr>
+    <tr>
+      <td>pullable</td>
+      <td>Indicates a tile is pullable. When true, the tile will follow when pulled (when false, it wont).
+          If `linear`, then the tile may only be pulled the same direction the puller is moving. Pullable
+          directions may be specified by any combination of the `nsew` characters. Finally, when this is set
+          (at runtime) as a `map_tile_id`, then it may only be pulled by the tile with a matching id. This
+          setting is treated as "pullable: true" for the first pull, and that objects "pullable" state value
+          will be set to the first map tile id that pulls it.
+          Defaults as false.</td>
+    </tr>
+    <tr>
+      <td>pulling</td>
+      <td>When this tile is pulled, it will attempt to pull another nearby tile. This defaults to false.</td>
+    </tr>
   </table>
 
   <h5 id="scripting">Scripting</h5>
@@ -345,6 +359,25 @@
       <td><pre class="script">#LOCK</pre></td>
     </tr>
     <tr>
+      <td>PULL</td>
+      <td>list - 1 or 2</td>
+      <td>Similar to the TRY command. The main difference is that the object will pull an adjacent map tile into its
+          previous location if able. If the pulled tile has the state value `pulling` set then that tile may also pull an
+          adjacent tile to where it was (this can be chained).</td>
+      <td><pre class="script">#PULL north</pre>
+          <pre class="script">#PULL south, true</pre></td>
+    </tr>
+    <tr>
+      <td>PUSH</td>
+      <td>list - 1 or 2</td>
+      <td>Pushes a nearby (or above) tile in the given direction if that tile hash the `pushable` standard behavior.
+          Tiles may be pushed up to the given `range` (default of 1) away. For example, a pushable tile immediately to the
+          west would be pushed one more space to the west when `direction` is west and `range` is one.
+          A tile in range will be pushed up to one space for each invocation of a push method.</td>
+      <td><pre class="script">#PUSH north</pre>
+          <pre class="script">#PUSH @facing, 3</pre></td>
+    </tr>
+    <tr>
       <td>PUT</td>
       <td>KWARGS</td>
       <td>Puts a new tile specified by the given "slug" in the given "direction". If no "direction" is given, then the new tile
@@ -406,6 +439,16 @@
       <td><pre class="script">#SEND touch, ?sender</pre>
           <pre class="script">#SEND close, all</pre>
           <pre class="script">#SEND done</pre></td>
+    </tr>
+    <tr>
+      <td>SHIFT</td>
+      <td>list - 1</td>
+      <td>Rotates all the `pushable` tiles in the 8 adjacent squares about the object.
+          Valid parameters are `clockwise` or `counterclockwise` to rotate in those respective
+          directions. If a `pushable` tile is blocked by a blocking tile that cannot be pushed,
+          that tile will not be moved.</td>
+      <td><pre class="script">#SHIFT clockwise</pre>
+          <pre class="script">#SHIFT counterclockwise</pre></td>
     </tr>
     <tr>
       <td>SHOOT</td>

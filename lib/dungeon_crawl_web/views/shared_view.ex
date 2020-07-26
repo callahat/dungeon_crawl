@@ -133,7 +133,7 @@ defmodule DungeonCrawlWeb.SharedView do
   def character_quick_list_html() do
     #[?!..?~] |> Enum.map(&Enum.to_list/1) # Generates the top line
     ("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" <>
-     "Öö¢£¤¥§¶×þƜƱǂΦΨπϮϴ∘∙∗∝∞█▓▒░▲▶▼◀◆●☀☘☠☢☣☥☹☺☿♀♁♂♅♠♣♥♦♪♮♯✝✱")
+     "Öö¢£¤¥§¶×þƜƱǂΦΨπϮϴ∘∙▪∗∝∞█▓▒░▲▶▼◀◆●■☀☘☠☢☣☥☹☺☿♀♁♂♅♠♣♥♦♪♮♯✝✱")
     |> String.split("", trim: true)
     |> Enum.map(fn char ->
               "<pre class='tile_template_preview embiggen' name='character_picker'><div>#{char}</div></pre>"

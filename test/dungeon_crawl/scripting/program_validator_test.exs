@@ -22,6 +22,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #BECOME character: @char
     #REMOVE target: north
     #REPLACE target: treasure, slug: scary_monster
+    #PUSH south
+    #PUSH @facing
+    #PUSH @facing, @power
+    #PUSH @facing, 1
+    #SHIFT clockwise
     """
   end
 
@@ -81,6 +86,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #REPLACE target: north, character: XX
     #REPLACE garbage params
     #REPLACE target: north, slug: #{slug}
+    #PUSH waffle, -2
+    #PUSH norf, 3
+    #PUSH east, crayon
+    #SHIFT neutral
     """
   end
 
@@ -146,6 +155,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 52: REPLACE command has errors: `character - should be at most 1 character(s)`",
                "Line 53: REPLACE command params not being detected as kwargs `[\"garbage params\"]`",
                "Line 54: REPLACE command references a SLUG that you can't use `#{tt.slug}`",
+               "Line 55: PUSH command references invalid direction `waffle`",
+               "Line 55: PUSH command has invalid range `-2`",
+               "Line 56: PUSH command references invalid direction `norf`",
+               "Line 57: PUSH command has invalid range `crayon`",
+               "Line 58: SHIFT command references invalid rotation `neutral`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -185,6 +199,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 51: REMOVE command has no target KWARGs: `%{derp: \"north\"}`",
                "Line 52: REPLACE command has errors: `character - should be at most 1 character(s)`",
                "Line 53: REPLACE command params not being detected as kwargs `[\"garbage params\"]`",
+               "Line 55: PUSH command references invalid direction `waffle`",
+               "Line 55: PUSH command has invalid range `-2`",
+               "Line 56: PUSH command references invalid direction `norf`",
+               "Line 57: PUSH command has invalid range `crayon`",
+               "Line 58: SHIFT command references invalid rotation `neutral`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

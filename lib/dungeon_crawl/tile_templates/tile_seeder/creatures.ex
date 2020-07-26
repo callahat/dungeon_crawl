@@ -31,9 +31,93 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def pede_head do
+    TileTemplates.find_or_create_tile_template!(
+      %{character: "ϴ",
+        name: "PedeHead",
+        description: "Centipede head",
+        state: "blocking: true, facing: south",
+        public: true,
+        active: true,
+        script: """
+                :main
+                #pull @facing
+                #send main
+                #end
+                :thud
+                #if not ?north@blocking,not_surrounded
+                #if not ?south@blocking,not_surrounded
+                #if not ?east@blocking,not_surrounded
+                #if not ?west@blocking,not_surrounded
+                #send surrounded
+                #end
+                :not_surrounded
+                #facing clockwise
+                #send main
+                #end
+                :shot
+                #facing reverse
+                #send pede_died, @facing
+                #die
+                #end
+                :surrounded
+                #facing reverse
+                #send surrounded, @facing
+                #become slug: pedebody, color: @color, background_color: @background_color
+                """
+    })
+  end
+
+  def pede_body do
+    TileTemplates.find_or_create_tile_template!(
+      %{character: "O",
+        name: "PedeBody",
+        description: "Centipede body segment",
+        state: "pullable: map_tile_id, pulling: true, blocking: true, facing: west",
+        public: true,
+        active: true,
+        script: """
+                #end
+                :shot
+                #facing reverse
+                #send pede_died, @facing
+                ?i
+                #die
+                :pede_died
+                #become slug: pedehead, facing: @facing, pullable: false, color: @color, background_color: @background_color
+                #end
+                :surrounded
+                #facing reverse
+                @pullable = map_tile_id
+                #if @facing == west, checkwest
+                #if @facing == south, checksouth
+                #if @facing == north, checknorth
+                :checkeast
+                #if ?east@name == PedeBody, not_tail
+                #send tail
+                :checkwest
+                #if ?west@name == PedeBody, not_tail
+                #send tail
+                :checksouth
+                #if ?south@name == PedeBody, not_tail
+                #send tail
+                :checknorth
+                #if ?north@name == PedeBody, not_tail
+                :tail
+                #become slug: pedehead, facing: @facing, pullable: false, color: @color, background_color: @background_color
+                #end
+                :not_tail
+                #send surrounded, @facing
+                #end
+                """
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
+      def pede_head(), do: unquote(__MODULE__).pede_head()
+      def pede_body(), do: unquote(__MODULE__).pede_body()
     end
   end
 end
