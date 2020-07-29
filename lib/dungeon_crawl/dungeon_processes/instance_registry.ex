@@ -3,8 +3,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
 
   require Logger
 
-  alias DungeonCrawl.DungeonProcesses.{InstanceProcess,Supervisor}
+  alias DungeonCrawl.DungeonProcesses.{Instances,InstanceProcess,Supervisor}
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
 
@@ -139,10 +140,31 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     InstanceProcess.set_instance_id(instance_process, instance_id)
     InstanceProcess.set_state_values(instance_process, state_values)
     InstanceProcess.load_map(instance_process, dungeon_map_tiles)
+    _link_player_locations(instance_process, instance_id)
     InstanceProcess.start_scheduler(instance_process)
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)
     instance_ids = Map.put(instance_ids, instance_id, instance_process)
     {instance_ids, refs}
+  end
+
+  defp _link_player_locations(instance_process, instance_id) do
+    InstanceProcess.run_with(instance_process, fn (instance_state) ->
+      {:ok,
+        Player.players_in_instance(%DungeonInstances.Map{id: instance_id})
+        |> Enum.reduce(instance_state, fn(location, instance_state) ->
+             case Instances.get_map_tile_by_id(instance_state, %{id: location.map_tile_instance_id}) do
+               nil ->
+                 # probably should never get here since all map tiles would have been loaded
+                 map_tile = Repo.preload(location, :map_tile).map_tile
+                 {_tile, instance_state} = Instances.create_player_map_tile(instance_state, map_tile, location)
+                 instance_state
+
+               player_map_tile ->
+                 %{ instance_state | player_locations: Map.put(instance_state.player_locations, player_map_tile.id, location)}
+             end
+           end)
+      }
+    end)
   end
 end

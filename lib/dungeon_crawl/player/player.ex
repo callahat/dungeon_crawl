@@ -156,6 +156,17 @@ defmodule DungeonCrawl.Player do
   end
 
   @doc """
+  Returns the player locations in a given dungeon instance.
+  """
+  def players_in_instance(%DungeonCrawl.DungeonInstances.Map{id: instance_id}) do
+    Repo.all(from m in DungeonCrawl.DungeonInstances.Map,
+             left_join: mt in assoc(m, :dungeon_map_tiles),
+             left_join: pmt in assoc(mt, :player_locations),
+             where: m.id == ^instance_id and pmt.map_tile_instance_id == mt.id,
+             select: pmt)
+  end
+
+  @doc """
   Returns the dungeon of the instance where the player location is.
   Useful for determining if the player is test crawling an unactivated dungeon.
 

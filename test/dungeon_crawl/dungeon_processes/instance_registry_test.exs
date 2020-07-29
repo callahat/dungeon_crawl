@@ -33,6 +33,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
                  Map.take(button_tile, [:character,:color,:background_color,:state,:script]))])
 
+    location = insert_player_location(%{map_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
     map_tile = Repo.get_by(DungeonCrawl.DungeonInstances.MapTile, %{map_instance_id: instance.id, row: 1, col: 2})
 
     assert :ok = InstanceRegistry.create(instance_registry, instance.id)
@@ -42,7 +43,8 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert %Instances{program_contexts: programs,
                       map_by_ids: map_by_ids,
                       state_values: state_values,
-                      instance_id: instance_id} = InstanceProcess.get_state(instance_process)
+                      instance_id: instance_id,
+                      player_locations: player_locations} = InstanceProcess.get_state(instance_process)
     assert programs == %{map_tile.id => %{
                                            object_id: map_tile.id,
                                            program: %Program{broadcasts: [],
@@ -59,6 +61,8 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                           event_sender: nil
                                         }
                        }
+    assert player_locations == %{location.map_tile_instance_id => location
+                                }
     assert map_by_ids[map_tile.id] == Map.put(map_tile, :parsed_state, %{blocking: true})
     assert state_values == %{flag: false, cols: 20, rows: 20}
     assert instance_id == instance.id
