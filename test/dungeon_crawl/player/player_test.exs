@@ -95,5 +95,11 @@ defmodule DungeonCrawl.PlayerTest do
       location = location_fixture() |> Repo.preload(map_tile: [:dungeon])
       assert 1 == Player.players_in_dungeon(%DungeonCrawl.Dungeon.Map{id: location.map_tile.dungeon.map_id})
     end
+
+    test "players_in_instance/1 returns the player locations given an instance" do
+      assert [] == Player.players_in_instance(%DungeonCrawl.DungeonInstances.Map{id: 9999999})
+      location = location_fixture()
+      assert [location] == Player.players_in_instance(%DungeonCrawl.DungeonInstances.Map{id: Repo.preload(location, :map_tile).map_tile.map_instance_id})
+    end
   end
 end
