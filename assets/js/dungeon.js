@@ -42,6 +42,8 @@ let Dungeon = {
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
+      if(parseInt(document.getElementById("health").innerText) <= 0) { return }
+
       let direction = e.keyCode || e.which
       if(suppressDefaultKeys.indexOf(direction) > 0) {
         e.preventDefault()

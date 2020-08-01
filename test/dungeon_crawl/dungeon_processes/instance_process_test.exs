@@ -218,6 +218,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
                                                                                map_instance: map_instance} do
+    dungeon_channel = "dungeons:#{map_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND shot, player", state: "damage: 5"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
@@ -278,6 +281,10 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^player_channel,
             event: "message",
             payload: %{message: "You died!"}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>✝</div>"}]}}
 
     refute map_by_ids[non_prog_tile.id]
     assert map_by_ids[player_tile.id].parsed_state[:health] == 0

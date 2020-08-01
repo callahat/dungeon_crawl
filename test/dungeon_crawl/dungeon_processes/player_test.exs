@@ -46,4 +46,21 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   test "current_stats/1 handles someone not in a dungeon" do
     assert %{} == Player.current_stats("notinadungeonhash")
   end
+
+  test "bury/2", %{state: state, player_map_tile: player_map_tile} do
+    {grave, state} = Player.bury(state, player_map_tile)
+
+    assert %{z_index: player_map_tile.z_index + 1,
+             row: player_map_tile.row,
+             col: player_map_tile.col,
+             character: "✝"} == Map.take(grave, [:z_index, :row, :col, :character])
+
+    assert grave.script =~ ~r/#GIVE ammo, 4, \?sender/i
+    assert grave.script =~ ~r/#GIVE cash, 420, \?sender/i
+    assert grave.script =~ ~r/#GIVE gems, 1, \?sender/i
+    assert grave.script =~ ~r/#GIVE red_key, 1, \?sender/i
+
+    assert -1 = state.map_by_ids[player_map_tile.id].z_index
+    assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:health]
+  end
 end
