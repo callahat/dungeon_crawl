@@ -50,7 +50,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   test "bury/2", %{state: state, player_map_tile: player_map_tile} do
     {grave, state} = Player.bury(state, player_map_tile)
 
-    assert %{z_index: player_map_tile.z_index + 1,
+    assert %{z_index: player_map_tile.z_index,
              row: player_map_tile.row,
              col: player_map_tile.col,
              character: "✝"} == Map.take(grave, [:z_index, :row, :col, :character])

@@ -73,6 +73,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                    |> Enum.join("\n")
 
     bottom_z_index = Enum.at(Instances.get_map_tiles(state, player_tile), -1).z_index
+    last_player_z_index = player_tile.z_index
 
     {_player_tile, state} = Instances.update_map_tile(state, player_tile, %{z_index: bottom_z_index - 1,
                                                                             state: "pullable: true, pushable: true, health: 0"})
@@ -89,7 +90,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
     grave = Map.take(player_tile, [:map_instance_id, :row, :col])
-             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: player_tile.z_index + 1})
+             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: last_player_z_index})
              |> Map.merge(Map.take(grave_tile_template, [:character, :color, :background_color, :state, :script]))
              |> Map.put(:script, script)
              |> DungeonCrawl.DungeonInstances.create_map_tile!()
