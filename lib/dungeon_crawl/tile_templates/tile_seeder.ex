@@ -37,6 +37,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     boulder()
     counter_clockwise_conveyor()
     clockwise_conveyor()
+    grave()
 
     :ok
   end

@@ -68,11 +68,23 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def grave() do
+    TileTemplates.find_or_create_tile_template!(
+      %{character: "✝",
+        name: "Grave",
+        description: "It looks fresh. R.I.P.",
+        state: "blocking: false",
+        public: false,
+        active: true,
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def boulder(), do: unquote(__MODULE__).boulder()
       def counter_clockwise_conveyor(), do: unquote(__MODULE__).counter_clockwise_conveyor()
       def clockwise_conveyor(), do: unquote(__MODULE__).clockwise_conveyor()
+      def grave(), do: unquote(__MODULE__).grave()
     end
   end
 end
