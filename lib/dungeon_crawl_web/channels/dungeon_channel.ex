@@ -34,15 +34,23 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    _motion(direction, &Move.go/3, socket)
+    if _player_alive(socket) do
+      _motion(direction, &Move.go/3, socket)
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_in("pull", %{"direction" => direction}, socket) do
-    _motion(direction, &Pull.pull/3, socket)
+    if _player_alive(socket) do
+      _motion(direction, &Pull.pull/3, socket)
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_in("shoot", %{"direction" => direction}, socket) do
-    if _shot_ready(socket) do
+    if _player_alive(socket) && _shot_ready(socket) do
       {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
       InstanceProcess.run_with(instance, fn (instance_state) ->
         player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
@@ -129,6 +137,15 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       end
     end)
     {:noreply, socket}
+  end
+
+  defp _player_alive(socket) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
+      {Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id}).parsed_state[:health] > 0,
+       instance_state}
+    end)
   end
 
   # TODO: this might be able to go away when every program is isolated to its own process.
