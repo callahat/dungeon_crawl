@@ -346,11 +346,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {object, state} = Instances.update_map_tile_state(state, object, %{health: health})
 
     if player_location do
-      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
-    end
-
-    if health <= 0 do
-      if player_location do
+      if health <= 0 && not StateValue.get_bool(object, :buried) do
         # TODO: prompt user to respawn or leave dungeon (either should clean up the tile, or leave a 'corpse' tile)
         {grave, state} = PlayerInstance.bury(state, object)
         payload = %{tiles: [
@@ -358,13 +354,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                     ]}
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
-
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
         _standard_behaviors(messages, state)
       else
-        _destroyed_tile(object, messages, state)
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
+        _standard_behaviors(messages, state)
       end
     else
-      _standard_behaviors(messages, state)
+      if health <= 0 do
+        _destroyed_tile(object, messages, state)
+      else
+        _standard_behaviors(messages, state)
+      end
     end
   end
 

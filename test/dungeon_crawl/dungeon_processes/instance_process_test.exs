@@ -288,6 +288,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     refute map_by_ids[non_prog_tile.id]
     assert map_by_ids[player_tile.id].parsed_state[:health] == 0
+    assert map_by_ids[player_tile.id].parsed_state[:buried]
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     non_prog_tile_id = non_prog_tile.id

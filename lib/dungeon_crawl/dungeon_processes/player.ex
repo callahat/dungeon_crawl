@@ -76,7 +76,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     last_player_z_index = player_tile.z_index
 
     {_player_tile, state} = Instances.update_map_tile(state, player_tile, %{z_index: bottom_z_index - 1,
-                                                                            state: "pullable: true, pushable: true, health: 0"})
+                                                                            state: "pullable: true, pushable: true, health: 0, buried: true"})
 
     script = """
              :TOP
