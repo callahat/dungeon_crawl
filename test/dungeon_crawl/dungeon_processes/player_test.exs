@@ -10,7 +10,8 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
   setup do
     instance = insert_stubbed_dungeon_instance(%{},
-      [%MapTile{character: ".", row: 2, col: 2, z_index: 0, state: "blocking: false"}])
+      [%MapTile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: "blocking: false"},
+       %MapTile{name: "Floor", character: ".", row: 2, col: 3, z_index: 0, state: "blocking: false"}])
 
     player_location = insert_player_location(%{map_instance_id: instance.id,
                                                row: 2,
@@ -25,6 +26,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
+    state = %{ state | spawn_coordinates: [{2,3}] }
 
     %{state: state, player_map_tile: player_location.map_tile}
   end
@@ -62,5 +64,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     assert -1 = state.map_by_ids[player_map_tile.id].z_index
     assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:health]
+  end
+
+  test "respawn/2", %{state: state, player_map_tile: player_map_tile} do
+    {respawned_player_map_tile, updated_state} = Player.respawn(state, player_map_tile)
+    respawned_tile = Instances.get_map_tile(updated_state, respawned_player_map_tile)
+    assert respawned_tile.character == "@"
+    assert respawned_tile.parsed_state[:health] == 100
+    assert respawned_tile.parsed_state[:buried] == false
   end
 end

@@ -68,6 +68,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
                        instance_id: _ } = InstanceProcess.get_state(instance_process)
   end
 
+  test "load_spawn_coordinates", %{instance_process: instance_process} do
+    assert :ok = InstanceProcess.load_spawn_coordinates(instance_process, [{1,1}, {2,3}, {4,5}])
+    assert %Instances{ spawn_coordinates: spawn_coordinates } = InstanceProcess.get_state(instance_process)
+    assert Enum.sort([{1,1}, {2,3}, {4,5}]) == Enum.sort(spawn_coordinates)
+  end
+
   test "start_scheduler", %{instance_process: instance_process} do
     # Starts the scheduler that will run every xxx ms and run the next parts of all the programs
     InstanceProcess.start_scheduler(instance_process)

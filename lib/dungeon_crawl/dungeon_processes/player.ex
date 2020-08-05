@@ -40,7 +40,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
               end)
            |> Enum.join("")
 
-    Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo])
+    %{health: 0, gems: 0, cash: 0, ammo: 0}
+    |> Map.merge(Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo]))
     |> Map.put(:keys, keys)
   end
 
@@ -75,8 +76,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     bottom_z_index = Enum.at(Instances.get_map_tiles(state, player_tile), -1).z_index
     last_player_z_index = player_tile.z_index
 
-    {_player_tile, state} = Instances.update_map_tile(state, player_tile, %{z_index: bottom_z_index - 1,
-                                                                            state: "pullable: true, pushable: true, health: 0, buried: true"})
+    {player_tile, state} = Instances.update_map_tile(state, player_tile, %{z_index: bottom_z_index - 1})
+    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, %{health: 0, gems: 0, cash: 0, ammo: 0, buried: true})
 
     script = """
              :TOP
@@ -95,5 +96,18 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
              |> Map.put(:script, script)
              |> DungeonCrawl.DungeonInstances.create_map_tile!()
     Instances.create_map_tile(state, grave)
+  end
+
+  @doc """
+  Respawns a player. This will move their associated map tile to a spawn coordinate in the instance,
+  and restore health to 100.
+  """
+  def respawn(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
+    {row, col} = Enum.random(spawn_coordinates)
+    spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
+    z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
+
+    {player_tile, state} = Instances.update_map_tile(state, player_tile, %{row: row, col: col, z_index: z_index})
+    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
   end
 end

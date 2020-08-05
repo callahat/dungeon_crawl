@@ -23,18 +23,17 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     map_instance = insert_stubbed_dungeon_instance(%{},
       [Map.merge(%{row: @player_row-1, col: @player_col, tile_template_id: north_tile.id, z_index: 0},
-                 Map.take(north_tile, [:character,:color,:background_color,:state,:script])),
+                 Map.take(north_tile, [:character,:color,:background_color,:state,:script, :name])),
        Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
-                 Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script]))])
+                 Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script, :name]))])
 
-    player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}"})
+    player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}"})
                       |> Repo.preload(:map_tile)
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_instance.id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       Instances.create_player_map_tile(instance_state, player_location.map_tile, player_location)
     end)
-
 
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
@@ -77,6 +76,15 @@ defmodule DungeonCrawl.DungeonChannelTest do
   test "move broadcasts a tile_update if its a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div>.</div>"}]}
+  end
+
+  @tag up_tile: ".", health: 0
+  test "move broadcasts nothing if player is dead", %{socket: socket, player_location: player_location} do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
+    north_tile = InstanceProcess.get_tile(instance, player_location.map_tile.row, player_location.map_tile.col, "north")
+    push socket, "move", %{"direction" => "up"}
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
+    refute_broadcast "tile_changes", _anything
   end
 
   @tag up_tile: "."
@@ -142,6 +150,18 @@ defmodule DungeonCrawl.DungeonChannelTest do
     push socket, "shoot", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
     assert_broadcast "message", %{message: "Out of ammo"}
+  end
+
+  @tag up_tile: ".", health: 0
+  test "does not let the player shoot if dead", %{socket: socket, player_location: player_location} do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
+    north_tile = InstanceProcess.get_tile(instance, player_location.map_tile.row, player_location.map_tile.col, "north")
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "shoot", %{"direction" => "up"}
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
+    refute_broadcast "tile_changes", _anything
+    refute_broadcast "message", _anything
   end
 
   @tag up_tile: ".", ammo: 1
@@ -213,5 +233,46 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     refute_broadcast "tile_changes", _
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["."].id
+  end
+
+  @tag up_tile: "+", health: 0
+  test "use_door does nothing if player is dead", %{socket: socket, player_location: player_location} do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
+    north_tile = InstanceProcess.get_tile(instance, player_location.map_tile.row, player_location.map_tile.col, "north")
+
+    push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
+
+    refute_broadcast "tile_changes", _anything
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
+
+    push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
+
+    refute_broadcast "tile_changes", _anything
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
+  end
+
+  @tag health: 100
+  test "respawn does nothing if player alive", %{socket: socket, player_location: player_location}  do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    ref = push socket, "respawn", %{}
+    assert_reply ref, :ok, %{}
+    refute_broadcast "tile_changes", _anything
+  end
+
+  @tag up_tile: ".", health: 0
+  test "respawn respawns the player", %{socket: socket, player_location: player_location}  do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
+    InstanceProcess.get_tile(instance, player_location.map_tile.row, player_location.map_tile.col)
+
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    ref = push socket, "respawn", %{}
+    assert_reply ref, :ok, %{}
+    assert_broadcast "tile_changes", %{tiles: [%{col: _, row: _, rendering: "<div>@</div>"}]}
+    assert_broadcast "stat_update", %{stats: %{health: 100}}
+    assert_broadcast "message", %{message: "You live again."}
   end
 end

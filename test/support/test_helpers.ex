@@ -71,13 +71,14 @@ defmodule DungeonCrawlWeb.TestHelpers do
     |> Enum.map(fn(t) -> %{dungeon_id: dungeon_id,
                            row: t.row,
                            col: t.col,
-                           tile_template_id: t.tile_template_id,
+                           tile_template_id: Map.get(t, :tile_template_id),
                            z_index: t.z_index,
                            character: t.character,
-                           color: t.color,
-                           background_color: t.background_color,
-                           state: t.state,
-                           script: t.script
+                           color: Map.get(t, :color),
+                           background_color: Map.get(t, :background_color),
+                           state: Map.get(t, :state),
+                           script: Map.get(t, :script),
+                           name: Map.get(t, :name)
                           } end)
   end
 

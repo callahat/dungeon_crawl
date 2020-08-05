@@ -48,6 +48,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Sets spawn points.
+  """
+  def load_spawn_coordinates(instance, spawn_coordinates) do
+    spawn_coordinates
+    |> Enum.each( fn(spawn_coordinate) ->
+         GenServer.cast(instance, {:create_spawn_coordinate, {spawn_coordinate}})
+       end )
+  end
+
+  @doc """
   Starts the scheduler
   """
   def start_scheduler(instance) do
@@ -205,6 +215,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_cast({:create_map_tile, {map_tile}}, %Instances{} = state) do
     {_map_tile, state} = Instances.create_map_tile(state, map_tile)
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:create_spawn_coordinate, {spawn_coordinate}}, %Instances{} = state) do
+    {:noreply, %{ state | spawn_coordinates: [spawn_coordinate | state.spawn_coordinates] }}
   end
 
   @impl true

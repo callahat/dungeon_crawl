@@ -26,6 +26,8 @@ let Dungeon = {
 
     dungeonChannel.on("ping", ({count}) => console.log("PING", count))
 
+    document.getElementById("ressurect_me").addEventListener('click', e => {this.respawn(dungeonChannel)} )
+
     dungeonChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeons channel!")
@@ -42,7 +44,10 @@ let Dungeon = {
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
-      if(parseInt(document.getElementById("health").innerText) <= 0) { return }
+      if(parseInt(document.getElementById("health").innerText) <= 0) {
+        $('#respawnModal').modal('show')
+        return
+      }
 
       let direction = e.keyCode || e.which
       if(suppressDefaultKeys.indexOf(direction) > 0) {
@@ -128,6 +133,10 @@ let Dungeon = {
     `
     document.getElementById("sidebar_message_box").appendChild(template)
     document.getElementById("sidebar_message_box").scrollTop = document.getElementById("sidebar_message_box").scrollHeight
+  },
+  respawn(dungeonChannel){
+    dungeonChannel.push("respawn", {})
+                  .receive("error", e => console.log(e))
   },
   _messageTimestamp(){
     return new Date().toLocaleTimeString("en-US", this.timestampOptions)
