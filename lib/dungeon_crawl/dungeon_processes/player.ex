@@ -77,7 +77,11 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     last_player_z_index = player_tile.z_index
 
     {player_tile, state} = Instances.update_map_tile(state, player_tile, %{z_index: bottom_z_index - 1})
-    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, %{health: 0, gems: 0, cash: 0, ammo: 0, buried: true})
+    deaths = case player_tile.parsed_state[:deaths] do
+               nil    -> 1
+               deaths -> deaths + 1
+             end
+    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, %{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
 
     script = """
              :TOP

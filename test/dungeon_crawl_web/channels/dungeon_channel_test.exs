@@ -27,7 +27,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
        Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
                  Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script, :name]))])
 
-    player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}"})
+    player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1"})
                       |> Repo.preload(:map_tile)
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_instance.id)
@@ -263,9 +263,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: ".", health: 0
   test "respawn respawns the player", %{socket: socket, player_location: player_location}  do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
-    InstanceProcess.get_tile(instance, player_location.map_tile.row, player_location.map_tile.col)
-
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
@@ -273,6 +270,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_reply ref, :ok, %{}
     assert_broadcast "tile_changes", %{tiles: [%{col: _, row: _, rendering: "<div>@</div>"}]}
     assert_broadcast "stat_update", %{stats: %{health: 100}}
-    assert_broadcast "message", %{message: "You live again."}
+    assert_broadcast "message", %{message: "You live again, after 1 death"}
   end
 end

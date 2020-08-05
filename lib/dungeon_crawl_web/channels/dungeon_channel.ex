@@ -58,12 +58,13 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
         player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
         {player_tile, state} = Player.respawn(instance_state, player_tile)
+        death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
 
         payload = %{tiles: [
                      Map.put(Map.take(player_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(player_tile))
                     ]}
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You live again."}
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, player_tile)}
 
         {:ok, state}
