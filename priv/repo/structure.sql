@@ -263,6 +263,37 @@ ALTER SEQUENCE public.settings_id_seq OWNED BY public.settings.id;
 
 
 --
+-- Name: spawn_locations; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE public.spawn_locations (
+    id bigint NOT NULL,
+    "row" integer,
+    col integer,
+    dungeon_id bigint
+);
+
+
+--
+-- Name: spawn_locations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.spawn_locations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: spawn_locations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.spawn_locations_id_seq OWNED BY public.spawn_locations.id;
+
+
+--
 -- Name: tile_templates; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -387,6 +418,13 @@ ALTER TABLE ONLY public.settings ALTER COLUMN id SET DEFAULT nextval('public.set
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
+ALTER TABLE ONLY public.spawn_locations ALTER COLUMN id SET DEFAULT nextval('public.spawn_locations_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
 ALTER TABLE ONLY public.tile_templates ALTER COLUMN id SET DEFAULT nextval('public.tile_templates_id_seq'::regclass);
 
 
@@ -451,6 +489,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.settings
     ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: spawn_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY public.spawn_locations
+    ADD CONSTRAINT spawn_locations_pkey PRIMARY KEY (id);
 
 
 --
@@ -537,6 +583,20 @@ CREATE INDEX player_locations_map_tile_instance_id_index ON public.player_locati
 --
 
 CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USING btree (user_id_hash);
+
+
+--
+-- Name: spawn_locations_dungeon_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE INDEX spawn_locations_dungeon_id_index ON public.spawn_locations USING btree (dungeon_id);
+
+
+--
+-- Name: spawn_locations_dungeon_id_row_col_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE UNIQUE INDEX spawn_locations_dungeon_id_row_col_index ON public.spawn_locations USING btree (dungeon_id, "row", col);
 
 
 --
@@ -654,6 +714,14 @@ ALTER TABLE ONLY public.player_locations
 
 
 --
+-- Name: spawn_locations_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.spawn_locations
+    ADD CONSTRAINT spawn_locations_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id);
+
+
+--
 -- Name: tile_templates_previous_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -673,5 +741,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421);
 
