@@ -203,6 +203,10 @@ defmodule DungeonCrawl.Dungeon do
           result = Repo.insert_all(MapTile, _new_tile_copies(map, dungeon.id))
           {:ok, result}
         end)
+      |> Multi.run(:spawn_locations, fn(_repo, %{dungeon: dungeon}) ->
+          result = Repo.insert_all(SpawnLocation, _new_spawn_locations(map, dungeon.id))
+          {:ok, result}
+        end)
       |> Repo.transaction()
     else
       {:error, "New version already exists"}
@@ -226,6 +230,11 @@ defmodule DungeonCrawl.Dungeon do
   defp _new_tile_copy(dmt, dungeon_id) do
     Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script, :name])
     |> Elixir.Map.put(:dungeon_id, dungeon_id)
+  end
+
+  defp _new_spawn_locations(previous_dungeon, dungeon_id) do
+    Repo.preload(previous_dungeon, :spawn_locations).spawn_locations
+    |> Enum.map(fn(sl) -> %{dungeon_id: dungeon_id, row: sl.row, col: sl.col} end)
   end
 
   @doc """
@@ -297,6 +306,9 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _adjust_sizing(map, updated_map) do
+    Repo.delete_all(from sl in SpawnLocation,
+                    where: sl.dungeon_id == ^updated_map.id,
+                    where: sl.col >= ^updated_map.width or sl.row >= ^updated_map.height )
     # probably should just use the main module looking for the space character. Character isn't index, but since it
     # is a seed it should have a low id and be found quick
     empty_tile_template = DungeonCrawl.TileTemplates.TileSeeder.rock_tile()
