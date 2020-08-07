@@ -36,6 +36,7 @@
     <%= hidden_input f, :tile_changes %>
     <%= hidden_input f, :tile_additions %>
     <%= hidden_input f, :tile_deletions %>
+    <%= hidden_input f, :spawn_tiles %>
 <% end %>
   </div>
 
