@@ -1384,7 +1384,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              /i
              You don't have enough
              """
-    {losing_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1"})
+    {losing_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1, cash: 2"})
     {taker, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", color: "red", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script})
 
     program = program_fixture(script)
@@ -1408,8 +1408,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
 
     # take but not enough
-    %Runner{state: updated_state} = Command.take(runner_state, ["health", 20, "north"])
+    %Runner{state: updated_state} = Command.take(runner_state, ["cash", 3, "north"])
     assert updated_state == state
+
+    # take but not enough health so tile dies
+    %Runner{state: updated_state} = Command.take(runner_state, ["health", 20, "north"])
+    refute updated_state.map_by_ids[losing_tile.id]
+    assert updated_state.dirty_ids[losing_tile.id] == :deleted
 
     # take but not state entry
     %Runner{state: updated_state} = Command.take(runner_state, ["gems", 20, "north"])

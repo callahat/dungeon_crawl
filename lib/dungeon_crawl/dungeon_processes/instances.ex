@@ -18,6 +18,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Player
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Direction
@@ -364,6 +365,104 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
   def get_state_value(%Instances{} = state, key) do
     state.state_values[key]
+  end
+
+  @doc """
+  Subtracts a amount from the specified state value. Both operands must be numeric.
+  Side effects (such as destroying a tile when the health drops to zero, and
+  broadcasting the tile changes) will occur for certain scenarios.
+  Returns a tuple, including a status atom and the current instance state, which
+  may be unchanged if the operation failed.
+  For state values other than health, if the amount to subtract is greater than the
+  amount available, the state will not be updated and the status atom will be
+  `:not_enough`.
+
+  ## Examples
+
+    iex> subtract(state, :cash, 100, 12345)
+    {:ok, state}
+  """
+  def subtract(%Instances{} = state, what, amount, loser_id) do
+    loser = Instances.get_map_tile_by_id(state, %{id: loser_id})
+
+    if loser do
+      player_location = state.player_locations[loser.id]
+      _subtract(state, what, amount, loser, player_location)
+    else
+      {:no_loser, state}
+    end
+  end
+
+  def _subtract(%Instances{} = state, :health, amount, loser, nil) do
+    current_amount = loser.parsed_state[:health]
+
+    if is_nil(current_amount) && not StateValue.get_bool(loser, :destroyable) do
+      {:noop, state}
+    else
+      new_amount = (current_amount || 0) - amount
+
+      if new_amount <= 0 do
+        {_deleted_tile, state} = Instances.delete_map_tile(state, loser)
+        loser_coords = Map.take(loser, [:row, :col])
+
+        top_tile = Instances.get_map_tile(state, loser_coords)
+        payload = %{tiles: [ Map.put(loser_coords, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile)) ]}
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+
+        {:ok, state}
+      else
+        {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
+        {:ok, state}
+      end
+    end
+  end
+
+  def _subtract(%Instances{} = state, what, amount, loser, nil) do
+    new_amount = (loser.parsed_state[what] || 0) - amount
+
+    if new_amount < 0 do
+      {:not_enough, state}
+    else
+      {_loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_amount})
+      {:ok, state}
+    end
+  end
+
+  def _subtract(%Instances{} = state, :health, amount, loser, player_location) do
+    new_amount = (loser.parsed_state[:health] || 0) - amount
+
+    cond do
+      StateValue.get_bool(loser, :buried) ->
+        {:noop, state}
+
+      new_amount <= 0 ->
+        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
+        {grave, state} = Player.bury(state, loser)
+        payload = %{tiles: [
+                     Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
+                    ]}
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
+        {:ok, state}
+
+      true ->
+        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
+        {:ok, state}
+    end
+  end
+
+  def _subtract(%Instances{} = state, what, amount, loser, player_location) do
+    new_amount = (loser.parsed_state[what] || 0) - amount
+
+    if new_amount < 0 do
+      {:not_enough, state}
+    else
+      {loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_amount})
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
+      {:ok, state}
+    end
   end
 end
 

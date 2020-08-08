@@ -6,7 +6,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -355,33 +354,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    health = StateValue.get_int(object, :health) - StateValue.get_int(sender, :damage, 0)
-    player_location = state.player_locations[object.id]
+    {_result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
 
-    {object, state} = Instances.update_map_tile_state(state, object, %{health: health})
-
-    if player_location do
-      if health <= 0 && not StateValue.get_bool(object, :buried) do
-        # TODO: prompt user to respawn or leave dungeon (either should clean up the tile, or leave a 'corpse' tile)
-        {grave, state} = PlayerInstance.bury(state, object)
-        payload = %{tiles: [
-                     Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
-                    ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
-        _standard_behaviors(messages, state)
-      else
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
-        _standard_behaviors(messages, state)
-      end
-    else
-      if health <= 0 do
-        _destroyed_tile(object, messages, state)
-      else
-        _standard_behaviors(messages, state)
-      end
-    end
+    _standard_behaviors(messages, state)
   end
 
   defp _destroyed_tile(object, messages, state) do

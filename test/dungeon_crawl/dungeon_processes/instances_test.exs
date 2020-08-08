@@ -396,4 +396,110 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   test "get_state_value/2" do
     assert true == Instances.get_state_value(%Instances{state_values: %{flag: true}}, :flag)
   end
+
+  test "subtract/4 when loser does not exist" do
+    assert {:no_loser, state} = Instances.subtract(%Instances{}, :anything, 2, 12345)
+  end
+
+  test "subtract/4 health on a maptile" do
+    wall       = %MapTile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: ""}
+    breakable  = %MapTile{id: 993, row: 1, col: 2, z_index: 0, character: "B", state: "destroyable: true"}
+    damageable = %MapTile{id: 994, row: 1, col: 3, z_index: 0, character: "D", state: "health: 10"}
+    state = %Instances{instance_id: 12345}
+    {wall, state} = Instances.create_map_tile(state, wall)
+    {breakable, state} = Instances.create_map_tile(state, breakable)
+    {damageable, state} = Instances.create_map_tile(state, damageable)
+
+    dungeon_channel = "dungeons:12345"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+
+    assert {:noop, updated_state} = Instances.subtract(state, :health, 5, wall.id)
+    assert state == updated_state
+
+    assert {:ok, updated_state} = Instances.subtract(state, :health, 5, breakable.id)
+    refute Instances.get_map_tile_by_id(updated_state, breakable)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            payload: %{tiles: [%{row: 1, col: 2, rendering: "<div> </div>"}]}}
+    assert {:ok, updated_state} = Instances.subtract(state, :health, 5, damageable.id)
+    assert Instances.get_map_tile_by_id(updated_state, damageable).parsed_state[:health] == 5
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            payload: %{tiles: [%{row: 1, col: 3, rendering: _anything}]}}
+    assert {:ok, updated_state} = Instances.subtract(state, :health, 10, damageable.id)
+    refute Instances.get_map_tile_by_id(updated_state, damageable)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div> </div>"}]}}
+  end
+
+  test "subtract/4 non health on a maptile" do
+    map_tile = %MapTile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: "cash: 5"}
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile)
+
+    assert {:ok, updated_state} = Instances.subtract(state, :cash, 5, map_tile.id)
+    assert Instances.get_map_tile_by_id(updated_state, map_tile).parsed_state[:cash] == 0
+    assert {:not_enough, updated_state} = Instances.subtract(state, :cash, 6, map_tile.id)
+    assert state == updated_state
+    assert {:not_enough, updated_state} = Instances.subtract(state, :nothing, 1, map_tile.id)
+    assert state == updated_state
+  end
+
+  test "subtract/4 health on a player tile" do
+    instance = insert_stubbed_dungeon_instance()
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: "", map_instance_id: instance.id}
+    location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
+    state = %Instances{instance_id: 123}
+    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+
+    dungeon_channel = "dungeons:123"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    player_channel = "players:444"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    assert {:ok, updated_state} = Instances.subtract(state, :health, 10, player_tile.id)
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            payload: _anything}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{ammo: 0, cash: 0, gems: 10, health: 20, keys: ""}}}
+
+    assert {:ok, updated_state} = Instances.subtract(state, :health, 30, player_tile.id)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{col: 4, rendering: "<div>✝</div>", row: 4}]}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{ammo: 0, cash: 0, gems: 0, health: 0, keys: ""}}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "message",
+            payload: %{message: "You died!"}}
+  end
+
+  test "subtract/4 non health on a player tile" do
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: ""}
+    location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
+    state = %Instances{instance_id: 123}
+    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+
+    player_channel = "players:444"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    assert {:ok, updated_state} = Instances.subtract(state, :gems, 10, player_tile.id)
+    assert Instances.get_map_tile_by_id(updated_state, player_tile).parsed_state[:gems] == 0
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{ammo: 0, cash: 0, gems: 0, health: 30, keys: ""}}}
+
+    assert {:not_enough, updated_state} = Instances.subtract(state, :gems, 12, player_tile.id)
+    assert state == updated_state
+    assert {:not_enough, updated_state} = Instances.subtract(state, :cash, 500, player_tile.id)
+    assert state == updated_state
+  end
 end
