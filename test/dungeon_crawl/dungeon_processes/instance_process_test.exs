@@ -68,6 +68,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
                        instance_id: _ } = InstanceProcess.get_state(instance_process)
   end
 
+  test "load_spawn_coordinates", %{instance_process: instance_process} do
+    assert :ok = InstanceProcess.load_spawn_coordinates(instance_process, [{1,1}, {2,3}, {4,5}])
+    assert %Instances{ spawn_coordinates: spawn_coordinates } = InstanceProcess.get_state(instance_process)
+    assert Enum.sort([{1,1}, {2,3}, {4,5}]) == Enum.sort(spawn_coordinates)
+  end
+
   test "start_scheduler", %{instance_process: instance_process} do
     # Starts the scheduler that will run every xxx ms and run the next parts of all the programs
     InstanceProcess.start_scheduler(instance_process)
@@ -218,6 +224,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
                                                                                map_instance: map_instance} do
+    dungeon_channel = "dungeons:#{map_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND shot, player", state: "damage: 5"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
@@ -278,9 +287,14 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^player_channel,
             event: "message",
             payload: %{message: "You died!"}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>✝</div>"}]}}
 
     refute map_by_ids[non_prog_tile.id]
     assert map_by_ids[player_tile.id].parsed_state[:health] == 0
+    assert map_by_ids[player_tile.id].parsed_state[:buried]
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     non_prog_tile_id = non_prog_tile.id

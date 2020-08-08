@@ -21,6 +21,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
   test "lookup_or_create", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
+    DungeonCrawl.Dungeon.set_spawn_locations(instance.map_id, [{1,1}])
 
     assert {:ok, instance_process} = InstanceRegistry.lookup_or_create(instance_registry, instance.id)
     # Finds the already existing one
@@ -31,7 +32,8 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
     instance = insert_stubbed_dungeon_instance(%{state: "flag: false"},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
-                 Map.take(button_tile, [:character,:color,:background_color,:state,:script]))])
+                 Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
+       %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: "", script: ""}])
 
     location = insert_player_location(%{map_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
     map_tile = Repo.get_by(DungeonCrawl.DungeonInstances.MapTile, %{map_instance_id: instance.id, row: 1, col: 2})
@@ -44,7 +46,8 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                       map_by_ids: map_by_ids,
                       state_values: state_values,
                       instance_id: instance_id,
-                      player_locations: player_locations} = InstanceProcess.get_state(instance_process)
+                      player_locations: player_locations,
+                      spawn_coordinates: spawn_coordinates} = InstanceProcess.get_state(instance_process)
     assert programs == %{map_tile.id => %{
                                            object_id: map_tile.id,
                                            program: %Program{broadcasts: [],
@@ -65,6 +68,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                 }
     assert map_by_ids[map_tile.id] == Map.put(map_tile, :parsed_state, %{blocking: true})
     assert state_values == %{flag: false, cols: 20, rows: 20}
+    assert spawn_coordinates == [{9, 10}]
     assert instance_id == instance.id
   end
 
@@ -73,7 +77,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
     dungeon_map_tiles = [map_tile]
 
-    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, %{flag: false})
+    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, [], %{flag: false})
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, map_tile.map_instance_id)
 
     # the instance map is loaded

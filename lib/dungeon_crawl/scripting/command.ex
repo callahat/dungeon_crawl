@@ -1222,26 +1222,20 @@ defmodule DungeonCrawl.Scripting.Command do
 
     if is_number(amount) and amount > 0 and is_binary(what) do
       what = String.to_atom(what)
-      loser = Instances.get_map_tile_by_id(state, %{id: id})
 
-      new_value = (loser && loser.parsed_state[what] || 0) - amount
+      case Instances.subtract(state, what, amount, id) do
+        {:ok, state} ->
+          %{ runner_state | state: state }
 
-      cond do
-        new_value >= 0 ->
-          {_loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_value})
-
-          if state.player_locations[id] do
-            payload = %{stats: PlayerInstance.current_stats(state, %DungeonCrawl.DungeonInstances.MapTile{id: id})}
-            %{ runner_state | program: %{runner_state.program | responses: [ {"stat_update", payload} | runner_state.program.responses] }, state: state }
+        {:not_enough, _state} ->
+          if label do
+            updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+            %{ runner_state | program: updated_program }
           else
-            %{ runner_state | state: state }
+            runner_state
           end
 
-        label ->
-          updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
-          %{ runner_state | state: state, program: updated_program }
-
-        true ->
+        {_noop_or_no_loser, _state} ->
           runner_state
       end
     else

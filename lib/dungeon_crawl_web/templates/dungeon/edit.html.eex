@@ -13,6 +13,7 @@
 <%= render(DungeonCrawlWeb.SharedView, "editor_dungeon.html", dungeon: @dungeon, readonly: true) %>
 </div>
 
+<script>window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %></script>
 
 <%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
 

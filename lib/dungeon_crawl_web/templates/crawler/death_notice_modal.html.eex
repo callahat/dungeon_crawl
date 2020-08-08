@@ -1,0 +1,23 @@
+<!-- Modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="respawnModal" aria-labelledby="respawnModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      
+      <div class="modal-body text-left">
+
+        <div class="row">
+          <div class="col-12 help">
+            <strong>You Died</strong><br/>
+            <span>You may respawn, but all your stuff is buried. Better hurry before someone else finds it.
+                  You can also just watch, or leave the dungeon completely.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="ressurect_me" type="button" class="btn btn-primary" data-dismiss="modal">Respawn</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

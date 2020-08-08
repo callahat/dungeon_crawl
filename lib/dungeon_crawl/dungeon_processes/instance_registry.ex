@@ -58,8 +58,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   If instance_id is nil, an available one will be assigned, and injected into
   all the `dungeon_map_tiles`. Returns the `instance_id`.
   """
-  def create(server, instance_id, dungeon_map_tiles, state_values \\ %{}) do
-    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, state_values})
+  def create(server, instance_id, dungeon_map_tiles, spawn_coordinates \\ [], state_values \\ %{}) do
+    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values})
   end
 
   @doc """
@@ -85,18 +85,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   end
 
   @impl true
-  def handle_call({:create, nil, dungeon_map_tiles, state_values}, _from, {instance_ids, refs}) do
+  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values}, _from, {instance_ids, refs}) do
     instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
     dungeon_map_tiles = Enum.map(dungeon_map_tiles, fn(dmt) -> Map.put(dmt, :map_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
+    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, {instance_ids, refs})}
   end
 
   @impl true
-  def handle_call({:create, instance_id, dungeon_map_tiles, state_values}, _from, {instance_ids, refs}) do
+  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values}, _from, {instance_ids, refs}) do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs}}
     else
-      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
+      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, {instance_ids, refs})}
     end
   end
 
@@ -109,7 +109,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
         {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
         state_values = Map.merge(state_values, %{rows: dungeon_instance.height, cols: dungeon_instance.width})
         dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
-        {:noreply, _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs})}
+        spawn_locations = Repo.preload(dungeon_instance, [dungeon: :spawn_locations]).dungeon.spawn_locations
+        spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # floor tiles for now
+        {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, {instance_ids, refs})}
       else
         _ -> Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
         {:noreply, {instance_ids, refs}}
@@ -135,11 +137,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {:noreply, state}
   end
 
-  defp _create_instance(instance_id, dungeon_map_tiles, state_values, {instance_ids, refs}) do
+  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, {instance_ids, refs}) do
     {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
     InstanceProcess.set_instance_id(instance_process, instance_id)
     InstanceProcess.set_state_values(instance_process, state_values)
     InstanceProcess.load_map(instance_process, dungeon_map_tiles)
+    InstanceProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
     _link_player_locations(instance_process, instance_id)
     InstanceProcess.start_scheduler(instance_process)
     ref = Process.monitor(instance_process)
@@ -166,5 +169,19 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
            end)
       }
     end)
+  end
+
+  defp _spawn_coordinates(dungeon_map_tiles, []) do
+    dungeon_map_tiles
+    |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
+    |> Enum.reduce(%{}, fn(dmt,acc) -> if Map.has_key?(acc, {dmt.row, dmt.col}), do: acc, else: Map.put(acc, {dmt.row, dmt.col}, dmt) end)
+    |> Map.to_list()
+    |> Enum.reject(fn({_coords, dmt}) -> dmt.name != "Floor" end)
+    |> Enum.map(fn({coords, _dmt}) -> coords end)
+  end
+
+  defp _spawn_coordinates(_dungeon_map_tiles, spawn_locations) do
+    spawn_locations
+    |> Enum.map(fn(spawn_location) -> {spawn_location.row, spawn_location.col} end)
   end
 end

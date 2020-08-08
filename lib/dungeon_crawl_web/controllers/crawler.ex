@@ -23,7 +23,7 @@ defmodule DungeonCrawlWeb.Crawler do
       %Player.Location{}
   """
   def join_and_broadcast(%DungeonInstances.Map{} = where, user_id_hash) do
-    {:ok, location} = Player.create_location_on_empty_space(where, user_id_hash)
+    {:ok, location} = Player.create_location_on_spawnable_space(where, user_id_hash)
 
      _broadcast_join_event(Repo.preload(location, :map_tile))
      location

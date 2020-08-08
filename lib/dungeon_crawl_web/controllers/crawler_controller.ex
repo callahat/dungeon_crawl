@@ -47,7 +47,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
         {:ok, run_results[:dungeon]}
       end)
     |> Multi.run(:player_location, fn(_repo, %{instance: instance}) ->
-        Player.create_location_on_empty_space(instance, conn.assigns[:user_id_hash])
+        Player.create_location_on_spawnable_space(instance, conn.assigns[:user_id_hash])
       end)
     |> Repo.transaction
     |> case do

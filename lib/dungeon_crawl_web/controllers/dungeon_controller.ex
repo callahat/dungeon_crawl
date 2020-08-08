@@ -64,8 +64,10 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     changeset = Dungeon.change_map(dungeon)
     {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
+    spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
+                      |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions())
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do
@@ -77,6 +79,13 @@ defmodule DungeonCrawlWeb.DungeonController do
         _make_tile_additions(dungeon, dungeon_params["tile_additions"])
         _make_tile_deletions(dungeon, dungeon_params["tile_deletions"])
 
+        case Jason.decode(dungeon_params["spawn_tiles"]) do
+          {:ok, coords} ->
+            Dungeon.set_spawn_locations(dungeon.id, Enum.map(coords || [], fn([r, c]) -> {r, c} end))
+          _error ->
+            nil
+        end
+
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
@@ -84,7 +93,9 @@ defmodule DungeonCrawlWeb.DungeonController do
         {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
         tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions())
+        spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
+                          |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
     end
   end
 

@@ -41,6 +41,6 @@ defmodule DungeonCrawl.StateValue do
     false
   """
   def get_bool(object, key) do
-    !!object.parsed_state[key]
+    !!(object && object.parsed_state[key])
   end
 end

@@ -10,6 +10,7 @@ defmodule DungeonCrawl.Dungeon do
 
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.Dungeon.MapTile
+  alias DungeonCrawl.Dungeon.SpawnLocation
 
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.TileTemplates.TileSeeder
@@ -202,6 +203,10 @@ defmodule DungeonCrawl.Dungeon do
           result = Repo.insert_all(MapTile, _new_tile_copies(map, dungeon.id))
           {:ok, result}
         end)
+      |> Multi.run(:spawn_locations, fn(_repo, %{dungeon: dungeon}) ->
+          result = Repo.insert_all(SpawnLocation, _new_spawn_locations(map, dungeon.id))
+          {:ok, result}
+        end)
       |> Repo.transaction()
     else
       {:error, "New version already exists"}
@@ -225,6 +230,11 @@ defmodule DungeonCrawl.Dungeon do
   defp _new_tile_copy(dmt, dungeon_id) do
     Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script, :name])
     |> Elixir.Map.put(:dungeon_id, dungeon_id)
+  end
+
+  defp _new_spawn_locations(previous_dungeon, dungeon_id) do
+    Repo.preload(previous_dungeon, :spawn_locations).spawn_locations
+    |> Enum.map(fn(sl) -> %{dungeon_id: dungeon_id, row: sl.row, col: sl.col} end)
   end
 
   @doc """
@@ -296,6 +306,9 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _adjust_sizing(map, updated_map) do
+    Repo.delete_all(from sl in SpawnLocation,
+                    where: sl.dungeon_id == ^updated_map.id,
+                    where: sl.col >= ^updated_map.width or sl.row >= ^updated_map.height )
     # probably should just use the main module looking for the space character. Character isn't index, but since it
     # is a seed it should have a low id and be found quick
     empty_tile_template = DungeonCrawl.TileTemplates.TileSeeder.rock_tile()
@@ -602,5 +615,60 @@ defmodule DungeonCrawl.Dungeon do
   def delete_map_tile(nil), do: nil
   def delete_map_tile(%MapTile{} = map_tile) do
     Repo.delete(map_tile)
+  end
+
+  @doc """
+  Adds spawn locations for the given dungeon. Uses a list of {row, col} tuples to indicate the new
+  spawn coordinates. Existing spawn locations as well as invalid coordinates are ignored.
+
+  ## Examples
+
+      iex> add_spawn_locations(%Map{}, [{row, col}, ...])
+      [%SpawnLocation{}, ...]
+  """
+  def add_spawn_locations(dungeon_id, coordinates) do
+    dungeon = get_map!(dungeon_id)
+
+    Multi.new
+    |> Multi.run(:spawn_locations, fn(_repo, %{}) ->
+        locations = coordinates
+                    |> Enum.uniq
+                    |> Enum.map(fn({row, col}) -> %{dungeon_id: dungeon_id, row: row, col: col} end)
+                    |> Enum.reject(fn(attrs) -> Repo.get_by(SpawnLocation, dungeon_id: attrs.dungeon_id, row: attrs.row, col: attrs.col) end) # TODO: remove after pg local updated
+                    |> Enum.filter(fn(attrs) ->
+                        SpawnLocation.changeset(%SpawnLocation{}, attrs, dungeon.height, dungeon.width).valid?
+                       end)
+        # result = Repo.insert_all(SpawnLocation, locations, on_conflict: :nothing, conflict_target: "spawn_locations_dungeon_id_row_col_index") # TODO: use after pg local updated
+        result = Repo.insert_all(SpawnLocation, locations)
+        {:ok, result}
+      end)
+    |> Repo.transaction()
+  end
+
+  @doc """
+  Deletes all the spawn locations for the given dungeon.
+
+  ## Examples
+
+      iex> clear_spawn_locations(%Map{}, [{row, col}, ...])
+      [%SpawnLocation{}, ...]
+  """
+  def clear_spawn_locations(dungeon_id) do
+    Repo.delete_all(from s in SpawnLocation,
+                    where: s.dungeon_id == ^dungeon_id)
+  end
+
+  @doc """
+  Sets the spawn locations for the given dungeon. Uses a list of {row, col} tuples to indicate the new
+  spawn coordinates. Existing spawn locations are first removed, and then the new list is added.
+
+  ## Examples
+
+      iex> set_spawn_locations(%Map{}, [{row, col}, ...])
+      [%SpawnLocation{}, ...]
+  """
+  def set_spawn_locations(dungeon_id, coordinates) do
+    clear_spawn_locations(dungeon_id)
+    add_spawn_locations(dungeon_id, coordinates)
   end
 end

@@ -32,9 +32,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _current_stats(tile) do
-    keys = tile.parsed_state
-           |> Map.to_list
-           |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
+    keys = _door_keys(tile)
            |> Enum.map(fn {k,v} -> {String.replace_suffix(to_string(k), "_key",""), v} end)
            |> Enum.map(fn {color, count} ->
                 num = if count > 1, do: "<span class='smaller'>x#{count}</span>", else: ""
@@ -42,7 +40,81 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
               end)
            |> Enum.join("")
 
-    Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo])
+    %{health: 0, gems: 0, cash: 0, ammo: 0}
+    |> Map.merge(Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo]))
     |> Map.put(:keys, keys)
+  end
+
+  defp _door_keys(tile) do
+    tile.parsed_state
+    |> Map.to_list
+    |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
+  end
+
+  @doc """
+  Buries the [dead] player. This places a grave map tile above the players current location,
+  taking all the players items (ammo, cash, keys, etc), making them available to be picked up.
+  The grave robber will be pick up everything (even if it might be above a certain limit,
+  such as only letting a player carry one of a type of key).
+  """
+  def bury(%Instances{} = state, %{id: map_tile_id} = _player_tile) do
+    player_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+    grave_tile_template = DungeonCrawl.TileTemplates.TileSeeder.grave()
+
+    items_stolen = Map.take(player_tile.parsed_state, [:gems, :cash, :ammo])
+                   |> Map.to_list
+                   |> Enum.concat(_door_keys(player_tile))
+                   |> Enum.reject(fn {_, count} -> count <= 0 end)
+                   |> Enum.map(fn {item, count} ->
+                        """
+                        Found #{count} #{item}
+                        #GIVE #{item}, #{count}, ?sender
+                        """
+                      end)
+                   |> Enum.join("\n")
+
+    bottom_z_index = Enum.at(Instances.get_map_tiles(state, player_tile), -1).z_index
+    last_player_z_index = player_tile.z_index
+
+    {player_tile, state} = Instances.update_map_tile(state, player_tile, %{z_index: bottom_z_index - 1})
+    deaths = case player_tile.parsed_state[:deaths] do
+               nil    -> 1
+               deaths -> deaths + 1
+             end
+    new_state = _door_keys(player_tile)
+                |> Enum.into(%{}, fn {k,v} -> {k, 0} end)
+                |> Map.merge(%{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
+    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
+
+    script = """
+             :TOP
+             #END
+             :TOUCH
+             #IF not ?sender@player, TOP
+             You defile the grave
+             #{items_stolen}
+             #DIE
+             """
+
+    # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
+    grave = Map.take(player_tile, [:map_instance_id, :row, :col])
+             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: last_player_z_index})
+             |> Map.merge(Map.take(grave_tile_template, [:character, :color, :background_color, :state, :script]))
+             |> Map.put(:script, script)
+             |> DungeonCrawl.DungeonInstances.create_map_tile!()
+    Instances.create_map_tile(state, grave)
+  end
+
+  @doc """
+  Respawns a player. This will move their associated map tile to a spawn coordinate in the instance,
+  and restore health to 100.
+  """
+  def respawn(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
+    {row, col} = Enum.random(spawn_coordinates)
+    spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
+    z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
+
+    {player_tile, state} = Instances.update_map_tile(state, player_tile, %{row: row, col: col, z_index: z_index})
+    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
   end
 end

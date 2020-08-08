@@ -40,37 +40,60 @@ let DungeonEditor = {
 
     document.getElementById("tiletool-tab").addEventListener('click', e => {
       this.mode = "tile_painting"
+      this.unHilightSpawnTiles()
     });
 
     document.getElementById("colortool-tab").addEventListener('click', e => {
       this.mode = "color_painting"
+      this.unHilightSpawnTiles()
     });
 
     document.getElementById("other-tab").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "tile_edit"
+      this.unHilightSpawnTiles()
       document.getElementById("tile_editor_tool").classList.add('btn-info')
       document.getElementById("tile_editor_tool").classList.remove('btn-light')
       document.getElementById("erase_tool").classList.add('btn-light')
       document.getElementById("erase_tool").classList.remove('btn-info')
+      document.getElementById("spawn_location_tool").classList.add('btn-light')
+      document.getElementById("spawn_location_tool").classList.remove('btn-info')
     });
 
     document.getElementById("tile_editor_tool").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "tile_edit"
+      this.unHilightSpawnTiles()
       document.getElementById("tile_editor_tool").classList.add('btn-info')
       document.getElementById("tile_editor_tool").classList.remove('btn-light')
       document.getElementById("erase_tool").classList.add('btn-light')
       document.getElementById("erase_tool").classList.remove('btn-info')
+      document.getElementById("spawn_location_tool").classList.add('btn-light')
+      document.getElementById("spawn_location_tool").classList.remove('btn-info')
     });
 
     document.getElementById("erase_tool").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "tile_erase"
+      this.unHilightSpawnTiles()
       document.getElementById("tile_editor_tool").classList.add('btn-light')
       document.getElementById("tile_editor_tool").classList.remove('btn-info')
       document.getElementById("erase_tool").classList.add('btn-info')
       document.getElementById("erase_tool").classList.remove('btn-light')
+      document.getElementById("spawn_location_tool").classList.add('btn-light')
+      document.getElementById("spawn_location_tool").classList.remove('btn-info')
+    });
+
+    document.getElementById("spawn_location_tool").addEventListener('click', e => {
+      // defaulting to tile edit
+      this.mode = "spawn_location"
+      this.hilightSpawnTiles()
+      document.getElementById("tile_editor_tool").classList.add('btn-light')
+      document.getElementById("tile_editor_tool").classList.remove('btn-info')
+      document.getElementById("erase_tool").classList.add('btn-light')
+      document.getElementById("erase_tool").classList.remove('btn-info')
+      document.getElementById("spawn_location_tool").classList.add('btn-info')
+      document.getElementById("spawn_location_tool").classList.remove('btn-light')
     });
 
     for(let field of ['tile_color', 'tile_background_color']){
@@ -249,6 +272,8 @@ let DungeonEditor = {
     document.getElementById("map_tile_changes").value = JSON.stringify(context.getTileFormData("changed-map-tile"))
     document.getElementById("map_tile_additions").value = JSON.stringify(context.getTileFormData("new-map-tile"))
     document.getElementById("map_tile_deletions").value = JSON.stringify(context.getTileFormData("deleted-map-tile"))
+    document.getElementById("map_spawn_tiles").value = JSON.stringify(context.spawnCoordsToSubmit())
+
     //event.preventDefault()
   },
   getTileFormData(type){
@@ -341,7 +366,7 @@ let DungeonEditor = {
     this.updateColorPreviews()
   },
   selectDungeonTile(event){
-    if(this.mode == "tile_edit" || this.mode == "tile_erase") { return }
+    if(this.mode == "tile_edit" || this.mode == "tile_erase" || this.mode == "spawn_location") { return }
 
     let map_location = this.getMapLocation(event)
     if(!map_location) { return } // event picked up on bad element
@@ -386,6 +411,12 @@ let DungeonEditor = {
 
       next_top_coords = map_location_td.id + "_" + visible_tile_div.getAttribute("data-z-index")
       this.erased = next_top_coords
+      return
+    }
+
+    if(this.mode == "spawn_location") {
+      let map_location_td = this.getMapLocation(event).parentNode
+      this.toggleSpawnTile(map_location_td.id)
       return
     }
 
@@ -642,6 +673,45 @@ let DungeonEditor = {
       td.appendChild(blankDiv)
     }
   },
+  toggleSpawnTile(coordinate){
+    if(window.spawnLocations[coordinate]){
+      window.spawnLocations[coordinate] = false
+      document.getElementById(coordinate).classList.remove("spawn-hilight")
+    } else {
+      window.spawnLocations[coordinate] = true
+      document.getElementById(coordinate).classList.add("spawn-hilight")
+    }
+  },
+  hilightSpawnTiles(){
+    if(this.hilightingSpawnTiles) { return }
+
+    let coordinate
+    this.hilightingSpawnTiles = true
+    for(coordinate in window.spawnLocations) {
+      if(window.spawnLocations[coordinate]){
+        document.getElementById(coordinate).classList.add("spawn-hilight")
+      }
+    }
+  },
+  unHilightSpawnTiles(){
+    if(! this.hilightingSpawnTiles) { return }
+
+    let coordinate
+    this.hilightingSpawnTiles = false
+    for(coordinate in window.spawnLocations) {
+      document.getElementById(coordinate).classList.remove("spawn-hilight")
+    }
+  },
+  spawnCoordsToSubmit(){
+    let coordinate, pair, pairs = []
+    for(coordinate in window.spawnLocations) {
+      if(window.spawnLocations[coordinate]){
+        pair = coordinate.split("_")
+        pairs = pairs.concat([ [parseInt(pair[0]), parseInt(pair[1])] ])
+      }
+    }
+    return pairs
+  },
   blankDivNode: null,
   selectedTileId: null,
   selectedTileHtml: null,
@@ -665,6 +735,7 @@ let DungeonEditor = {
   zIndexLowerBound: 0,
   onlyShowCurrentLayer: false,
   erased: false,
+  hilightingSpawnTiles: false,
 
 }
 

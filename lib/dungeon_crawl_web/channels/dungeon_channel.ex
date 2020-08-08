@@ -34,15 +34,48 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    _motion(direction, &Move.go/3, socket)
+    if _player_alive(socket) do
+      _motion(direction, &Move.go/3, socket)
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_in("pull", %{"direction" => direction}, socket) do
-    _motion(direction, &Pull.pull/3, socket)
+    if _player_alive(socket) do
+      _motion(direction, &Pull.pull/3, socket)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_in("respawn", %{}, socket) do
+    if _player_alive(socket) do
+      {:reply, :ok, socket}
+    else
+      {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+      InstanceProcess.run_with(instance, fn (instance_state) ->
+        player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
+        player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+        {player_tile, state} = Player.respawn(instance_state, player_tile)
+        death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
+
+        payload = %{tiles: [
+                     Map.put(Map.take(player_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(player_tile))
+                    ]}
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, player_tile)}
+
+        {:ok, state}
+      end)
+
+      {:reply, :ok, socket}
+    end
   end
 
   def handle_in("shoot", %{"direction" => direction}, socket) do
-    if _shot_ready(socket) do
+    if _player_alive(socket) && _shot_ready(socket) do
       {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
       InstanceProcess.run_with(instance, fn (instance_state) ->
         player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
@@ -76,10 +109,14 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "OPEN" or action == "CLOSE" do
-    _player_action_helper(
-      %{"direction" => direction, "action" => action},
-      "Cannot #{String.downcase(action)} that",
-      socket)
+    if _player_alive(socket) do
+      _player_action_helper(
+        %{"direction" => direction, "action" => action},
+        "Cannot #{String.downcase(action)} that",
+        socket)
+    else
+      {:noreply, socket}
+    end
   end
 
   defp _motion(direction, move_func, socket) do
@@ -129,6 +166,15 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       end
     end)
     {:noreply, socket}
+  end
+
+  defp _player_alive(socket) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
+      {Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id}).parsed_state[:health] > 0,
+       instance_state}
+    end)
   end
 
   # TODO: this might be able to go away when every program is isolated to its own process.

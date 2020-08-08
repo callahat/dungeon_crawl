@@ -6,7 +6,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -44,6 +43,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     map_tiles
     |> Enum.each( fn(map_tile) ->
          GenServer.cast(instance, {:create_map_tile, {map_tile}})
+       end )
+  end
+
+  @doc """
+  Sets spawn points.
+  """
+  def load_spawn_coordinates(instance, spawn_coordinates) do
+    spawn_coordinates
+    |> Enum.each( fn(spawn_coordinate) ->
+         GenServer.cast(instance, {:create_spawn_coordinate, {spawn_coordinate}})
        end )
   end
 
@@ -208,6 +217,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
+  def handle_cast({:create_spawn_coordinate, {spawn_coordinate}}, %Instances{} = state) do
+    {:noreply, %{ state | spawn_coordinates: [spawn_coordinate | state.spawn_coordinates] }}
+  end
+
+  @impl true
   def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender}}, %Instances{} = state) do
     state = Instances.send_event(state, %{id: tile_id}, event, sender)
     {:noreply, state}
@@ -340,26 +354,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    health = StateValue.get_int(object, :health) - StateValue.get_int(sender, :damage, 0)
-    player_location = state.player_locations[object.id]
+    {_result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
 
-    {_object, state} = Instances.update_map_tile_state(state, object, %{health: health})
-
-    if player_location do
-      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: PlayerInstance.current_stats(state, object)}
-    end
-
-    if health <= 0 do
-      if player_location do
-        # TODO: prompt user to respawn or leave dungeon (either should clean up the tile, or leave a 'corpse' tile)
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
-        _standard_behaviors(messages, state)
-      else
-        _destroyed_tile(object, messages, state)
-      end
-    else
-      _standard_behaviors(messages, state)
-    end
+    _standard_behaviors(messages, state)
   end
 
   defp _destroyed_tile(object, messages, state) do
