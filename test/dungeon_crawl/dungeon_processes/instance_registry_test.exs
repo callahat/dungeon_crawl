@@ -21,6 +21,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
   test "lookup_or_create", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
+    DungeonCrawl.Dungeon.set_spawn_locations(instance.map_id, [{1,1}])
 
     assert {:ok, instance_process} = InstanceRegistry.lookup_or_create(instance_registry, instance.id)
     # Finds the already existing one

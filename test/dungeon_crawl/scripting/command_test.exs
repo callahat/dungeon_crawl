@@ -1391,6 +1391,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     runner_state = %Runner{object_id: taker.id, state: state, program: program}
 
+    # Take a state variable but no matching map tile
+    %Runner{state: updated_state} = Command.take(runner_state, ["gems", 1, 12354, "toopoor"])
+    assert state == updated_state
+
     # take state var in direction
     %Runner{state: %{map_by_ids: map}} = Command.take(runner_state, ["health", {:state_variable, :damage}, "north"])
     assert map[losing_tile.id].parsed_state[:health] == 7
