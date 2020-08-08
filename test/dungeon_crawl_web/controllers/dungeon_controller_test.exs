@@ -21,6 +21,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     {:ok, dungeon} = Dungeon.create_map(Map.put(@create_attrs, :user_id, user_id))
     space = insert_tile_template(%{active: true})
     Dungeon.create_map_tile(%{dungeon_id: dungeon.id, row: 1, col: 1, character: ".", tile_template_id: space.id})
+    Dungeon.set_spawn_locations(dungeon.id, [{1,1,}])
     dungeon
   end
 
@@ -198,11 +199,12 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
       tile_data = %{tile_changes: "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]",
                     tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]",
-                    tile_deletions: "[{\"row\": 0, \"col\": 1, \"z_index\": 0}]"}
+                    tile_deletions: "[{\"row\": 0, \"col\": 1, \"z_index\": 0}]",
+                    spawn_tiles: "[[4,1],[4,2],[4,3],[500,500]]"}
 
       conn = put conn, dungeon_path(conn, :update, dungeon),
                    map: Elixir.Map.merge(@update_attrs, tile_data)
-      :timer.sleep 300
+
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).character == tile_template.character
       refute Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == tile_template.color
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == "red"
@@ -217,6 +219,9 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
 
       refute Dungeon.get_map_tile(dungeon.id, 0, 1, 1)
+
+      spawn_locations = DungeonCrawl.Repo.preload(dungeon, :spawn_locations).spawn_locations
+      assert [%{row: 4, col: 1}, %{row: 4, col: 2}, %{row: 4, col: 3}] = spawn_locations
 
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
     end
