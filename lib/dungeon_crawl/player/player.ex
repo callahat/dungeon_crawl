@@ -50,27 +50,35 @@ defmodule DungeonCrawl.Player do
   end
 
   @doc """
-  Creates a map tile that can be used for player location on an empty floor space tile.
+  Creates a map tile that can be used for player location on an spawn location (if present),
+  otherwise falls back to spawning on an empty floor space tile.
 
   ## Examples
 
-      iex> create_location_on_empty_space(%DungeonCrawl.DungeonInstances.Map{})
+      iex> create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.Map{})
       {:ok, %Location{}}
   """
-  def create_location_on_empty_space(%DungeonCrawl.DungeonInstances.Map{} = instance, user_id_hash) do
+  def create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.Map{} = instance, user_id_hash) do
     map_tile = _create_map_tile_for_location(instance)
 
     create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: user_id_hash})
   end
 
   defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.Map{} = instance) do
+    spawn_location = Repo.preload(instance, dungeon: :spawn_locations).dungeon.spawn_locations
+                     |> Enum.shuffle
+                     |> Enum.at(0)
+
     empty_floor = Repo.preload(instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
                       |> Enum.filter(fn(t) -> t.tile_template && t.tile_template.character == "." end)
                       |> Enum.random
 
+    placement = if spawn_location, do: spawn_location, else: empty_floor
+
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
 
-    Map.take(empty_floor, [:map_instance_id, :row, :col])
+    Map.take(placement, [:row, :col])
+    |> Map.merge(%{map_instance_id: instance.id})
     |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
     |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()

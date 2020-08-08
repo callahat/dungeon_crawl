@@ -109,7 +109,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
         {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
         state_values = Map.merge(state_values, %{rows: dungeon_instance.height, cols: dungeon_instance.width})
         dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
-        spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, []) # floor tiles for now
+        spawn_locations = Repo.preload(dungeon_instance, [dungeon: :spawn_locations]).dungeon.spawn_locations
+        spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # floor tiles for now
         {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, {instance_ids, refs})}
       else
         _ -> Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
@@ -177,5 +178,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     |> Map.to_list()
     |> Enum.reject(fn({_coords, dmt}) -> dmt.name != "Floor" end)
     |> Enum.map(fn({coords, _dmt}) -> coords end)
+  end
+
+  defp _spawn_coordinates(_dungeon_map_tiles, spawn_locations) do
+    spawn_locations
+    |> Enum.map(fn(spawn_location) -> {spawn_location.row, spawn_location.col} end)
   end
 end

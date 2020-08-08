@@ -64,6 +64,11 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     assert -1 = state.map_by_ids[player_map_tile.id].z_index
     assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:health]
+    assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:red_key]
+    assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:orange_key]
+    assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:cash]
+    assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:gems]
+    assert  0 = state.map_by_ids[player_map_tile.id].parsed_state[:ammo]
   end
 
   test "respawn/2", %{state: state, player_map_tile: player_map_tile} do

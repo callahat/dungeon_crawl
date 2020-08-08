@@ -81,7 +81,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                nil    -> 1
                deaths -> deaths + 1
              end
-    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, %{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
+    new_state = _door_keys(player_tile)
+                |> Enum.into(%{}, fn {k,v} -> {k, 0} end)
+                |> Map.merge(%{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
+    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
 
     script = """
              :TOP
