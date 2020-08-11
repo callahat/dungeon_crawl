@@ -279,7 +279,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+]+?))?$/i,
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+]+?))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->
         _normalize_state_arg(left)
@@ -298,7 +298,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _normalize_state_arg(arg) do
-    case Regex.named_captures(~r/^(?<type>\?[^@]*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
+    case Regex.named_captures(~r/^(?<type>\?.*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
       %{"type" => type, "state_element" => state_element, "concat" => ""} ->
         {_state_var_type(type), String.trim(state_element) |> String.to_atom()}
 
@@ -311,7 +311,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _state_var_type(type) do
-    case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>[^@]*?)(?<tail>@|)$/, type) do
+    case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>.*?)(?<tail>@|)$/, type) do
       %{"lead" => "@", "mid" => "", "tail" => ""} ->
         :state_variable
 
@@ -319,10 +319,13 @@ defmodule DungeonCrawl.Scripting.Parser do
         :instance_state_variable
 
       %{"lead" => "?", "mid" => who, "tail" => "@"} ->
-        case who do
-          "sender"  -> :event_sender_variable
-          ""        -> :event_sender_variable
-          direction -> {:direction, direction}
+        case Regex.named_captures(~r/^(?:(?<sender>[^@{}]*$|$)|{@(?<variable>[^@]+)})$/, who) do
+          %{"variable" => variable} when variable != "" -> {:state_variable, String.to_atom(variable)}
+
+          %{"sender" => "sender"}  -> :event_sender_variable
+          %{"sender" => ""}        -> :event_sender_variable
+
+          %{"sender" => direction} -> {:direction, direction}
         end
 
       #_ -> :error # should not even get here given the regex should have failed out in an upstream function

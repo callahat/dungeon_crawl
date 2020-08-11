@@ -42,13 +42,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         script: """
                 :main
                 #pull @facing
+                #if ?{@facing}@blocking, thud
                 #send main
                 #end
                 :thud
-                #if not ?north@blocking,not_surrounded
-                #if not ?south@blocking,not_surrounded
-                #if not ?east@blocking,not_surrounded
-                #if not ?west@blocking,not_surrounded
+                #if not ?clockwise@blocking,not_surrounded
+                #if not ?counterclockwise@blocking,not_surrounded
                 #send surrounded
                 #end
                 :not_surrounded

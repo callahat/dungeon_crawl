@@ -11,7 +11,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
   describe "resolve_variable" do
     test "resolves state_variable" do
       {map_tile_1, state} = Instances.create_map_tile(%Instances{},
-                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1"})
+                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"})
       {map_tile_2, state} = Instances.create_map_tile(state,
                               %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"})
 
@@ -40,6 +40,15 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       assert VariableResolution.resolve_variable(runner_state1, {{:direction, "north"}, :character}) == "X"
       assert VariableResolution.resolve_variable(runner_state1, {{:direction, "north"}, :foobar}) == nil
       assert VariableResolution.resolve_variable(runner_state1, {{:direction, "south"}, :character}) == nil
+
+      # can get state variables from a tile in a direction relative to current facing, doesnt break when to tile or no value
+      assert VariableResolution.resolve_variable(runner_state1, {{:direction, "clockwise"}, :character}) == "X"
+      assert VariableResolution.resolve_variable(runner_state1, {{:direction, "clockwise"}, :foobar}) == nil
+
+      # can get state variables from a tile in a direction specified by a state value, doesnt break when to tile or no value
+      assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :point}, :character}) == "X"
+      assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :point}, :foobar}) == nil
+      assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :derp}, :character}) == nil
 
       # can also get an instance_state_value
       assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :flash}) == "fire"
