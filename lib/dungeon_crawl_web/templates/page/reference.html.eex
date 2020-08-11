@@ -222,10 +222,12 @@
       <td>Another map tile. `?sender` refers to the map tile that sent the last message.
           Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
           that direction the map tile/object that sent the last message. Some commands require a
-          tile, and some commands require a value.</td>
+          tile, and some commands require a value. An interpolated direction may come from the map
+          tile's state value by using `?{@<state variable>}@`.</td>
       <td><pre class="script">?sender</pre>
           <pre class="script">?sender@health</pre>
-          <pre class="script">?south@blocking</pre></td>
+          <pre class="script">?south@blocking</pre>
+          <pre class="script">?{@facing}@blocking</pre></td>
     </tr>
     <tr>
       <td>&lt;prefix&gt;&lt;variable&gt;+&lt;string&gt;</td>
@@ -348,7 +350,8 @@
           starting next at the first active matching label (nothing happens if there is no matching active label).</td>
       <td><pre class="script">#IF @open, ALREADY_OPEN</pre>
           <pre class="script">#IF ?sender@blocking, TOUCH</pre>
-          <pre class="script">#IF @timer > 0, CONTINUE</pre></td>
+          <pre class="script">#IF @timer > 0, CONTINUE</pre>
+          <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre></td>
     </tr>
     <tr>
       <td>LOCK</td>
