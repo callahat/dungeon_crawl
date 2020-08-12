@@ -51,6 +51,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :pull         -> :pull
       :push         -> :push
       :put          -> :put
+      :random       -> :random
       :replace      -> :replace
       :remove       -> :remove
       :restore      -> :restore
@@ -796,6 +797,31 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       runner_state
     end
+  end
+
+  @doc """
+  Sets the specified state variable to a random value from a list or range. The first parameter is the
+  state variable, and the subsequent parameters can be a list of values to randomly choose from
+  OR an integer range. An integer range may be specified by a low bound and a high bound
+  with a hyphen in the middle (ie, 1-10). The range is inclusive, and a random integer within the
+  bounds (inclusive) will be used. Both the list and the range have a uniform distribution.
+
+  ## Examples
+
+    iex> Command.random(%Runner{}, ["foo", "1-10"])
+    %Runner{ state: %{...object => %{parsed_state => %{foo: 2} } } }
+    iex> Command.random(%Runner{}, ["foo", "one", "two", "three"])
+    %Runner{ state: %{...object => %{parsed_state => %{foo: "three"} } } 
+  """
+  def random(%Runner{} = runner_state, [state_variable | values]) do
+    random_value = if length(values) == 1 and Regex.match?(~r/^\d+\s?-\s?\d+$/, Enum.at(values,0)) do
+                      [lower, upper] = String.split( Enum.at(values, 0), ~r/\s*-\s*/)
+                                       |> Enum.map(&String.to_integer/1)
+                      Enum.random(lower..upper)
+                    else
+                      Enum.random(values)
+                    end
+    change_state(runner_state, [String.to_atom(state_variable), "=", random_value])
   end
 
   @doc """

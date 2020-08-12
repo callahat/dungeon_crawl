@@ -40,6 +40,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:noop) == :noop
     assert Command.get_command(:push) == :push
     assert Command.get_command(:put) == :put
+    assert Command.get_command(:random) == :random
     assert Command.get_command(:replace) == :replace
     assert Command.get_command(:remove) == :remove
     assert Command.get_command(:restore) == :restore
@@ -954,6 +955,25 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_state == state
+  end
+
+  test "RANDOM" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+
+    # range
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["cookies", "5 - 10"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert Enum.member?(5..10, updated_map_tile.parsed_state[:cookies])
+
+    # list of values
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["answer", "yes", "no"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert Enum.member?(["yes", "no"], updated_map_tile.parsed_state[:answer])
+
+    # bad range acts like a value
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["flaw", " - 5"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert Enum.member?(["- 5"], updated_map_tile.parsed_state[:flaw])
   end
 
   test "REPLACE tile in a direction" do

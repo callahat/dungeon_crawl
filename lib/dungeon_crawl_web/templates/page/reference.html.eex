@@ -397,6 +397,17 @@
           <pre class="script">#PUT slug: wall, row: 1, col: 1</pre></td>
     </tr>
     <tr>
+      <td>RANDOM</td>
+      <td>list - 2 or more</td>
+      <td>Sets the specified state variable to a random value from a list or range. The first parameter is the
+          state variable, and the subsequent parameters can be a list of values to randomly choose from
+          OR an integer range. An integer range may be specified by a low bound and a high bound
+          with a hyphen in the middle (ie, 1-10). The range is inclusive, and a random integer within the
+          bounds (inclusive) will be used. Both the list and the range have a uniform distribution.</td>
+      <td><pre class="script">#RANDOM hits, 5-10</pre>
+          <pre class="script">#RANDOM direction, north, south, east, west</pre></td>
+    </tr>
+    <tr>
       <td>REPLACE</td>
       <td>KWARGS</td>
       <td>Replaces a map tile. Uses KWARGs, `target` and attributes prefixed with `target_` can be used to specify which tiles to replace.
