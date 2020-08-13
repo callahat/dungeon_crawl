@@ -534,6 +534,7 @@ defmodule DungeonCrawl.Scripting.Command do
   west     - left
   idle     - no movement
   continue - continue in the current direction of the `facing` state value. Acts as `idle` if this value is not set or valid.
+  player   - move in the direction of the player
 
   ## Examples
 
@@ -556,6 +557,10 @@ defmodule DungeonCrawl.Scripting.Command do
     _move(runner_state, direction, retry_until_successful, next_actions, &Move.go/3)
   end
 
+  defp _move(runner_state, direction, retryable, next_actions, move_func) when is_tuple(direction) do
+    direction = resolve_variable(runner_state, direction)
+    _move(runner_state, direction, retryable, next_actions, move_func)
+  end
   defp _move(runner_state, "player", retryable, next_actions, move_func) do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _move(new_runner_state, player_direction, retryable, next_actions, move_func)
@@ -608,7 +613,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _get_real_direction(object, "continue") do
     object.parsed_state[:facing] || "idle"
   end
-  defp _get_real_direction(_object, direction), do: direction
+  defp _get_real_direction(_object, direction), do: direction || "idle"
 
   defp _invalid_compound_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -1210,11 +1215,11 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.take(%Runner{}, [:ammo, {:state_variable, :rounds}, "north"])
     %Runner{}
   """
-  def take(%Runner{} = runner_state, [what, amount, to_whom]) do
-    _take(runner_state, what, amount, to_whom, nil)
+  def take(%Runner{} = runner_state, [what, amount, from_whom]) do
+    _take(runner_state, what, amount, from_whom, nil)
   end
-  def take(%Runner{} = runner_state, [what, amount, to_whom, label]) do
-    _take(runner_state, what, amount, to_whom, label)
+  def take(%Runner{} = runner_state, [what, amount, from_whom, label]) do
+    _take(runner_state, what, amount, from_whom, label)
   end
 
   defp _take(%Runner{event_sender: event_sender} = runner_state, what, amount, [:event_sender], label) do
@@ -1232,7 +1237,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take(%Runner{object_id: object_id, state: state} = runner_state, what, amount, direction, label) do
-    with direction when is_valid_orthogonal(direction) <- direction,
+    with direction <- resolve_variable(runner_state, direction),
+         direction when is_valid_orthogonal(direction) <- direction,
          object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
          map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
       _take(runner_state, what, amount, map_tile.id, label)

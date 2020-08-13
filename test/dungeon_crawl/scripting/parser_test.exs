@@ -85,6 +85,10 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #PUSH @facing
                #SHIFT clockwise
                #IF ?{@facing}@blocking, TOUCH
+               #IF ?random@10 < 7, TOUCH
+               #MOVE @facing
+               #GO @facing
+               #TRY @facing
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -140,6 +144,10 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  51 => [:push, [{:state_variable, :facing}]],
                                                  52 => [:shift, ["clockwise"]],
                                                  53 => [:jump_if, [{{:state_variable, :facing}, :blocking}, "TOUCH"]],
+                                                 54 => [:jump_if, [[{:random, 1..10}, "<", 7], "TOUCH"]],
+                                                 55 => [:move, [{:state_variable, :facing}]],
+                                                 56 => [:go, [{:state_variable, :facing}]],
+                                                 57 => [:try, [{:state_variable, :facing}]],
                                                  },
                                  status: :alive,
                                  pc: 1,

@@ -299,6 +299,13 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _normalize_state_arg(arg) do
     case Regex.named_captures(~r/^(?<type>\?.*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
+      %{"type" => "?random@", "state_element" => number} ->
+        if Regex.match?(~r/^\d{1,3}$/, number) do
+          {:random, 1..String.to_integer(number)}
+        else
+          :error
+        end
+
       %{"type" => type, "state_element" => state_element, "concat" => ""} ->
         {_state_var_type(type), String.trim(state_element) |> String.to_atom()}
 

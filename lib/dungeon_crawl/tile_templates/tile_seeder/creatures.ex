@@ -1,6 +1,41 @@
 defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   alias DungeonCrawl.TileTemplates
 
+  def bandit do
+    TileTemplates.find_or_create_tile_template!(
+      %{character: "♣",
+        name: "Bandit",
+        description: "It runs around",
+        state: "blocking: true, destroyable: true, pushable: true",
+        color: "maroon",
+        public: true,
+        active: true,
+        script: """
+                :THUD
+                :NEW_SPEED
+                #RANDOM wait_cycles, 2-5
+                :NEW_DIRECTION
+                #RANDOM direction, north, south, east, west, player, player
+                #RANDOM steps, 2-5
+                :MOVING
+                #IF ?{@facing}@player, HURT_PLAYER
+                #TRY @direction
+                @steps -= 1
+                #IF @steps > 0, MOVING
+                #IF ?random@4 == 1, NEW_SPEED
+                #SEND NEW_DIRECTION
+                #END
+                :TOUCH
+                #IF not ?sender@player, NEW_DIRECTION
+                #TAKE health, 10, ?sender
+                #DIE
+                :HURT_PLAYER
+                #TAKE health, 10, @facing
+                #DIE
+                """
+    })
+  end
+
   def expanding_foam do
     TileTemplates.find_or_create_tile_template!(
       %{character: "*",
@@ -114,6 +149,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
 
   defmacro __using__(_params) do
     quote do
+      def bandit(), do: unquote(__MODULE__).bandit()
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
