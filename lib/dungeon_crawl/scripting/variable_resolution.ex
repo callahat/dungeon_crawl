@@ -21,6 +21,9 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
       resolved_variable
     end
   end
+  def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :id}) do
+    object_id
+  end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :character}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.character

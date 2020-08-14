@@ -23,6 +23,9 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
       resolved_variable
     end
   end
+  def resolve_variable(%{}, {:state_variable, :id}) do
+    12345
+  end
   def resolve_variable(%{}, {:state_variable, :character}) do
     "X"
   end

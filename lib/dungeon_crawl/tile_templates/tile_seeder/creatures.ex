@@ -71,7 +71,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "ϴ",
         name: "PedeHead",
         description: "Centipede head",
-        state: "blocking: true, facing: south",
+        state: "blocking: true, facing: south, pulling: map_tile_id",
         public: true,
         active: true,
         script: """
@@ -81,8 +81,10 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #send main
                 #end
                 :thud
+                #if @pulling == false, not_surrounded
                 #if not ?clockwise@blocking,not_surrounded
                 #if not ?counterclockwise@blocking,not_surrounded
+                #if not ?reverse@blocking,not_surrounded
                 #send surrounded
                 #end
                 :not_surrounded
@@ -91,13 +93,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #end
                 :shot
                 #facing reverse
-                #send pede_died, @facing
+                #send pede_died, @pulling
                 #die
                 #end
                 :surrounded
                 #facing reverse
-                #send surrounded, @facing
-                #become slug: pedebody, color: @color, background_color: @background_color
+                #send surrounded, @pulling
+                #become slug: pedebody, color: @color, background_color: @background_color, pulling: false, pullable: @pulling
                 """
     })
   end
@@ -107,41 +109,30 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "O",
         name: "PedeBody",
         description: "Centipede body segment",
-        state: "pullable: map_tile_id, pulling: true, blocking: true, facing: west",
+        state: "pullable: map_tile_id, pulling: map_tile_id, blocking: true, facing: west",
         public: true,
         active: true,
         script: """
                 #end
                 :shot
                 #facing reverse
-                #send pede_died, @facing
+                #send pede_died, @pulling
                 ?i
                 #die
-                :pede_died
-                #become slug: pedehead, facing: @facing, pullable: false, color: @color, background_color: @background_color
-                #end
                 :surrounded
                 #facing reverse
-                @pullable = map_tile_id
-                #if @facing == west, checkwest
-                #if @facing == south, checksouth
-                #if @facing == north, checknorth
-                :checkeast
-                #if ?east@name == PedeBody, not_tail
-                #send tail
-                :checkwest
-                #if ?west@name == PedeBody, not_tail
-                #send tail
-                :checksouth
-                #if ?south@name == PedeBody, not_tail
-                #send tail
-                :checknorth
-                #if ?north@name == PedeBody, not_tail
+                #if @pulling != false, not_tail
                 :tail
-                #become slug: pedehead, facing: @facing, pullable: false, color: @color, background_color: @background_color
+                #become slug: pedehead, facing: @facing, color: @color, background_color: @background_color, pullable: false, pulling: @pullable
+                #end
+                :pede_died
+                #become slug: pedehead, facing: @facing, color: @color, background_color: @background_color, pullable: false, pulling: @pulling
                 #end
                 :not_tail
-                #send surrounded, @facing
+                @tmp = @pulling
+                @pulling = @pullable
+                @pullable = @tmp
+                #send surrounded, @pullable
                 #end
                 """
     })

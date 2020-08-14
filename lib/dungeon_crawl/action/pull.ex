@@ -29,24 +29,39 @@ defmodule DungeonCrawl.Action.Pull do
   end
   def pull(_, _, _), do: {:invalid}
 
-  defp _execute_pull_chain(_tile_changes_and_state_tuple, _pull_chain, _puller_id \\ nil)
-  defp _execute_pull_chain({:ok, tile_changes, state}, [], _puller_id), do: {:ok, tile_changes, state}
-  defp _execute_pull_chain({:ok, tile_changes, state}, [ {lead_map_tile, destination} | pull_chain ], puller_id) do
+  defp _execute_pull_chain(_tile_changes_and_state_tuple, _pull_chain, _puller \\ nil)
+  defp _execute_pull_chain({:ok, tile_changes, state}, [], puller) do
+    {_, state} = cond do
+                   puller && puller.parsed_state[:pulling] == "map_tile_id" ->
+                     Instances.update_map_tile_state(state, puller, %{pulling: false})
+                   true ->
+                     {puller, state}
+                 end
+    {:ok, tile_changes, state}
+  end
+  defp _execute_pull_chain({:ok, tile_changes, state}, [ {lead_map_tile, destination} | pull_chain ], puller) do
     direction = Direction.orthogonal_direction(lead_map_tile, destination) |> Enum.at(0)
 
     {lead_map_tile, state} = cond do
-                               puller_id && lead_map_tile.parsed_state[:pullable] == "map_tile_id" ->
-                                 Instances.update_map_tile_state(state, lead_map_tile, %{pullable: puller_id, facing: direction})
+                               puller && lead_map_tile.parsed_state[:pullable] == "map_tile_id" ->
+                                 Instances.update_map_tile_state(state, lead_map_tile, %{pullable: puller.id, facing: direction})
                                direction != lead_map_tile.parsed_state[:facing] ->
                                  Instances.update_map_tile_state(state, lead_map_tile, %{facing: direction})
                                true ->
                                  {lead_map_tile, state}
                              end
 
+    {_, state} = cond do
+                   puller && puller.parsed_state[:pulling] == "map_tile_id" ->
+                     Instances.update_map_tile_state(state, puller, %{pulling: lead_map_tile.id})
+                   true ->
+                     {puller, state}
+                 end
+
     destination = (Instances.get_map_tile(state, destination) # really only care about row,col and z_index here
                   || Map.merge(destination, %{z_index: -1}) )
     Move.go(lead_map_tile, destination, state, :absolute, tile_changes)
-    |> _execute_pull_chain(pull_chain, lead_map_tile.id)
+    |> _execute_pull_chain(pull_chain, lead_map_tile)
   end
 
   defp _pull_chain(lead_map_tile, destination, state) do
@@ -58,6 +73,7 @@ defmodule DungeonCrawl.Action.Pull do
     pulled_tile = ["north", "south", "east", "west"]
                   |> Enum.map(fn(direction) -> Instances.get_map_tile(state, lead_map_tile, direction) end)
                   |> Enum.filter(fn(adjacent) -> can_pull(lead_map_tile, adjacent, destination, pull_chain) end)
+                  |> Enum.reject(fn(adjacent) -> would_not_pull(lead_map_tile, adjacent) end)
                   |> Enum.shuffle()
                   |> Enum.sort_by(fn pulled_tile ->
                        {pulled_tile.parsed_state[:pullable] == lead_map_tile.id, pulled_tile.parsed_state[:pullable] == "map_tile_id"}
@@ -73,6 +89,16 @@ defmodule DungeonCrawl.Action.Pull do
     else
       [{lead_map_tile, destination} | pull_chain]
     end
+  end
+
+  @doc """
+  Returns true if the tile would not pull an adjacent one. For most cases, the tile would pull
+  if it is pulling. However, when that tile's `pulling` state value is an integer, it will only pull
+  an adjacent tile that has the integer as its id.
+  """
+  def would_not_pull(tile, adjacent_tile) do
+    is_integer(tile.parsed_state[:pulling]) &&
+      tile.parsed_state[:pulling] != adjacent_tile.id
   end
 
   @doc """

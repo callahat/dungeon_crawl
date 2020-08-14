@@ -175,6 +175,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def change_state(%Runner{object_id: object_id, state: state} = runner_state, params) do
     [var, op, value] = params
+    value = resolve_variable(runner_state, value)
 
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object_state = Map.put(object.parsed_state, var, Maths.calc(object.parsed_state[var] || 0, op, value))
@@ -1041,6 +1042,9 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def send_message(%Runner{} = runner_state, [label, target]) do
     _send_message(runner_state, [label, String.downcase(target)])
+  end
+  defp _send_message(%Runner{} = runner_state, [label, target]) when is_integer(target) do
+    _send_message_via_ids(runner_state, label, [target])
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
