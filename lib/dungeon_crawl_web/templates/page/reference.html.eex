@@ -94,7 +94,11 @@
     </tr>
     <tr>
       <td>pulling</td>
-      <td>When this tile is pulled, it will attempt to pull another nearby tile. This defaults to false.</td>
+      <td>When this tile is pulled, it will attempt to pull another nearby tile. This defaults to false. When it is
+          an integer, it will only pull the map tile with id matching this value. When `map_tile_id`, this value will
+          be replaced with the id of the tile it pulls on a pull command or chain pull. If nothing is pulled,
+          then pulling will be set to false. This helps to create double linked chains of map tiles that will only pull
+          one specific tile, and will only be pulled by one specific tile.</td>
     </tr>
   </table>
 
