@@ -2,7 +2,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
   alias DungeonCrawl.TileTemplates
 
   def solid_wall() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "solid_wall",
       %{character: "█",
         name: "Solid Wall",
         description: "A solid wall",
@@ -13,7 +14,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
   end
 
   def normal_wall() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "normal_wall",
       %{character: "▒",
         name: "Normal Wall",
         description: "A normal wall",
@@ -24,7 +26,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
   end
 
   def breakable_wall() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "breakable_wall",
       %{character: "░",
         name: "Breakable Wall",
         description: "A breakable wall",
@@ -35,7 +38,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
   end
 
   def fake_wall() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "fake_wall",
       %{character: "▒",
         name: "Fake Wall",
         description: "A fake wall",

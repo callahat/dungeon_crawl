@@ -38,6 +38,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :become       -> :become
       :change_state -> :change_state
       :change_instance_state -> :change_instance_state
+      :change_other_state -> :change_other_state
       :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
@@ -51,6 +52,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :pull         -> :pull
       :push         -> :push
       :put          -> :put
+      :random       -> :random
       :replace      -> :replace
       :remove       -> :remove
       :restore      -> :restore
@@ -172,15 +174,9 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: program,
             state: %Instances{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
   """
-  def change_state(%Runner{object_id: object_id, state: state} = runner_state, params) do
-    [var, op, value] = params
-
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object_state = Map.put(object.parsed_state, var, Maths.calc(object.parsed_state[var] || 0, op, value))
-    object_state_str = StateValue.Parser.stringify(object_state)
-    {_updated_object, updated_state} = Instances.update_map_tile(state, object, %{state: object_state_str, parsed_state: object_state})
-
-    %Runner{ runner_state | state: updated_state }
+  def change_state(%Runner{object_id: object_id} = runner_state, [var, op, value]) do
+    value = resolve_variable(runner_state, value)
+    _change_state(runner_state, object_id, var, op, value)
   end
 
   @doc """
@@ -200,6 +196,50 @@ defmodule DungeonCrawl.Scripting.Command do
     state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
 
     %Runner{ runner_state | state: %{ state | state_values: state_values } }
+  end
+
+  @doc """
+  Changes the state_value for an object given in the params. The target object can be specified by
+  a direction (relative from the current object) or by a map tile id. Not valid against player tiles.
+
+  ## Examples
+
+    iex> Command.change_other_state(%Runner{program: program,
+                                               state: %Instances{state_values: %{}}},
+                                       ["north", :space, "=", 3])
+    %Runner{program: program,
+            state: %Instances{map_by_ids: %{1 => %{state: "space: 3"},...}, ...} }
+  """
+  def change_other_state(%Runner{} = runner_state, [target, var, op, value]) do
+    target = resolve_variable(runner_state, target)
+    value = resolve_variable(runner_state, value)
+
+    _change_state(runner_state, target, var, op, value)
+  end
+
+  def _change_state(%Runner{state: state} = runner_state, %{} = target, var, op, value) do
+    if(target.parsed_state[:player]) do
+      runner_state
+    else
+      update_var = %{ var => Maths.calc(target.parsed_state[var] || 0, op, value) }
+      {_updated_target, updated_state} = Instances.update_map_tile_state(state, target, update_var)
+      %Runner{ runner_state | state: updated_state }
+    end
+  end
+
+  def _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) when is_binary(target) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    target_tile = Instances.get_map_tile(state, object, target)
+    _change_state(runner_state, target_tile, var, op, value)
+  end
+
+  def _change_state(%Runner{state: state} = runner_state, target, var, op, value) when is_integer(target) do
+    target_tile = Instances.get_map_tile_by_id(state, %{id: target})
+    _change_state(runner_state, target_tile, var, op, value)
+  end
+
+  def _change_state(%Runner{} = runner_state, _, _, _, _) do
+    runner_state
   end
 
   @doc """
@@ -533,6 +573,7 @@ defmodule DungeonCrawl.Scripting.Command do
   west     - left
   idle     - no movement
   continue - continue in the current direction of the `facing` state value. Acts as `idle` if this value is not set or valid.
+  player   - move in the direction of the player
 
   ## Examples
 
@@ -555,6 +596,10 @@ defmodule DungeonCrawl.Scripting.Command do
     _move(runner_state, direction, retry_until_successful, next_actions, &Move.go/3)
   end
 
+  defp _move(runner_state, direction, retryable, next_actions, move_func) when is_tuple(direction) do
+    direction = resolve_variable(runner_state, direction)
+    _move(runner_state, direction, retryable, next_actions, move_func)
+  end
   defp _move(runner_state, "player", retryable, next_actions, move_func) do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _move(new_runner_state, player_direction, retryable, next_actions, move_func)
@@ -607,7 +652,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _get_real_direction(object, "continue") do
     object.parsed_state[:facing] || "idle"
   end
-  defp _get_real_direction(_object, direction), do: direction
+  defp _get_real_direction(_object, direction), do: direction || "idle"
 
   defp _invalid_compound_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -796,6 +841,31 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       runner_state
     end
+  end
+
+  @doc """
+  Sets the specified state variable to a random value from a list or range. The first parameter is the
+  state variable, and the subsequent parameters can be a list of values to randomly choose from
+  OR an integer range. An integer range may be specified by a low bound and a high bound
+  with a hyphen in the middle (ie, 1-10). The range is inclusive, and a random integer within the
+  bounds (inclusive) will be used. Both the list and the range have a uniform distribution.
+
+  ## Examples
+
+    iex> Command.random(%Runner{}, ["foo", "1-10"])
+    %Runner{ state: %{...object => %{parsed_state => %{foo: 2} } } }
+    iex> Command.random(%Runner{}, ["foo", "one", "two", "three"])
+    %Runner{ state: %{...object => %{parsed_state => %{foo: "three"} } } 
+  """
+  def random(%Runner{} = runner_state, [state_variable | values]) do
+    random_value = if length(values) == 1 and Regex.match?(~r/^\d+\s?-\s?\d+$/, Enum.at(values,0)) do
+                      [lower, upper] = String.split( Enum.at(values, 0), ~r/\s*-\s*/)
+                                       |> Enum.map(&String.to_integer/1)
+                      Enum.random(lower..upper)
+                    else
+                      Enum.random(values)
+                    end
+    change_state(runner_state, [String.to_atom(state_variable), "=", random_value])
   end
 
   @doc """
@@ -1011,6 +1081,9 @@ defmodule DungeonCrawl.Scripting.Command do
   def send_message(%Runner{} = runner_state, [label, target]) do
     _send_message(runner_state, [label, String.downcase(target)])
   end
+  defp _send_message(%Runner{} = runner_state, [label, target]) when is_integer(target) do
+    _send_message_via_ids(runner_state, label, [target])
+  end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{map_tile_id: object.id, parsed_state: object.parsed_state}} |
@@ -1184,11 +1257,11 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.take(%Runner{}, [:ammo, {:state_variable, :rounds}, "north"])
     %Runner{}
   """
-  def take(%Runner{} = runner_state, [what, amount, to_whom]) do
-    _take(runner_state, what, amount, to_whom, nil)
+  def take(%Runner{} = runner_state, [what, amount, from_whom]) do
+    _take(runner_state, what, amount, from_whom, nil)
   end
-  def take(%Runner{} = runner_state, [what, amount, to_whom, label]) do
-    _take(runner_state, what, amount, to_whom, label)
+  def take(%Runner{} = runner_state, [what, amount, from_whom, label]) do
+    _take(runner_state, what, amount, from_whom, label)
   end
 
   defp _take(%Runner{event_sender: event_sender} = runner_state, what, amount, [:event_sender], label) do
@@ -1206,7 +1279,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take(%Runner{object_id: object_id, state: state} = runner_state, what, amount, direction, label) do
-    with direction when is_valid_orthogonal(direction) <- direction,
+    with direction <- resolve_variable(runner_state, direction),
+         direction when is_valid_orthogonal(direction) <- direction,
          object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
          map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
       _take(runner_state, what, amount, map_tile.id, label)

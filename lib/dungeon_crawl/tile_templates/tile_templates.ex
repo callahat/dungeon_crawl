@@ -20,16 +20,19 @@ defmodule DungeonCrawl.TileTemplates do
   def list_tile_templates(%DungeonCrawl.Account.User{} = user) do
     Repo.all(from t in TileTemplate,
              where: t.user_id == ^user.id,
-             where: is_nil(t.deleted_at))
+             where: is_nil(t.deleted_at),
+             order_by: :slug)
   end
   def list_tile_templates(:nouser) do
     Repo.all(from t in TileTemplate,
              where: is_nil(t.user_id),
-             where: is_nil(t.deleted_at))
+             where: is_nil(t.deleted_at),
+             order_by: :slug)
   end
   def list_tile_templates() do
     Repo.all(from t in TileTemplate,
-             where: is_nil(t.deleted_at))
+             where: is_nil(t.deleted_at),
+             order_by: :slug)
   end
 
   @doc """
@@ -241,6 +244,45 @@ defmodule DungeonCrawl.TileTemplates do
         field_query = [{x, y}] #dynamic keyword list
         query|>where(^field_query)
       end)
+  end
+
+  @doc """
+  Finds and updates or creates a tile_template; mainly useful for the initial seeds.
+  Looks up the tile first by slug (if given). If one is found, and the latest
+  When one is found, the newest tile_template will be returned (ie, last created, even
+  if not active) to ensure get the latest version of the seeded tile. If nothing with that slug
+  is found, falls back to the "find_or_create_tile_template" function.
+
+  Does not accept attributes of `nil`
+
+  ## Examples
+
+      iex> update_or_create_tile_template(%{field: value})
+      {:ok, %TileTemplate{}}
+
+      iex> update_or_create_tile_template(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_or_create_tile_template(slug, attrs) do
+    existing_template = Repo.one(from tt in TileTemplate, where: tt.slug == ^slug, limit: 1, order_by: [desc: :id])
+
+    if existing_template do
+      update_tile_template(existing_template, attrs)
+    else
+      find_or_create_tile_template(attrs)
+    end
+  end
+
+  def update_or_create_tile_template!(slug, attrs) do
+    existing_template = Repo.one(from tt in TileTemplate, where: tt.slug == ^slug, limit: 1, order_by: [desc: :id])
+
+    if existing_template do
+      {:ok, updated_template} = update_tile_template(existing_template, attrs)
+      updated_template
+    else
+      find_or_create_tile_template!(attrs)
+    end
   end
 
   @doc """

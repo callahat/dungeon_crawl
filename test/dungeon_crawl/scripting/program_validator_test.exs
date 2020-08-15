@@ -90,6 +90,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #PUSH norf, 3
     #PUSH east, crayon
     #SHIFT neutral
+    #IF ?random@10 < 2, touch
+    #IF ?random@5552 < 2, touch
     """
   end
 
@@ -160,6 +162,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 56: PUSH command references invalid direction `norf`",
                "Line 57: PUSH command has invalid range `crayon`",
                "Line 58: SHIFT command references invalid rotation `neutral`",
+               "Line 60: IF command malformed",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -204,6 +207,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 56: PUSH command references invalid direction `norf`",
                "Line 57: PUSH command has invalid range `crayon`",
                "Line 58: SHIFT command references invalid rotation `neutral`",
+               "Line 60: IF command malformed",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

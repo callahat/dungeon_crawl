@@ -94,7 +94,11 @@
     </tr>
     <tr>
       <td>pulling</td>
-      <td>When this tile is pulled, it will attempt to pull another nearby tile. This defaults to false.</td>
+      <td>When this tile is pulled, it will attempt to pull another nearby tile. This defaults to false. When it is
+          an integer, it will only pull the map tile with id matching this value. When `map_tile_id`, this value will
+          be replaced with the id of the tile it pulls on a pull command or chain pull. If nothing is pulled,
+          then pulling will be set to false. This helps to create double linked chains of map tiles that will only pull
+          one specific tile, and will only be pulled by one specific tile.</td>
     </tr>
   </table>
 
@@ -139,8 +143,25 @@
     <tr>
       <td>@@</td>
       <td>Dungeon value</td>
-      <td>Similar to the State Value, however this is for the entire dungeon.</td>
-      <td><pre class="script">@@ALARM = true</pre></td>
+      <td>Similar to the State Value, however this is for the entire dungeon. There are a few special dungeon values
+          which are read only and return the boundary row/col: north_edge, west_edge, south_edge, east_edge.
+          This can be useful for objects that need to know when they've reached the edge via a IF command.</td>
+      <td><pre class="script">@@ALARM = true</pre>
+          <pre class="script">#IF @col >= @@east_edge, something</pre></td>
+    </tr>
+    <tr>
+      <td>?&lt;target&gt;@</td>
+      <td>Other's State Value</td>
+      <td>This is for setting state values of another object. There may be instances when the GIVE or TAKE
+          commands are insufficient. The target can be a direction, "sender" (for the event sender if applicable)
+          or the id of the target object. Additionally, {@state_val} can be used to determine the target from
+          a state value of the current object (which should resolve to a direction or object id). Cannot target a
+          player object. Additionally, if the target is invalid (ie, nonexistant, a player, etc), this will act
+          as a noop. Its also important to note that this will not trigger any side effects (such as killing and
+          removing an object from the board when its health reaches zero), unlike the TAKE command.</td>
+      <td><pre class="script">?north@locked = true</pre>
+          <pre class="script">?{@facing}@blocking = false</pre>
+          <pre class="script">?12345@health += 10</pre></td>
     </tr>
     <tr>
       <td>/</td>
@@ -222,10 +243,12 @@
       <td>Another map tile. `?sender` refers to the map tile that sent the last message.
           Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
           that direction the map tile/object that sent the last message. Some commands require a
-          tile, and some commands require a value.</td>
+          tile, and some commands require a value. An interpolated direction may come from the map
+          tile's state value by using `?{@<state variable>}@`.</td>
       <td><pre class="script">?sender</pre>
           <pre class="script">?sender@health</pre>
-          <pre class="script">?south@blocking</pre></td>
+          <pre class="script">?south@blocking</pre>
+          <pre class="script">?{@facing}@blocking</pre></td>
     </tr>
     <tr>
       <td>&lt;prefix&gt;&lt;variable&gt;+&lt;string&gt;</td>
@@ -348,7 +371,8 @@
           starting next at the first active matching label (nothing happens if there is no matching active label).</td>
       <td><pre class="script">#IF @open, ALREADY_OPEN</pre>
           <pre class="script">#IF ?sender@blocking, TOUCH</pre>
-          <pre class="script">#IF @timer > 0, CONTINUE</pre></td>
+          <pre class="script">#IF @timer > 0, CONTINUE</pre>
+          <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre></td>
     </tr>
     <tr>
       <td>LOCK</td>
@@ -392,6 +416,17 @@
           this command will do nothing.</td>
       <td><pre class="script">#PUT slug: expanding_foam, direction: south, color: @color</pre>
           <pre class="script">#PUT slug: wall, row: 1, col: 1</pre></td>
+    </tr>
+    <tr>
+      <td>RANDOM</td>
+      <td>list - 2 or more</td>
+      <td>Sets the specified state variable to a random value from a list or range. The first parameter is the
+          state variable, and the subsequent parameters can be a list of values to randomly choose from
+          OR an integer range. An integer range may be specified by a low bound and a high bound
+          with a hyphen in the middle (ie, 1-10). The range is inclusive, and a random integer within the
+          bounds (inclusive) will be used. Both the list and the range have a uniform distribution.</td>
+      <td><pre class="script">#RANDOM hits, 5-10</pre>
+          <pre class="script">#RANDOM direction, north, south, east, west</pre></td>
     </tr>
     <tr>
       <td>REPLACE</td>

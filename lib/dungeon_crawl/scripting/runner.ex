@@ -55,6 +55,8 @@ Logger.info inspect params
 Logger.info inspect object
 if object, do: Logger.info inspect object.state
 Logger.info inspect runner_state.event_sender
+Logger.info "instance state:"
+Logger.info inspect state.state_values
 end
         runner_state = apply(Command, command, [runner_state, params])
 

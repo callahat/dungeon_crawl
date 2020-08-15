@@ -115,8 +115,53 @@ defmodule DungeonCrawl.Action.PullTest do
       assert object2.parsed_state[:facing] == "north"
     end
 
+    test "map_tile_id for pulling is replaced with the pullees id", %{state: state, puller: puller, destination: destination} do
+      object1          = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: map_tile_id"}
+      object2          = %MapTile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: "pullable: map_tile_id, pulling: map_tile_id"}
+
+      {object1, state} = Instances.create_map_tile(state, object1)
+      {object2, state} = Instances.create_map_tile(state, object2)
+
+      assert {:ok, tile_changes, updated_state} = Pull.pull(puller, destination, state)
+      assert %{ {1, 2} => %MapTile{character: "@"},
+                {2, 2} => %MapTile{character: "X"},
+                {3, 2} => %MapTile{character: "Y"},
+                {4, 2} => %MapTile{character: "."}} = tile_changes
+      assert length(Map.keys(tile_changes)) == 4
+      object1 = Instances.get_map_tile_by_id(updated_state, object1)
+      object2 = Instances.get_map_tile_by_id(updated_state, object2)
+      assert object1.parsed_state[:pullable] == true
+      assert object2.parsed_state[:pullable] == object1.id
+      assert object1.parsed_state[:facing] == "north"
+      assert object2.parsed_state[:facing] == "north"
+      assert object1.parsed_state[:pulling] == object2.id
+      assert object2.parsed_state[:pulling] == false
+    end
+
     test "cant pull bad inputs" do
       assert {:invalid} == Pull.pull("anything", "that", "doesnt match the params")
+    end
+  end
+
+  describe "would_not_pull/2" do
+    test "would not pull", %{state: state} do
+      object1          = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pulling: 1000"}
+      object2          = %MapTile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: "pullable: true"}
+
+      {object1, state} = Instances.create_map_tile(state, object1)
+      {object2, _state} = Instances.create_map_tile(state, object2)
+
+      assert Pull.would_not_pull(object1, object2)
+    end
+
+    test "would pull", %{state: state} do
+      object1          = %MapTile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pulling: 999"}
+      object2          = %MapTile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: "pullable: true"}
+
+      {object1, state} = Instances.create_map_tile(state, object1)
+      {object2, _state} = Instances.create_map_tile(state, object2)
+
+      refute Pull.would_not_pull(object1, object2)
     end
   end
 

@@ -184,6 +184,46 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert {:error, %Ecto.Changeset{}} = TileTemplates.find_or_create_tile_template(@invalid_attrs)
     end
 
+    test "update_or_create_tile_template/2" do
+      {:ok, existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
+      # finds existing template by slug and updates it
+      assert {:ok, tile_template} = TileTemplates.update_or_create_tile_template("a_big_x", Map.put(@valid_attrs, :character, "Y"))
+      assert tile_template.id == existing_tile_template.id
+      assert tile_template.character == "Y"
+
+      # does not find the slug, but finds a matching tile for the other attrs
+      assert {:ok, tile_template} = TileTemplates.update_or_create_tile_template("a_big_y", Map.put(@valid_attrs, :character, "Y"))
+      assert tile_template.id == existing_tile_template.id
+      assert tile_template.character == "Y"
+      assert tile_template.slug == "a_big_x"
+
+      # creates the unfound tile
+      assert {:ok, tile_template} = TileTemplates.update_or_create_tile_template("not", Map.merge(@valid_attrs, %{character: "Z", name: "Big Z"}))
+      assert tile_template.id != existing_tile_template.id
+      assert tile_template.character == "Z"
+      assert tile_template.slug == "big_z"
+    end
+
+    test "update_or_create_tile_template!/2" do
+      {:ok, existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
+      # finds existing template by slug and updates it
+      assert tile_template = TileTemplates.update_or_create_tile_template!("a_big_x", Map.put(@valid_attrs, :character, "Y"))
+      assert tile_template.id == existing_tile_template.id
+      assert tile_template.character == "Y"
+
+      # does not find the slug, but finds a matching tile for the other attrs
+      assert tile_template = TileTemplates.update_or_create_tile_template!("a_big_y", Map.put(@valid_attrs, :character, "Y"))
+      assert tile_template.id == existing_tile_template.id
+      assert tile_template.character == "Y"
+      assert tile_template.slug == "a_big_x"
+
+      # creates the unfound tile
+      assert tile_template = TileTemplates.update_or_create_tile_template!("not", Map.merge(@valid_attrs, %{character: "Z", name: "Big Z"}))
+      assert tile_template.id != existing_tile_template.id
+      assert tile_template.character == "Z"
+      assert tile_template.slug == "big_z"
+    end
+
     test "update_tile_template/2 with valid data updates the tile_template" do
       tile_template = tile_template_fixture()
       assert {:ok, tile_template} = TileTemplates.update_tile_template(tile_template, @update_attrs)

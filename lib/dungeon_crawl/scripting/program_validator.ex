@@ -92,7 +92,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [:go, [direction] ]} | instructions], errors, user) do
-    if @valid_directions |> Enum.member?(direction) do
+    if @valid_directions |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: GO command references invalid direction `#{direction}`" | errors], user)
@@ -122,7 +122,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, [ {line_no, [:move, [direction, false] ]} | instructions], errors, user)
   end
   defp _validate(program, [ {line_no, [:move, [direction, _] ]} | instructions], errors, user) do
-    if @valid_directions |> Enum.member?(direction) do
+    if @valid_directions |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: MOVE command references invalid direction `#{direction}`" | errors], user)
@@ -205,7 +205,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_number(amount) and amount > 0,
                do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
                do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
                else: errors
     _validate(program, instructions, errors, user)
@@ -215,7 +215,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
                do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
                else: errors
     errors = unless Program.line_for(program, label),
@@ -225,7 +225,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
-    if @valid_directions |> Enum.member?(direction) do
+    if @valid_directions |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
       _validate(program, instructions, ["Line #{line_no}: TRY command references invalid direction `#{direction}`" | errors], user)

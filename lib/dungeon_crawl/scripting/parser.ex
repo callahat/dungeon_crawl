@@ -59,7 +59,8 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_line(line, program) do
-    case Regex.named_captures(~r/^(?<type>#|:|@@|@|\/|\?)(?<instruction>.*)$/, line) do
+    other_state_change = "\\?({@.+?}|{\\?.+?}|[^{}@]+?)@"
+    case Regex.named_captures(~r/^(?<type>#|:|@@|@|#{other_state_change}|\/|\?)(?<instruction>.*)$/, line) do
       %{"type" => "/", "instruction" => _command} ->
         _parse_shorthand_movement(line, program)
 
@@ -77,6 +78,9 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       %{"type" => "@@", "instruction" => state_element} ->
         _parse_state_change(:change_instance_state, state_element, program)
+
+      %{"type" => type, "instruction" => state_element} when type != "" ->
+        _parse_state_change(:change_other_state, type, state_element, program)
 
       _ -> # If the last item in the program is also text, concat the two
         _handle_text(line, program)
@@ -156,6 +160,21 @@ defmodule DungeonCrawl.Scripting.Parser do
     end
   end
 
+  defp _parse_state_change(:change_other_state, other, element, program) do
+    with %{"target" => target} <- Regex.named_captures(~r/^\?{?(?<target>.*?)}?@$/, other),
+         target <- _cast_other_target(target),
+         state_element <- String.trim(String.downcase(element)),
+         %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
+         element = String.to_atom(element),
+         {:ok, op, value} <- _parse_state_setting(setting),
+         line_number <- Enum.count(program.instructions) + 1 do
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:change_other_state, [target, element, op, value]]) } }
+    else
+      nil               -> {:error, "Invalid :change_other_state setting: `#{other}` by `#{element}`", program}
+      {:error, message} -> {:error, message, program}
+    end
+  end
+
   defp _parse_state_change(type, element, program) do
     with state_element <- String.trim(String.downcase(element)),
          %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
@@ -166,6 +185,16 @@ defmodule DungeonCrawl.Scripting.Parser do
     else
       nil               -> {:error, "Invalid #{type} setting: `#{element}`", program}
       {:error, message} -> {:error, message, program}
+    end
+  end
+
+  defp _cast_other_target(param) do
+    cond do
+      Regex.match?(~r/^sender$|^$/, param) -> [:event_sender]
+      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^@.+?$/, param) -> _normalize_state_arg(param)
+      Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
+      true -> param # just a string, probably a direction
     end
   end
 
@@ -279,7 +308,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+]+?))?$/i,
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+]+?))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->
         _normalize_state_arg(left)
@@ -298,7 +327,14 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _normalize_state_arg(arg) do
-    case Regex.named_captures(~r/^(?<type>\?[^@]*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
+    case Regex.named_captures(~r/^(?<type>\?.*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
+      %{"type" => "?random@", "state_element" => number} ->
+        if Regex.match?(~r/^\d{1,3}$/, number) do
+          {:random, 1..String.to_integer(number)}
+        else
+          :error
+        end
+
       %{"type" => type, "state_element" => state_element, "concat" => ""} ->
         {_state_var_type(type), String.trim(state_element) |> String.to_atom()}
 
@@ -311,7 +347,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _state_var_type(type) do
-    case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>[^@]*?)(?<tail>@|)$/, type) do
+    case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>.*?)(?<tail>@|)$/, type) do
       %{"lead" => "@", "mid" => "", "tail" => ""} ->
         :state_variable
 
@@ -319,10 +355,13 @@ defmodule DungeonCrawl.Scripting.Parser do
         :instance_state_variable
 
       %{"lead" => "?", "mid" => who, "tail" => "@"} ->
-        case who do
-          "sender"  -> :event_sender_variable
-          ""        -> :event_sender_variable
-          direction -> {:direction, direction}
+        case Regex.named_captures(~r/^(?:(?<sender>[^@{}]*$|$)|{@(?<variable>[^@]+)})$/, who) do
+          %{"variable" => variable} when variable != "" -> {:state_variable, String.to_atom(variable)}
+
+          %{"sender" => "sender"}  -> :event_sender_variable
+          %{"sender" => ""}        -> :event_sender_variable
+
+          %{"sender" => direction} -> {:direction, direction}
         end
 
       #_ -> :error # should not even get here given the regex should have failed out in an upstream function

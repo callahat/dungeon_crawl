@@ -121,6 +121,8 @@ defmodule DungeonCrawl.Scripting.Direction do
     "north"
     iex> Direction.change_direction("idle", "counterclockwise")
     "idle"
+    iex> Direction.change_direction("north", "notavalidrotation")
+    "north"
   """
   def change_direction(direction, change_by) do
     @orthogonal_change[change_by][normalize_orthogonal(direction)] || direction || "idle"

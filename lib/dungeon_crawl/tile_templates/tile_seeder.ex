@@ -26,6 +26,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     fake_wall()
 
     # creatures
+    bandit()
     expanding_foam()
     pede_head()
     pede_body()

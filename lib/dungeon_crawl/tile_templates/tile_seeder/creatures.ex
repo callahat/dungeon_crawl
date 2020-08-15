@@ -1,8 +1,45 @@
 defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   alias DungeonCrawl.TileTemplates
 
+  def bandit do
+    TileTemplates.update_or_create_tile_template!(
+      "bandit",
+      %{character: "♣",
+        name: "Bandit",
+        description: "It runs around",
+        state: "blocking: true, destroyable: true, pushable: true",
+        color: "maroon",
+        public: true,
+        active: true,
+        script: """
+                :THUD
+                :NEW_SPEED
+                #RANDOM wait_cycles, 2-5
+                :NEW_DIRECTION
+                #RANDOM direction, north, south, east, west, player, player
+                #RANDOM steps, 2-5
+                :MOVING
+                #IF ?{@facing}@player, HURT_PLAYER
+                #TRY @direction
+                @steps -= 1
+                #IF @steps > 0, MOVING
+                #IF ?random@4 == 1, NEW_SPEED
+                #SEND NEW_DIRECTION
+                #END
+                :TOUCH
+                #IF not ?sender@player, NEW_DIRECTION
+                #TAKE health, 10, ?sender
+                #DIE
+                :HURT_PLAYER
+                #TAKE health, 10, @facing
+                #DIE
+                """
+    })
+  end
+
   def expanding_foam do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "expanding_foam",
       %{character: "*",
         name: "Expanding Foam",
         description: "It gets all over",
@@ -32,23 +69,25 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   end
 
   def pede_head do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "pedehead",
       %{character: "ϴ",
         name: "PedeHead",
         description: "Centipede head",
-        state: "blocking: true, facing: south",
+        state: "blocking: true, facing: south, pulling: map_tile_id",
         public: true,
         active: true,
         script: """
                 :main
                 #pull @facing
+                #if ?{@facing}@blocking, thud
                 #send main
                 #end
                 :thud
-                #if not ?north@blocking,not_surrounded
-                #if not ?south@blocking,not_surrounded
-                #if not ?east@blocking,not_surrounded
-                #if not ?west@blocking,not_surrounded
+                #if @pulling == false, not_surrounded
+                #if not ?clockwise@blocking,not_surrounded
+                #if not ?counterclockwise@blocking,not_surrounded
+                #if not ?reverse@blocking,not_surrounded
                 #send surrounded
                 #end
                 :not_surrounded
@@ -57,57 +96,47 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #end
                 :shot
                 #facing reverse
-                #send pede_died, @facing
+                #send pede_died, @pulling
                 #die
                 #end
                 :surrounded
                 #facing reverse
-                #send surrounded, @facing
-                #become slug: pedebody, color: @color, background_color: @background_color
+                #send surrounded, @pulling
+                #become slug: pedebody, color: @color, background_color: @background_color, pulling: false, pullable: @pulling
                 """
     })
   end
 
   def pede_body do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "pedebody",
       %{character: "O",
         name: "PedeBody",
         description: "Centipede body segment",
-        state: "pullable: map_tile_id, pulling: true, blocking: true, facing: west",
+        state: "pullable: map_tile_id, pulling: map_tile_id, blocking: true, facing: west",
         public: true,
         active: true,
         script: """
                 #end
                 :shot
                 #facing reverse
-                #send pede_died, @facing
+                #send pede_died, @pulling
                 ?i
                 #die
-                :pede_died
-                #become slug: pedehead, facing: @facing, pullable: false, color: @color, background_color: @background_color
-                #end
                 :surrounded
                 #facing reverse
-                @pullable = map_tile_id
-                #if @facing == west, checkwest
-                #if @facing == south, checksouth
-                #if @facing == north, checknorth
-                :checkeast
-                #if ?east@name == PedeBody, not_tail
-                #send tail
-                :checkwest
-                #if ?west@name == PedeBody, not_tail
-                #send tail
-                :checksouth
-                #if ?south@name == PedeBody, not_tail
-                #send tail
-                :checknorth
-                #if ?north@name == PedeBody, not_tail
+                #if @pulling != false, not_tail
                 :tail
-                #become slug: pedehead, facing: @facing, pullable: false, color: @color, background_color: @background_color
+                #become slug: pedehead, facing: @facing, color: @color, background_color: @background_color, pullable: false, pulling: @pullable
+                #end
+                :pede_died
+                #become slug: pedehead, facing: @facing, color: @color, background_color: @background_color, pullable: false, pulling: @pulling
                 #end
                 :not_tail
-                #send surrounded, @facing
+                @tmp = @pulling
+                @pulling = @pullable
+                @pullable = @tmp
+                #send surrounded, @pullable
                 #end
                 """
     })
@@ -115,6 +144,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
 
   defmacro __using__(_params) do
     quote do
+      def bandit(), do: unquote(__MODULE__).bandit()
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
