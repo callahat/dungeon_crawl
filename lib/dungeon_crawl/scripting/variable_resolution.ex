@@ -40,12 +40,32 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.name
   end
+  def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :row}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.row
+  end
+  def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :col}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object.col
+  end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.parsed_state[var]
   end
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
     event_sender && event_sender.parsed_state[var]
+  end
+  def resolve_variable(%Runner{}, {:instance_state_variable, :north_edge}) do
+    0
+  end
+  def resolve_variable(%Runner{}, {:instance_state_variable, :west_edge}) do
+    0
+  end
+  def resolve_variable(%Runner{state: state}, {:instance_state_variable, :east_edge}) do
+    state.state_values[:cols] - 1
+  end
+  def resolve_variable(%Runner{state: state}, {:instance_state_variable, :south_edge}) do
+    state.state_values[:rows] - 1
   end
   def resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
     state.state_values[var]

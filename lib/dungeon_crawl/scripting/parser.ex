@@ -190,6 +190,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _cast_other_target(param) do
     cond do
+      Regex.match?(~r/^sender$|^$/, param) -> [:event_sender]
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
       Regex.match?(~r/^@.+?$/, param) -> _normalize_state_arg(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)

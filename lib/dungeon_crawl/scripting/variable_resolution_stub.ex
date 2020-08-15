@@ -38,11 +38,29 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:state_variable, :name}) do
     "Test Stub"
   end
+  def resolve_variable(%{}, {:state_variable, :row}) do
+    2
+  end
+  def resolve_variable(%{}, {:state_variable, :col}) do
+    4
+  end
   def resolve_variable(%{}, {:state_variable, _var}) do
     "."
   end
   def resolve_variable(%{}, {:event_sender_variable, _var}) do
     "from sender"
+  end
+  def resolve_variable(%{}, {:instance_state_variable, :north_edge}) do
+    0
+  end
+  def resolve_variable(%{}, {:instance_state_variable, :west_edge}) do
+    0
+  end
+  def resolve_variable(%{}, {:instance_state_variable, :east_edge}) do
+    29
+  end
+  def resolve_variable(%{}, {:instance_state_variable, :south_edge}) do
+    19
   end
   def resolve_variable(%{}, {:instance_state_variable, _var}) do
     "from the instance"

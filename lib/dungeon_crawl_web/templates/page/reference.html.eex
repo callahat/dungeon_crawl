@@ -143,8 +143,11 @@
     <tr>
       <td>@@</td>
       <td>Dungeon value</td>
-      <td>Similar to the State Value, however this is for the entire dungeon.</td>
-      <td><pre class="script">@@ALARM = true</pre></td>
+      <td>Similar to the State Value, however this is for the entire dungeon. There are a few special dungeon values
+          which are read only and return the boundary row/col: north_edge, west_edge, south_edge, east_edge.
+          This can be useful for objects that need to know when they've reached the edge via a IF command.</td>
+      <td><pre class="script">@@ALARM = true</pre>
+          <pre class="script">#IF @col >= @@east_edge, something</pre></td>
     </tr>
     <tr>
       <td>?&lt;target&gt;@</td>
