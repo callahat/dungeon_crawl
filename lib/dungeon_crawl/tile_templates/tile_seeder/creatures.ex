@@ -2,7 +2,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   alias DungeonCrawl.TileTemplates
 
   def bandit do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "bandit",
       %{character: "♣",
         name: "Bandit",
         description: "It runs around",
@@ -37,7 +38,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   end
 
   def expanding_foam do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "expanding_foam",
       %{character: "*",
         name: "Expanding Foam",
         description: "It gets all over",
@@ -67,7 +69,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   end
 
   def pede_head do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "pedehead",
       %{character: "ϴ",
         name: "PedeHead",
         description: "Centipede head",
@@ -105,7 +108,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   end
 
   def pede_body do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "pedebody",
       %{character: "O",
         name: "PedeBody",
         description: "Centipede body segment",

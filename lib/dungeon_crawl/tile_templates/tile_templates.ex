@@ -20,16 +20,19 @@ defmodule DungeonCrawl.TileTemplates do
   def list_tile_templates(%DungeonCrawl.Account.User{} = user) do
     Repo.all(from t in TileTemplate,
              where: t.user_id == ^user.id,
-             where: is_nil(t.deleted_at))
+             where: is_nil(t.deleted_at),
+             order_by: :slug)
   end
   def list_tile_templates(:nouser) do
     Repo.all(from t in TileTemplate,
              where: is_nil(t.user_id),
-             where: is_nil(t.deleted_at))
+             where: is_nil(t.deleted_at),
+             order_by: :slug)
   end
   def list_tile_templates() do
     Repo.all(from t in TileTemplate,
-             where: is_nil(t.deleted_at))
+             where: is_nil(t.deleted_at),
+             order_by: :slug)
   end
 
   @doc """

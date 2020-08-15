@@ -2,10 +2,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
   alias DungeonCrawl.TileTemplates
 
   def boulder() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "boulder",
       %{character: "▪",
         name: "Boulder",
-        description: "A boulder",
+        description: "A smooth boulder",
         state: "blocking: true, pushable: true, pullable: true",
         public: true,
         active: true
@@ -13,7 +14,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
   end
 
   def counter_clockwise_conveyor() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "counter_clockwise_conveyor",
       %{character: "/",
         name: "Counter Clockwise Conveyor",
         description: "Rotates things around it in a counter clockwise direction",
@@ -41,7 +43,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
   end
 
   def clockwise_conveyor() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "clockwise_conveyor",
       %{character: "\\",
         name: "Clockwise Conveyor",
         description: "Rotates things around it in a clockwise direction",
@@ -69,7 +72,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
   end
 
   def grave() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "grave",
       %{character: "✝",
         name: "Grave",
         description: "It looks fresh. R.I.P.",

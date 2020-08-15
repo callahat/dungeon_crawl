@@ -2,7 +2,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
   alias DungeonCrawl.TileTemplates
 
   def smoke do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "smoke",
       %{character: "▒",
         name: "Smoke",
         description: "Fine particles of various dust and gas",

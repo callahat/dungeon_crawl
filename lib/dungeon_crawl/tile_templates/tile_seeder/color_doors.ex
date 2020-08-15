@@ -4,7 +4,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
   def color_keys_and_doors() do
     ["red", "green", "blue", "gray", "purple", "orange"]
     |> Enum.map(fn color ->
-      TileTemplates.find_or_create_tile_template!(
+      TileTemplates.update_or_create_tile_template!(
+        "#{color}_key",
         %{character: "♀",
           name: "#{color} key",
           description: "a #{color} key",
@@ -25,7 +26,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
                   """
       })
 
-      TileTemplates.find_or_create_tile_template!(
+      TileTemplates.update_or_create_tile_template!(
+        "#{color}_door",
         %{character: "∙",
           name: "#{color} door",
           description: "a #{color} door",
@@ -50,7 +52,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
   end
 
   def generic_colored_key() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "colored_key",
       %{character: "♀",
         name: "Colored Key",
         description: "A key that can have a color and unlock a matching door",
@@ -73,7 +76,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
   end
 
   def generic_colored_door() do
-    TileTemplates.find_or_create_tile_template!(
+    TileTemplates.update_or_create_tile_template!(
+      "colored_door",
       %{character: "∙",
         name: "Colored Door",
         description: "A door that can have a color and be unlocked by a matching key",
