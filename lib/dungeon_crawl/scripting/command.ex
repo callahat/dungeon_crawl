@@ -38,6 +38,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :become       -> :become
       :change_state -> :change_state
       :change_instance_state -> :change_instance_state
+      :change_other_state -> :change_other_state
       :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
@@ -173,16 +174,9 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: program,
             state: %Instances{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
   """
-  def change_state(%Runner{object_id: object_id, state: state} = runner_state, params) do
-    [var, op, value] = params
+  def change_state(%Runner{object_id: object_id} = runner_state, [var, op, value]) do
     value = resolve_variable(runner_state, value)
-
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    object_state = Map.put(object.parsed_state, var, Maths.calc(object.parsed_state[var] || 0, op, value))
-    object_state_str = StateValue.Parser.stringify(object_state)
-    {_updated_object, updated_state} = Instances.update_map_tile(state, object, %{state: object_state_str, parsed_state: object_state})
-
-    %Runner{ runner_state | state: updated_state }
+    _change_state(runner_state, object_id, var, op, value)
   end
 
   @doc """
@@ -202,6 +196,50 @@ defmodule DungeonCrawl.Scripting.Command do
     state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
 
     %Runner{ runner_state | state: %{ state | state_values: state_values } }
+  end
+
+  @doc """
+  Changes the state_value for an object given in the params. The target object can be specified by
+  a direction (relative from the current object) or by a map tile id. Not valid against player tiles.
+
+  ## Examples
+
+    iex> Command.change_other_state(%Runner{program: program,
+                                               state: %Instances{state_values: %{}}},
+                                       ["north", :space, "=", 3])
+    %Runner{program: program,
+            state: %Instances{map_by_ids: %{1 => %{state: "space: 3"},...}, ...} }
+  """
+  def change_other_state(%Runner{} = runner_state, [target, var, op, value]) do
+    target = resolve_variable(runner_state, target)
+    value = resolve_variable(runner_state, value)
+
+    _change_state(runner_state, target, var, op, value)
+  end
+
+  def _change_state(%Runner{state: state} = runner_state, %{} = target, var, op, value) do
+    if(target.parsed_state[:player]) do
+      runner_state
+    else
+      update_var = %{ var => Maths.calc(target.parsed_state[var] || 0, op, value) }
+      {_updated_target, updated_state} = Instances.update_map_tile_state(state, target, update_var)
+      %Runner{ runner_state | state: updated_state }
+    end
+  end
+
+  def _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) when is_binary(target) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    target_tile = Instances.get_map_tile(state, object, target)
+    _change_state(runner_state, target_tile, var, op, value)
+  end
+
+  def _change_state(%Runner{state: state} = runner_state, target, var, op, value) when is_integer(target) do
+    target_tile = Instances.get_map_tile_by_id(state, %{id: target})
+    _change_state(runner_state, target_tile, var, op, value)
+  end
+
+  def _change_state(%Runner{} = runner_state, _, _, _, _) do
+    runner_state
   end
 
   @doc """

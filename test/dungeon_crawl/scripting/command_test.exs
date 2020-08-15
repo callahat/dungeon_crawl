@@ -29,6 +29,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:become) == :become
     assert Command.get_command(:change_state) == :change_state
     assert Command.get_command(:change_instance_state) == :change_instance_state
+    assert Command.get_command(:change_other_state) == :change_other_state
     assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
@@ -196,6 +197,28 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.state_values == %{add: 8, one: 432}
     %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:new, "+=", 1])
     assert updated_state.state_values == %{add: 8, new: 1, one: 100}
+  end
+
+  test "CHANGE_OTHER_STATE" do
+    {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "@", state: "one: 100, add: 8, player: true"})
+    {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 0, col: 2, z_index: 0, character: ".", state: "one: 1"})
+    program = program_fixture()
+
+    runner_state = %Runner{program: program, object_id: map_tile_1.id, state: state}
+
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, [map_tile_2.id, :foo, "+=", 1])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile_2)
+    assert updated_map_tile.state == "foo: 1, one: 1"
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, [map_tile_2.id, :one, "=", 432])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile_2)
+    assert updated_map_tile.state == "one: 432"
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, ["north", :new, "+=", 1])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile_2)
+    assert updated_map_tile.state == "new: 1, one: 1"
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, ["south", :new, "+=", 1])
+    assert updated_state == runner_state.state
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, [map_tile_1.id, :new, "+=", 1])
+    assert updated_state == runner_state.state
   end
 
   test "CYCLE" do

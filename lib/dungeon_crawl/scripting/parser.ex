@@ -59,7 +59,8 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_line(line, program) do
-    case Regex.named_captures(~r/^(?<type>#|:|@@|@|\/|\?)(?<instruction>.*)$/, line) do
+    other_state_change = "\\?({@.+?}|{\\?.+?}|[^{}@]+?)@"
+    case Regex.named_captures(~r/^(?<type>#|:|@@|@|#{other_state_change}|\/|\?)(?<instruction>.*)$/, line) do
       %{"type" => "/", "instruction" => _command} ->
         _parse_shorthand_movement(line, program)
 
@@ -77,6 +78,9 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       %{"type" => "@@", "instruction" => state_element} ->
         _parse_state_change(:change_instance_state, state_element, program)
+
+      %{"type" => type, "instruction" => state_element} when type != "" ->
+        _parse_state_change(:change_other_state, type, state_element, program)
 
       _ -> # If the last item in the program is also text, concat the two
         _handle_text(line, program)
@@ -156,6 +160,21 @@ defmodule DungeonCrawl.Scripting.Parser do
     end
   end
 
+  defp _parse_state_change(:change_other_state, other, element, program) do
+    with %{"target" => target} <- Regex.named_captures(~r/^\?{?(?<target>.*?)}?@$/, other),
+         target <- _cast_other_target(target),
+         state_element <- String.trim(String.downcase(element)),
+         %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
+         element = String.to_atom(element),
+         {:ok, op, value} <- _parse_state_setting(setting),
+         line_number <- Enum.count(program.instructions) + 1 do
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:change_other_state, [target, element, op, value]]) } }
+    else
+      nil               -> {:error, "Invalid :change_other_state setting: `#{other}` by `#{element}`", program}
+      {:error, message} -> {:error, message, program}
+    end
+  end
+
   defp _parse_state_change(type, element, program) do
     with state_element <- String.trim(String.downcase(element)),
          %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
@@ -166,6 +185,15 @@ defmodule DungeonCrawl.Scripting.Parser do
     else
       nil               -> {:error, "Invalid #{type} setting: `#{element}`", program}
       {:error, message} -> {:error, message, program}
+    end
+  end
+
+  defp _cast_other_target(param) do
+    cond do
+      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^@.+?$/, param) -> _normalize_state_arg(param)
+      Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
+      true -> param # just a string, probably a direction
     end
   end
 
