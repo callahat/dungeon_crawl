@@ -29,12 +29,6 @@ defmodule DungeonCrawl.Scripting.Shape do
 
     _coords_between(state, starting, delta, 1, steps, bypass_blocking, [])
     |> Enum.reverse
-
-    # delete this JS pasta
-    #for step <- 1..steps, do: 
-    #for (let step = 1; step <= steps; step++) {
-    #  coords.push([rowA + Math.round(rowDelta * step / steps), colA + Math.round(colDelta * step / steps)].join("_"))
-    #}
   end
 
   defp _coords_between(_state, _origin, _delta, step, steps, _bypass_blocking, coords) when step > steps, do: coords
@@ -63,5 +57,13 @@ defmodule DungeonCrawl.Scripting.Shape do
 
   defp _outside_board(state, {row, col}) do
     row >= state.state_values[:rows] || row < 0 || col >= state.state_values[:cols] || col < 0
+  end
+
+  @doc """
+  Returns map tile ids that form a cone emminating from the origin out to the range,
+  and spanning about 45 degrees on either side of the center line.
+  """
+  def cone(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ true, bypass_blocking \\ true) do
+
   end
 end

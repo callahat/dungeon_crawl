@@ -10,9 +10,11 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scripting.Shape
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileTemplate
 
   import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
   import Direction, only: [is_valid_orthogonal_change: 1, is_valid_orthogonal: 1]
@@ -795,7 +797,36 @@ defmodule DungeonCrawl.Scripting.Command do
             object_id: object_id,
             state: updated_state }
   """
-  def put(%Runner{object_id: object_id, state: state, program: program} = runner_state, [params]) do
+  def put(%Runner{} = runner_state, [params]) do
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+
+    if slug_tile  do
+      attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
+                   |> Map.put(:tile_template_id, slug_tile.id)
+                   |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
+      new_state_attrs = resolve_variable_map(runner_state,
+                                             Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape] )))
+
+      _put(runner_state, attributes, params, new_state_attrs)
+    else
+      runner_state
+    end
+  end
+
+  defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, %{shape: shape} = params, _new_state_attrs) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    direction = _get_real_direction(object, params[:direction])
+    
+    case shape do
+      "line" ->
+        coords = Shape.line(runner_state, direction, params[:range], params[:include_origin] || true, params[:bypass_blocking] || true)
+
+      _ ->
+        runner_state
+    end
+  end
+
+  defp _put(%Runner{object_id: object_id, state: state, program: program} = runner_state, attributes, params, new_state_attrs) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
 
@@ -805,41 +836,37 @@ defmodule DungeonCrawl.Scripting.Command do
              else
                %{row: object.row + row_d, col: object.col + col_d}
              end
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
 
-    if slug_tile &&
-       coords.row > 0 && coords.row <= state.state_values[:rows] &&
+    if coords.row > 0 && coords.row <= state.state_values[:rows] &&
        coords.col > 0 && coords.col <= state.state_values[:cols] do
-      new_attrs = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
-                  |> Map.put(:tile_template_id, slug_tile.id)
-                  |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
-                  |> Map.merge(Map.put(coords, :map_instance_id, object.map_instance_id))
-
-      z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
-
-      case DungeonCrawl.DungeonInstances.create_map_tile(Map.put(new_attrs, :z_index, z_index)) do
-        {:ok, new_tile} -> # all that other stuff below
-          {new_tile, state} = Instances.create_map_tile(state, new_tile)
-
-          new_state_attrs = resolve_variable_map(runner_state,
-                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:direction] )))
-          {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
-
-          message = ["tile_changes",
-                     %{tiles: [
-                         Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
-                     ]}]
-
-          %{ runner_state |
-               program: %{program | broadcasts: [message | program.broadcasts] },
-               object_id: object_id,
-               state: state }
-
-        {:error, _} ->
-          runner_state
-      end
+      new_attrs = Map.merge(attributes, Map.put(coords, :map_instance_id, object.map_instance_id))
+      _put_map_tile(runner_state, new_attrs, new_state_attrs)
     else
       runner_state
+    end
+  end
+
+  defp _put_map_tile(%Runner{state: state, program: program} = runner_state, map_tile_attrs, new_state_attrs) do
+    z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
+    map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
+
+    case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
+      {:ok, new_tile} -> # all that other stuff below
+        {new_tile, state} = Instances.create_map_tile(state, new_tile)
+
+        {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
+
+        message = ["tile_changes",
+                   %{tiles: [
+                       Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
+                   ]}]
+
+        %{ runner_state |
+             program: %{program | broadcasts: [message | program.broadcasts] },
+             state: state }
+
+      {:error, _} ->
+        runner_state
     end
   end
 
