@@ -813,20 +813,27 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, %{shape: shape} = params, _new_state_attrs) do
+  defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, %{shape: shape} = params, new_state_attrs) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
     
     case shape do
       "line" ->
-        coords = Shape.line(runner_state, direction, params[:range], params[:include_origin] || true, params[:bypass_blocking] || true)
+        include_origin = if is_nil(params[:include_origin]), do: true, else: params[:include_origin]
+        bypass_blocking = if is_nil(params[:bypass_blocking]), do: true, else: params[:bypass_blocking]
+        Shape.line(runner_state, direction, params[:range], include_origin, bypass_blocking)
+        |> Enum.reduce(runner_state, fn({row, col}, runner_state) ->
+             loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
+             _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
+           end)
+        |> _condense_tile_change_messages()
 
       _ ->
         runner_state
     end
   end
 
-  defp _put(%Runner{object_id: object_id, state: state, program: program} = runner_state, attributes, params, new_state_attrs) do
+  defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, params, new_state_attrs) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
 
@@ -847,7 +854,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _put_map_tile(%Runner{state: state, program: program} = runner_state, map_tile_attrs, new_state_attrs) do
-    z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
+    z_index = if target_tile = Instances.get_map_tile(state, map_tile_attrs), do: target_tile.z_index + 1, else: 0
     map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
 
     case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
@@ -868,6 +875,14 @@ defmodule DungeonCrawl.Scripting.Command do
       {:error, _} ->
         runner_state
     end
+  end
+
+  defp _condense_tile_change_messages(%Runner{program: program} = runner_state) do
+    {tile_changes, others} = Enum.split_with(program.broadcasts, fn([ type, _]) -> type == "tile_changes"  end)
+    tile_changes = %{tiles: Enum.reduce(tile_changes, [], fn([_, map], arr) ->  map.tiles ++ arr end)}
+
+    program = %{ program | broadcasts: [ ["tile_changes", tile_changes] | others ] }
+    %{ runner_state | program: program }
   end
 
   @doc """
