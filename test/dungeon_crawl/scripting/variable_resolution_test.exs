@@ -10,21 +10,24 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   describe "resolve_variable" do
     test "resolves state_variable" do
-      {map_tile_1, state} = Instances.create_map_tile(%Instances{},
+      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40}},
                               %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"})
       {map_tile_2, state} = Instances.create_map_tile(state,
                               %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"})
 
-      state = %{ state | state_values: %{flag1: true, flash: "fire"}}
+      state = %{ state | state_values: Map.merge(state.state_values, %{flag1: true, flash: "fire"})}
 
       runner_state1 = %Runner{state: state, object_id: map_tile_1.id, event_sender: map_tile_2}
       runner_state2 = %Runner{state: state, object_id: map_tile_2.id}
 
       # color, background_color, name and character are taken from the map_tile attribute
+      assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :id}) == 1
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :color}) == "red"
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :background_color}) == "gray"
       assert VariableResolution.resolve_variable(runner_state2, {:state_variable, :name}) == "two"
       assert VariableResolution.resolve_variable(runner_state2, {:state_variable, :character}) == "X"
+      assert VariableResolution.resolve_variable(runner_state2, {:state_variable, :row}) == 0
+      assert VariableResolution.resolve_variable(runner_state2, {:state_variable, :col}) == 1
 
       # other values are taken from the state, no state value nil is returned
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :pass}) == nil
@@ -54,6 +57,10 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :flash}) == "fire"
       assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :flag1}) == true
       assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :notavariable}) == nil
+      assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :north_edge}) == 0
+      assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :west_edge}) == 0
+      assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :east_edge}) == 39
+      assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :south_edge}) == 19
 
       # handles a concatenation
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :color, "_key"}) == "red_key"

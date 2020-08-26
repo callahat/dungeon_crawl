@@ -21,7 +21,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
       resolved_variable
     end
   end
-  def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :id}) do
+  def resolve_variable(%Runner{state: _state, object_id: object_id}, {:state_variable, :id}) do
     object_id
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :character}) do
