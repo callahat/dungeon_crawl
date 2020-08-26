@@ -828,6 +828,16 @@ defmodule DungeonCrawl.Scripting.Command do
            end)
         |> _condense_tile_change_messages()
 
+      "cone" ->
+        include_origin = if is_nil(params[:include_origin]), do: true, else: params[:include_origin]
+        bypass_blocking = if is_nil(params[:bypass_blocking]), do: true, else: params[:bypass_blocking]
+        Shape.cone(runner_state, direction, params[:range], params[:width] || params[:range], include_origin, bypass_blocking)
+        |> Enum.reduce(runner_state, fn({row, col}, runner_state) ->
+             loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
+             _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
+           end)
+        |> _condense_tile_change_messages()
+
       _ ->
         runner_state
     end

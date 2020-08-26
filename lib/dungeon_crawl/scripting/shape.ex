@@ -12,7 +12,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   @doc """
   Returns map tile ids that fall on a line from the given origin.
   """
-  def line(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ true, bypass_blocking \\ true) do
+  def line(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ false, bypass_blocking \\ "soft") do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
     {vec_row, vec_col} = Direction.delta(direction) |> Tuple.to_list |> Enum.map(&(&1 * range)) |> List.to_tuple
 
@@ -63,7 +63,20 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns map tile ids that form a cone emminating from the origin out to the range,
   and spanning about 45 degrees on either side of the center line.
   """
-  def cone(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ true, bypass_blocking \\ true) do
+  def cone(%Runner{state: state, object_id: object_id}, direction, range, width, include_origin \\ false, bypass_blocking \\ "soft") do
+    origin = Instances.get_map_tile_by_id(state, %{id: object_id})
+    {d_row, d_col} = Direction.delta(direction)
+    {vec_row, vec_col} =  {d_row * range, d_col * range}
 
+    vectors = if vec_row == 0, do:   Enum.to_list(-width..width) |> Enum.map(fn row -> {row, vec_col} end),
+                               else: Enum.to_list(-width..width) |> Enum.map(fn col -> {vec_row, col} end)
+
+    range_coords = vectors
+                   |> Enum.flat_map(fn {vr, vc} ->
+                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking)
+                      end)
+                   |> Enum.uniq
+
+    if include_origin, do: [{origin.row, origin.col} | range_coords], else: range_coords
   end
 end
