@@ -80,4 +80,52 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.cone(runner_state, "south", 2, 2, true, false) == [{1, 2}, {2, 1}, {3, 0}, {3, 1}, {2, 3}, {3, 3}, {3, 4}]
     end
   end
+
+  describe "circle/4" do
+    test "returns coordinates in a circle", %{state: state} do
+      runner_state = %Runner{object_id: 202, state: state}
+
+      assert Shape.circle(runner_state, 1, false) == [{1, 2}, {2, 1}, {2, 3}, {3, 2}]
+      assert Shape.circle(runner_state, 2) ==
+               [{2, 2}, {0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4}, 
+                        {4, 1}, {4, 2}, {4, 3}]
+    end
+
+    test "returns coordinates in a cone where rays may be blocked if bypass_blocking is false", %{state: state} do
+      wall = %MapTile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      {_wall, state} = Instances.create_map_tile(state, wall)
+      runner_state = %Runner{object_id: 202, state: state}
+
+      assert Shape.circle(runner_state, 2, true, true) ==
+               [{2, 2}, {0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
+                        {4, 1}, {4, 2}, {4, 3}]
+      assert Shape.circle(runner_state, 2, false, false) ==
+               [{0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
+                        {4, 1}, {4, 2}, {4, 3}]
+      assert Shape.circle(runner_state, 2, false, "soft") ==
+               [{0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
+                        {4, 1}, {4, 2}, {4, 3}]
+    end
+
+    test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
+      breakable_wall = %MapTile{id: 801, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
+      wall = %MapTile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      {_, state} = Instances.create_map_tile(state, breakable_wall)
+      {_, state} = Instances.create_map_tile(state, wall)
+      runner_state = %Runner{object_id: 202, state: state}
+
+      assert Shape.circle(runner_state, 2) ==
+               [{2, 2}, {0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
+                        {4, 1}, {4, 2}, {4, 3}]
+      assert Shape.circle(runner_state, 2, true, false) ==
+               [{2, 2}, {0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 3}, {3, 4},
+                        {4, 1}, {4, 3}]
+    end
+  end
 end

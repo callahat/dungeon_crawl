@@ -79,4 +79,31 @@ defmodule DungeonCrawl.Scripting.Shape do
 
     if include_origin, do: [{origin.row, origin.col} | range_coords], else: range_coords
   end
+
+  @doc """
+  Returns map tile ids tht from a circle around the origin out to the range.
+  """
+  def circle(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
+    origin = Instances.get_map_tile_by_id(state, %{id: object_id})
+
+    inbetween_rays = Enum.to_list(1..range-1)
+                     |> Enum.flat_map(fn(step) -> [{step, round(:math.sqrt(range * range - step * step))},
+                                                  {round(:math.sqrt(range * range - step * step)), step}] end)
+
+    inbetween_vectors = for {row_c, col_c} <- [{1,1}, {1,-1}, {-1,1}, {-1,-1}],
+                            {row, col} <- inbetween_rays do
+                          {row * row_c, col * col_c}
+                        end
+
+    vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}] ++ inbetween_vectors
+
+    range_coords = vectors
+                   |> Enum.flat_map(fn {vr, vc} ->
+                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking)
+                      end)
+                   |> Enum.uniq
+                   |> Enum.sort
+
+    if include_origin, do: [{origin.row, origin.col} | range_coords], else: range_coords
+  end
 end

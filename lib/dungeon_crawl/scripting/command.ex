@@ -816,27 +816,23 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, %{shape: shape} = params, new_state_attrs) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
+    bypass_blocking = if is_nil(params[:bypass_blocking]), do: "soft", else: params[:bypass_blocking]
     
     case shape do
       "line" ->
-        include_origin = if is_nil(params[:include_origin]), do: true, else: params[:include_origin]
-        bypass_blocking = if is_nil(params[:bypass_blocking]), do: true, else: params[:bypass_blocking]
+        include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
         Shape.line(runner_state, direction, params[:range], include_origin, bypass_blocking)
-        |> Enum.reduce(runner_state, fn({row, col}, runner_state) ->
-             loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
-             _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
-           end)
-        |> _condense_tile_change_messages()
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
 
       "cone" ->
-        include_origin = if is_nil(params[:include_origin]), do: true, else: params[:include_origin]
-        bypass_blocking = if is_nil(params[:bypass_blocking]), do: true, else: params[:bypass_blocking]
+        include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
         Shape.cone(runner_state, direction, params[:range], params[:width] || params[:range], include_origin, bypass_blocking)
-        |> Enum.reduce(runner_state, fn({row, col}, runner_state) ->
-             loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
-             _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
-           end)
-        |> _condense_tile_change_messages()
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
+
+      "circle" ->
+        include_origin = if is_nil(params[:include_origin]), do: true, else: params[:include_origin]
+        Shape.circle(runner_state, params[:range], include_origin, bypass_blocking)
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
 
       _ ->
         runner_state
@@ -885,6 +881,15 @@ defmodule DungeonCrawl.Scripting.Command do
       {:error, _} ->
         runner_state
     end
+  end
+
+  defp _put_shape_tiles(coords, %Runner{} = runner_state, object, attributes, new_state_attrs) do
+    coords
+    |> Enum.reduce(runner_state, fn({row, col}, runner_state) ->
+         loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
+         _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
+       end)
+    |> _condense_tile_change_messages()
   end
 
   defp _condense_tile_change_messages(%Runner{program: program} = runner_state) do
