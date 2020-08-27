@@ -1271,6 +1271,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 998,  character: ".", row: 2, col: 2, z_index: -1, script: ""})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
     obj_id = %{map_tile_id: obj.id, parsed_state: obj.parsed_state}
 
@@ -1279,6 +1280,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "south"])
     assert updated_state.program_messages == [{999, "touch", obj_id}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "here"])
+    assert updated_state.program_messages == [{998, "touch", obj_id}, {1337, "touch", obj_id}]
 
     # Also works if the direction is in a state variable
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :facing}])

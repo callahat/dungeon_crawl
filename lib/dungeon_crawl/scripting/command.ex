@@ -1112,6 +1112,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   `all` - all running programs, including this one
   `others` - all other progograms
+  `here` - all tiles with the same row/col as the sending object, including the object.
   a direction - ie, north, south east, west
   the name of a tile
 
@@ -1157,6 +1158,9 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _send_message(%Runner{} = runner_state, [label, "all"]) do
     _send_message_id_filter(runner_state, label, fn _object_id -> true end)
+  end
+  defp _send_message(%Runner{} = runner_state, [label, target]) when target == "here" do
+    _send_message_in_direction(runner_state, label, target)
   end
   defp _send_message(%Runner{} = runner_state, [label, target]) when is_valid_orthogonal(target) do
     _send_message_in_direction(runner_state, label, target)

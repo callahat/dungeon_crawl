@@ -470,7 +470,8 @@
           when no target explicitly given), all (all running scripts will be sent this message, including
           this one), others (all other running scripts will be sent this message), a direction, or the name of
           a tile. A direction takes priority over a tile name. The specail varialble `?sender` can be used
-          to send the message to the program that sent the event.</td>
+          to send the message to the program that sent the event. `here` can be used to send the message to all
+          the tiles at the same location as the message sender (including the message sender).</td>
       <td><pre class="script">#SEND touch, ?sender</pre>
           <pre class="script">#SEND close, all</pre>
           <pre class="script">#SEND done</pre></td>
