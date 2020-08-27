@@ -1,7 +1,16 @@
 defmodule DungeonCrawl.Scripting.Shape do
   @moduledoc """
   The various functions relating to returning shapes (in terms of either coordinates or 
-  map tile ids).
+  map tile ids). When determining coordinates in the shape, coordinates moving out
+  from the origin up to the range away are considered.
+
+  `include_origin` may be true or false by default. This will include origin in the shape's
+  coordinates that are returned.
+  `bypass_blocking` will be "soft" by default. This parameter can be true, false, or "soft".
+  When false, any tile that is "blocking" will end the ray from the origin, instead of allowing
+  the ray reach the full length of the range. When "soft", it will behave similar to false
+  except when that tile also has "soft: true", in which case the ray from origin may include
+  that soft blocking tile and continue towards full distance of the range.
   """
 
   alias DungeonCrawl.DungeonProcesses.Instances
@@ -21,38 +30,38 @@ defmodule DungeonCrawl.Scripting.Shape do
     if include_origin, do: [{origin.row, origin.col} | range_coords], else: range_coords
   end
 
-  defp _coords_between(state, starting, ending, bypass_blocking) do
+  defp _coords_between(state, starting, ending, bypass_blocking, est \\ &round/1) do
     delta = %{row: ending.row - starting.row,
               col: ending.col - starting.col}
 
     steps = max(abs(delta.row), abs(delta.col))
 
-    _coords_between(state, starting, delta, 1, steps, bypass_blocking, [])
+    _coords_between(state, starting, delta, 1, steps, bypass_blocking, [], est)
     |> Enum.reverse
   end
 
-  defp _coords_between(_state, _origin, _delta, step, steps, _bypass_blocking, coords) when step > steps, do: coords
-  defp _coords_between(state, origin, delta, step, steps, true, coords) do
-    coord = _calc_coord(origin, delta, step, steps)
+  defp _coords_between(_state, _origin, _delta, step, steps, _bypass_blocking, coords, est) when step > steps, do: coords
+  defp _coords_between(state, origin, delta, step, steps, true, coords, est) do
+    coord = _calc_coord(origin, delta, step, steps, est)
     if _outside_board(state, coord) do
       coords
     else
-      _coords_between(state, origin, delta, step + 1, steps, true, [ coord | coords])
+      _coords_between(state, origin, delta, step + 1, steps, true, [ coord | coords], est)
     end
   end
-  defp _coords_between(state, origin, delta, step, steps, bypass_blocking, coords) do
-    {row, col} = coord = _calc_coord(origin, delta, step, steps)
+  defp _coords_between(state, origin, delta, step, steps, bypass_blocking, coords, est) do
+    {row, col} = coord = _calc_coord(origin, delta, step, steps, est)
     next_map_tile = Instances.get_map_tile(state, %{row: row, col: col})
     if is_nil(next_map_tile) ||
        (next_map_tile.parsed_state[:blocking] && ! (next_map_tile.parsed_state[:soft] && bypass_blocking == "soft")) do
       coords
     else
-      _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [ coord | coords])
+      _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [ coord | coords], est)
     end
   end
 
-  defp _calc_coord(origin, delta, step, steps) do
-    {origin.row + round(delta.row * step / steps), origin.col + round(delta.col * step / steps)}
+  defp _calc_coord(origin, delta, step, steps, est) do
+    {origin.row + est.(delta.row * step / steps), origin.col + est.(delta.col * step / steps)}
   end
 
   defp _outside_board(state, {row, col}) do
@@ -81,29 +90,43 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   @doc """
-  Returns map tile ids tht from a circle around the origin out to the range.
+  Returns map tile ids that from a circle around the origin out to the range.
+  Origin is included by default, and bypass blocking defaults to soft.
   """
   def circle(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
 
-    inbetween_rays = Enum.to_list(1..range-1)
-                     |> Enum.flat_map(fn(step) -> [{step, round(:math.sqrt(range * range - step * step))},
-                                                  {round(:math.sqrt(range * range - step * step)), step}] end)
-
-    inbetween_vectors = for {row_c, col_c} <- [{1,1}, {1,-1}, {-1,1}, {-1,-1}],
-                            {row, col} <- inbetween_rays do
-                          {row * row_c, col * col_c}
-                        end
-
-    vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}] ++ inbetween_vectors
+    vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}]
+              |> _circle_rim_coordinates(%{row: 0, col: 0}, 1- range, 1, -2 * range, 0, range)
 
     range_coords = vectors
                    |> Enum.flat_map(fn {vr, vc} ->
-                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking)
+                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &floor/1) ++
+                        _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &ceil/1)
                       end)
                    |> Enum.uniq
                    |> Enum.sort
 
     if include_origin, do: [{origin.row, origin.col} | range_coords], else: range_coords
+  end
+
+  # using midpoint circle algorithm
+  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y) when x >= y, do: coords
+  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y) do
+    {y, ddf_y, f} = if f >= 0, do: {y - 1, ddf_y + 2, f + ddf_y + 2}, else: {y, ddf_y, f}
+    x = x + 1
+    ddf_x = ddf_x + 2
+    f = f + ddf_x
+
+    [ {origin.col + x, origin.row + y},
+      {origin.col - x, origin.row + y},
+      {origin.col + x, origin.row - y},
+      {origin.col - x, origin.row - y},
+      {origin.col + y, origin.row + x},
+      {origin.col - y, origin.row + x},
+      {origin.col + y, origin.row - x},
+      {origin.col - y, origin.row - x}
+      | coords ]
+    |> _circle_rim_coordinates(origin, f, ddf_x, ddf_y, x, y)
   end
 end
