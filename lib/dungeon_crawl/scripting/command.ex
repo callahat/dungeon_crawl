@@ -834,6 +834,11 @@ defmodule DungeonCrawl.Scripting.Command do
         Shape.circle(runner_state, params[:range], include_origin, bypass_blocking)
         |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
 
+      "blob" ->
+        include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
+        Shape.blob(runner_state, params[:range], include_origin, bypass_blocking)
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
+
       _ ->
         runner_state
     end

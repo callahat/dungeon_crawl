@@ -128,4 +128,52 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
                         {4, 1}, {4, 3}]
     end
   end
+
+  describe "blob/4" do
+    test "returns coordinates in a circle", %{state: state} do
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob(runner_state, 1, false) == [{1, 0}, {0, 1}]
+      assert Shape.blob(runner_state, 2) == [{2, 0}, {1, 1}, {0, 2}, {1, 0}, {0, 1}, {0, 0}]
+    end
+
+    test "returns coordinates in a cone where rays may be blocked if bypass_blocking is false", %{state: state} do
+      wall1 = %MapTile{id: 990, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
+      wall2 = %MapTile{id: 991, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
+      wall3 = %MapTile{id: 992, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall4 = %MapTile{id: 993, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall5 = %MapTile{id: 994, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      {_, state} = Instances.create_map_tile(state, wall1)
+      {_, state} = Instances.create_map_tile(state, wall2)
+      {_, state} = Instances.create_map_tile(state, wall3)
+      {_, state} = Instances.create_map_tile(state, wall4)
+      {_, state} = Instances.create_map_tile(state, wall5)
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob(runner_state, 2, true, true) == [{2, 0}, {1, 1}, {0, 2}, {1, 0}, {0, 1}, {0, 0}]
+      assert Shape.blob(runner_state, 2, false, false) == [{0, 2}, {0, 0}, {0, 1}]
+      assert Shape.blob(runner_state, 2, false, "soft") == [{0, 2}, {0, 0}, {0, 1}]
+    end
+
+    test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
+      breakable_wall = %MapTile{id: 80001, row: 0, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
+      wall1 = %MapTile{id: 90090, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
+      wall2 = %MapTile{id: 90091, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
+      wall3 = %MapTile{id: 90092, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall4 = %MapTile{id: 90093, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall5 = %MapTile{id: 90094, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      {_, state} = Instances.create_map_tile(state, breakable_wall)
+      {_, state} = Instances.create_map_tile(state, wall1)
+      {_, state} = Instances.create_map_tile(state, wall2)
+      {_, state} = Instances.create_map_tile(state, wall3)
+      {_, state} = Instances.create_map_tile(state, wall4)
+      {_, state} = Instances.create_map_tile(state, wall5)
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob(runner_state, 4, true, true) ==
+        [{4, 0}, {3, 1}, {2, 2}, {1, 3}, {0, 4}, {3, 0}, {2, 1}, {1, 2}, {0, 3}, {2, 0}, {1, 1}, {0, 2}, {1, 0}, {0, 1}, {0, 0}]
+      assert Shape.blob(runner_state, 4, false, false) == [{0, 0}, {0, 1}]
+      assert Shape.blob(runner_state, 4, false, "soft") == [{2, 2}, {1, 2}, {0, 2}, {0, 0}, {0, 1}]
+    end
+  end
 end

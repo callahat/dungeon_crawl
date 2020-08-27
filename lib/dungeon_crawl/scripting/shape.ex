@@ -40,7 +40,7 @@ defmodule DungeonCrawl.Scripting.Shape do
     |> Enum.reverse
   end
 
-  defp _coords_between(_state, _origin, _delta, step, steps, _bypass_blocking, coords, est) when step > steps, do: coords
+  defp _coords_between(_state, _origin, _delta, step, steps, _bypass_blocking, coords, _est) when step > steps, do: coords
   defp _coords_between(state, origin, delta, step, steps, true, coords, est) do
     coord = _calc_coord(origin, delta, step, steps, est)
     if _outside_board(state, coord) do
@@ -111,7 +111,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   # using midpoint circle algorithm
-  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y) when x >= y, do: coords
+  defp _circle_rim_coordinates(coords, _origin, _f, _ddf_x, _ddf_y, x, y) when x >= y, do: coords
   defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y) do
     {y, ddf_y, f} = if f >= 0, do: {y - 1, ddf_y + 2, f + ddf_y + 2}, else: {y, ddf_y, f}
     x = x + 1
@@ -128,5 +128,41 @@ defmodule DungeonCrawl.Scripting.Shape do
       {origin.col - y, origin.row - x}
       | coords ]
     |> _circle_rim_coordinates(origin, f, ddf_x, ddf_y, x, y)
+  end
+
+  @doc """
+  Returns map tile ids that are up to the range in steps from the origin. This will wrap around corners
+  and blocking tiles as long as the number of steps to get to that coordinate is within the range.
+  """
+  def blob(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
+    origin = Instances.get_map_tile_by_id(state, %{id: object_id})
+
+    %{row: row, col: col} = origin
+
+    coords = if include_origin, do: [{row, col}], else: []
+
+    _blob(state, range, bypass_blocking, coords, [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}])
+  end
+
+  defp _blob(_state, range, _, coords, _frontier) when range <= 0, do: coords
+  defp _blob(state, range, bypass_blocking, coords, frontier) do
+    new_coords = frontier
+                 |> Enum.filter(fn({row, col}) ->
+                      candidate_tile = Instances.get_map_tile(state, %{row: row, col: col})
+                      candidate_tile &&
+                        (bypass_blocking == true ||
+                           !candidate_tile.parsed_state[:blocking] ||
+                           (candidate_tile.parsed_state[:soft] && bypass_blocking == "soft"))
+                    end)
+                 |> Enum.uniq
+    new_frontier = new_coords
+                   |> Enum.flat_map(fn({row, col}) ->
+                        [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}]
+                      end)
+                   |> Enum.uniq
+                   |> Enum.filter(fn(coord) ->
+                        ! Enum.member?(coords, coord)
+                      end)
+    _blob(state, range - 1, bypass_blocking, new_coords ++ coords, new_frontier)
   end
 end

@@ -944,6 +944,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
     assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
 
+    params = [%{slug: squeaky_door.slug, range: 2, shape: "blob"}]
+    %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
+    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+
     # PUT with bad shape does nothing
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "banana", include_origin: false}]
     updated_runner_state = Command.put(runner_state, params)
