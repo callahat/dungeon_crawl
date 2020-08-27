@@ -145,7 +145,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{blocking: true} = updated_map_tile.parsed_state
 
     # BECOME with variables that resolve to invalid values does nothing
-    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}}]
+    params = [%{slug: squeaky_door.slug, color: {:state_variable, :character}}]
     updated_runner_state = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
 
@@ -954,7 +954,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_runner_state == runner_state
 
     # PUT with varialbes that resolve to invalid values does nothing
-    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}, direction: "south"}]
+    params = [%{slug: squeaky_door.slug, color: {:state_variable, :character}, direction: "south"}]
     updated_runner_state = Command.put(runner_state, params)
     assert updated_runner_state == runner_state
 
