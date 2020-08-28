@@ -55,7 +55,7 @@
     </tr>
     <tr>
       <td>destroyable</td>
-      <td>When true, this map tile will be removed if it receives the "SHOT" message.</td>
+      <td>When true, this map tile will be removed if it receives the "SHOT" or "BOMBED" message.</td>
     </tr>
     <tr>
       <td>not_pushing</td>
@@ -70,11 +70,12 @@
       <td>health</td>
       <td>This is used to indicate how much health a tile has. When it reaches or drops below zero,
           the tile is removed (unless that tile is a player's tile). Where destroyable indicates a tile can be
-          destroyed when shot or damaged, a tile with health could be shot or damaged many times before destroyed.</td>
+          destroyed when shot, bombed or damaged, a tile with health could be shot, bombed or damaged many times
+          before destroyed.</td>
     </tr>
     <tr>
       <td>damage</td>
-      <td>This is how much will be subtracted from a tile's health when this tile sends it a "SHOT" message.
+      <td>This is how much will be subtracted from a tile's health when this tile sends it a "SHOT" or "BOMBED" message.
           Defaults to zero.</td>
     </tr>
     <tr>
@@ -410,6 +411,17 @@
           location. Direction can also be given to put the tile one square from the given coordinates in that direction.
           If both "row" and "col" are not given, then neither are used. If the specified location or direction is invalid/off the map,
           then nothing is done.
+
+          The "shape" kwarg is for placing multiple tiles at once in a particular shape. Valid shapes include: "line",
+          "cone", "circle", and "blob". When "shape" is given, "range" should also be given to indicate how far from the
+          active tile the shape will go. "line" and "cone" need a "direction" as well. "cone" can also use "width", which
+          determines how many tiles on either side of the center line the cone will go. "bypass_blocking" can be true, false,
+          or "soft" ("soft" by default). When true, blocking tiles are ignored when drawing the shape. When false, blocking tiles
+          will act as barriers when drawing the object (which is drawn in line of sight from the tile to the end of the range, except
+          for "blob"). When "soft", it behaves similar to the false setting, except that blocking tiles which are also "soft" will be
+          treated as open spaces where the shape may be drawn over. "include_origin" defaults to false (except for circle),
+          and this kwarg indicates whether or not the origin (ie, the active object) will be included in the shape or not.
+
           Other kwargs can be given, such as character, color, background color, and will override the values from
           the matching tile template. Other values not mentioned above will set state values.
           Reference variables can be used instead of literals; however if they resolve to invalid values, then
