@@ -333,6 +333,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     case String.downcase(label) do
       "shot" ->
         _destroyable_behavior([ {map_tile_id, label, sender} | messages ], state)
+      "bombed" ->
+        _destroyable_behavior([ {map_tile_id, label, sender} | messages ], state)
       _ ->
         _standard_behaviors(messages, state)
     end
