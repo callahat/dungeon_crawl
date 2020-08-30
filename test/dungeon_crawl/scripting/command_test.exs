@@ -145,7 +145,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{blocking: true} = updated_map_tile.parsed_state
 
     # BECOME with variables that resolve to invalid values does nothing
-    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}}]
+    params = [%{slug: squeaky_door.slug, color: {:state_variable, :character}}]
     updated_runner_state = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
 
@@ -898,7 +898,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "PUT" do
     instance = insert_stubbed_dungeon_instance(%{},
-      [%MapTile{character: ".", row: 1, col: 2, z_index: 0, color: "orange"}])
+      [%MapTile{character: ".", row: 1, col: 2, z_index: 0, color: "orange"},
+       %MapTile{character: ".", row: 1, col: 3, z_index: 0},
+       %MapTile{character: ".", row: 1, col: 4, z_index: 0},
+       %MapTile{character: ".", row: 1, col: 5, z_index: 0}])
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
@@ -913,8 +916,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     program = program_fixture()
     squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
     params = [%{slug: squeaky_door.slug, character: "?", direction: "south"}]
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
-    %Runner{program: program, state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
     new_map_tile = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
     assert new_map_tile.character == "?"
 #    assert new_map_tile.slug == squeaky_door.slug
@@ -922,21 +926,48 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 2}]}]]
     assert %{blocking: true} = new_map_tile.parsed_state
 
+    # PUT with shape kwargs
+    params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "line", include_origin: false}]
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
+    map_tile_1_3 = Instances.get_map_tile(updated_state, %{row: 1, col: 3})
+    map_tile_1_4 = Instances.get_map_tile(updated_state, %{row: 1, col: 4})
+    assert map_tile_1_3.character == "!"
+    assert map_tile_1_4.character == "!"
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 3, rendering: "<div>!</div>", row: 1},
+                                                             %{col: 4, rendering: "<div>!</div>", row: 1}]}]]
+
+    params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "cone", include_origin: false}]
+    %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
+    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+
+    params = [%{slug: squeaky_door.slug, range: 2, shape: "circle"}]
+    %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
+    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+
+    params = [%{slug: squeaky_door.slug, range: 2, shape: "blob"}]
+    %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
+    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+
+    # PUT with bad shape does nothing
+    params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "banana", include_origin: false}]
+    updated_runner_state = Command.put(runner_state, params)
+    assert updated_runner_state == runner_state
+
     # PUT with varialbes that resolve to invalid values does nothing
-    params = [%{slug: squeaky_door.slug, character: {:state_variable, :color}, direction: "south"}]
-    updated_runner_state = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
-    assert updated_runner_state == %Runner{program: program, object_id: map_tile.id, state: state}
+    params = [%{slug: squeaky_door.slug, color: {:state_variable, :character}, direction: "south"}]
+    updated_runner_state = Command.put(runner_state, params)
+    assert updated_runner_state == runner_state
 
     # PUT a nonexistant slug does nothing
     params = [%{slug: "notreal"}]
 
-    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    %Runner{state: updated_state} = Command.put(runner_state, params)
     assert updated_state == state
 
     # PUT in a direction that goes off the map does nothing
     params = [%{slug: squeaky_door.slug, direction: "north"}]
 
-    %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+    %Runner{state: updated_state} = Command.put(runner_state, params)
     assert updated_state == state
   end
 
@@ -1240,6 +1271,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 998,  character: ".", row: 2, col: 2, z_index: -1, script: ""})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
     obj_id = %{map_tile_id: obj.id, parsed_state: obj.parsed_state}
 
@@ -1248,6 +1280,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "south"])
     assert updated_state.program_messages == [{999, "touch", obj_id}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "here"])
+    assert updated_state.program_messages == [{998, "touch", obj_id}, {1337, "touch", obj_id}]
 
     # Also works if the direction is in a state variable
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :facing}])

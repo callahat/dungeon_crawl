@@ -89,9 +89,6 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                             DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Out of ammo"}
                             instance_state
 
-                          {:shot, spawn_tile} ->
-                            Instances.send_event(instance_state, spawn_tile, "shot", player_location)
-
                           {:ok, updated_instance} ->
                             updated_instance
                         end

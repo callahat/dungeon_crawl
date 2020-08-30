@@ -31,7 +31,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
       %{character: "░",
         name: "Breakable Wall",
         description: "A breakable wall",
-        state: "blocking: true, destroyable: true",
+        state: "blocking: true, destroyable: true, soft: true",
         public: true,
         active: true
     })

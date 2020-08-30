@@ -51,7 +51,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
                end)
              end)
     assert errs[:script] == ["""
-                             Line 1: BECOME command has errors: `background_color - has invalid format; character - should be at most 1 character(s)`
+                             Line 1: BECOME command has errors: `background_color - has invalid format`
                              Line 3: IF command references nonexistant label `NOTALABEL`
                              """ |> String.trim ]
   end

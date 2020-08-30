@@ -10,9 +10,11 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Maths
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scripting.Shape
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileTemplate
 
   import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
   import Direction, only: [is_valid_orthogonal_change: 1, is_valid_orthogonal: 1]
@@ -795,7 +797,54 @@ defmodule DungeonCrawl.Scripting.Command do
             object_id: object_id,
             state: updated_state }
   """
-  def put(%Runner{object_id: object_id, state: state, program: program} = runner_state, [params]) do
+  def put(%Runner{} = runner_state, [params]) do
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+
+    if slug_tile  do
+      attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
+                   |> Map.put(:tile_template_id, slug_tile.id)
+                   |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
+      new_state_attrs = resolve_variable_map(runner_state,
+                                             Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape] )))
+
+      _put(runner_state, attributes, params, new_state_attrs)
+    else
+      runner_state
+    end
+  end
+
+  defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, %{shape: shape} = params, new_state_attrs) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    direction = _get_real_direction(object, params[:direction])
+    bypass_blocking = if is_nil(params[:bypass_blocking]), do: "soft", else: params[:bypass_blocking]
+    
+    case shape do
+      "line" ->
+        include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
+        Shape.line(runner_state, direction, params[:range], include_origin, bypass_blocking)
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
+
+      "cone" ->
+        include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
+        Shape.cone(runner_state, direction, params[:range], params[:width] || params[:range], include_origin, bypass_blocking)
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
+
+      "circle" ->
+        include_origin = if is_nil(params[:include_origin]), do: true, else: params[:include_origin]
+        Shape.circle(runner_state, params[:range], include_origin, bypass_blocking)
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
+
+      "blob" ->
+        include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
+        Shape.blob(runner_state, params[:range], include_origin, bypass_blocking)
+        |> _put_shape_tiles(runner_state, object, attributes, new_state_attrs)
+
+      _ ->
+        runner_state
+    end
+  end
+
+  defp _put(%Runner{object_id: object_id, state: state} = runner_state, attributes, params, new_state_attrs) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
 
@@ -805,42 +854,55 @@ defmodule DungeonCrawl.Scripting.Command do
              else
                %{row: object.row + row_d, col: object.col + col_d}
              end
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
 
-    if slug_tile &&
-       coords.row > 0 && coords.row <= state.state_values[:rows] &&
+    if coords.row > 0 && coords.row <= state.state_values[:rows] &&
        coords.col > 0 && coords.col <= state.state_values[:cols] do
-      new_attrs = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
-                  |> Map.put(:tile_template_id, slug_tile.id)
-                  |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
-                  |> Map.merge(Map.put(coords, :map_instance_id, object.map_instance_id))
-
-      z_index = if target_tile = Instances.get_map_tile(state, new_attrs), do: target_tile.z_index + 1, else: 0
-
-      case DungeonCrawl.DungeonInstances.create_map_tile(Map.put(new_attrs, :z_index, z_index)) do
-        {:ok, new_tile} -> # all that other stuff below
-          {new_tile, state} = Instances.create_map_tile(state, new_tile)
-
-          new_state_attrs = resolve_variable_map(runner_state,
-                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:direction] )))
-          {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
-
-          message = ["tile_changes",
-                     %{tiles: [
-                         Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
-                     ]}]
-
-          %{ runner_state |
-               program: %{program | broadcasts: [message | program.broadcasts] },
-               object_id: object_id,
-               state: state }
-
-        {:error, _} ->
-          runner_state
-      end
+      new_attrs = Map.merge(attributes, Map.put(coords, :map_instance_id, object.map_instance_id))
+      _put_map_tile(runner_state, new_attrs, new_state_attrs)
     else
       runner_state
     end
+  end
+
+  defp _put_map_tile(%Runner{state: state, program: program} = runner_state, map_tile_attrs, new_state_attrs) do
+    z_index = if target_tile = Instances.get_map_tile(state, map_tile_attrs), do: target_tile.z_index + 1, else: 0
+    map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
+
+    case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
+      {:ok, new_tile} -> # all that other stuff below
+        {new_tile, state} = Instances.create_map_tile(state, new_tile)
+
+        {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
+
+        message = ["tile_changes",
+                   %{tiles: [
+                       Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
+                   ]}]
+
+        %{ runner_state |
+             program: %{program | broadcasts: [message | program.broadcasts] },
+             state: state }
+
+      {:error, _} ->
+        runner_state
+    end
+  end
+
+  defp _put_shape_tiles(coords, %Runner{} = runner_state, object, attributes, new_state_attrs) do
+    coords
+    |> Enum.reduce(runner_state, fn({row, col}, runner_state) ->
+         loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
+         _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
+       end)
+    |> _condense_tile_change_messages()
+  end
+
+  defp _condense_tile_change_messages(%Runner{program: program} = runner_state) do
+    {tile_changes, others} = Enum.split_with(program.broadcasts, fn([ type, _]) -> type == "tile_changes"  end)
+    tile_changes = %{tiles: Enum.reduce(tile_changes, [], fn([_, map], arr) ->  map.tiles ++ arr end)}
+
+    program = %{ program | broadcasts: [ ["tile_changes", tile_changes] | others ] }
+    %{ runner_state | program: program }
   end
 
   @doc """
@@ -1050,6 +1112,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   `all` - all running programs, including this one
   `others` - all other progograms
+  `here` - all tiles with the same row/col as the sending object, including the object.
   a direction - ie, north, south east, west
   the name of a tile
 
@@ -1095,6 +1158,9 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _send_message(%Runner{} = runner_state, [label, "all"]) do
     _send_message_id_filter(runner_state, label, fn _object_id -> true end)
+  end
+  defp _send_message(%Runner{} = runner_state, [label, target]) when target == "here" do
+    _send_message_in_direction(runner_state, label, target)
   end
   defp _send_message(%Runner{} = runner_state, [label, target]) when is_valid_orthogonal(target) do
     _send_message_in_direction(runner_state, label, target)

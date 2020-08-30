@@ -10,8 +10,14 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable_map(%Runner{} = runner_state, variable_map) when is_map(variable_map) do
     variable_map
     |> Map.to_list()
-    |> Enum.map(fn {key, val} -> {key, resolve_variable(runner_state, val)} end)
+    |> Enum.map(fn {key, val} -> resolve_keyed_variable(runner_state, key, val) end)
     |> Enum.into(%{})
+  end
+  def resolve_keyed_variable(%Runner{} = runner_state, :character, val) do
+    {:character, String.at("#{resolve_variable(runner_state, val)}", 0)}
+  end
+  def resolve_keyed_variable(%Runner{} = runner_state, key, val) do
+    {key, resolve_variable(runner_state, val)}
   end
   def resolve_variable(%Runner{} = runner_state, {type, var, concat}) do
     resolved_variable = resolve_variable(runner_state, {type, var})
@@ -21,7 +27,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
       resolved_variable
     end
   end
-  def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :id}) do
+  def resolve_variable(%Runner{state: _state, object_id: object_id}, {:state_variable, :id}) do
     object_id
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :character}) do
