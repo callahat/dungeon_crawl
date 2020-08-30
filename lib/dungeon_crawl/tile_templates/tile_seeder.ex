@@ -32,6 +32,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     pede_body()
 
     # ordinance
+    bomb()
+    explosion()
     smoke()
 
     # terrain

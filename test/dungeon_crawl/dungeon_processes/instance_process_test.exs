@@ -228,7 +228,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     map_tiles = [
-        %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND shot, player", state: "damage: 5"},
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND bombed, player", state: "damage: 5"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
         %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10", name: "player"}
       ]
