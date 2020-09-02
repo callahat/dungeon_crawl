@@ -10,6 +10,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             map_by_ids: %{},
             map_by_coords: %{},
             dirty_ids: %{},
+            new_ids: %{},
+            new_id_counter: 0,
             player_locations: %{},
             program_messages: [],
             new_pids: [],
@@ -138,6 +140,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   """
+  def create_map_tile(%Instances{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = map_tile) do
+    new_id = "new_#{new_id_counter}"
+    create_map_tile(%{ state | new_id_counter: new_id_counter + 1, new_ids: Map.put(new_ids, new_id, 0) }, %{ map_tile | id: new_id })
+  end
+
   def create_map_tile(%Instances{} = state, map_tile) do
     map_tile = _with_parsed_state(map_tile)
     {map_tile, state} = _register_map_tile(state, map_tile)
