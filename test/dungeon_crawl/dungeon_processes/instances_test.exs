@@ -168,6 +168,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       new_pids: []
     } == state
 
+    # assigns a temporary id when it does not have one, which indicates this tile has not been persisted to the database yet
+    assert {new_map_tile_1, updated_state} = Instances.create_map_tile(state, Map.merge(new_map_tile, %{id: nil, row: 5}))
+    assert is_binary(new_map_tile_1.id)
+    assert String.starts_with?(new_map_tile_1.id, "new_")
+    assert updated_state.new_ids == %{new_map_tile_1.id => 0}
+
     # returns the existing tile if it already exists by id
     assert {^new_map_tile, ^state} = Instances.create_map_tile(state, Map.put(new_map_tile, :character, "O"))
     assert %{id: 1, character: "M"} = new_map_tile

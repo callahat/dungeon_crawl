@@ -354,12 +354,21 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
 
-    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+    new_map_tiles = [
+        %{character: "N", row: 1, col: 5, z_index: 0, script: "#BECOME color: red"},
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> {:ok, mt} = DungeonInstances.new_map_tile(mt); mt end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles ++ new_map_tiles)
 
     [map_tile_id_1, map_tile_id_2, map_tile_id_3] = map_tiles |> Enum.map(fn(mt) -> mt.id end)
 
+    new_map_tile = InstanceProcess.get_tile(instance_process, 1, 5)
+
     assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id_1, %{character: "Y", row: 2, col: 3})
     assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id_2)
+    assert :ok = InstanceProcess.delete_tile(instance_process, new_map_tile.id)
 
     assert :ok = Process.send(instance_process, :write_db, [])
     :timer.sleep 10 # let the process do its thing

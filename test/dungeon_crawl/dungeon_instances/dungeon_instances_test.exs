@@ -60,6 +60,15 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       map_tile
     end
 
+    test "new_map_tile/1 with valid data returns a populated MapTile struct" do
+      other_map_tile = map_tile_fixture()
+      assert {:ok, %MapTile{id: nil} = _map_tile} = DungeonInstances.new_map_tile(Map.merge @valid_attrs, Map.take(other_map_tile, [:map_instance_id, :tile_template_id]))
+    end
+
+    test "new_map_tile/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = DungeonInstances.new_map_tile(@invalid_attrs)
+    end
+
     test "create_map_tile/1 with valid data creates a map_tile" do
       other_map_tile = map_tile_fixture()
       assert {:ok, %MapTile{} = _map_tile} = DungeonInstances.create_map_tile(Map.merge @valid_attrs, Map.take(other_map_tile, [:map_instance_id, :tile_template_id]))

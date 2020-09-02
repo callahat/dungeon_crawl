@@ -256,7 +256,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     # :updated
     [deletes, updates] = dirty_ids
                          |> Map.to_list
-                         |> Enum.filter(fn({id, _}) -> is_integer(id) end)
+                         |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
                          |> Enum.split_with(fn({_, event}) -> event == :deleted end)
                          |> Tuple.to_list()
                          |> Enum.map(fn(items) ->
