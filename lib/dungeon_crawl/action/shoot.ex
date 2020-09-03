@@ -27,13 +27,14 @@ defmodule DungeonCrawl.Action.Shoot do
       {:invalid}
     else
       bullet_tile_template = DungeonCrawl.TileTemplates.TileSeeder.bullet_tile()
+      top_z_index = Instances.get_map_tile(state, shooter_map_tile).z_index
 
       # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
-      bullet = Map.take(shooter_map_tile, [:map_instance_id, :row, :col])
-               |> Map.merge(%{tile_template_id: bullet_tile_template.id, z_index: shooter_map_tile.z_index + 1})
-               |> Map.merge(Map.take(bullet_tile_template, [:character, :color, :background_color, :script]))
-               |> Map.put(:state, bullet_tile_template.state <> ", facing: " <> direction)
-               |> DungeonCrawl.DungeonInstances.create_map_tile!()
+      {:ok, bullet} = Map.take(shooter_map_tile, [:map_instance_id, :row, :col])
+                      |> Map.merge(%{tile_template_id: bullet_tile_template.id, z_index: top_z_index + 1})
+                      |> Map.merge(Map.take(bullet_tile_template, [:character, :color, :background_color, :script]))
+                      |> Map.put(:state, bullet_tile_template.state <> ", facing: " <> direction)
+                      |> DungeonCrawl.DungeonInstances.new_map_tile()
       {bullet, state} = Instances.create_map_tile(state, bullet)
       if bullet_damage = StateValue.get_int(shooter_map_tile, :bullet_damage) do
         {_, state} = Instances.update_map_tile_state(state, bullet, %{damage: bullet_damage})
