@@ -10,6 +10,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             map_by_ids: %{},
             map_by_coords: %{},
             dirty_ids: %{},
+            new_ids: %{},
+            new_id_counter: 0,
             player_locations: %{},
             program_messages: [],
             new_pids: [],
@@ -138,6 +140,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   """
+  def create_map_tile(%Instances{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = map_tile) do
+    new_id = "new_#{new_id_counter}"
+    create_map_tile(%{ state | new_id_counter: new_id_counter + 1, new_ids: Map.put(new_ids, new_id, 0) }, %{ map_tile | id: new_id })
+  end
+
   def create_map_tile(%Instances{} = state, map_tile) do
     map_tile = _with_parsed_state(map_tile)
     {map_tile, state} = _register_map_tile(state, map_tile)
@@ -196,6 +203,27 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                           new_pids: [map_tile_id | new_pids]}
     end
   end
+
+  @doc """
+  Sets a map tile id once it has been persisted to the database. This will update the instance state
+  references to the old temporary id to the new id of the map tile record.
+  If the map tile's id has already been updated to the id of the database record, then nothing
+  will be done and the instance state will be returned unchanged.
+  """
+  def set_map_tile_id(%Instances{} = state, %{id: new_id} = map_tile, old_temp_id) when is_binary(old_temp_id) and is_integer(new_id) do
+    by_ids = Map.put(state.map_by_ids, new_id, Map.put(state.map_by_ids[old_temp_id], :id, new_id))
+             |> Map.delete(old_temp_id)
+    z_indexes = state.map_by_coords[{map_tile.row, map_tile.col}]
+                |> Map.put(map_tile.z_index, new_id)
+    by_coords = Map.put(state.map_by_coords, {map_tile.row, map_tile.col}, z_indexes)
+    program_contexts = Map.put(state.program_contexts, new_id, %{ state.program_contexts[old_temp_id] | object_id: new_id} )
+                       |> Map.delete(old_temp_id)
+
+    %{ state | map_by_ids: by_ids, map_by_coords: by_coords, program_contexts: program_contexts }
+  end
+
+  # probably should never hit this, but just in case
+  def set_map_tile_id(state, _, _), do: state
 
   @doc """
   Updates the given map tile's state, returns the updated tile and new instance state.
@@ -285,7 +313,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                              map_by_ids: by_id,
                              map_by_coords: by_coords,
                              dirty_ids: dirty_ids,
-                             player_locations: player_locations }}
+                             player_locations: player_locations,
+                             new_ids: Map.delete(state.new_ids, map_tile_id) }}
     else
       {nil, state}
     end

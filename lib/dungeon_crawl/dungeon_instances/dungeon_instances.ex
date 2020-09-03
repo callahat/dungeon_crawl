@@ -85,6 +85,30 @@ defmodule DungeonCrawl.DungeonInstances do
   alias DungeonCrawl.DungeonInstances.MapTile
 
   @doc """
+  Returns a tuple containing a status atom and either the new map tile that has not been persisted to the database
+  (when the attrs are valid), OR returns the invalid changeset.
+  This function will be used for Instance processes when a tile is created but will either be saved to the database
+  later, or will not be long lived enough to bother persisting further down than the instance process.
+
+  ## Examples
+
+      iex> create_map_tile(%{field: value})
+      {:ok, %MapTile{}}
+
+      iex> create_map_tile(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def new_map_tile(attrs \\ %{}) do
+    changeset = MapTile.changeset(%MapTile{}, attrs)
+    if changeset.valid? do
+      {:ok, Elixir.Map.merge(%MapTile{}, changeset.changes)}
+    else
+      {:error, changeset}
+    end
+  end
+
+  @doc """
   Creates a map_tile.
 
   ## Examples

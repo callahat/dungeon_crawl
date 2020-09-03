@@ -354,18 +354,41 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
 
-    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+    new_map_tiles = [
+        %{character: "N", row: 1, col: 5, z_index: 0, script: "#BECOME color: red"},
+        %{character: "G", row: 1, col: 6, z_index: 0, script: "#BECOME color: gray"},
+        %{character: "M", row: 1, col: 7, z_index: 0, script: "#BECOME color: red"},
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> {:ok, mt} = DungeonInstances.new_map_tile(mt); mt end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles ++ new_map_tiles)
 
     [map_tile_id_1, map_tile_id_2, map_tile_id_3] = map_tiles |> Enum.map(fn(mt) -> mt.id end)
 
+    new_map_tile_1 = InstanceProcess.get_tile(instance_process, 1, 5)
+    new_map_tile_2 = InstanceProcess.get_tile(instance_process, 1, 7)
+    older_new_map_tile = InstanceProcess.get_tile(instance_process, 1, 6)
+
+    InstanceProcess.run_with(instance_process, fn (instance_state) ->
+      {:ok, %{ instance_state | new_ids: %{instance_state.new_ids | older_new_map_tile.id => 2 }}}
+    end)
+
     assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id_1, %{character: "Y", row: 2, col: 3})
     assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id_2)
+    assert :ok = InstanceProcess.delete_tile(instance_process, new_map_tile_1.id)
 
     assert :ok = Process.send(instance_process, :write_db, [])
     :timer.sleep 10 # let the process do its thing
     assert "Y" == Repo.get(MapTile, map_tile_id_1).character
     refute Repo.get(MapTile, map_tile_id_2)
     assert "O" == Repo.get(MapTile, map_tile_id_3).character
+
+    assert new_map_tile_2 == InstanceProcess.get_tile(instance_process, 1, 7)
+    assert is_binary(new_map_tile_2.id)
+    persisted_older_new_map_tile = InstanceProcess.get_tile(instance_process, 1, 6)
+    assert is_integer(persisted_older_new_map_tile.id)
+    assert "G" == Repo.get(MapTile, persisted_older_new_map_tile.id).character
   end
 
   test "get_tile/2 gets a tile by its id", %{instance_process: instance_process, map_tile_id: map_tile_id} do

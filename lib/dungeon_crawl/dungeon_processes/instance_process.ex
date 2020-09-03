@@ -251,11 +251,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_info(:write_db, %Instances{dirty_ids: dirty_ids} = state) do
+  def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
     # :deleted
     # :updated
     [deletes, updates] = dirty_ids
                          |> Map.to_list
+                         |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
                          |> Enum.split_with(fn({_, event}) -> event == :deleted end)
                          |> Tuple.to_list()
                          |> Enum.map(fn(items) ->
@@ -276,9 +277,26 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       |> DungeonInstances.update_map_tiles()
     end
 
+    {new_ids, ids_to_persist} = new_ids
+                                |> Map.to_list
+                                |> Enum.map(fn({new_id, age}) -> {new_id, age + 1} end)
+                                |> Enum.split_with(fn({_, age}) -> age < 2 end)
+
+    # TODO: maybe cap the number of ids to persist, put the excess back on the new_ids list
+
+    # TODO: persist those old id's. create the DB record (after nilling the id), then update the ID the instance knows about
+    state = ids_to_persist
+            |> Enum.map(fn({id, _}) -> id end)
+            |> Enum.reduce(state, fn(temp_id, state) ->
+                 map_tile = Instances.get_map_tile_by_id(state, %{id: temp_id})
+                            |> Map.put(:id, nil)
+                            |> DungeonCrawl.Repo.insert!()
+                 Instances.set_map_tile_id(state, map_tile, temp_id)
+               end)
+
     Process.send_after(self(), :write_db, @db_update_timeout)
 
-    {:noreply, %Instances{ state | dirty_ids: %{}}}
+    {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
 
   # TODO: move these private functions to a new module and make them public so tests can isolate behaviors.

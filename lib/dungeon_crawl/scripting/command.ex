@@ -868,7 +868,8 @@ defmodule DungeonCrawl.Scripting.Command do
     z_index = if target_tile = Instances.get_map_tile(state, map_tile_attrs), do: target_tile.z_index + 1, else: 0
     map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
 
-    case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
+#    case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
+    case DungeonCrawl.DungeonInstances.new_map_tile(map_tile_attrs) do
       {:ok, new_tile} -> # all that other stuff below
         {new_tile, state} = Instances.create_map_tile(state, new_tile)
 

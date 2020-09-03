@@ -925,6 +925,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.take(new_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
     assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 2}]}]]
     assert %{blocking: true} = new_map_tile.parsed_state
+    assert updated_state.new_ids == %{"new_0" => 0}
+    assert updated_state.map_by_ids["new_0"]
 
     # PUT with shape kwargs
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "line", include_origin: false}]
@@ -935,6 +937,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map_tile_1_4.character == "!"
     assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 3, rendering: "<div>!</div>", row: 1},
                                                              %{col: 4, rendering: "<div>!</div>", row: 1}]}]]
+    assert updated_state.new_ids == %{"new_0" => 0, "new_1" => 0}
+    assert updated_state.map_by_ids["new_0"]
+    assert updated_state.map_by_ids["new_1"]
 
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "cone", include_origin: false}]
     %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)

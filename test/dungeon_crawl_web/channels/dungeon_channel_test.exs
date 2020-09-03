@@ -39,6 +39,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
       |> subscribe_and_join(DungeonChannel, "dungeons:#{map_instance.id}")
 
+    on_exit(fn -> InstanceRegistry.remove(DungeonInstanceRegistry, map_instance.id) end)
+
     {:ok, socket: socket, player_location: player_location, basic_tiles: basic_tiles}
   end
 

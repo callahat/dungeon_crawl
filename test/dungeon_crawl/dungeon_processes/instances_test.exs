@@ -168,6 +168,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       new_pids: []
     } == state
 
+    # assigns a temporary id when it does not have one, which indicates this tile has not been persisted to the database yet
+    assert {new_map_tile_1, updated_state} = Instances.create_map_tile(state, Map.merge(new_map_tile, %{id: nil, row: 5}))
+    assert is_binary(new_map_tile_1.id)
+    assert String.starts_with?(new_map_tile_1.id, "new_")
+    assert updated_state.new_ids == %{new_map_tile_1.id => 0}
+
     # returns the existing tile if it already exists by id
     assert {^new_map_tile, ^state} = Instances.create_map_tile(state, Map.put(new_map_tile, :character, "O"))
     assert %{id: 1, character: "M"} = new_map_tile
@@ -193,6 +199,25 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       map_by_coords: %{ {1, 4} => %{0 => 123} },
       new_pids: [ 123 ]
     } = state
+  end
+
+  test "set_map_tile_id/3" do
+    new_map_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: "blocking: true", script: "#END\n:touch\nHI"}
+    {new_map_tile, state} = Instances.create_map_tile(%Instances{}, new_map_tile)
+    assert new_map_tile.id == "new_0"
+
+    # noop if the new id is not and int or the old id is not a binary
+    assert ^state = Instances.set_map_tile_id(state, %{id: "new_0"}, "new_0")
+    assert ^state = Instances.set_map_tile_id(state, %{id: 1}, 2)
+
+    # stuff gets updated
+    assert updated_state = Instances.set_map_tile_id(state, Map.put(new_map_tile, :id, 1), new_map_tile.id)
+    assert Map.delete(updated_state.map_by_ids[1], :id) == Map.delete(state.map_by_ids[new_map_tile.id], :id)
+    refute updated_state.map_by_ids[1].id == new_map_tile.id
+    assert is_integer(updated_state.map_by_ids[1].id)
+    assert updated_state.map_by_coords[{4,4}] == %{0 => 1}
+    assert %{1 => %{object_id: 1}} = updated_state.program_contexts
+    refute updated_state.program_contexts[new_map_tile.id]
   end
 
   test "update_map_tile_state/3", %{state: state} do
