@@ -216,8 +216,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     z_indexes = state.map_by_coords[{map_tile.row, map_tile.col}]
                 |> Map.put(map_tile.z_index, new_id)
     by_coords = Map.put(state.map_by_coords, {map_tile.row, map_tile.col}, z_indexes)
-    program_contexts = Map.put(state.program_contexts, new_id, %{ state.program_contexts[old_temp_id] | object_id: new_id} )
-                       |> Map.delete(old_temp_id)
+    program_contexts = if state.program_contexts[old_temp_id] do
+                         Map.put(state.program_contexts, new_id, %{ state.program_contexts[old_temp_id] | object_id: new_id} )
+                         |> Map.delete(old_temp_id)
+                       else
+                         state.program_contexts
+                       end
 
     %{ state | map_by_ids: by_ids, map_by_coords: by_coords, program_contexts: program_contexts }
   end

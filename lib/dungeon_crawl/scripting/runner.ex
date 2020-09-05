@@ -19,7 +19,7 @@ require Logger
     with object when not(is_nil(object)) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
          false <- StateValue.get_bool(object, :locked),
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
-         program <- %{program | pc: next_pc, lc: 0, status: :alive, message: {}} do
+         program <- %{program | pc: next_pc, lc: 0, status: :alive} do
       _run(%Runner{ runner_state | program: program})
     else
       _ ->
@@ -28,7 +28,7 @@ require Logger
   end
 
   def run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
-    if program.message == {} do
+    if program.messages == [] || program.status == "alive" || program.status == "dead" do
       # todo: maybe have the check for active tile live elsewhere
       if Instances.get_map_tile_by_id(state, %{id: object_id}) do
         _run(runner_state)
@@ -36,8 +36,8 @@ require Logger
         runner_state
       end
     else
-      {label, sender} = program.message
-      run(%{ runner_state | event_sender: sender, program: %{ program | message: {} } }, label)
+      [{label, sender} | messages ] = program.messages
+      run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages } }, label)
     end
   end
 
@@ -54,6 +54,7 @@ Logger.info inspect command
 Logger.info inspect params
 Logger.info inspect object
 if object, do: Logger.info inspect object.state
+Logger.info "event sender:"
 Logger.info inspect runner_state.event_sender
 Logger.info "instance state:"
 Logger.info inspect state.state_values

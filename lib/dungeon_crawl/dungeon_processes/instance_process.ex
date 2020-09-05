@@ -310,7 +310,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
                        |> Map.merge(Map.take(state.program_contexts, state.new_pids))
-
+Logger.info "Program messages:"
+Logger.info inspect state.program_messages
     _standard_behaviors(state.program_messages, %{ state | program_contexts: program_contexts })
     |> _message_programs()
   end
@@ -325,6 +326,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     if runner_state.program.status == :dead do
       { other_program_contexts, updated_state}
     else
+Logger.info "program still alive"
+Logger.info inspect pid
+Logger.info inspect Map.take(runner_state, [:program, :object_id, :event_sender])
+
       {[ [pid, Map.take(runner_state, [:program, :object_id, :event_sender])] | other_program_contexts ], updated_state}
     end
   end
@@ -336,12 +341,22 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
   defp _message_programs([], program_contexts), do: program_contexts
   defp _message_programs([ {po_id, label, sender} | messages], program_contexts) do
+Logger.info "message programs"
+Logger.info inspect po_id
     program_context = program_contexts[po_id]
-    if program_context && program_context.program.message == {} do
+    if program_context do # && program_context.program.message == {} do
+Logger.info "sending message"
+Logger.info inspect po_id
+Logger.info inspect label
+Logger.info inspect sender
       program = program_context.program
       _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender),
                                                                     event_sender: sender}})
     else
+Logger.info "no context or already had message"
+Logger.info inspect po_id
+Logger.info inspect program_context
+#Logger.info inspect program_context && program_context.program.messages
       _message_programs(messages, program_contexts)
     end
   end

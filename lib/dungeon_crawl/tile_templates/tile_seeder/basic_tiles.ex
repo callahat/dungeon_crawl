@@ -82,7 +82,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
         script: """
                 #WALK @facing
                 :THUD
-                #SEND shot, @facing
+                #SEND shot, ?sender
                 #DIE
                 :TOUCH
                 #SEND shot, ?sender

@@ -288,7 +288,7 @@ defmodule DungeonCrawl.Scripting.Command do
         %{ runner_state | program: %{ program | lc: 0 } }
 
       {direction, retry_until_successful} ->
-        next_actions = %{pc: program.pc - 1, lc: program.lc + 1, invalid_move_handler: &_invalid_compound_command/2}
+        next_actions = %{pc: program.pc - 1, lc: program.lc + 1, invalid_move_handler: &_invalid_compound_command/3}
         _move(runner_state, direction, retry_until_successful, next_actions, &Move.go/3)
     end
   end
@@ -594,7 +594,7 @@ defmodule DungeonCrawl.Scripting.Command do
     move(runner_state, [direction, false])
   end
   def move(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
-    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/3}
     _move(runner_state, direction, retry_until_successful, next_actions, &Move.go/3)
   end
 
@@ -644,7 +644,7 @@ defmodule DungeonCrawl.Scripting.Command do
         change_state(updated_runner_state, [:facing, "=", direction])
 
       {:invalid} ->
-        next_actions.invalid_move_handler.(runner_state, retryable)
+        next_actions.invalid_move_handler.(runner_state, destination, retryable)
     end
   end
 
@@ -656,12 +656,27 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _get_real_direction(_object, direction), do: direction || "idle"
 
-  defp _invalid_compound_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
+  defp _invalid_compound_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, blocking_obj, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %{ runner_state | program: %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles} }
+Logger.info "THUD! got by obj id:"
+Logger.info inspect object_id
+          sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+                                    else: %{map_tile_id: nil, parsed_state: %{}}
+Logger.info "blocker/sender:"
+Logger.info inspect sender
+          program = %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles}
+#          program_context = %{ state.program_contexts[object_id] | program: program, event_sender: sender }
+#          state = %{ state | program_contexts: %{ state.program_contexts | object_id => program_context } }
+
+
+          %{ runner_state |
+               program: program,
+               state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
+
+#          %{ runner_state | state: state, program: program }
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
@@ -669,12 +684,26 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _invalid_simple_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, retryable) do
+  defp _invalid_simple_command(%Runner{program: program, object_id: object_id, state: state} = runner_state, blocking_obj, retryable) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       line_number = Program.line_for(program, "THUD") ->
-          %{ runner_state | program: %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles} }
+Logger.info "THUD! got by obj id:"
+Logger.info inspect object_id
+          sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+                                    else: %{map_tile_id: nil, parsed_state: %{}}
+Logger.info "blocker/sender:"
+Logger.info inspect sender
+          program = %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles}
+#          program_context = %{ state.program_contexts[object_id] | program: program, event_sender: sender }
+#          state = %{ state | program_contexts: %{ state.program_contexts | object_id => program_context } }
+
+          %{ runner_state |
+               program: program,
+               state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
+
+#          %{ runner_state | state: state, program: program }
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
@@ -715,7 +744,7 @@ defmodule DungeonCrawl.Scripting.Command do
     pull(runner_state, [direction, false])
   end
   def pull(%Runner{program: program} = runner_state, [direction, retry_until_successful]) do
-    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    next_actions = %{pc: program.pc, lc: 0, invalid_move_handler: &_invalid_simple_command/3}
     _move(runner_state, direction, retry_until_successful, next_actions, &Pull.pull/3)
   end
 
@@ -1190,6 +1219,11 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _send_message_via_ids(runner_state, _label, []), do: runner_state
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
+Logger.info "Sending message via ids:"
+Logger.info inspect po_id
+Logger.info inspect label
+Logger.info "sender:"
+Logger.info inspect object_id
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
       %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state}} |
@@ -1471,7 +1505,7 @@ defmodule DungeonCrawl.Scripting.Command do
             state: %Instances{ map_by_ids: %{object_id => %{object | row: object.row - 1}} }}
   """
   def walk(%Runner{program: program} = runner_state, [direction]) do
-    next_actions = %{pc: program.pc - 1, lc: 0, invalid_move_handler: &_invalid_simple_command/2}
+    next_actions = %{pc: program.pc - 1, lc: 0, invalid_move_handler: &_invalid_simple_command/3}
     _move(runner_state, direction, false, next_actions, &Move.go/3)
   end
 
