@@ -34,10 +34,5 @@ defmodule DungeonCrawl.Scripting.Program do
     # TODO: Probably want to have the programs be their own separate processes eventually.
     messages = Enum.reverse([{label, sender} | Enum.reverse(program.messages) ])
     %{ program | messages: messages }
-#    if program.message == {} do
-#      %{ program | message: {label, sender} }
-#    else
-#      program
-#    end
   end
 end

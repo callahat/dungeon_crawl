@@ -1202,11 +1202,6 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _send_message_via_ids(runner_state, _label, []), do: runner_state
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
-Logger.info "Sending message via ids:"
-Logger.info inspect po_id
-Logger.info inspect label
-Logger.info "sender:"
-Logger.info inspect object_id
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
       %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state}} |

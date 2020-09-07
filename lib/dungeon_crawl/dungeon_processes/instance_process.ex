@@ -336,7 +336,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _message_programs([], program_contexts), do: program_contexts
   defp _message_programs([ {po_id, label, sender} | messages], program_contexts) do
     program_context = program_contexts[po_id]
-    if program_context do # && program_context.program.message == {} do
+    if program_context do
       program = program_context.program
       _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender),
                                                                     event_sender: sender}})
