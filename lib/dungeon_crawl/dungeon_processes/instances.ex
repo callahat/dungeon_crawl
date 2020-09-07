@@ -222,6 +222,25 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                        else
                          state.program_contexts
                        end
+    program_contexts = program_contexts
+                       |> Map.to_list
+                       |> Enum.map(fn({pid, %{event_sender: event_sender, program: program} = program_context}) ->
+                            event_sender = if event_sender && event_sender.map_tile_id == old_temp_id do
+                                             %{ event_sender | map_tile_id: new_id}
+                                           else
+                                             event_sender
+                                           end
+                            messages = program.messages
+                                       |> Enum.map(fn({label, sender} = message) ->
+                                            if sender && sender.map_tile_id == old_temp_id do
+                                              {label, %{sender | map_tile_id: new_id}}
+                                            else
+                                              message
+                                            end
+                                          end)
+                            {pid, %{program_context | event_sender: event_sender, program: %{ program | messages: messages}}}
+                          end)
+                       |> Enum.into(%{})
 
     %{ state | map_by_ids: by_ids, map_by_coords: by_coords, program_contexts: program_contexts }
   end

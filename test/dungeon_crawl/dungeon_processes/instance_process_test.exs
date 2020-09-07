@@ -210,13 +210,13 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert [] == program_messages # should be cleared after punting the messages to the actual progams
 
     # The last map tile in this setup has no active program
-    expected = %{ map_tile_id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}},
-                  Enum.at(map_tiles,0).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}},
-                  Enum.at(map_tiles,1).id => {"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}} }
+    expected = %{ map_tile_id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}}],
+                  Enum.at(map_tiles,0).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}}],
+                  Enum.at(map_tiles,1).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}}] }
 
     actual = program_contexts
              |> Map.to_list
-             |> Enum.map(fn {id, context} -> {id, context.program.message} end)
+             |> Enum.map(fn {id, context} -> {id, context.program.messages} end)
              |> Enum.into(%{})
 
     assert actual == expected
@@ -384,9 +384,11 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute Repo.get(MapTile, map_tile_id_2)
     assert "O" == Repo.get(MapTile, map_tile_id_3).character
 
+    # new map tiles younger than 2 write_db iterations don't get persisted to the DB yet
     assert new_map_tile_2 == InstanceProcess.get_tile(instance_process, 1, 7)
     assert is_binary(new_map_tile_2.id)
     persisted_older_new_map_tile = InstanceProcess.get_tile(instance_process, 1, 6)
+    # new map tiles that live past 2 or more write_db iterations get persisted to the DB
     assert is_integer(persisted_older_new_map_tile.id)
     assert "G" == Repo.get(MapTile, persisted_older_new_map_tile.id).character
   end

@@ -309,14 +309,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                               #BECOME character: X
                               """)
 
-    %Runner{program: program} = Command.compound_move(%Runner{program: program, object_id: mover.id, state: state}, [{"south", true}])
+    runner_state = %Runner{program: program, object_id: mover.id, state: state}
+    %Runner{program: program, state: state} = Command.compound_move(runner_state, [{"south", true}])
 
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
-             pc: 4,
+             pc: 1,
              lc: 0
            } = program
+    assert %{program_messages: [{3, "THUD", %{map_tile_id: nil, parsed_state: %{}}}] } = state
   end
 
   test "DIE" do
@@ -780,6 +782,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "MOVE into something blocking (or a nil square) triggers a THUD event" do
     {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: ".", row: 2, col: 2, z_index: 0, state: "blocking: true"})
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
     program = program_fixture("""
@@ -789,14 +792,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                               :THUD
                               #BECOME character: X
                               """)
-
-    %Runner{program: program} = Command.move(%Runner{program: program, object_id: mover.id, state: state}, ["south", true])
+    runner_state = %Runner{program: program, object_id: mover.id, state: state}
+    %Runner{program: program, state: state} = Command.move(runner_state, ["south", true])
 
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
-             pc: 4
+             pc: 1
            } = program
+    assert Enum.member?(state.program_messages, {3, "THUD", %{map_tile_id: 4, parsed_state: %{blocking: true}}})
   end
 
   test "NOOP" do
@@ -848,7 +852,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Pull, but blocked
     updated_runner_state = Command.pull(runner_state, ["west"])
-    assert updated_runner_state == %{ runner_state | program: %{ runner_state.program | pc: 4, status: :wait, wait_cycles: 5}}
+    assert updated_runner_state.program == %{ updated_runner_state.program | pc: 1, status: :wait, wait_cycles: 5}
 
     # pull with second param as false is the same as without it
     assert Command.pull(runner_state, ["west"]) == Command.pull(runner_state, ["west", false])
@@ -857,8 +861,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Pull, but blocked and retry
     %Runner{program: program, state: state} = Command.pull(runner_state, ["west", true])
-    assert state == runner_state.state
-    assert program == %{ runner_state.program | pc: 4, status: :wait, wait_cycles: 5}
+    assert state == Map.put(runner_state.state, :program_messages, [{4, "THUD", %{map_tile_id: nil, parsed_state: %{}}}])
+    assert program == %{ runner_state.program | pc: 1, status: :wait, wait_cycles: 5}
   end
 
   test "PUSH" do

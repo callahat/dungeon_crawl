@@ -660,23 +660,14 @@ defmodule DungeonCrawl.Scripting.Command do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
-      line_number = Program.line_for(program, "THUD") ->
-Logger.info "THUD! got by obj id:"
-Logger.info inspect object_id
-          sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
-                                    else: %{map_tile_id: nil, parsed_state: %{}}
-Logger.info "blocker/sender:"
-Logger.info inspect sender
-          program = %{program | pc: line_number, lc: 0, status: :wait, wait_cycles: wait_cycles}
-#          program_context = %{ state.program_contexts[object_id] | program: program, event_sender: sender }
-#          state = %{ state | program_contexts: %{ state.program_contexts | object_id => program_context } }
+      Program.line_for(program, "THUD") ->
+        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+                                  else: %{map_tile_id: nil, parsed_state: %{}}
+        program = %{program | status: :wait, wait_cycles: wait_cycles}
+        %{ runner_state |
+             program: program,
+             state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
 
-
-          %{ runner_state |
-               program: program,
-               state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
-
-#          %{ runner_state | state: state, program: program }
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
@@ -688,22 +679,14 @@ Logger.info inspect sender
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
-      line_number = Program.line_for(program, "THUD") ->
-Logger.info "THUD! got by obj id:"
-Logger.info inspect object_id
-          sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
-                                    else: %{map_tile_id: nil, parsed_state: %{}}
-Logger.info "blocker/sender:"
-Logger.info inspect sender
-          program = %{program | pc: line_number, status: :wait, wait_cycles: wait_cycles}
-#          program_context = %{ state.program_contexts[object_id] | program: program, event_sender: sender }
-#          state = %{ state | program_contexts: %{ state.program_contexts | object_id => program_context } }
+      Program.line_for(program, "THUD") ->
+        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+                                  else: %{map_tile_id: nil, parsed_state: %{}}
+        program = %{program | status: :wait, wait_cycles: wait_cycles}
+        %{ runner_state |
+             program: program,
+             state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
 
-          %{ runner_state |
-               program: program,
-               state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
-
-#          %{ runner_state | state: state, program: program }
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->

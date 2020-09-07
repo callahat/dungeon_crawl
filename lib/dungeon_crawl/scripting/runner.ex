@@ -28,7 +28,7 @@ require Logger
   end
 
   def run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
-    if program.messages == [] || program.status == "alive" || program.status == "dead" do
+    if program.messages == [] || program.status == :alive || program.status == :dead do
       # todo: maybe have the check for active tile live elsewhere
       if Instances.get_map_tile_by_id(state, %{id: object_id}) do
         _run(runner_state)
@@ -64,7 +64,7 @@ end
         # increment program counter, check for end of program
         program = %{runner_state.program | pc: runner_state.program.pc + 1}
         if program.pc > Enum.count(program.instructions) do
-          %{ runner_state | program: %{program | pc: 0, status: :idle} }
+          run( %{ runner_state | program: %{program | pc: 0, status: :idle} } )
         else
           run( %{ runner_state | program: program } )
         end

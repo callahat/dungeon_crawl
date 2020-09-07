@@ -23,9 +23,10 @@ defmodule DungeonCrawl.Scripting.ProgramTest do
 
   test "send_message/2" do
     program = Program.send_message(%Program{}, "touch", 1234)
-    assert {"touch", 1234} == program.message
+    assert [{"touch", 1234}] == program.messages
 
+    # adds messages to the end of the list, FIFO
     program = Program.send_message(program, "panic")
-    assert {"touch", 1234} == program.message
+    assert [{"touch", 1234}, {"panic", nil}] == program.messages
   end
 end
