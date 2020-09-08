@@ -309,16 +309,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                               #BECOME character: X
                               """)
 
-    runner_state = %Runner{program: program, object_id: mover.id, state: state}
-    %Runner{program: program, state: state} = Command.compound_move(runner_state, [{"south", true}])
+    %Runner{program: program} = Command.compound_move(%Runner{program: program, object_id: mover.id, state: state}, [{"south", true}])
 
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1,
-             lc: 0
+             lc: 0,
+             messages: [{"THUD", %{map_tile_id: nil, parsed_state: %{}}}]
            } = program
-    assert %{program_messages: [{3, "THUD", %{map_tile_id: nil, parsed_state: %{}}}] } = state
   end
 
   test "DIE" do
@@ -792,15 +791,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                               :THUD
                               #BECOME character: X
                               """)
-    runner_state = %Runner{program: program, object_id: mover.id, state: state}
-    %Runner{program: program, state: state} = Command.move(runner_state, ["south", true])
+
+    %Runner{program: program} = Command.move(%Runner{program: program, object_id: mover.id, state: state}, ["south", true])
 
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
-             pc: 1
+             pc: 1,
+             messages: [{"THUD", %{map_tile_id: 4, parsed_state: %{blocking: true}}}]
            } = program
-    assert Enum.member?(state.program_messages, {3, "THUD", %{map_tile_id: 4, parsed_state: %{blocking: true}}})
   end
 
   test "NOOP" do
@@ -860,9 +859,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.pull(runner_state, ["north"]) == Command.pull(runner_state, ["north", false])
 
     # Pull, but blocked and retry
-    %Runner{program: program, state: state} = Command.pull(runner_state, ["west", true])
-    assert state == Map.put(runner_state.state, :program_messages, [{4, "THUD", %{map_tile_id: nil, parsed_state: %{}}}])
-    assert program == %{ runner_state.program | pc: 1, status: :wait, wait_cycles: 5}
+    %Runner{program: program} = Command.pull(runner_state, ["west", true])
+    assert program == %{ runner_state.program | pc: 1,
+                                                status: :wait,
+                                                wait_cycles: 5,
+                                                messages: [{"THUD", %{map_tile_id: nil, parsed_state: %{}}}]}
   end
 
   test "PUSH" do

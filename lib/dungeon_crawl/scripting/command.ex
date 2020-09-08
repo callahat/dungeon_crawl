@@ -665,8 +665,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                   else: %{map_tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
-             program: program,
-             state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
+             program: Program.send_message(program, "THUD", sender) }
 
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
@@ -684,8 +683,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                   else: %{map_tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
-             program: program,
-             state: %{ state | program_messages: [ {object_id, "THUD", sender} | state.program_messages] } }
+             program: Program.send_message(program, "THUD", sender) }
 
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }

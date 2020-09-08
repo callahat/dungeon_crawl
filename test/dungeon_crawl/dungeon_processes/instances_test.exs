@@ -205,7 +205,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     map_tile = %{id: 1000, row: 3, col: 4, z_index: 0, character: "M", state: "", script: "#END"}
     {_map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile)
     program_contexts = %{ 1000 => %{ program: %{state.program_contexts[1000].program |
-                                                 messages: [{"touch", %{map_tile_id: "new_0"}}, {"touch", nil}]},
+                                                 messages: [{"touch", %{map_tile_id: "new_0"}},
+                                                            {"touch", nil},
+                                                            {"touch", Map.merge(%Location{}, %{parsed_state: {}} )}]},
                                      event_sender: %{map_tile_id: "new_0"} }}
     state = %{ state | program_contexts: program_contexts }
 
@@ -226,7 +228,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{1 => %{object_id: 1}} = updated_state.program_contexts
     refute updated_state.program_contexts[new_map_tile.id]
 
-    assert updated_state.program_contexts[1000].program.messages == [{"touch", %{map_tile_id: 1}}, {"touch", nil}]
+    assert updated_state.program_contexts[1000].program.messages == [{"touch", %{map_tile_id: 1}},
+                                                                     {"touch", nil},
+                                                                     {"touch", Map.merge(%Location{}, %{parsed_state: {}})}]
     assert updated_state.program_contexts[1000].event_sender == %{map_tile_id: 1}
   end
 

@@ -232,10 +232,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                                            end
                             messages = program.messages
                                        |> Enum.map(fn({label, sender} = message) ->
-                                            if sender && sender.map_tile_id == old_temp_id do
-                                              {label, %{sender | map_tile_id: new_id}}
-                                            else
-                                              message
+                                            case sender do
+                                              %{map_tile_id: map_tile_id} when map_tile_id == old_temp_id ->
+                                                {label, %{sender | map_tile_id: new_id}}
+                                              _ ->
+                                                message
                                             end
                                           end)
                             {pid, %{program_context | event_sender: event_sender, program: %{ program | messages: messages}}}
