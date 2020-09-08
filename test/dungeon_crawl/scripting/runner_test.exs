@@ -50,14 +50,15 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_object = %{id: 1, state: "", parsed_state: %{}}
       stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object} }
 
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object_id: 1, state: stubbed_state})
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | messages: [{"there", nil}], status: :idle}, object_id: 1, state: stubbed_state})
       assert run_program.responses == [{"message", %{message: "Last text"}}]
-      assert run_program.message == {}
+      assert run_program.messages == []
 
-      # A label passed in overrides the existing message
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | message: {"there", nil}}, object_id: 1, state: stubbed_state}, "here")
-      assert run_program.responses == [{"message", %{message: "After label"}}]
-      assert run_program.message == {}
+      # A label passed in runs from there if possible, then runs queued messages when idle/waiting
+      # And runs messages in order sent (oldest first)
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | messages: [{"there", nil}, {"there", nil}]}, object_id: 1, state: stubbed_state}, "here")
+      assert run_program.messages == []
+      assert run_program.responses == [{"message", %{message: "Last text"}}, {"message", %{message: "Last text"}}, {"message", %{message: "After label"}}]
     end
 
     test "when given a label but the label is inactive it does not executes from that" do

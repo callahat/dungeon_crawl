@@ -310,7 +310,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
                        |> Map.merge(Map.take(state.program_contexts, state.new_pids))
-
     _standard_behaviors(state.program_messages, %{ state | program_contexts: program_contexts })
     |> _message_programs()
   end
@@ -337,7 +336,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _message_programs([], program_contexts), do: program_contexts
   defp _message_programs([ {po_id, label, sender} | messages], program_contexts) do
     program_context = program_contexts[po_id]
-    if program_context && program_context.program.message == {} do
+    if program_context do
       program = program_context.program
       _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender),
                                                                     event_sender: sender}})

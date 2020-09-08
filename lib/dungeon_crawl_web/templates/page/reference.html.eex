@@ -108,13 +108,17 @@
   <p>A script can be defined which will control additional behavior of the map tile beyond the basic
      built in state values. A script begins running commands starting at the top, and working its way down.
      Certain commands, such as movement, will pause the script for a noticable amount of time (determined by
-     the "wait_cycles"). When a map tile receives a message it can react, the program will jump and start
+     the "wait_cycles"). When a map tile receives a message it can react to, the program will jump and start
      executing instructions from that point. A message will be reacted to if it is one of the standard behaviors,
      or if the map tile has a matching label in its script.</p>
 
   <p>The script will continue to run until there are no more instructions it can run, or it encounters the END or
      TERMINATE instruction. For the former two, the script will be idle, and will no nothing further unless it receives
-     a message to which it is able to respond.</p>
+     a message to which it is able to respond. A script may recieve messages that will be queued in the order they were
+     recieved. When running the script, when its status becomes `idle` or `waiting`, if there are messages, the top one
+     will change the program counter and jump execution to that if that label exists and is active
+     (also changing the status to `alive`), otherwise the next message will be handled. When there are no more messages for
+     that program, and the program status is `idle` or `waiting`, then the next program will be run.</p>
 
   <p>One instruction per line. Each line may have a prefix, denoting what that line is.</p>
 

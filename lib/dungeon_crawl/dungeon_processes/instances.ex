@@ -216,8 +216,32 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     z_indexes = state.map_by_coords[{map_tile.row, map_tile.col}]
                 |> Map.put(map_tile.z_index, new_id)
     by_coords = Map.put(state.map_by_coords, {map_tile.row, map_tile.col}, z_indexes)
-    program_contexts = Map.put(state.program_contexts, new_id, %{ state.program_contexts[old_temp_id] | object_id: new_id} )
-                       |> Map.delete(old_temp_id)
+    program_contexts = if state.program_contexts[old_temp_id] do
+                         Map.put(state.program_contexts, new_id, %{ state.program_contexts[old_temp_id] | object_id: new_id} )
+                         |> Map.delete(old_temp_id)
+                       else
+                         state.program_contexts
+                       end
+    program_contexts = program_contexts
+                       |> Map.to_list
+                       |> Enum.map(fn({pid, %{event_sender: event_sender, program: program} = program_context}) ->
+                            event_sender = if event_sender && event_sender.map_tile_id == old_temp_id do
+                                             %{ event_sender | map_tile_id: new_id}
+                                           else
+                                             event_sender
+                                           end
+                            messages = program.messages
+                                       |> Enum.map(fn({label, sender} = message) ->
+                                            case sender do
+                                              %{map_tile_id: map_tile_id} when map_tile_id == old_temp_id ->
+                                                {label, %{sender | map_tile_id: new_id}}
+                                              _ ->
+                                                message
+                                            end
+                                          end)
+                            {pid, %{program_context | event_sender: event_sender, program: %{ program | messages: messages}}}
+                          end)
+                       |> Enum.into(%{})
 
     %{ state | map_by_ids: by_ids, map_by_coords: by_coords, program_contexts: program_contexts }
   end
