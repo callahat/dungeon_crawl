@@ -87,8 +87,8 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
   def insert_stubbed_dungeon_instance(attrs \\ %{}, tiles \\ []) do
     dungeon = insert_stubbed_dungeon(attrs, tiles)
-    msi = DungeonInstances.create_map_set(Repo.preload(dungeon,:map_set).map_set)
-    {:ok, %{map_set: %{maps: [instance]}}} = DungeonInstances.create_map(dungeon, msi.id)
+    {:ok, %{map_set: msi}} = DungeonInstances.create_map_set(Repo.preload(dungeon,:map_set).map_set)
+    {:ok, %{dungeon: instance}} = DungeonInstances.create_map(dungeon, msi.id)
     instance
   end
 
