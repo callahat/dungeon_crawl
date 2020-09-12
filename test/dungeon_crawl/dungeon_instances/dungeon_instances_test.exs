@@ -8,7 +8,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
 
     test "get_map!/1 returns the map with given id" do
       dungeon = insert_stubbed_dungeon()
-      instance = Repo.insert!(%Map{map_id: dungeon.id, name: dungeon.name, height: dungeon.height, width: dungeon.width})
+      instance = Repo.insert!(%Map{map_set_instance_id: dungeon.id, name: dungeon.name, height: dungeon.height, width: dungeon.width})
       assert DungeonInstances.get_map!(instance.id) == instance
     end
 
@@ -43,11 +43,10 @@ defmodule DungeonCrawl.DungeonInstancesTest do
 
     def map_tile_fixture(attrs \\ %{}, map_instance_id \\ nil) do
       instance = if map_instance_id do
-                          Repo.get!(DungeonInstances.Map, map_instance_id)
-                        else
-                          map = insert_stubbed_dungeon()
-                          Repo.insert!(%DungeonInstances.Map{map_id: map.id, name: map.name, width: map.width, height: map.height})
-                        end
+                   Repo.get!(DungeonInstances.Map, map_instance_id)
+                 else
+                   insert_stubbed_dungeon_instance()
+                 end
 
       tile_template = insert_tile_template()
       {:ok, map_tile} =
