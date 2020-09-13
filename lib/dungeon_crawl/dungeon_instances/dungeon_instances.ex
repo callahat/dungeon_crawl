@@ -57,6 +57,21 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Deletes a Map Set Instance.
+
+  ## Examples
+
+      iex> delete_map_set(map_set)
+      {:ok, %Map{}}
+
+  """
+  def delete_map_set(%MapSet{} = map_set) do
+    Repo.preload(map_set, :maps).maps
+    |> Enum.each(fn(map) -> Repo.delete!(map) end)
+    Repo.delete!(map_set)
+  end
+
+  @doc """
   Gets a single dungeon map instance.
 
   Raises `Ecto.NoResultsError` if the Map Instance does not exist.
@@ -72,7 +87,6 @@ defmodule DungeonCrawl.DungeonInstances do
   """
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
-
 
   @doc """
   Creates a dungeon instance.

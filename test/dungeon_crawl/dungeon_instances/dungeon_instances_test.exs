@@ -24,6 +24,15 @@ defmodule DungeonCrawl.DungeonInstancesTest do
              Elixir.Map.take(dungeon, [:name, :width, :height, :state, :number, :entrance])
       assert _map_tile_details(dungeon) == _map_tile_details(instance)
     end
+
+    test "delete_map_set/1" do
+      map_set = insert_stubbed_map_set_instance(%{active: true})
+      map = Repo.preload(map_set, :maps).maps |> Enum.at(0)
+      assert map_set = DungeonInstances.delete_map_set(map_set)
+      assert %MapSet{} = map_set
+      refute DungeonCrawl.Repo.get MapSet, map_set.id
+      refute DungeonCrawl.Repo.get DungeonInstances.Map, map.id
+    end
   end
 
   describe "map_instances" do
