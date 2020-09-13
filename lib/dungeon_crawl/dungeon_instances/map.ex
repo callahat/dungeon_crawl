@@ -7,6 +7,8 @@ defmodule DungeonCrawl.DungeonInstances.Map do
   schema "map_instances" do
     field :height, :integer
     field :name, :string
+    field :number, :integer, default: 1
+    field :entrance, :boolean
     field :width, :integer
     field :state, :string
 

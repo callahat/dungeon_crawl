@@ -32,15 +32,13 @@ defmodule DungeonCrawl.DungeonInstances do
   def get_map_set!(id), do: Repo.get!(MapSet, id)
 
   @doc """
-  Creates a map set instance.
+  Creates a map set instance, initializing also the maps belonging to that map set.
 
   ## Examples
 
       iex> create_map_set(%Dungeon.MapSet{})
+      {:ok, %{map_set: %DungeonInstances.MapSet{}, maps: [%DungeonInstances.Map{}, ...]}}
       {:ok, %MapSet{}}
-
-      iex> create_map_set(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
 
   """
   def create_map_set(%Dungeon.MapSet{} = map_set) do
@@ -82,10 +80,7 @@ defmodule DungeonCrawl.DungeonInstances do
   ## Examples
 
       iex> create_map(%Dungeon.Map{})
-      {:ok, %DungeonInstances.Map{}}
-
-      iex> create_map(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
+      {:ok, %{dungeon: %DungeonInstances.Map{}}}
 
   """
   def create_map(%Dungeon.Map{} = map, msi_id) do
