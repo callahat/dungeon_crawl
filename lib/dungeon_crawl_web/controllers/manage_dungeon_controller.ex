@@ -5,58 +5,67 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
   alias DungeonCrawl.DungeonInstances
 
   def index(conn, %{"show_deleted" => "true"}) do
-    dungeons = Dungeon.list_dungeons(:soft_deleted)
-    render(conn, "index_deleted.html", dungeons: dungeons)
+    map_sets = Dungeon.list_map_sets(:soft_deleted)
+               |> Enum.map(fn(map_set) -> Repo.preload(map_set, [:dungeons]) end)
+    render(conn, "index_deleted.html", map_sets: map_sets)
   end
 
   def index(conn, _params) do
-    dungeons = Dungeon.list_dungeons_with_player_count()
-    render(conn, "index.html", dungeons: dungeons)
+    map_sets = Dungeon.list_map_sets_with_player_count()
+               |> Enum.map(fn(%{map_set: map_set}) -> Repo.preload(map_set, [:dungeons, :locations, :map_set_instances]) end)
+    render(conn, "index.html", map_sets: map_sets)
   end
 
   def show(conn, %{"id" => id, "instance_id" => instance_id}) do
-    dungeon = Dungeon.get_map!(id) |> Repo.preload([:user, :dungeon_map_tiles, map_instances: [:locations]])
-    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
-    instance = DungeonInstances.get_map(instance_id)
+    map_set = Dungeon.get_map_set!(id)
+              |> Repo.preload([:locations, [dungeons: :dungeon_map_tiles]])
+    map_set_instance = DungeonInstances.get_map_set(instance_id)
+                       |> Repo.preload([:maps])
+    top_level = Enum.at(map_set.dungeons, 0)
+    top_level = if top_level, do: top_level.number, else: nil
+    owner_name = if map_set.user_id, do: Repo.preload(map_set, :user).user.name, else: "<None>"
 
-    render(conn, "show.html", dungeon: dungeon, instance: instance, owner_name: owner_name)
+    render(conn, "show.html", map_set: map_set, map_set_instance: map_set_instance, owner_name: owner_name, top_level: top_level)
   end
 
   def show(conn, %{"id" => id}) do
-    dungeon = Dungeon.get_map!(id) |> Repo.preload([:dungeon_map_tiles, map_instances: [:locations]])
-    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
+    map_set = Dungeon.get_map_set!(id)
+              |> Repo.preload([:locations, [dungeons: :dungeon_map_tiles]])
+    top_level = Enum.at(map_set.dungeons, 0)
+    top_level = if top_level, do: top_level.number, else: nil
+    owner_name = if map_set.user_id, do: Repo.preload(map_set, :user).user.name, else: "<None>"
 
-    render(conn, "show.html", dungeon: dungeon, instance: nil, owner_name: owner_name)
+    render(conn, "show.html", map_set: map_set, map_set_instance: nil, owner_name: owner_name, top_level: top_level)
   end
 
   def delete(conn, %{"id" => id, "instance_id" => instance_id}) do
-    dungeon = Dungeon.get_map!(id)
-    instance = DungeonInstances.get_map!(instance_id)
+    map_set = Dungeon.get_map_set!(id)
+    map_set_instance = DungeonInstances.get_map_set(instance_id)
 
-    DungeonInstances.delete_map!(instance)
+    DungeonInstances.delete_map_set(map_set_instance)
 
     conn
     |> put_flash(:info, "Dungeon Instance deleted successfully.")
-    |> redirect(to: Routes.manage_dungeon_path(conn, :show, dungeon))
+    |> redirect(to: Routes.manage_dungeon_path(conn, :show, map_set))
   end
 
   def delete(conn, %{"id" => id, "hard_delete" => "true"}) do
-    dungeon = Dungeon.get_map!(id)
+    map_set = Dungeon.get_map_set!(id)
 
-    Dungeon.hard_delete_map!(dungeon)
+    Dungeon.hard_delete_map_set!(map_set)
 
     conn
-    |> put_flash(:info, "Dungeon #{dungeon.name} v#{dungeon.version} hard deleted successfully.")
+    |> put_flash(:info, "Dungeon #{map_set.name} v#{map_set.version} hard deleted successfully.")
     |> redirect(to: Routes.manage_dungeon_path(conn, :index, %{show_deleted: "true"}))
   end
 
   def delete(conn, %{"id" => id}) do
-    dungeon = Dungeon.get_map!(id)
+    map_set = Dungeon.get_map_set!(id)
 
-    Dungeon.delete_map!(dungeon)
+    Dungeon.delete_map_set!(map_set)
 
     conn
-    |> put_flash(:info, "Dungeon #{dungeon.name} v#{dungeon.version} deleted successfully.")
+    |> put_flash(:info, "Dungeon #{map_set.name} v#{map_set.version} deleted successfully.")
     |> redirect(to: Routes.manage_dungeon_path(conn, :index))
   end
 end

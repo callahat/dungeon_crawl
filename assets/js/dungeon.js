@@ -26,7 +26,10 @@ let Dungeon = {
 
     dungeonChannel.on("ping", ({count}) => console.log("PING", count))
 
-    document.getElementById("ressurect_me").addEventListener('click', e => {this.respawn(dungeonChannel)} )
+    let ressurectionEl
+    if(ressurectionEl = document.getElementById("ressurect_me")){
+      ressurectionEl.addEventListener('click', e => {this.respawn(dungeonChannel)} )
+    }
 
     dungeonChannel.join()
       .receive("ok", (resp) => {
