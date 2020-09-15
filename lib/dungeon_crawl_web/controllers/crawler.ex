@@ -22,17 +22,17 @@ defmodule DungeonCrawlWeb.Crawler do
       iex> join_and_broadcast(instance, "imahash")
       %Player.Location{}
   """
-  def join_and_broadcast(%DungeonInstances.Map{} = where, user_id_hash) do
+  def join_and_broadcast(%DungeonInstances.MapSet{} = where, user_id_hash) do
     {:ok, location} = Player.create_location_on_spawnable_space(where, user_id_hash)
-
      _broadcast_join_event(Repo.preload(location, :map_tile))
+
      location
   end
 
-  def join_and_broadcast(%Dungeon.Map{} = where, user_id_hash) do
-    {:ok, run_results} = DungeonInstances.create_map(where)
-    instance = run_results[:dungeon]
-    join_and_broadcast(instance, user_id_hash)
+  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash) do
+    {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where)
+
+    join_and_broadcast(map_set_instance, user_id_hash)
   end
 
   defp _broadcast_join_event(location) do
