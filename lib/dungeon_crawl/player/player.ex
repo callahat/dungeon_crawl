@@ -58,32 +58,49 @@ defmodule DungeonCrawl.Player do
       iex> create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.Map{})
       {:ok, %Location{}}
   """
-  def create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.Map{} = instance, user_id_hash) do
-    map_tile = _create_map_tile_for_location(instance)
+  def create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash) do
+    map_tile = _create_map_tile_for_location(msi)
 
     create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: user_id_hash})
   end
 
-  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.Map{} = instance) do
-    spawn_location = Repo.preload(instance, dungeon: :spawn_locations).dungeon.spawn_locations
-                     |> Enum.shuffle
-                     |> Enum.at(0)
-
-    empty_floor = Repo.preload(instance, dungeon_map_tiles: :tile_template).dungeon_map_tiles
-                      |> Enum.filter(fn(t) -> t.tile_template && t.tile_template.character == "." end)
-                      |> Enum.random
-
-    placement = if spawn_location, do: spawn_location, else: empty_floor
+  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.MapSet{} = msi) do
+    instance_maps = Repo.preload(msi, maps: [dungeon: :spawn_locations]).maps
+    entrance = _entrance(instance_maps) || _random_entrance(instance_maps)
+    spawn_location = _spawn_location(entrance) || _random_floor(entrance)
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
 
-    Map.take(placement, [:row, :col])
-    |> Map.merge(%{map_instance_id: instance.id})
+    Map.take(spawn_location, [:row, :col])
+    |> Map.merge(%{map_instance_id: entrance.id})
     |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
     |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end
 
+  defp _entrance(instance_maps) do
+    instance_maps
+    |> Enum.filter(fn(map) -> map.dungeon.entrance end)
+    |> Enum.shuffle
+    |> Enum.at(0)
+  end
+
+  defp _random_entrance(instance_maps) do
+    Enum.at(Enum.shuffle(instance_maps), 0)
+  end
+
+  defp _spawn_location(entrance) do
+    entrance.dungeon.spawn_locations
+    |> Enum.shuffle
+    |> Enum.at(0)
+  end
+
+  defp _random_floor(entrance) do
+    Repo.preload(entrance, [dungeon_map_tiles: :tile_template]).dungeon_map_tiles
+    |> Enum.filter(fn(t) -> t.tile_template && t.tile_template.character == "." end)
+    |> Enum.shuffle
+    |> Enum.at(0)
+  end
   @doc """
   Deletes a Location.
 
