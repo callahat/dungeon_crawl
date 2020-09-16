@@ -160,7 +160,7 @@ defmodule DungeonCrawl.Dungeon do
   ## Examples
 
       iex> create_new_map_set_version(%MapSet{active: true})
-      {:ok, %{dungeon: %MapSet{}}}
+      {:ok, %MapSet{}}
 
       iex> create_new_map_set_version(%MapSet{active: false})
       {:error, "Inactive map set"}
