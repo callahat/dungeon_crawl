@@ -37,24 +37,24 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>Dimensions (HxW)</th>
+          <th>Levels</th>
           <th>Instances/Players</th>
         </tr>
       </thead>
 
       <tbody>
-  <%= for %{dungeon: dungeon} <- @dungeons do %>
+  <%= for map_set <- @map_sets do %>
         <tr>
-          <td><%= dungeon.name %></td>
-          <td><%= dungeon.height %>x<%= dungeon.width %></td>
+          <td><%= map_set.name %></td>
+          <td><%= map_set.dungeons |> Enum.count %></td>
           <td>
             <table class="table table-sm">
-            <%= for instance <- dungeon.map_instances do %>
+            <%= for msi <- map_set.map_set_instances do %>
               <tr>
-                <td><%= instance.locations |> Enum.count %></td>
+                <td><%= msi.locations |> Enum.count %></td>
                 <td>
                   <span class="pull-right">
-                    <%= link "Join", to: Routes.crawler_path(@conn, :join, instance_id: instance.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                    <%= link "Join", to: Routes.crawler_path(@conn, :join, map_set_instance_id: msi.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
                   </span>
                 </td>
               </tr>
@@ -62,7 +62,7 @@
               <tr>
                 <td colspan=100%>
                   <span class="pull-right">
-                    <%= if can_start_new_instance(dungeon.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                    <%= if can_start_new_instance(map_set.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, map_set_id: map_set.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
                   </span>
                 </td>
               <tr>
