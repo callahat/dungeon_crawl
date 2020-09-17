@@ -3,11 +3,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeon
-  alias DungeonCrawl.Dungeon.Map
-  alias DungeonCrawl.TileTemplates
-  alias DungeonCrawl.MapGenerators.ConnectedRooms
-  alias DungeonCrawl.MapGenerators.Empty
-  alias DungeonCrawl.MapGenerators.Labrynth
+  alias DungeonCrawl.Dungeon.MapSet
   alias DungeonCrawl.Player
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
@@ -16,11 +12,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_map_set when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
-  plug :assign_dungeon when action in [:show, :edit, :update]
   plug :validate_updateable when action in [:edit, :update]
-  plug :set_sidebar_col when action in [:edit, :update]
-
-  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
   def index(conn, _params) do
     map_sets = Dungeon.list_map_sets(conn.assigns.current_user)
@@ -29,31 +21,29 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def new(conn, _params) do
-    changeset = Dungeon.change_map(%Map{})
-    generators = ["Rooms", "Labrynth", "Empty Map"]
-    render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
+    changeset = Dungeon.change_map_set(%MapSet{})
+    render(conn, "new.html", changeset: changeset)
   end
 
-  def create(conn, %{"map" => dungeon_params}) do
-    generator = case dungeon_params["generator"] do
-                  "Rooms"    -> @dungeon_generator
-                  "Labrynth" -> Labrynth
-                  _          -> Empty
-                end
+  def create(conn, %{"map_set" => dungeon_params}) do
+    atomized_dungeon_params = Enum.reduce(dungeon_params, %{}, fn
+        {key, value}, acc when is_atom(key) -> Elixir.Map.put(acc, key, value)
+        {key, value}, acc when is_binary(key) -> Elixir.Map.put(acc, String.to_existing_atom(key), value)
+       end)
 
-    case Dungeon.generate_map(generator, Elixir.Map.put(dungeon_params, "user_id", conn.assigns.current_user.id), true) do
-      {:ok, %{dungeon: dungeon}} ->
+    case Dungeon.create_map_set(Elixir.Map.put(atomized_dungeon_params, :user_id, conn.assigns.current_user.id)) do
+      {:ok, map_set} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
-      {:error, :dungeon, changeset, _others} ->
-        generators = ["Rooms", "Labrynth", "Empty Map"]
-        render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
+
+        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
+      {:error, changeset} ->
+        render(conn, "new.html", changeset: changeset)
     end
   end
 
   def show(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set #Dungeon.get_map!(id) |> Repo.preload([map_instances: [:locations], dungeon_map_tiles: [:tile_template]])
+    map_set = conn.assigns.map_set
               |> Repo.preload([dungeons: [dungeon_map_tiles: :tile_template]])
     owner_name = if map_set.user_id, do: Repo.preload(map_set, :user).user.name, else: "<None>"
 
@@ -64,126 +54,25 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def edit(conn, %{"id" => _id}) do
-    dungeon = conn.assigns.dungeon #Dungeon.get_map!(id) |> Repo.preload([dungeon_map_tiles: [:tile_template]])
-    tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
-    historic_templates = Dungeon.list_historic_tile_templates(dungeon)
+    map_set = conn.assigns.map_set
 
-    changeset = Dungeon.change_map(dungeon)
-    {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
-    spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
-                      |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
+    changeset = Dungeon.change_map_set(map_set)
 
-    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
+    render(conn, "edit.html", map_set: map_set, changeset: changeset)
   end
 
-  def update(conn, %{"id" => _id, "map" => dungeon_params}) do
-    dungeon = conn.assigns.dungeon #Dungeon.get_map!(id)
+  def update(conn, %{"id" => _id, "map_set" => map_set_params}) do
+    map_set = conn.assigns.map_set
 
-    case Dungeon.update_map(dungeon, dungeon_params) do
-      {:ok, dungeon} ->
-        _make_tile_updates(dungeon, dungeon_params["tile_changes"])
-        _make_tile_additions(dungeon, dungeon_params["tile_additions"])
-        _make_tile_deletions(dungeon, dungeon_params["tile_deletions"])
-
-        case Jason.decode(dungeon_params["spawn_tiles"]) do
-          {:ok, coords} ->
-            Dungeon.set_spawn_locations(dungeon.id, Enum.map(coords || [], fn([r, c]) -> {r, c} end))
-          _error ->
-            nil
-        end
-
+    case Dungeon.update_map_set(map_set, map_set_params) do
+      {:ok, map_set} ->
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
+
       {:error, changeset} ->
-        {low_z, high_z} = Dungeon.get_bounding_z_indexes(dungeon)
-        tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
-        historic_templates = Dungeon.list_historic_tile_templates(dungeon)
-        spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
-                          |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
-        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
+        render(conn, "edit.html", map_set: map_set, changeset: changeset)
     end
-  end
-
-  # todo: modify the tile template check to verify use can use the tile template id (ie, not soft deleted, protected, etc
-  defp _make_tile_updates(dungeon, tile_updates) do
-    case Jason.decode(tile_updates) do
-      {:ok, tile_updates} ->
-        # TODO: move this to a method in Dungeon
-        tile_updates
-        |> Enum.map(fn(tu) -> [Dungeon.get_map_tile(dungeon.id, tu["row"], tu["col"], tu["z_index"]),
-                               TileTemplates.get_tile_template(tu["tile_template_id"]),
-                               tu
-                              ] end)
-        |> Enum.reject(fn([d,_,_]) -> is_nil(d) end)
-        |> Enum.map(fn([dmt, tt, tu]) ->
-             Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id,
-                                             character: tu["character"] || tt.character,
-                                             color: tu["color"] || tt.color,
-                                             background_color: tu["background_color"] || tt.background_color,
-                                             state: tu["state"] || tt.state,
-                                             script: tu["script"] || tt.script,
-                                             name: tu["name"] || tt.name
-                                            })
-           end)
-
-      {:error, _, _} ->
-        false # noop
-    end
-  end
-
-  defp _make_tile_additions(dungeon, tile_additions) do
-    case Jason.decode(tile_additions) do
-      {:ok, tile_additions} ->
-        # TODO: move this to a method in Dungeon
-        tile_additions
-        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]),
-                               ta
-                              ] end)
-        |> Enum.reject(fn([tt,_]) -> is_nil(tt) end)
-        |> Enum.map(fn([tt, ta]) ->
-             Dungeon.create_map_tile!(%{dungeon_id: dungeon.id,
-                                        row: ta["row"],
-                                        col: ta["col"],
-                                        z_index: ta["z_index"],
-                                        tile_template_id: tt.id,
-                                        character: ta["character"] || tt.character,
-                                        color: ta["color"] || tt.color,
-                                        background_color: ta["background_color"] || tt.background_color,
-                                        state: ta["state"] || tt.state,
-                                        script: ta["script"] || tt.script,
-                                        name: ta["name"] || tt.name
-                                      })
-           end)
-
-      {:error, _, _} ->
-        false # noop
-    end
-  end
-
-  defp _make_tile_deletions(dungeon, tile_deletions) do
-    case Jason.decode(tile_deletions) do
-      {:ok, tile_deletions} ->
-        # TODO: move this to a method in Dungeon
-        tile_deletions
-        |> Enum.map(fn(t) -> [t["row"],
-                              t["col"],
-                              t["z_index"]
-                             ] end)
-        |> Enum.map(fn([row, col, z_index]) ->
-             Dungeon.delete_map_tile(dungeon.id, row, col, z_index)
-           end)
-
-      {:error, _, _} ->
-        false # noop
-    end
-  end
-
-  def validate_map_tile(conn, %{"id" => id, "map_tile" => map_tile_params}) do
-    map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Elixir.Map.put(map_tile_params, "dungeon_id", id))
-                         |> TileTemplates.TileTemplate.validate_script(%{user_id: conn.assigns.current_user.id})
-
-    render(conn, "map_tile_errors.json", map_tile_errors: map_tile_changeset.errors)
   end
 
   def delete(conn, %{"id" => _id}) do
@@ -224,7 +113,7 @@ defmodule DungeonCrawlWeb.DungeonController do
         conn
         |> put_flash(:error, message)
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
-      {:error, :dungeon, _, _} ->
+      {:error, :new_maps, _, _} ->
         conn
         |> put_flash(:error, "Cannot create new version; dimensions restricted?")
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
@@ -232,12 +121,19 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def test_crawl(conn, %{"id" => _id}) do
-    if conn.assigns.player_location, do: leave_and_broadcast(conn.assigns.player_location)
+    if Enum.count(conn.assigns.map_set.dungeons) < 1 do
+      conn
+      |> put_flash(:error, "Add a dungeon level first")
+      |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.map_set))
+      |> halt()
+    else
+     if conn.assigns.player_location, do: leave_and_broadcast(conn.assigns.player_location)
 
-    join_and_broadcast(conn.assigns.map_set, conn.assigns[:user_id_hash])
+      join_and_broadcast(conn.assigns.map_set, conn.assigns[:user_id_hash])
 
-    conn
-    |> redirect(to: Routes.crawler_path(conn, :show))
+      conn
+      |> redirect(to: Routes.crawler_path(conn, :show))
+    end
   end
 
   defp validate_edit_dungeon_available(conn, _opts) do
@@ -272,26 +168,8 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  defp assign_dungeon(conn, _opts) do
-    incoming_id = case Integer.parse(conn.params["id"] || conn.params["dungeon_id"]) do
-                    {int, ""} -> int
-                    str -> str
-                  end
-    dungeon = Enum.find(conn.assigns.map_set.dungeons, fn(dungeon) -> dungeon.id == incoming_id end)
-
-    if dungeon do
-      conn
-      |> assign(:dungeon, Repo.preload(dungeon, [dungeon_map_tiles: :tile_template]))
-    else
-      conn
-      |> put_flash(:error, "You do not have access to that `#{inspect conn.assigns.map_set.dungeons} - #{inspect conn.params["id"]} - #{inspect conn.params["dungeon_id"]}")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
-      |> halt()
-    end
-  end
-
   defp validate_updateable(conn, _opts) do
-    if !conn.assigns.dungeon.active do
+    if !conn.assigns.map_set.active do
       conn
     else
       conn
@@ -299,14 +177,5 @@ defmodule DungeonCrawlWeb.DungeonController do
       |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
-  end
-
-  defp set_sidebar_col(conn, _opts) do
-    conn
-    |> assign(:sidebar_col, 3)
-  end
-
-  defp _max_dimensions() do
-    Elixir.Map.take(Admin.get_setting, [:max_height, :max_width])
   end
 end

@@ -1,56 +1,24 @@
-<%= form_for @changeset, @action, [id: :dungeon_form], fn f -> %>
+<%= form_for @changeset, @action, [id: :map_set_form], fn f -> %>
   <%= if @changeset.action do %>
     <div class="alert alert-danger">
       <p>Oops, something went wrong! Please check the errors below.</p>
     </div>
   <% end %>
 
-  <div class="row">
-    <div class="form-group col-md-4">
-      <%= label f, :name, class: "control-label" %>
-      <%= text_input f, :name, class: "form-control" %>
-      <%= error_tag f, :name %>
-    </div>
-
-    <div class="form-group col-md-2">
-      <%= label f, :height, class: "control-label" %>
-      <%= text_input f, :height, class: "form-control", placeholder: "20 to #{@max_dimensions.max_height}" %>
-      <%= error_tag f, :height %>
-    </div>
-
-    <div class="form-group col-md-2">
-      <%= label f, :width, class: "control-label" %>
-      <%= text_input f, :width, class: "form-control", placeholder: "20 to #{@max_dimensions.max_width}" %>
-      <%= error_tag f, :width %>
-    </div>
-
-<%= if @generators do %>
-    <div class="form-group col-md-4">
-      <%= label f, :generator, class: "control-label" %>
-      <%= select f, :generator, @generators, class: "form-control" %>
-    </div>
-<% else %>
-    <div class="form-group col-md-4">
-      <p>* changing dimensions may cause the map to lose tiles</p>
-    </div>
-    <%= hidden_input f, :tile_changes %>
-    <%= hidden_input f, :tile_additions %>
-    <%= hidden_input f, :tile_deletions %>
-    <%= hidden_input f, :spawn_tiles %>
-<% end %>
+  <div class="form-group">
+    <%= label f, :name, class: "control-label" %>
+    <%= text_input f, :name, class: "form-control" %>
+    <%= error_tag f, :name %>
   </div>
 
-  <div class="row">
-    <div class="form-group col">
-      <%= label f, :state, class: "control-label" %>
-      <%= text_input f, :state, class: "form-control" %>
-      <%= error_tag f, :state %>
-    </div>
+  <div class="form-group">
+    <%= label f, :state, class: "control-label" %>
+    <%= text_input f, :state, class: "form-control" %>
+    <%= error_tag f, :state %>
   </div>
 
-  <div class="row">
-    <div class="form-group">
-      <%= submit "Submit", class: "btn btn-primary" %>
-    </div>
+  <div class="form-group">
+    <%= submit "Submit", class: "btn btn-primary" %>
   </div>
+
 <% end %>
