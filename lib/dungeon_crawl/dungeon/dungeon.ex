@@ -388,7 +388,7 @@ defmodule DungeonCrawl.Dungeon do
 
   ## Examples
 
-    iex > list_dungeons_with_player_count(%MapSet{})
+    iex> list_dungeons_with_player_count(%MapSet{})
     [%{dungeon: %Map{}, player_count: 4}, ...]
   """
   def list_dungeons_with_player_count(%MapSet{} = map_set) do
@@ -400,6 +400,24 @@ defmodule DungeonCrawl.Dungeon do
              preload: [locations: {m, locations: pmt}],
              select: %{dungeon_id: m.id, dungeon: m},
              order_by: [m.number, pmt.id])
+  end
+
+  @doc """
+  Returns the next level number.
+
+  ## Examples
+
+    iex> next_level_number(%MapSet{})
+    2
+  """
+  def next_level_number(%MapSet{} = map_set) do
+    case Repo.one(from ms in MapSet,
+                  where: ms.id == ^map_set.id,
+                  left_join: m in assoc(ms, :dungeons),
+                  select: max(m.number)) do
+      nil -> 1
+      num -> num + 1
+    end
   end
 
   @doc """

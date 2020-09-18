@@ -267,6 +267,15 @@ defmodule DungeonCrawl.DungeonTest do
       assert Enum.count(Repo.preload(map_i, [dungeon: :locations]).dungeon.locations) == 2
     end
 
+    test "next_level_number/1" do
+      map = map_fixture()
+      map_set_1 = Repo.preload(map, :map_set).map_set
+      map_set_2 = insert_map_set
+
+      assert Dungeon.next_level_number(map_set_1) == 2
+      assert Dungeon.next_level_number(map_set_2) == 1 # has no maps
+    end
+
     test "get_map!/1 returns the map with given id" do
       map = map_fixture()
       assert Dungeon.get_map!(map.id) == map
