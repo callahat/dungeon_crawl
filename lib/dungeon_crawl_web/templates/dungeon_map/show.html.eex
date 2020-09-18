@@ -1,53 +1,55 @@
 <h2><%= @map_set.name %></h2>
 <p><b>Owner:</b> <%= @owner_name %></p>
 <p><b>Version:</b> <%= @map_set.version %> (<%= if @map_set.active, do: "A", else: "Ina" %>ctive)</p>
-<p><b>State:</b><pre class="script" style="display: inline"><%= @map_set.state %></pre></p>
-
 <p><b>Levels:</b> <%= @map_set.dungeons |> Enum.count %></p>
+<div>
+  <b>State:</b>
+  <pre class="script" style="display: inline"><%= @map_set.state %></pre>
+</div>
 
-<%= link "Add New Level", to: Routes.dungeon_map_path(@conn, :new, @map_set), class: "btn btn-success btn-sm" %>
 
+<div class="text-center">
 
-<div class="row no-gutters">
-
-<div class="text-center col-3">
+<div class="col-3">
     <table>
       <tr>
         <th>Level</th>
         <th>(HxW)</th>
         <th>Entrance?</th>
       </tr>
+      <%= for dungeon <- @map_set.dungeons do %>
       <tr>
         <td>
           <div class="nav nav-pills flex-column" role="tablist">
-      <%= for dungeon <- @map_set.dungeons do %>
-            <a class="nav-link small"
-               id="level<%= dungeon.id %>-tab"
-               data-toggle="pill"
-               href="#level<%= dungeon.id %>"
+            <a class="nav-link <%= if dungeon.number == @top_level, do: "active" %>"
+               id="level<%= dungeon.number %>-tab"
+               data-toggle="tab"
+               href="#level<%= dungeon.number %>"
                role="tab"
-               aria-controls="level<%= dungeon.id %>"
+               aria-controls="level<%= dungeon.number %>"
                aria-orientation="vertical"
                aria-selected="true">
               <%= dungeon.number %> - <%= dungeon.name %>
             </a>
-      <% end %>
           </div>
         </td>
+        <td><%= dungeon.height %>x<%= dungeon.width %></td>
+        <td><%= if dungeon.entrance, do: "Y", else: "N" %></td>
       </tr>
+      <% end %>
     </table>
   </div>
   <div class="col-9">
     <div class="tab-content" id="levels">
       <%= for dungeon <- @map_set.dungeons do %>
-        <div class="tab-pane" id="level<%= dungeon.id %>" role="tabpanel" aria-labelledby="level<%= dungeon.id %>-tab">
-          <%= link "Edit Level", to: Routes.dungeon_map_path(@conn, :edit, @map_set, dungeon), class: "btn btn-secondary btn-sm" %> |
-          <%= link "Delete Level", to: Routes.dungeon_map_path(@conn, :delete, @map_set, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/>
+        <div class="tab-pane <%= if dungeon.number == 1 || @top_level, do: "show active" %>" id="level<%= dungeon.number %>" role="tabpanel" aria-labelledby="level<%= dungeon.number %>-tab">
           <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: dungeon, readonly: true) %>
         </div>
       <% end %>
     </div>
   </div>
+
+
 
 </div>
 

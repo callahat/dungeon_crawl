@@ -1,0 +1,121 @@
+<nav class="col-md-3 col-lg-3 d-none d-md-block bg-light sidebar">
+  <div class="sidebar-sticky">
+    <ul class="nav flex-column">
+      <li class="nav-item px-2">
+        <div id="z_index_range_tool">
+          <div class="row no-gutters">
+            <div class="col-3">Show</div>
+            <div class="col-5">Z Index</div>
+            <div class="col-4"></div>
+          </div>
+          <div class="row no-gutters">
+            <div class="col-3">
+              <button id="up_to_current_layer_visible_toggle" class="btn btn-info btn-sm" title="Show tiles up to the current active layer">Up to</button>
+              <button id="only_current_layer_visible_toggle" class="btn btn-info btn-sm hidden" title="Only show the active layer">Only</button>
+            </div>
+            <div class="col-5">
+              <%= text_input :z_index, :current, type: :number, class: "form-control text-center", value: @high_z_index %>
+              <%= text_input :z_index, :lower, type: :hidden, class: "form-control text-center", value: @low_z_index %>
+              <%= text_input :z_index, :upper, type: :hidden, class: "form-control text-center", value: @high_z_index %>
+            </div>
+            <div class="col-4">
+              <button id="z_upper_min" class="btn btn-info btn-sm" title="Match Lower Bound">&lt;&lt;</button>
+              <button id="z_upper_max" class="btn btn-info btn-sm" title="Highest Z Index">&gt;&gt;</button>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li class="nav-item pl-2">
+        <% # TODO: displaying this when the window is small? %>
+        <div>
+
+          <ul class="nav nav-tabs" id="tool_tab" role="tablist">
+            <li class="nav-item">
+              <a class="nav-link active" id="tiletool-tab" data-toggle="tab" href="#tiletool" role="tab" aria-controls="tiletool" aria-selected="true">
+                Tiles
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="colortool-tab" data-toggle="tab" href="#colortool" role="tab" aria-controls="colortool" aria-selected="false">
+                Colors
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="other-tab" data-toggle="tab" href="#othertool" role="tab" aria-controls="othertool" aria-selected="false">
+                Tools
+              </a>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="tool_tab_content">
+            <div class="tab-pane show active" id="tiletool" role="tabpanel" aria-labelledby="tiletool-tab">
+              <div>
+                <div id="painterTool" class="text-left tile_pallette_group">
+                  Active Tile: <span id="active_tile_name">Placeholder</span><br/>
+                  <pre id="active_tile_character" class="tile_template_preview embiggen_most">?</pre>
+                    <span id="active_tile_description">This should be replaced with an actual tile by the JS</span><br/>
+                  <button id="tile_detail_tool" class="btn btn-info btn-sm mx-1" title="View active tile details">Tile Details</button>
+                </div>
+                <div>
+                  <b>Tile Pallette</b>
+                  <br/>
+                  <div class="tile_pallette_group">
+                    <%= tile_template_pres(@tile_templates.active) %>
+
+                    <%= if Enum.count(@historic_templates) > 0 do %>
+                      <br/>
+                      <span><b>Historic Tiles</b> (can no longer be added)</span>
+                      <br/>
+                      <%= tile_template_pres(@historic_templates, :historic) %>
+                    <% end %>
+
+                    <%= if Enum.count(@tile_templates.inactive) > 0 do %>
+                      <br/>
+                      <span><b>Inactive Tiles</b> (must be activated before the dungeon can be)</span>
+                      <br/>
+                      <%= tile_template_pres(@tile_templates.inactive) %>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" id="colortool" role="tabpanel" aria-labelledby="colortool-tab">
+              <div id="color_area">
+                <div><pre class="tile_template_preview embiggen" id="tile_color_pre" title="foreground">F</pre><input id="tile_color" type="text" value="" placeholder="foreground" class="small"/></div>
+                <div><pre class="tile_template_preview embiggen" id="tile_background_color_pre" title="background">B</pre><input id="tile_background_color" type="text" value="" placeholder="backround" class="small"/></div>
+              </div>
+              <div id="color_objects">
+                <b>Color Pallette</b>
+                <br/>
+                <div class="tile_pallette_group">
+                <pre class="color_pallette"><table id="color_pallette"
+                  ><%= color_tr(["#000", "#333", "#555", "#666", "#777", "#999", "#AAA", "#CCC", "#DDD", "#FFF"]) %>
+                   <%= color_tr(["#A00", "#F00", "#F80", "#FF0", "#0F0", "#0FF", "#58F", "#00F", "#80F", "#F0F"]) %>
+                   <%= color_tr(["#A88", "#F88", "#FB8", "#FFC", "#BFB", "#BFF", "#9BF", "#88F", "#B8F", "#F8F"]) %>
+                   <%= color_tr(["#A54", "#D54", "#A94", "#AA7", "#6A6", "#6AA", "#56A", "#44A", "#84A", "#A4A"]) %>
+                   <%= color_tr(["#831", "#B32", "#951", "#882", "#271", "#357", "#236", "#127", "#517", "#716"]) %>
+                </table></pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane" id="othertool" role="tabpanel" aria-labelledby="othertool-tab">
+              <div id="other_tools_area">
+                <div class="row no-gutters mt-2">
+                  <button id="tile_editor_tool" class="btn btn-info btn-sm mx-1" title="Edit tiles individually">Tile Edit</button>
+                  <button id="erase_tool" class="btn btn-info btn-sm mx-1" title="Erase tiles">Eraser</button>
+                  <button id="spawn_location_tool" class="btn btn-info btn-sm mx-1" title="Spawn Locations">Spawn Locations</button>
+                  <!-- tile detail editor -->
+                  <!-- Text  -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</nav>
+
