@@ -6,11 +6,11 @@ defmodule DungeonCrawlWeb.CrawlerViewTest do
   alias DungeonCrawl.Admin
 
   test "can_start_new_instance/1", %{conn: _conn} do
-    instance = insert_stubbed_dungeon_instance(%{active: true})
+    map_set_instance = insert_stubbed_map_set_instance(%{active: true})
 
-    assert CrawlerView.can_start_new_instance(instance.map_id)
+    assert CrawlerView.can_start_new_instance(map_set_instance.map_set_id)
 
     Admin.update_setting(%{max_instances: 1})
-    refute CrawlerView.can_start_new_instance(instance.map_id)
+    refute CrawlerView.can_start_new_instance(map_set_instance.map_set_id)
   end
 end

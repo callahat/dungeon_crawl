@@ -113,8 +113,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
         spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # floor tiles for now
         {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, {instance_ids, refs})}
       else
-        _ -> Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
-        {:noreply, {instance_ids, refs}}
+        _error ->
+          Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
+          {:noreply, {instance_ids, refs}}
       end
     end
   end

@@ -270,7 +270,7 @@ defmodule DungeonCrawl.DungeonTest do
     test "next_level_number/1" do
       map = map_fixture()
       map_set_1 = Repo.preload(map, :map_set).map_set
-      map_set_2 = insert_map_set
+      map_set_2 = insert_map_set()
 
       assert Dungeon.next_level_number(map_set_1) == 2
       assert Dungeon.next_level_number(map_set_2) == 1 # has no maps
