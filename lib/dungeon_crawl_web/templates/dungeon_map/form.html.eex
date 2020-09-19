@@ -41,10 +41,16 @@
   </div>
 
   <div class="row">
-    <div class="form-group col">
+    <div class="form-group col-md-10">
       <%= label f, :state, class: "control-label" %>
       <%= text_input f, :state, class: "form-control" %>
       <%= error_tag f, :state %>
+    </div>
+
+    <div class="form-group col-md-2">
+      <%= label f, :entrance, class: "control-label" %><br/>
+      <%= checkbox f, :entrance %>
+      <%= error_tag f, :entrance %>
     </div>
   </div>
 

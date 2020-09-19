@@ -8,13 +8,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias DungeonCrawl.MapGenerators.Empty
   alias DungeonCrawl.MapGenerators.Labrynth
-  alias DungeonCrawl.Player
-
-  import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
-  plug :assign_player_location when action in [:show, :index]
   plug :assign_map_set when action in [:new, :create, :edit, :update, :delete]
   plug :assign_dungeon when action in [:edit, :update, :delete]
   plug :validate_updateable when action in [:edit, :update]
@@ -27,7 +23,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
     generators = ["Rooms", "Labrynth", "Empty Map"]
     render(conn, "new.html", map_set: conn.assigns.map_set, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
   end
-require Logger
+
   def create(conn, %{"map" => dungeon_params}) do
     generator = case dungeon_params["generator"] do
                   "Rooms"    -> @dungeon_generator
@@ -39,12 +35,11 @@ require Logger
     fixed_attributes = %{"user_id" => conn.assigns.current_user.id, "map_set_id" => map_set.id, "number" => Dungeon.next_level_number(map_set)}
 
     case Dungeon.generate_map(generator, Elixir.Map.merge(dungeon_params, fixed_attributes)) do
-      {:ok, %{dungeon: dungeon}} ->
+      {:ok, %{dungeon: _dungeon}} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
       {:error, :dungeon, changeset, _others} ->
-Logger.info inspect changeset
         generators = ["Rooms", "Labrynth", "Empty Map"]
         render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
     end
@@ -68,11 +63,11 @@ Logger.info inspect changeset
 
     case Dungeon.update_map(dungeon, dungeon_params) do
       {:ok, dungeon} ->
-        _make_tile_updates(dungeon, dungeon_params["tile_changes"])
-        _make_tile_additions(dungeon, dungeon_params["tile_additions"])
-        _make_tile_deletions(dungeon, dungeon_params["tile_deletions"])
+        _make_tile_updates(dungeon, dungeon_params["tile_changes"] || "")
+        _make_tile_additions(dungeon, dungeon_params["tile_additions"] || "")
+        _make_tile_deletions(dungeon, dungeon_params["tile_deletions"] || "")
 
-        case Jason.decode(dungeon_params["spawn_tiles"]) do
+        case Jason.decode(dungeon_params["spawn_tiles"] || "") do
           {:ok, coords} ->
             Dungeon.set_spawn_locations(dungeon.id, Enum.map(coords || [], fn([r, c]) -> {r, c} end))
           _error ->
@@ -114,7 +109,7 @@ Logger.info inspect changeset
                                             })
            end)
 
-      {:error, _, _} ->
+      _error ->
         false # noop
     end
   end
@@ -143,7 +138,7 @@ Logger.info inspect changeset
                                       })
            end)
 
-      {:error, _, _} ->
+      _error ->
         false # noop
     end
   end
@@ -161,13 +156,13 @@ Logger.info inspect changeset
              Dungeon.delete_map_tile(dungeon.id, row, col, z_index)
            end)
 
-      {:error, _, _} ->
+      _error ->
         false # noop
     end
   end
 
-  def validate_map_tile(conn, %{"id" => id, "map_tile" => map_tile_params}) do
-    map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Elixir.Map.put(map_tile_params, "dungeon_id", id))
+  def validate_map_tile(conn, %{"dungeon_id" => map_set_id, "id" => id, "map_tile" => map_tile_params}) do
+    map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Elixir.Map.merge(map_tile_params, %{"map_set_id" => map_set_id, "dungeon_id" => id}))
                          |> TileTemplates.TileTemplate.validate_script(%{user_id: conn.assigns.current_user.id})
 
     render(conn, "map_tile_errors.json", map_tile_errors: map_tile_changeset.errors)
@@ -180,7 +175,7 @@ Logger.info inspect changeset
 
     conn
     |> put_flash(:info, "Dungeon level deleted successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.map_set))
+    |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.map_set))
   end
 
   defp validate_edit_dungeon_available(conn, _opts) do
@@ -192,13 +187,6 @@ Logger.info inspect changeset
       |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
     end
-  end
-
-  defp assign_player_location(conn, _opts) do
-    player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(map_tile: [:dungeon, dungeon: [dungeon_map_tiles: :tile_template]])
-    conn
-    |> assign(:player_location, player_location)
   end
 
   defp assign_map_set(conn, _opts) do
@@ -227,7 +215,7 @@ Logger.info inspect changeset
       |> assign(:dungeon, Repo.preload(dungeon, [dungeon_map_tiles: :tile_template]))
     else
       conn
-      |> put_flash(:error, "You do not have access to that `#{inspect conn.assigns.map_set.dungeons} - #{inspect conn.params["id"]} - #{inspect conn.params["dungeon_id"]}")
+      |> put_flash(:error, "You do not have access to that")
       |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
@@ -239,7 +227,7 @@ Logger.info inspect changeset
     else
       conn
       |> put_flash(:error, "Cannot edit an active dungeon")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.map_set))
       |> halt()
     end
   end

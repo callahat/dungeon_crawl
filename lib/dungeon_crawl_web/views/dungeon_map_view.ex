@@ -3,18 +3,6 @@ defmodule DungeonCrawlWeb.DungeonMapView do
 
   alias DungeonCrawl.Dungeon
 
-  def activate_or_new_version_button(conn, dungeon, location) do
-    if dungeon.active do
-      unless Dungeon.next_version_exists?(dungeon) do
-        link "New Version", to: Routes.dungeon_new_version_path(conn, :new_version, dungeon), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-info btn-sm"
-      end
-    else
-      crawl_msg = if location, do: "Your current crawl will be lost, "
-      [link("Test Crawl", to: Routes.dungeon_test_crawl_path(conn, :test_crawl, dungeon), method: :post, data: [confirm: "#{crawl_msg}Are you sure?"], class: "btn btn-info btn-sm"), " ",
-      link("Activate", to: Routes.dungeon_activate_path(conn, :activate, dungeon), method: :put, data: [confirm: "Are you sure?"], class: "btn btn-success btn-sm")]
-    end
-  end
-
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
     |> Enum.map(fn(tile_template) ->

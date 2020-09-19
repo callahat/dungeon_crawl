@@ -274,3 +274,7 @@ input#tile_template_character {
 .reference p {
   max-width: 45em;
 }
+
+.max-content {
+  width: max-content;
+}
