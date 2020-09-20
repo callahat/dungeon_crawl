@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
 
   @doc """
@@ -82,7 +83,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                deaths -> deaths + 1
              end
     new_state = _door_keys(player_tile)
-                |> Enum.into(%{}, fn {k,v} -> {k, 0} end)
+                |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
                 |> Map.merge(%{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
     {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
 
@@ -116,5 +117,15 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
     {player_tile, state} = Instances.update_map_tile(state, player_tile, %{row: row, col: col, z_index: z_index})
     Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
+  end
+
+  @doc """
+  Places a player tile (which already exists either in this instance map, or is being moved from another instance map).
+  """
+  def place(%Instances{spawn_coordinates: spawn_coordinates, instance_id: instance_id} = state, %MapTile{} = player_tile) do
+    {row, col} = Enum.random(spawn_coordinates)
+    spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
+    z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
+    Instances.update_map_tile(state, player_tile, %{map_instance_id: instance_id, row: row, col: col, z_index: z_index})
   end
 end

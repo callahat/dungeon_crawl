@@ -78,4 +78,17 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert respawned_tile.parsed_state[:health] == 100
     assert respawned_tile.parsed_state[:buried] == false
   end
+
+  test "place/2", %{state: state, player_map_tile: player_map_tile} do
+    other_instance = insert_stubbed_dungeon_instance()
+    other_state = %{ state | spawn_coordinates: [{6,9}], instance_id: other_instance.id }
+
+    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile)
+    placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
+    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
+    assert placed_tile.row == 6
+    assert placed_tile.col == 9
+    assert placed_tile.z_index == 0
+    assert placed_tile.map_instance_id == other_instance.id
+  end
 end
