@@ -88,6 +88,8 @@ defmodule DungeonCrawl.DungeonInstances do
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
 
+  def get_map(map_set_instance_id, level), do: Repo.get_by(Map, %{map_set_instance_id: map_set_instance_id, number: level})
+
   @doc """
   Creates a dungeon instance.
 
