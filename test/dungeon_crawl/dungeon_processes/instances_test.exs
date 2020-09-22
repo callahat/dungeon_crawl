@@ -372,6 +372,32 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{} == player_locations
   end
 
+  test "delete_player_map_tile/3 removes the map tile and unregisters player location, but does not mark for deletion", %{state: state} do
+    map_tile_id = 999
+    map_tile = state.map_by_ids[map_tile_id]
+
+    %Instances{ program_contexts: programs,
+                map_by_ids: by_id,
+                map_by_coords: by_coord } = state
+    state = %{ state | player_locations: %{ map_tile_id => %Location{} }}
+    assert programs[map_tile.id]
+    assert by_id[map_tile.id]
+    assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
+
+    assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile, false) # false parameter
+    refute state.map_by_ids[map_tile_id]
+    refute state.player_locations[map_tile_id]
+    %Instances{ program_contexts: programs,
+                map_by_ids: by_id,
+                map_by_coords: by_coord,
+                dirty_ids: %{}, # the only other thing different from the above test
+                player_locations: player_locations } = state
+    refute programs[map_tile_id]
+    refute by_id[map_tile_id]
+    assert %{ {1, 2} => %{} } = by_coord
+    assert %{} == player_locations
+  end
+
   test "delete_map_tile/2 deletes the map tile", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]

@@ -121,10 +121,11 @@ defmodule DungeonCrawl.Player do
       location
     else
       Repo.delete!(location.map_tile)
-      if Repo.one(from l in Location,
-                left_join: mt in assoc(l, :map_tile),
-                where: mt.map_instance_id == ^location.map_tile.map_instance_id,
-                select: count(mt.id)) == 0 do
+      # Last one out turns off the lights
+      if Repo.one(from ms in DungeonCrawl.DungeonInstances.MapSet,
+                left_join: l in assoc(ms, :locations),
+                where: ms.id == ^location.map_tile.dungeon.map_set_instance_id,
+                select: count(l.id)) == 0 do
         DungeonCrawl.DungeonInstances.delete_map_set(location.map_tile.dungeon.map_set)
       end
       location

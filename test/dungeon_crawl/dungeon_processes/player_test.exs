@@ -28,7 +28,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                end)
     state = %{ state | spawn_coordinates: [{2,3}] }
 
-    %{state: state, player_map_tile: player_location.map_tile}
+    %{state: state, player_map_tile: player_location.map_tile, player_location: player_location}
   end
 
   test "current_stats/2", %{state: state, player_map_tile: player_map_tile} do
@@ -79,13 +79,19 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert respawned_tile.parsed_state[:buried] == false
   end
 
-  test "place/2", %{state: state, player_map_tile: player_map_tile} do
+  test "place/3", %{player_map_tile: player_map_tile, player_location: player_location} do
     other_instance = insert_stubbed_dungeon_instance()
-    other_state = %{ state | spawn_coordinates: [{6,9}], instance_id: other_instance.id }
+    other_state = Repo.preload(other_instance, :dungeon_map_tiles).dungeon_map_tiles
+                  |> Enum.reduce(%Instances{}, fn(dmt, state) ->
+                       {_, state} = Instances.create_map_tile(state, dmt)
+                       state
+                     end)
+                  |> Map.merge(%{ spawn_coordinates: [{6,9}], instance_id: other_instance.id })
 
-    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile)
+    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location)
     placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
     assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
+
     assert placed_tile.row == 6
     assert placed_tile.col == 9
     assert placed_tile.z_index == 0

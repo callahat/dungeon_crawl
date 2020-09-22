@@ -5,6 +5,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   """
 
   defstruct instance_id: nil,
+            map_set_instance_id: nil,
+            number: nil,
             state_values: %{},
             program_contexts: %{},
             map_by_ids: %{},
@@ -321,10 +323,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Deletes the given map tile from the instance state. If there is a player location also associated with that map tile,
   the player location is unregistered.
   Returns a tuple containing the deleted tile (nil if no tile was deleted) and the updated state.
+  Passing in false for the third parameter will not mark the map tile for deletion from the database
+  during the `write_db` cycle of the instance process. Normally, this parameter can be left out as it defaults to true.
+  However, in the case of a player map tile that moves from one instance to another, that map tile will still be persisted
+  but will be associated with another instance, so removing it from the instance process is sufficient.
   """
-  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations} = state, %{id: map_tile_id}) do
+  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations} = state, %{id: map_tile_id}, mark_as_dirty \\ true) do
     program_contexts = Map.delete(program_contexts, map_tile_id)
-    dirty_ids = Map.put(state.dirty_ids, map_tile_id, :deleted)
+    dirty_ids = if mark_as_dirty, do: Map.put(state.dirty_ids, map_tile_id, :deleted), else: state.dirty_ids
 
     map_tile = by_id[map_tile_id]
 
