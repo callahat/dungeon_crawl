@@ -32,12 +32,13 @@ defmodule DungeonCrawl.Dungeon.Map do
   def changeset(map, attrs) do
     %{max_height: max_height, max_width: max_width} = Map.take(Admin.get_setting, [:max_height, :max_width])
     map
-    |> cast(attrs, [:name, :map_set_id, :number, :entrance, :height,:width,:state])
+    |> cast(attrs, [:name, :map_set_id, :number, :entrance, :height, :width, :state])
     |> cast_assoc(:dungeon_map_tiles)
     |> validate_length(:name, max: 32)
     |> validate_required([:map_set_id, :number, :height, :width])
     |> validate_inclusion(:height, 20..max_height, message: "must be between 20 and #{max_height}")
     |> validate_inclusion(:width, 20..max_width, message: "must be between 20 and #{max_width}")
+    |> unique_constraint(:number, name: :dungeons_map_set_id_number_index, message: "Level Number already exists")
     |> TileTemplate.validate_state_values
   end
 end

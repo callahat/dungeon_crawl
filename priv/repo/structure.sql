@@ -659,6 +659,13 @@ CREATE INDEX dungeons_map_set_id_index ON public.dungeons USING btree (map_set_i
 
 
 --
+-- Name: dungeons_map_set_id_number_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE UNIQUE INDEX dungeons_map_set_id_number_index ON public.dungeons USING btree (map_set_id, number);
+
+
+--
 -- Name: dungeons_user_id_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -677,6 +684,13 @@ CREATE INDEX map_instances_map_id_index ON public.map_instances USING btree (map
 --
 
 CREATE INDEX map_instances_map_set_instance_id_index ON public.map_instances USING btree (map_set_instance_id);
+
+
+--
+-- Name: map_instances_map_set_instance_id_number_index; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE UNIQUE INDEX map_instances_map_set_instance_id_number_index ON public.map_instances USING btree (map_set_instance_id, number);
 
 
 --
@@ -917,5 +931,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551);
 
