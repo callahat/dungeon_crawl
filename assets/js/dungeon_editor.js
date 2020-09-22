@@ -1,5 +1,8 @@
 let DungeonEditor = {
   init(element){ if(!element){ return }
+    let map_id = element.getAttribute("data-map-id"),
+        map_set_id = element.getAttribute("data-map-set-id")
+    this.validate_map_tile_url = "/dungeons/" + map_set_id +"/levels/" + map_id + "/validate_map_tile"
 
     for(let tile_template of document.getElementsByName("paintable_tile_template")){
       tile_template.addEventListener('click', e => { this.updateActiveTile(e.target) });
@@ -181,7 +184,7 @@ let DungeonEditor = {
           findOrCreateActiveTileDivFunction = this.findOrCreateActiveTileDiv,
           resetTileModalErrors = this.resetTileModalErrors
 
-      $.post("/dungeons/205/validate_map_tile", {map_tile: map_tile_attrs, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
+      $.post(this.validate_map_tile_url, {map_tile: map_tile_attrs, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
        .done(function(resp){
           if(resp.errors.length > 0){
             let otherErrors = ["Errors exist with the tile"]
@@ -736,6 +739,7 @@ let DungeonEditor = {
   onlyShowCurrentLayer: false,
   erased: false,
   hilightingSpawnTiles: false,
+  validate_map_tile_url: null,
 
 }
 
