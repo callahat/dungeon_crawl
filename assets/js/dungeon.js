@@ -132,10 +132,10 @@ let Dungeon = {
                        .receive("error", e => console.log(e))
   },
   open(direction, shift = false){
-    this._useDoor(this.dungeonChannel, direction, "OPEN")
+    this._useDoor(direction, "OPEN")
   },
   close(direction, shift = false){
-    this._useDoor(this.dungeonChannel, direction, "CLOSE")
+    this._useDoor(direction, "CLOSE")
   },
   renderMessage(msg){
     let template = document.createElement("div")
