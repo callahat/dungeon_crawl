@@ -5,6 +5,9 @@ let Player = {
 
     let playerChannel   = socket.channel("players:" + playerUserIdHash)
 
+    playerChannel.on("change_dungeon", (msg) => {
+      dungeonJs.handleDungeonChange(msg)
+    })
 
     playerChannel.on("message", (resp) => {
       dungeonJs.renderMessage(resp.message)

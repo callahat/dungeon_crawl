@@ -26,7 +26,6 @@ defmodule DungeonCrawl.Action.Travel do
   # catch
   #   :exit, _value -> sleep very short random time, then try again
   # end
-require Logger
   def passage(%Location{} = player_location, level_number, %Instances{} = state) do
     player_map_tile = DungeonCrawl.Repo.preload(player_location, :map_tile).map_tile
 
@@ -46,10 +45,17 @@ require Logger
       end)
 
       dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(target_map, target_map.height, target_map.width)
-      # this should go to the players channel, since only the player traveling should rerender the dungeon
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "change_dungeon", %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                         "change_dungeon",
+                                         %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
 
       {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
+
+      top_tile = Instances.get_map_tile(state, player_map_tile)
+      gone_player = Elixir.Map.put(Elixir.Map.take(top_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+                                         "tile_changes",
+                                         %{tiles: [gone_player]}
 
       {:ok, state}
     end

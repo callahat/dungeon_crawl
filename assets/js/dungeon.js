@@ -13,7 +13,17 @@ let Dungeon = {
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
+
+    this.handleDungeonChange = function(msg) {
+      this.dungeonChannel.leave()
+      console.log("Left dungeon, joining " + msg.dungeon_id)
+
+      document.getElementById("dungeon_instance").setAttribute("data-instance-id", msg.dungeon_id)
+      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
+      this.tuneInToChannel(socket, msg.dungeon_id)
+    }
   },
+  handleDungeonChange: null,
   tuneInToChannel(socket, dungeonId) {
 
     this.dungeonChannel   = socket.channel("dungeons:" + dungeonId)
@@ -33,15 +43,6 @@ let Dungeon = {
     //})
 
     this.dungeonChannel.on("ping", ({count}) => console.log("PING", count))
-
-    this.dungeonChannel.on("change_dungeon", (msg) => {
-      this.dungeonChannel.leave()
-      console.log("Left dungeon, joining " + msg.dungeon_id)
-
-      document.getElementById("dungeon_instance").setAttribute("data-instance-id", msg.dungeon_id)
-      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
-      this.tuneInToChannel(socket, msg.dungeon_id)
-    })
 
     let ressurectionEl
     if(ressurectionEl = document.getElementById("ressurect_me")){
