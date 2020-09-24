@@ -16,26 +16,26 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
     render(conn, "index.html", map_sets: map_sets)
   end
 
-  def show(conn, %{"id" => id, "instance_id" => instance_id}) do
+  def show(conn, %{"id" => id, "instance_id" => instance_id} = params) do
     map_set = Dungeon.get_map_set!(id)
               |> Repo.preload([:locations, [dungeons: :dungeon_map_tiles]])
     map_set_instance = DungeonInstances.get_map_set(instance_id)
                        |> Repo.preload([:maps])
-    top_level = Enum.at(map_set.dungeons, 0)
-    top_level = if top_level, do: top_level.number, else: nil
     owner_name = if map_set.user_id, do: Repo.preload(map_set, :user).user.name, else: "<None>"
+    level = case Integer.parse(params["level"] || "") do
+              {num, _} -> num
+              _ -> nil
+            end
 
-    render(conn, "show.html", map_set: map_set, map_set_instance: map_set_instance, owner_name: owner_name, top_level: top_level)
+    render(conn, "show.html", map_set: map_set, map_set_instance: map_set_instance, owner_name: owner_name, level: level)
   end
 
   def show(conn, %{"id" => id}) do
     map_set = Dungeon.get_map_set!(id)
               |> Repo.preload([:locations, [dungeons: :dungeon_map_tiles]])
-    top_level = Enum.at(map_set.dungeons, 0)
-    top_level = if top_level, do: top_level.number, else: nil
     owner_name = if map_set.user_id, do: Repo.preload(map_set, :user).user.name, else: "<None>"
 
-    render(conn, "show.html", map_set: map_set, map_set_instance: nil, owner_name: owner_name, top_level: top_level)
+    render(conn, "show.html", map_set: map_set, map_set_instance: nil, owner_name: owner_name, level: nil)
   end
 
   def delete(conn, %{"id" => id, "instance_id" => instance_id}) do
