@@ -6,7 +6,6 @@ defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.Map
   alias DungeonCrawl.DungeonInstances.MapTile
-#  alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
 
   @moduledoc """
@@ -32,7 +31,10 @@ defmodule DungeonCrawl.Action.Travel do
     target_map = DungeonInstances.get_map(state.map_set_instance_id, level_number)
 
     if player_map_tile.map_instance_id == target_map.id do
-      {_player_map_tile, state} = Player.place(state, player_map_tile, player_location)
+      old_coords = Elixir.Map.take(player_map_tile, [:row, :col])
+      {player_map_tile, state} = Player.place(state, player_map_tile, player_location)
+      _broadcast_tile_change(state, old_coords)
+      _broadcast_tile_change(state, player_map_tile)
       {:ok, state}
     else
       {:ok, dest_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, target_map.id)
@@ -40,6 +42,8 @@ defmodule DungeonCrawl.Action.Travel do
         {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location)
 
         DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
+
+        _broadcast_tile_change(other_instance_state, %{row: updated_tile.row, col: updated_tile.col}) # draw
 
         {:ok, other_instance_state}
       end)
@@ -51,19 +55,17 @@ defmodule DungeonCrawl.Action.Travel do
 
       {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
 
-      top_tile = Instances.get_map_tile(state, player_map_tile)
-      gone_player = Elixir.Map.put(Elixir.Map.take(top_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
-                                         "tile_changes",
-                                         %{tiles: [gone_player]}
+      _broadcast_tile_change(state, player_map_tile) # erase
 
       {:ok, state}
     end
-    # get instance process for target, run with and place the location there
+  end
 
-    # remove player tile from 'state' - this is the old location if state and destination instance are different. if same, do nothing
-
-    # if different, message through the player's channel to leave dungeon channel, load new dungeon table rendering, and join new dungeon channel
-
+  defp _broadcast_tile_change(state, coord) do
+    top_tile = Instances.get_map_tile(state, coord)
+    payload = Elixir.Map.put(Elixir.Map.take(coord, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
+    DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+                                       "tile_changes",
+                                       %{tiles: [payload]}
   end
 end

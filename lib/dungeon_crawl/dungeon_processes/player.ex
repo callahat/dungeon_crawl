@@ -111,23 +111,32 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   Respawns a player. This will move their associated map tile to a spawn coordinate in the instance,
   and restore health to 100.
   """
-  def respawn(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
-    {row, col} = Enum.random(spawn_coordinates)
-    spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
-    z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
-
-    {player_tile, state} = Instances.update_map_tile(state, player_tile, %{row: row, col: col, z_index: z_index})
+  def respawn(%Instances{} = state, player_tile) do
+    new_coords = _relocated_coordinates(state)
+    {player_tile, state} = Instances.update_map_tile(state, player_tile, new_coords)
     Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
   end
 
   @doc """
-  Places a player tile (which already exists either in this instance map, or is being moved from another instance map).
+  Places a player tile in the given instance. By default, it will place the player on
+  a spawn location.
   """
-  def place(%Instances{spawn_coordinates: spawn_coordinates, instance_id: instance_id} = state, %MapTile{} = player_tile, %Location{} = location) do
+  def place(%Instances{instance_id: instance_id} = state, %MapTile{} = player_tile, %Location{} = location) do
+    new_coords = _relocated_coordinates(state)
+
+    if player_tile.map_instance_id == instance_id do
+      Instances.update_map_tile(state, player_tile, new_coords)
+    else
+      new_coords =  Map.put(new_coords, :map_instance_id, instance_id)
+      player_tile = Map.merge(player_tile, new_coords)
+      Instances.create_player_map_tile(state, player_tile, location)
+    end
+  end
+
+  defp _relocated_coordinates(%Instances{spawn_coordinates: spawn_coordinates} = state) do
     {row, col} = Enum.random(spawn_coordinates)
     spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
     z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
-    player_tile = Map.merge(player_tile, %{map_instance_id: instance_id, row: row, col: col, z_index: z_index})
-    Instances.create_player_map_tile(state, player_tile, location)
+    %{row: row, col: col, z_index: z_index}
   end
 end

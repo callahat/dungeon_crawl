@@ -81,7 +81,10 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
   def insert_stubbed_map_set(attrs \\ %{}, map_attrs \\ %{}, maps \\ [[]]) do
     map_set = insert_map_set(attrs)
-    Enum.map(maps, fn(tiles) -> insert_stubbed_dungeon(Map.put(map_attrs, :map_set_id, map_set.id), tiles) end)
+    Enum.reduce(maps, 1, fn(tiles, num) ->
+      insert_stubbed_dungeon(Map.merge(map_attrs, %{map_set_id: map_set.id, number: num}), tiles)
+      num + 1
+    end)
     map_set
   end
 
