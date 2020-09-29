@@ -129,6 +129,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {_line_no, [ :passage, [match_key] ]} | instructions], errors, user) when match_key != "" do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [ :passage, bad_params ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: PASSAGE command has invalid params `#{inspect bad_params}`" | errors], user)
+  end
+
   defp _validate(program, [ {_line_no, [:push, [{_state_variable, _var}, {_state_variable2, _var2}] ]} | instructions], errors, user) do
     _validate(program, instructions, errors, user)
   end

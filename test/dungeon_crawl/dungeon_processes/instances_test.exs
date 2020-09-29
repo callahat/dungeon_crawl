@@ -401,22 +401,27 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   test "delete_map_tile/2 deletes the map tile", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]
+    state = %{ state | passage_exits: [{map_tile_id, "tunnel_a"}] }
 
     %Instances{ program_contexts: programs,
                 map_by_ids: by_id,
-                map_by_coords: by_coord } = state
+                map_by_coords: by_coord,
+                passage_exits: passage_exits } = state
     assert programs[map_tile.id]
     assert by_id[map_tile.id]
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
+    assert passage_exits == [{map_tile_id, "tunnel_a"}]
 
     assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
     refute state.map_by_ids[map_tile_id]
     %Instances{ program_contexts: programs,
                 map_by_ids: by_id,
                 map_by_coords: by_coord,
-                dirty_ids: %{^map_tile_id => :deleted} } = state
+                dirty_ids: %{^map_tile_id => :deleted},
+                passage_exits: passage_exits } = state
     refute programs[map_tile_id]
     refute by_id[map_tile_id]
+    assert passage_exits == []
     assert %{ {1, 2} => %{} } = by_coord
   end
 

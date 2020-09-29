@@ -39,6 +39,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:lock) == :lock
     assert Command.get_command(:move) == :move
     assert Command.get_command(:noop) == :noop
+    assert Command.get_command(:passage) == :passage
     assert Command.get_command(:push) == :push
     assert Command.get_command(:put) == :put
     assert Command.get_command(:random) == :random
@@ -808,6 +809,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     stubbed_state = %Instances{map_by_ids: %{ 1 => stubbed_object } }
     runner_state = %Runner{object_id: stubbed_object.id, program: program, state: stubbed_state}
     assert runner_state == Command.noop(runner_state)
+  end
+
+  test "PASSAGE" do
+    {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: "<"})
+    {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 4, character: ">"})
+
+    %Runner{state: state} = Command.passage(%Runner{state: state, object_id: map_tile_1.id}, ["gray"])
+    assert state.passage_exits == [{map_tile_1.id, "gray"}]
+    %Runner{state: state} = Command.passage(%Runner{state: state, object_id: map_tile_2.id}, [{:state_variable, :background_color}])
+    assert state.passage_exits == [{map_tile_2.id, {:state_variable, :background_color}}, {map_tile_1.id, "gray"}]
   end
 
   test "PULL" do

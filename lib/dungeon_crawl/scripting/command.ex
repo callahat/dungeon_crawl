@@ -51,6 +51,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :passage      -> :passage
       :pull         -> :pull
       :push         -> :push
       :put          -> :put
@@ -702,6 +703,23 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
+  end
+
+  @doc """
+  Registers the map tile as a passage exit. Parameter is the passage identifier that will be used to find
+  it when the TRAVEL command is invoked. The parameter can be a literal value, or it can be a state variable
+  such as the objects color.
+
+  ## Examples
+
+    iex> Command.passage(%Runner{object_id: object_id}, [{:state_variable, :background_color}])
+    %Runner{ state: %Instances{..., passage_exits: [{object_id, {:state_variable, :background_color}}] } }
+
+    iex> Command.passage(%Runner{object_id: object_id}, ["door1"])
+    %Runner{ state: %Instances{..., passage_exits: [{object_id, "door1"}] } }
+  """
+  def passage(%Runner{state: state, object_id: object_id} = runner_state, [match_key]) do
+    %{ runner_state | state: %{ state | passage_exits: [ {object_id, match_key} | state.passage_exits] } }
   end
 
   @doc """

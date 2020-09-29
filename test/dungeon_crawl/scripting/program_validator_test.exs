@@ -92,6 +92,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SHIFT neutral
     #IF ?random@10 < 2, touch
     #IF ?random@5552 < 2, touch
+    #PASSAGE @background_color
+    #PASSAGE
     """
   end
 
@@ -161,6 +163,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 57: PUSH command has invalid range `crayon`",
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
+               "Line 62: PASSAGE command has invalid params `[\"\"]`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -204,6 +207,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 57: PUSH command has invalid range `crayon`",
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
+               "Line 62: PASSAGE command has invalid params `[\"\"]`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end
