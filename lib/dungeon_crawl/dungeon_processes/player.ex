@@ -112,7 +112,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   and restore health to 100.
   """
   def respawn(%Instances{} = state, player_tile) do
-    new_coords = _relocated_coordinates(state)
+    new_coords = _relocated_coordinates(state, player_tile)
     {player_tile, state} = Instances.update_map_tile(state, player_tile, new_coords)
     Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
   end
@@ -121,9 +121,17 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   Places a player tile in the given instance. By default, it will place the player on
   a spawn location.
   """
-  def place(%Instances{instance_id: instance_id} = state, %MapTile{} = player_tile, %Location{} = location) do
-    new_coords = _relocated_coordinates(state)
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location) do
+    new_coords = _relocated_coordinates(state, player_tile)
+    _place(state, player_tile, location, new_coords)
+  end
 
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, passage_match_key) do
+    new_coords = _relocated_coordinates(state, player_tile, passage_match_key)
+    _place(state, player_tile, location, new_coords)
+  end
+
+  defp _place(%Instances{instance_id: instance_id} = state, %MapTile{} = player_tile, %Location{} = location, new_coords) do
     if player_tile.map_instance_id == instance_id do
       Instances.update_map_tile(state, player_tile, new_coords)
     else
@@ -133,10 +141,28 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     end
   end
 
-  defp _relocated_coordinates(%Instances{spawn_coordinates: spawn_coordinates} = state) do
-    {row, col} = Enum.random(spawn_coordinates)
+  defp _relocated_coordinates(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
+    {row, col} = case spawn_coordinates do
+                    []     -> {round(:math.fmod(player_tile.row, state.state_values.height)),
+                               round(:math.fmod(player_tile.col, state.state_values.width))}
+                    coords -> Enum.random(coords)
+                 end
     spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
     z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
     %{row: row, col: col, z_index: z_index}
+  end
+
+  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, passage_match_key) do
+    case Enum.filter(passage_exits, fn {_id, match_key} -> match_key == passage_match_key end)
+         |> Enum.map(fn {id, _} -> id end) do
+      [] ->
+        _relocated_coordinates(state, player_tile)
+
+      exit_ids ->
+        passage_exit_id = Enum.random(exit_ids)
+        spawn_location = Instances.get_map_tile_by_id(state, %{id: passage_exit_id})
+        z_index = spawn_location.z_index + 1
+        %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
+    end
   end
 end
