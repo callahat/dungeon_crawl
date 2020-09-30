@@ -813,12 +813,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "PASSAGE" do
     {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: "<"})
-    {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 4, character: ">"})
+    {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 4, character: ">", background_color: "puce"})
 
     %Runner{state: state} = Command.passage(%Runner{state: state, object_id: map_tile_1.id}, ["gray"])
     assert state.passage_exits == [{map_tile_1.id, "gray"}]
     %Runner{state: state} = Command.passage(%Runner{state: state, object_id: map_tile_2.id}, [{:state_variable, :background_color}])
-    assert state.passage_exits == [{map_tile_2.id, {:state_variable, :background_color}}, {map_tile_1.id, "gray"}]
+    assert state.passage_exits == [{map_tile_2.id, "puce"}, {map_tile_1.id, "gray"}]
   end
 
   test "PULL" do

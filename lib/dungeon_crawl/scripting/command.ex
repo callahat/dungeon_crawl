@@ -719,6 +719,7 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{ state: %Instances{..., passage_exits: [{object_id, "door1"}] } }
   """
   def passage(%Runner{state: state, object_id: object_id} = runner_state, [match_key]) do
+    match_key = resolve_variable(runner_state, match_key)
     %{ runner_state | state: %{ state | passage_exits: [ {object_id, match_key} | state.passage_exits] } }
   end
 
