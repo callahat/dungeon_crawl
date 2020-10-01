@@ -153,8 +153,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, passage_match_key) do
-    case Enum.filter(passage_exits, fn {_id, match_key} -> match_key == passage_match_key end)
-         |> Enum.map(fn {id, _} -> id end) do
+    matched_exits = if is_nil(passage_match_key),
+                         do:   passage_exits,
+                         else: Enum.filter(passage_exits, fn {_id, match_key} -> match_key == passage_match_key end)
+    case Enum.map(matched_exits, fn {id, _} -> id end) do
       [] ->
         _relocated_coordinates(state, player_tile)
 

@@ -153,6 +153,19 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert placed_tile.map_instance_id == other_instance.id
   end
 
+  test "place/4 when match_key nil can use any exit", %{player_map_tile: player_map_tile, player_location: player_location} do
+    {other_instance, other_state} = _setup_other_instance_and_state()
+
+    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, nil)
+    placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
+    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
+
+    assert placed_tile.row == 1
+    assert placed_tile.col == 6
+    assert placed_tile.z_index == 1
+    assert placed_tile.map_instance_id == other_instance.id
+  end
+
   defp _setup_other_instance_and_state() do
     tiles = [%MapTile{name: "Stairs Down", character: ">", row: 1, col: 6, z_index: 0, state: "blocking: false", color: "red"}]
     other_instance = insert_stubbed_dungeon_instance(%{height: 20, width: 20}, tiles)
