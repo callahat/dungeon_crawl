@@ -4,7 +4,6 @@ defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.Player
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonInstances.Map
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
 
@@ -25,39 +24,44 @@ defmodule DungeonCrawl.Action.Travel do
   # catch
   #   :exit, _value -> sleep very short random time, then try again
   # end
-  def passage(%Location{} = player_location, level_number, %Instances{} = state) do
+  def passage(%Location{} = player_location, level_number, match_key, %Instances{} = state) do
     player_map_tile = DungeonCrawl.Repo.preload(player_location, :map_tile).map_tile
 
     target_map = DungeonInstances.get_map(state.map_set_instance_id, level_number)
 
-    if player_map_tile.map_instance_id == target_map.id do
-      old_coords = Elixir.Map.take(player_map_tile, [:row, :col])
-      {player_map_tile, state} = Player.place(state, player_map_tile, player_location)
-      _broadcast_tile_change(state, old_coords)
-      _broadcast_tile_change(state, player_map_tile)
-      {:ok, state}
-    else
-      {:ok, dest_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, target_map.id)
-      InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
-        {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location)
+    cond do
+      is_nil(target_map) ->
+        {:ok, state}
 
-        DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
+      player_map_tile.map_instance_id == target_map.id ->
+        old_coords = Elixir.Map.take(player_map_tile, [:row, :col])
+        {player_map_tile, state} = Player.place(state, player_map_tile, player_location, match_key)
+        _broadcast_tile_change(state, old_coords)
+        _broadcast_tile_change(state, player_map_tile)
+        {:ok, state}
 
-        _broadcast_tile_change(other_instance_state, %{row: updated_tile.row, col: updated_tile.col}) # draw
+      true ->
+        {:ok, dest_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, target_map.id)
+        InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
+          {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location, match_key)
 
-        {:ok, other_instance_state}
-      end)
+          DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
 
-      dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(target_map, target_map.height, target_map.width)
-      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
-                                         "change_dungeon",
-                                         %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
+          _broadcast_tile_change(other_instance_state, %{row: updated_tile.row, col: updated_tile.col}) # draw
 
-      {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
+          {:ok, other_instance_state}
+        end)
 
-      _broadcast_tile_change(state, player_map_tile) # erase
+        dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(target_map, target_map.height, target_map.width)
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                           "change_dungeon",
+                                           %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
 
-      {:ok, state}
+        {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
+
+        _broadcast_tile_change(state, player_map_tile) # erase
+
+        {:ok, state}
     end
   end
 
