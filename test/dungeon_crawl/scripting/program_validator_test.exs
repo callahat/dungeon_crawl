@@ -94,6 +94,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #IF ?random@5552 < 2, touch
     #PASSAGE @background_color
     #PASSAGE
+    #TRANSPORT ?sender, down
+    #TRANSPORT ?sender, 2, @background_color
+    #TRANSPORT ?sender, derp, @background_color
+    #TRANSPORT ?sender, up, green, blue
     """
   end
 
@@ -164,6 +168,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
                "Line 62: PASSAGE command has invalid params `[\"\"]`",
+               "Line 65: TRANSPORT command level kwarg is invalid: `derp}`",
+               "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`"
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -208,6 +214,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
                "Line 62: PASSAGE command has invalid params `[\"\"]`",
+               "Line 65: TRANSPORT command level kwarg is invalid: `derp}`",
+               "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`"
               ],
               program} == ProgramValidator.validate(program, admin)
     end

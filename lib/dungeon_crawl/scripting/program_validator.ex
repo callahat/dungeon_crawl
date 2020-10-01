@@ -231,6 +231,20 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
 
+  defp _validate(program, [ {line_no, [:transport, [who, level] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:transport, [who, level, nil] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:transport, [who, level, match_key] ]} | instructions], errors, user) do
+    errors = if !is_integer(level) && level != "up" && level != "down",
+               do:   ["Line #{line_no}: TRANSPORT command level kwarg is invalid: `#{level}}`" | errors],
+               else: errors
+
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:transport, params ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: TRANSPORT command has invalid number of params: `#{inspect params}`" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
     if @valid_directions |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)

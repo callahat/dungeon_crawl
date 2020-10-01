@@ -6,7 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
   defstruct instance_id: nil,
             map_set_instance_id: nil,
-            number: nil,
+            number: 0,
             state_values: %{},
             program_contexts: %{},
             map_by_ids: %{},

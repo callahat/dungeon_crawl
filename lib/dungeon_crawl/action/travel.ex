@@ -19,13 +19,15 @@ defmodule DungeonCrawl.Action.Travel do
   """
   # TODO: this should probably not be called in a blocking manner; could run into a lock where A is moving to Map B, and B is moving to Map A
   # maybe wrap passage and the Instances.run_with from the caller
+  # Probably not practical to do when running from the context of the script Runner. Maybe have a way to defer transport when something is blocked.
+  # 1. can the change be sent as a message to be executed later when the other instance is not blcoked? Is this actually goign to be a problem?
   # try do
   #   passage
   # catch
   #   :exit, _value -> sleep very short random time, then try again
   # end
   def passage(%Location{} = player_location, level_number, match_key, %Instances{} = state) do
-    player_map_tile = DungeonCrawl.Repo.preload(player_location, :map_tile).map_tile
+    player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
 
     target_map = DungeonInstances.get_map(state.map_set_instance_id, level_number)
 

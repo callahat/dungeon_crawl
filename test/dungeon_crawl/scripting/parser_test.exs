@@ -94,6 +94,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                ?12345@pullable = false
                ?{@facing}@health -= 10
                #PASSAGE @background_color
+               #TRANSPORT ?sender, up
+               #TRANSPORT @target_player, 2, red
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -158,6 +160,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  60 => [:change_other_state, [12345, :pullable, "=", false]],
                                                  61 => [:change_other_state, [{:state_variable, :facing}, :health, "-=", 10]],
                                                  62 => [:passage, [{:state_variable, :background_color}]],
+                                                 63 => [:transport, [[:event_sender], "up"]],
+                                                 64 => [:transport, [{:state_variable, :target_player}, 2, "red"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

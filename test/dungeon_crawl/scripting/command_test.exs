@@ -49,6 +49,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:shift) == :shift
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
+    assert Command.get_command(:transport) == :transport
     assert Command.get_command(:try) == :try
     assert Command.get_command(:unlock) == :unlock
     assert Command.get_command(:walk) == :walk
@@ -1568,7 +1569,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.script == ""
   end
 
-  test "text" do
+  test "TEXT" do
     program = program_fixture()
     stubbed_object = %{id: 1, state: "thing: true"}
     state = %Instances{map_by_ids: %{1 => stubbed_object}}
@@ -1577,6 +1578,52 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.responses == [{"message", %{message: "I am just a simple text."}}]
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "TRANSPORT" do
+    # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
+    defmodule TravelMock1 do
+      def passage(%Location{} = player_location, level_number, match_key, state) do
+        player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+        assert level_number == 4
+        assert match_key == nil
+        {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
+        {:ok, state}
+      end
+    end
+    defmodule TravelMock2 do
+      def passage(%Location{} = player_location, level_number, match_key, state) do
+        player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+        assert level_number == 2
+        assert match_key == "red"
+        {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
+        {:ok, state}
+      end
+    end
+
+    {floor, state} = Instances.create_map_tile(%Instances{number: 3}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
+    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
+    {fake_player, state} = Instances.create_player_map_tile(state,
+                                                            %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"},
+                                                            %Location{map_tile_instance_id: 43201})
+
+    # paths that are ok; "up"
+    assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, "up"], TravelMock1)
+    assert updated_state.player_locations == %{}
+    # "down" with a match key
+    assert %Runner{state: updated_state} = Command.transport(%Runner{state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
+    assert updated_state.player_locations == %{}
+    # hard coded level number
+    assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, 4], TravelMock1)
+    assert updated_state.player_locations == %{}
+    # not an actual player, so the tile is not moved and nothing happens
+    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor.id, state: state}, [floor, {:state_variable, :id}], TravelMock1)
+    refute updated_state.player_locations == %{}
+    assert updated_state == state
+    # not an actual player, so the tile is not moved and nothing happens
+    assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [[:event_sender], {:state_variable, :id}], TravelMock1)
+    refute updated_state.player_locations == %{}
+    assert updated_state == state
   end
 
   test "TRY" do
