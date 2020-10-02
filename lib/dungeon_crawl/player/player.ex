@@ -68,12 +68,14 @@ defmodule DungeonCrawl.Player do
     instance_maps = Repo.preload(msi, maps: [dungeon: :spawn_locations]).maps
     entrance = _entrance(instance_maps) || _random_entrance(instance_maps)
     spawn_location = _spawn_location(entrance) || _random_floor(entrance)
+    top_tile = DungeonCrawl.DungeonInstances.get_map_tile(entrance.id, spawn_location.row, spawn_location.col)
+    z_index = if top_tile, do: top_tile.z_index + 100, else: 0
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
 
     Map.take(spawn_location, [:row, :col])
     |> Map.merge(%{map_instance_id: entrance.id})
-    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
+    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: z_index})
     |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end

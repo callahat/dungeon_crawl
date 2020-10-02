@@ -145,6 +145,27 @@ defmodule DungeonCrawl.DungeonInstances do
   alias DungeonCrawl.DungeonInstances.MapTile
 
   @doc """
+  Gets a single map_tile_instance, with the highest z_index for given coordinates
+
+  Returns `nil` if the Map tile does not exist.
+
+  ## Examples
+
+      iex> get_map_tile(123)
+      %MapTile{}
+
+      iex> get_map_tile(456)
+      nil
+
+  """
+  def get_map_tile(dungeon_id, row, col) do
+    Repo.one(from mt in MapTile,
+             where: mt.map_instance_id == ^dungeon_id and mt.row == ^row and mt.col == ^col,
+             order_by: [desc: :z_index],
+             limit: 1)
+  end
+
+  @doc """
   Returns a tuple containing a status atom and either the new map tile that has not been persisted to the database
   (when the attrs are valid), OR returns the invalid changeset.
   This function will be used for Instance processes when a tile is created but will either be saved to the database

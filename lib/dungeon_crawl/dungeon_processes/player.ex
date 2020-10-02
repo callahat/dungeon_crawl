@@ -163,7 +163,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
       exit_ids ->
         passage_exit_id = Enum.random(exit_ids)
         spawn_location = Instances.get_map_tile_by_id(state, %{id: passage_exit_id})
-        z_index = spawn_location.z_index + 1
+        top_tile = Instances.get_map_tile(state, spawn_location)
+        z_index = if top_tile, do: top_tile.z_index + 1, else: 0
         %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
     end
   end
