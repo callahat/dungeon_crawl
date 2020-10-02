@@ -32,6 +32,10 @@ defmodule DungeonCrawlWeb.Crawler do
   def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash) do
     {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where)
 
+    # ensure all map instances are running
+    Repo.preload(map_set_instance, :maps).maps
+    |> Enum.each(fn(map_instance) -> InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_instance.id) end)
+
     join_and_broadcast(map_set_instance, user_id_hash)
   end
 

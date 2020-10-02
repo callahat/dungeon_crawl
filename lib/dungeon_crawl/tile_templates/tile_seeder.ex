@@ -6,6 +6,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
   use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
+  use DungeonCrawl.TileTemplates.TileSeeder.Passageways
   use DungeonCrawl.TileTemplates.TileSeeder.Terrain
 
   def seed_all() do
@@ -35,6 +36,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     bomb()
     explosion()
     smoke()
+
+    # passageways
+    passage()
+    stairs_up()
+    stairs_down()
 
     # terrain
     boulder()

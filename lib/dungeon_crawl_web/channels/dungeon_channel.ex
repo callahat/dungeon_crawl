@@ -34,29 +34,19 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do
-    if _player_alive(socket) do
-      _motion(direction, &Move.go/3, socket)
-    else
-      {:noreply, socket}
-    end
+    _motion(direction, &Move.go/3, socket)
   end
 
   def handle_in("pull", %{"direction" => direction}, socket) do
-    if _player_alive(socket) do
-      _motion(direction, &Pull.pull/3, socket)
-    else
-      {:noreply, socket}
-    end
+    _motion(direction, &Pull.pull/3, socket)
   end
 
   def handle_in("respawn", %{}, socket) do
-    if _player_alive(socket) do
-      {:reply, :ok, socket}
-    else
-      {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-      InstanceProcess.run_with(instance, fn (instance_state) ->
-        player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
-        player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+
+      if player_tile && not _player_alive(player_tile) do
         {player_tile, state} = Player.respawn(instance_state, player_tile)
         death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
 
@@ -67,18 +57,22 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, player_tile)}
 
-        {:ok, state}
-      end)
+        {:ok, instance_state}
+      else
+        {:ok, instance_state}
+      end
+    end)
 
-      {:reply, :ok, socket}
-    end
+    {:reply, :ok, socket}
   end
 
   def handle_in("shoot", %{"direction" => direction}, socket) do
-    if _player_alive(socket) && _shot_ready(socket) do
-      {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-      InstanceProcess.run_with(instance, fn (instance_state) ->
-        player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    socket = \
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+
+      if _shot_ready(socket) && _player_alive(player_tile) do
         player_channel = "players:#{player_location.id}"
 
         updated_state = case Shoot.shoot(player_location, direction, instance_state) do
@@ -96,24 +90,20 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         updated_stats = Player.current_stats(updated_state, %{id: player_location.map_tile_instance_id})
         DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
 
-        {:ok, updated_state}
-      end)
+        {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
+      else
+        {socket, instance_state}
+      end
+    end)
 
-      {:reply, :ok, assign(socket, :last_action_at, :os.system_time(:millisecond))}
-    else
-      {:reply, :ok, socket}
-    end
+    {:reply, :ok, socket}
   end
 
   def handle_in("use_door", %{"direction" => direction, "action" => action}, socket) when action == "OPEN" or action == "CLOSE" do
-    if _player_alive(socket) do
-      _player_action_helper(
-        %{"direction" => direction, "action" => action},
-        "Cannot #{String.downcase(action)} that",
-        socket)
-    else
-      {:noreply, socket}
-    end
+    _player_action_helper(
+      %{"direction" => direction, "action" => action},
+      "Cannot #{String.downcase(action)} that",
+      socket)
   end
 
   defp _motion(direction, move_func, socket) do
@@ -121,23 +111,28 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
-      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
-      destination = Instances.get_map_tile(instance_state, player_tile, direction)
+      {_player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      case move_func.(player_tile, destination, instance_state) do
-        {:ok, tile_changes, instance_state} ->
-          broadcast socket,
-                    "tile_changes",
-                    %{tiles: tile_changes
-                              |> Map.to_list
-                              |> Enum.map(fn({_coords, tile}) ->
-                                Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                              end)}
-          {:ok, instance_state}
+      with true <- _player_alive(player_tile),
+           destination <- Instances.get_map_tile(instance_state, player_tile, direction) do
 
-        {:invalid} ->
-          {:ok, instance_state}
+        case move_func.(player_tile, destination, instance_state) do
+          {:ok, tile_changes, instance_state} ->
+            broadcast socket,
+                      "tile_changes",
+                      %{tiles: tile_changes
+                                |> Map.to_list
+                                |> Enum.map(fn({_coords, tile}) ->
+                                  Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                                end)}
+            {:ok, instance_state}
+
+          {:invalid} ->
+            {:ok, instance_state}
+        end
+
+      else
+        _ -> {:ok, instance_state}
       end
     end)
 
@@ -147,11 +142,10 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
-      player_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
-      target_tile = Instances.get_map_tile(instance_state, player_tile, direction)
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      if target_tile do
+      with true <- _player_alive(player_tile),
+           target_tile when not is_nil(target_tile) <- Instances.get_map_tile(instance_state, player_tile, direction) do
         if !Instances.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
         end
@@ -159,20 +153,24 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
         {:ok, instance_state}
       else
-        {:ok, instance_state}
+        _ -> {:ok, instance_state}
       end
     end)
     {:noreply, socket}
   end
 
-  defp _player_alive(socket) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-    InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_location = Instances.get_player_location(instance_state, socket.assigns.user_id_hash)
-      {Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id}).parsed_state[:health] > 0,
-       instance_state}
-    end)
+  defp _player_location_and_map_tile(instance_state, user_id_hash) do
+    player_location = Instances.get_player_location(instance_state, user_id_hash)
+    if player_location do
+      player_map_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+      {player_location, player_map_tile}
+    else
+      {nil, nil}
+    end
   end
+
+  defp _player_alive(nil), do: false
+  defp _player_alive(player_map_tile), do: player_map_tile.parsed_state[:health] > 0
 
   # TODO: this might be able to go away when every program is isolated to its own process.
   # although bullets will still probably collide if fired faster than every 100ms

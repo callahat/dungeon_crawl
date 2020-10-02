@@ -168,7 +168,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
                "Line 62: PASSAGE command has invalid params `[\"\"]`",
-               "Line 65: TRANSPORT command level kwarg is invalid: `derp}`",
+               "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`"
               ],
               program} == ProgramValidator.validate(program, user)
@@ -214,7 +214,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
                "Line 62: PASSAGE command has invalid params `[\"\"]`",
-               "Line 65: TRANSPORT command level kwarg is invalid: `derp}`",
+               "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`"
               ],
               program} == ProgramValidator.validate(program, admin)

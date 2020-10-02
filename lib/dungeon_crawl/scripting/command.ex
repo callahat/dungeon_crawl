@@ -1481,6 +1481,7 @@ defmodule DungeonCrawl.Scripting.Command do
                     %{id: id} -> id
                     id        -> id
                   end
+    level = resolve_variable(runner_state, level)
     match_key = resolve_variable(runner_state, match_key)
     player_location = Instances.get_player_location(state, %{id: map_tile_id})
     _transport(runner_state, player_location, level, match_key, travel_module)

@@ -234,9 +234,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate(program, [ {line_no, [:transport, [who, level] ]} | instructions], errors, user) do
     _validate(program, [ {line_no, [:transport, [who, level, nil] ]} | instructions], errors, user)
   end
-  defp _validate(program, [ {line_no, [:transport, [who, level, match_key] ]} | instructions], errors, user) do
-    errors = if !is_integer(level) && level != "up" && level != "down",
-               do:   ["Line #{line_no}: TRANSPORT command level kwarg is invalid: `#{level}}`" | errors],
+  defp _validate(program, [ {line_no, [:transport, [_who, level, _match_key] ]} | instructions], errors, user) do
+    errors = if !is_integer(level) && level != "up" && level != "down" && !is_tuple(level),
+               do:   ["Line #{line_no}: TRANSPORT command level kwarg is invalid: `#{inspect level}`" | errors],
                else: errors
 
     _validate(program, instructions, errors, user)
