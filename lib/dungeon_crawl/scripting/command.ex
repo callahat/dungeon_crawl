@@ -1462,13 +1462,21 @@ defmodule DungeonCrawl.Scripting.Command do
   Third param is optional, and is used to specify what passage_exit will be used.
   For example, if the match key is "green", then only passage exits that also have that match key will be considered.
   When more than one match, one is randomly picked. Also, when there is no match key specified, a random passage_exit
-  will be used. When no match key is specified, and there are no passage exits, then a 
+  will be used. When no match key is specified, and there are no passage exits, then a random spawn coordinate will
+  be used as a last option.
+
+  ## Examples
+
+    iex> Command.transport(%Runner{program: %Program{},
+                                   object_id: object_id,
+                                   state: state},
+                     [[:event_sender], "up", "stairsdown"])
+    %Runner{}
   """
   def transport(runner_state, params, travel_module \\ Travel)
   def transport(%Runner{} = runner_state, [who, level], travel_module) do
     transport(runner_state, [who, level, nil], travel_module)
   end
-
   def transport(%Runner{event_sender: event_sender} = runner_state, [[:event_sender], level, match_key], travel_module) do
     case event_sender do
       %{map_tile_instance_id: id} -> transport(runner_state, [id, level, match_key], travel_module) # player tile

@@ -1,8 +1,6 @@
 defmodule DungeonCrawlWeb.DungeonMapView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.Dungeon
-
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
     |> Enum.map(fn(tile_template) ->

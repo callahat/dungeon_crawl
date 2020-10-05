@@ -111,8 +111,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
         msiid = dungeon_instance.map_set_instance_id
         number = dungeon_instance.number
         dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
-        spawn_locations = Repo.preload(dungeon_instance, [dungeon: :spawn_locations]).dungeon.spawn_locations
-        spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # floor tiles for now
+        spawn_locations = Repo.preload(dungeon_instance, :spawn_locations).spawn_locations
+        spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
         {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, {instance_ids, refs})}
       else
         _error ->

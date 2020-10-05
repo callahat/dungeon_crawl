@@ -388,6 +388,14 @@
       <td><pre class="script">#LOCK</pre></td>
     </tr>
     <tr>
+      <td>PASSAGE</td>
+      <td>list - 1</td>
+      <td>Registers the coordinates the map tile/object is at as a passage exit which will be a candidate for the match_key.
+          The passage exits are used by the TRANSPORT command (where the exit used may be specified by the match_key).</td>
+      <td><pre class="script">#PASSAGE up</pre>
+          <pre class="script">#PASSAGE @background_color</pre></td>
+    </tr>
+    <tr>
       <td>PULL</td>
       <td>list - 1 or 2</td>
       <td>Similar to the TRY command. The main difference is that the object will pull an adjacent map tile into its
@@ -535,6 +543,24 @@
           and will not respond to messages (other than standard behaviors). Useful when you want a map tile
           to stop doing things, but don't want the map tile removed outright.</td>
       <td><pre class="script">#TERMINATE</pre></td>
+    </tr>
+    <tr>
+      <td>TRANSPORT</td>
+      <td>list - 2 or 3</td>
+      <td>Transports a player map tile from one dungeon instance to another dungeon instance that is part
+          of the same map set. First param is the who (which should resolve to a map tile id; but if its not
+          a player's map tile this command will do nothing).
+
+          Second param can either be a fixed level number, "up" or "down" (up or down will resolve to the level
+          above or below the current one). If the level doesn't exist the nothing will be done.
+
+          Third param is optional, and is used to specify what passage_exit will be used.
+          For example, if the match key is "green", then only passage exits that also have that match key will be considered.
+          When more than one match, one is randomly picked. Also, when there is no match key specified, a random passage_exit
+          will be used. When no match key is specified, and there are no passage exits, then a random spawn coordinate will
+          be used as a last option.</td>
+      <td><pre class="script">#TRANSPORT ?sender, up, stairs_down</pre>
+          <pre class="script">#TRANSPORT @target_player, 1, blue</pre></td>
     </tr>
     <tr>
       <td>TRY</td>
