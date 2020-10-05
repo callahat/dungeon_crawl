@@ -1,5 +1,7 @@
 defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
+  alias DungeonCrawl.Player.Location
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
 
   @doc """
@@ -82,7 +84,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                deaths -> deaths + 1
              end
     new_state = _door_keys(player_tile)
-                |> Enum.into(%{}, fn {k,v} -> {k, 0} end)
+                |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
                 |> Map.merge(%{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
     {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
 
@@ -109,12 +111,61 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   Respawns a player. This will move their associated map tile to a spawn coordinate in the instance,
   and restore health to 100.
   """
-  def respawn(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
-    {row, col} = Enum.random(spawn_coordinates)
+  def respawn(%Instances{} = state, player_tile) do
+    new_coords = _relocated_coordinates(state, player_tile)
+    {player_tile, state} = Instances.update_map_tile(state, player_tile, new_coords)
+    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
+  end
+
+  @doc """
+  Places a player tile in the given instance. By default, it will place the player on
+  a spawn location.
+  """
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location) do
+    new_coords = _relocated_coordinates(state, player_tile)
+    _place(state, player_tile, location, new_coords)
+  end
+
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, passage_match_key) do
+    new_coords = _relocated_coordinates(state, player_tile, passage_match_key)
+    _place(state, player_tile, location, new_coords)
+  end
+
+  defp _place(%Instances{instance_id: instance_id} = state, %MapTile{} = player_tile, %Location{} = location, new_coords) do
+    if player_tile.map_instance_id == instance_id do
+      Instances.update_map_tile(state, player_tile, new_coords)
+    else
+      new_coords =  Map.put(new_coords, :map_instance_id, instance_id)
+      player_tile = Map.merge(player_tile, new_coords)
+      Instances.create_player_map_tile(state, player_tile, location)
+    end
+  end
+
+  defp _relocated_coordinates(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
+    {row, col} = case spawn_coordinates do
+                    []     -> {round(:math.fmod(player_tile.row, state.state_values.height)),
+                               round(:math.fmod(player_tile.col, state.state_values.width))}
+                    coords -> Enum.random(coords)
+                 end
     spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
     z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
+    %{row: row, col: col, z_index: z_index}
+  end
 
-    {player_tile, state} = Instances.update_map_tile(state, player_tile, %{row: row, col: col, z_index: z_index})
-    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
+  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, passage_match_key) do
+    matched_exits = if is_nil(passage_match_key),
+                         do:   passage_exits,
+                         else: Enum.filter(passage_exits, fn {_id, match_key} -> match_key == passage_match_key end)
+    case Enum.map(matched_exits, fn {id, _} -> id end) do
+      [] ->
+        _relocated_coordinates(state, player_tile)
+
+      exit_ids ->
+        passage_exit_id = Enum.random(exit_ids)
+        spawn_location = Instances.get_map_tile_by_id(state, %{id: passage_exit_id})
+        top_tile = Instances.get_map_tile(state, spawn_location)
+        z_index = if top_tile, do: top_tile.z_index + 1, else: 0
+        %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
+    end
   end
 end

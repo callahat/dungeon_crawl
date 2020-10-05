@@ -77,7 +77,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
     dungeon_map_tiles = [map_tile]
 
-    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, [], %{flag: false})
+    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, [], %{flag: false}, nil, nil)
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, map_tile.map_instance_id)
 
     # the instance map is loaded

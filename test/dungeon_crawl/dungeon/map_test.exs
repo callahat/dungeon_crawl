@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Dungeon.MapTest do
 
   alias DungeonCrawl.Dungeon.Map
 
-  @valid_attrs %{name: "BobDungeon", width: 42, height: 40, version: 1}
+  @valid_attrs %{name: "BobDungeon", width: 42, height: 40, map_set_id: 1}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

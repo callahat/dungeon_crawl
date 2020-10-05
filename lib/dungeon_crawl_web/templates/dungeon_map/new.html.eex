@@ -1,0 +1,6 @@
+<h2>New dungeon</h2>
+
+<%= render "form.html", changeset: @changeset, generators: @generators, max_dimensions: @max_dimensions,
+                        action: Routes.dungeon_map_path(@conn, :create, @map_set) %>
+
+<%= link "Back", to: Routes.dungeon_path(@conn, :index) %>

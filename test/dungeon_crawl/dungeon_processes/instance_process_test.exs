@@ -34,6 +34,22 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ instance_id: ^map_instance_id } = InstanceProcess.get_state(instance_process)
   end
 
+  test "set_map_set_instance_id" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    map_instance = insert_stubbed_dungeon_instance()
+    map_set_instance_id = map_instance.map_set_instance_id
+    InstanceProcess.set_map_set_instance_id(instance_process, map_set_instance_id)
+    assert %{ map_set_instance_id: ^map_set_instance_id } = InstanceProcess.get_state(instance_process)
+  end
+
+  test "set_level_number" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    map_instance = insert_stubbed_dungeon_instance()
+    number = map_instance.number
+    InstanceProcess.set_level_number(instance_process, number)
+    assert %{ number: ^number } = InstanceProcess.get_state(instance_process)
+  end
+
   test "set_state_values" do
     {:ok, instance_process} = InstanceProcess.start_link([])
     InstanceProcess.set_state_values(instance_process, %{flag: false})

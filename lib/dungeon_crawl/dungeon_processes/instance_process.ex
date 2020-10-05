@@ -30,6 +30,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Sets the map set instance id
+  """
+  def set_map_set_instance_id(instance, map_set_instance_id) do
+    GenServer.cast(instance, {:set_map_set_instance_id, {map_set_instance_id}})
+  end
+
+  @doc """
+  Sets the level number
+  """
+  def set_level_number(instance, number) do
+    GenServer.cast(instance, {:set_number, {number}})
+  end
+
+  @doc """
   Sets the instance state values
   """
   def set_state_values(instance, state_values) do
@@ -203,6 +217,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_cast({:set_instance_id, {instance_id}}, %Instances{} = state) do
     {:noreply, %{ state | instance_id: instance_id }}
+  end
+
+  @impl true
+  def handle_cast({:set_map_set_instance_id, {map_set_instance_id}}, %Instances{} = state) do
+    {:noreply, %{ state | map_set_instance_id: map_set_instance_id }}
+  end
+
+  @impl true
+  def handle_cast({:set_number, {number}}, %Instances{} = state) do
+    {:noreply, %{ state | number: number }}
   end
 
   @impl true

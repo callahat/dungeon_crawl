@@ -22,29 +22,34 @@ defmodule DungeonCrawlWeb.Crawler do
       iex> join_and_broadcast(instance, "imahash")
       %Player.Location{}
   """
-  def join_and_broadcast(%DungeonInstances.Map{} = where, user_id_hash) do
+  def join_and_broadcast(%DungeonInstances.MapSet{} = where, user_id_hash) do
     {:ok, location} = Player.create_location_on_spawnable_space(where, user_id_hash)
+     _broadcast_join_event(location)
 
-     _broadcast_join_event(Repo.preload(location, :map_tile))
      location
   end
 
-  def join_and_broadcast(%Dungeon.Map{} = where, user_id_hash) do
-    {:ok, run_results} = DungeonInstances.create_map(where)
-    instance = run_results[:dungeon]
-    join_and_broadcast(instance, user_id_hash)
+  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash) do
+    {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where)
+
+    # ensure all map instances are running
+    Repo.preload(map_set_instance, :maps).maps
+    |> Enum.each(fn(map_instance) -> InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_instance.id) end)
+
+    join_and_broadcast(map_set_instance, user_id_hash)
   end
 
   defp _broadcast_join_event(location) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
+    map_tile = Repo.preload(location, :map_tile).map_tile
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_tile.map_instance_id)
     
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {top, instance_state} = Instances.create_player_map_tile(instance_state, location.map_tile, location)
+      {top, instance_state} = Instances.create_player_map_tile(instance_state, map_tile, location)
       tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
 #                                    "player_joined",
 #                                    %{row: top.row, col: top.col, tile: tile})
-      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{location.map_tile.map_instance_id}",
+      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{map_tile.map_instance_id}",
                                       "tile_changes",
                                       %{ tiles: [%{row: top.row, col: top.col, rendering: tile}] })
       {tile, instance_state}

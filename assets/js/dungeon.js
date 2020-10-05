@@ -4,13 +4,31 @@ let Dungeon = {
     let readonly = element.getAttribute("data-readonly") == "true"
     socket.connect()
 
-    let dungeonChannel   = socket.channel("dungeons:" + dungeonId)
-
     if(!readonly){
-      this.setupWindowListeners(dungeonChannel)
+      this.setupWindowListeners()
     }
 
-    dungeonChannel.on("tile_changes", (resp) => {
+    this.tuneInToChannel(socket, dungeonId)
+
+    window.addEventListener('beforeunload', (event) => {
+      socket.disconnect()
+    })
+
+    this.handleDungeonChange = function(msg) {
+      this.dungeonChannel.leave()
+      console.log("Left dungeon, joining " + msg.dungeon_id)
+
+      document.getElementById("dungeon_instance").setAttribute("data-instance-id", msg.dungeon_id)
+      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
+      this.tuneInToChannel(socket, msg.dungeon_id)
+    }
+  },
+  handleDungeonChange: null,
+  tuneInToChannel(socket, dungeonId) {
+
+    this.dungeonChannel   = socket.channel("dungeons:" + dungeonId)
+
+    this.dungeonChannel.on("tile_changes", (resp) => {
       let location;
       for(let tile of resp.tiles){
         document.getElementById(tile.row + "_" + tile.col).innerHTML = tile.rendering
@@ -24,21 +42,20 @@ let Dungeon = {
     //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
     //})
 
-    dungeonChannel.on("ping", ({count}) => console.log("PING", count))
+    this.dungeonChannel.on("ping", ({count}) => console.log("PING", count))
 
-    document.getElementById("ressurect_me").addEventListener('click', e => {this.respawn(dungeonChannel)} )
+    let ressurectionEl
+    if(ressurectionEl = document.getElementById("ressurect_me")){
+      ressurectionEl.addEventListener('click', e => {this.respawn()} )
+    }
 
-    dungeonChannel.join()
+    this.dungeonChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeons channel!")
       })
       .receive("error", resp => console.log("join failed", resp))
-
-    window.addEventListener('beforeunload', (event) => {
-      socket.disconnect()
-    })
   },
-  setupWindowListeners(dungeonChannel){
+  setupWindowListeners(){
     let suppressDefaultKeys = [37,38,39,40],
         keysPressed = {}
     this.actionMethod = this.move
@@ -70,19 +87,19 @@ let Dungeon = {
           break
         case(38):
         case(87):
-          this.actionMethod(dungeonChannel, "up", keysPressed)
+          this.actionMethod("up", keysPressed)
           break
         case(40):
         case(83):
-          this.actionMethod(dungeonChannel, "down", keysPressed)
+          this.actionMethod("down", keysPressed)
           break
         case(37):
         case(65):
-          this.actionMethod(dungeonChannel, "left", keysPressed)
+          this.actionMethod("left", keysPressed)
           break
         case(39):
         case(68):
-          this.actionMethod(dungeonChannel, "right", keysPressed)
+          this.actionMethod("right", keysPressed)
           break
       }
     })
@@ -95,7 +112,7 @@ let Dungeon = {
       keysPressed = {}
     })
   },
-  move(dungeonChannel, direction, keysPressed){
+  move(direction, keysPressed){
     console.log(direction)
     console.log(shoot)
     let payload = {direction: direction},
@@ -111,14 +128,14 @@ let Dungeon = {
       action = "move"
     }
 
-    dungeonChannel.push(action, payload)
-                  .receive("error", e => console.log(e))
+    this.dungeonChannel.push(action, payload)
+                       .receive("error", e => console.log(e))
   },
-  open(dungeonChannel, direction, shift = false){
-    this._useDoor(dungeonChannel, direction, "OPEN")
+  open(direction, shift = false){
+    this._useDoor(direction, "OPEN")
   },
-  close(dungeonChannel, direction, shift = false){
-    this._useDoor(dungeonChannel, direction, "CLOSE")
+  close(direction, shift = false){
+    this._useDoor(direction, "CLOSE")
   },
   renderMessage(msg){
     let template = document.createElement("div")
@@ -134,17 +151,17 @@ let Dungeon = {
     document.getElementById("sidebar_message_box").appendChild(template)
     document.getElementById("sidebar_message_box").scrollTop = document.getElementById("sidebar_message_box").scrollHeight
   },
-  respawn(dungeonChannel){
-    dungeonChannel.push("respawn", {})
-                  .receive("error", e => console.log(e))
+  respawn(){
+    this.dungeonChannel.push("respawn", {})
+                       .receive("error", e => console.log(e))
   },
   _messageTimestamp(){
     return new Date().toLocaleTimeString("en-US", this.timestampOptions)
   },
-  _useDoor(dungeonChannel, direction, action){
+  _useDoor(direction, action){
     let payload = {direction: direction, action: action}
-    dungeonChannel.push("use_door", payload)
-                  .receive("error", resp => this.renderMessage(resp.msg) )
+    this.dungeonChannel.push("use_door", payload)
+                       .receive("error", resp => this.renderMessage(resp.msg) )
     this.actionMethod = this.move
   },
   actionMethod: null,
@@ -153,6 +170,7 @@ let Dungeon = {
          hour:  "2-digit",
          minute: "2-digit"
   },
+  dungeonChannel: null
 }
 
 export default Dungeon

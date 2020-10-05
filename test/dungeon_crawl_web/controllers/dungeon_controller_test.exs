@@ -4,25 +4,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.Player
-  @create_attrs %{name: "some name", height: 40, width: 80}
-  @update_attrs %{name: "new name", height: 40, width: 40}
+  @create_attrs %{name: "some name"}
+  @update_attrs %{name: "new name"}
   @invalid_attrs %{name: ""}
-  @tile_attrs %{"background_color" => "",
-                "character" => " ",
-                "col" => "42",
-                "color" => "",
-                "row" => "8",
-                "script" => "",
-                "state" => "",
-                "tile_name" => "",
-                "z_index" => "2"}
 
-  def fixture(:dungeon, user_id) do
-    {:ok, dungeon} = Dungeon.create_map(Map.put(@create_attrs, :user_id, user_id))
-    space = insert_tile_template(%{active: true})
-    Dungeon.create_map_tile(%{dungeon_id: dungeon.id, row: 1, col: 1, character: ".", tile_template_id: space.id})
-    Dungeon.set_spawn_locations(dungeon.id, [{1,1,}])
-    dungeon
+  def fixture(:map_set, user_id) do
+    {:ok, map_set} = Dungeon.create_map_set(Map.put(@create_attrs, :user_id, user_id))
+    map_set
   end
 
   # Without registered user
@@ -34,66 +22,51 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   end
 
   describe "show without a registered user" do
-    setup [:create_dungeon]
+    setup [:create_map_set]
 
-    test "redirects", %{conn: conn, dungeon: dungeon} do
-      conn = get conn, dungeon_path(conn, :show, dungeon)
+    test "redirects", %{conn: conn, map_set: map_set} do
+      conn = get conn, dungeon_path(conn, :show, map_set)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
-  describe "new dungeon without a registered user" do
+  describe "new map set without a registered user" do
     test "redirects", %{conn: conn} do
       conn = get conn, dungeon_path(conn, :new)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
-  describe "create dungeon without a registered user" do
+  describe "create map set without a registered user" do
     test "redirects", %{conn: conn} do
-      conn = post conn, dungeon_path(conn, :create), map: @create_attrs
+      conn = post conn, dungeon_path(conn, :create), map_set: @create_attrs
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
-  describe "edit dungeon without a registered user" do
-    setup [:create_dungeon]
+  describe "edit map_set without a registered user" do
+    setup [:create_map_set]
 
-    test "redirects", %{conn: conn, dungeon: dungeon} do
-      conn = get conn, dungeon_path(conn, :edit, dungeon)
+    test "redirects", %{conn: conn, map_set: map_set} do
+      conn = get conn, dungeon_path(conn, :edit, map_set)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
-  describe "update dungeon without a registered user" do
-    setup [:create_dungeon]
+  describe "update map_set without a registered user" do
+    setup [:create_map_set]
 
-    test "redirects", %{conn: conn, dungeon: dungeon} do
-      conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs
+    test "redirects", %{conn: conn, map_set: map_set} do
+      conn = put conn, dungeon_path(conn, :update, map_set), map_set: @update_attrs
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
-  describe "validate_map_tile" do
-    setup [:create_user, :create_dungeon]
+  describe "delete map_set without a registered user" do
+    setup [:create_map_set]
 
-    test "returns empty array of errors when its all good", %{conn: conn, dungeon: dungeon} do
-      conn = post conn, dungeon_path(conn, :validate_map_tile, dungeon), map_tile: @tile_attrs
-      assert json_response(conn, 200) == %{"errors" => []}
-    end
-
-    test "returns array of validation errors when there are problems", %{conn: conn, dungeon: dungeon} do
-      conn = post conn, dungeon_path(conn, :validate_map_tile, dungeon), map_tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp"})
-      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "Error parsing around: derp", "field" => "state"},
-                                                        %{"detail" => "should be at most 1 character(s)", "field" => "character"}]}
-    end
-  end
-
-  describe "delete dungeon without a registered user" do
-    setup [:create_dungeon]
-
-    test "redirects", %{conn: conn, dungeon: dungeon} do
-      conn = delete conn, dungeon_path(conn, :delete, dungeon)
+    test "redirects", %{conn: conn, map_set: map_set} do
+      conn = delete conn, dungeon_path(conn, :delete, map_set)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -102,7 +75,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   describe "with a registered user but edit dungeons is disabled" do
     setup [:create_user]
 
-    test "lists all dungeons", %{conn: conn} do
+    test "lists all map set", %{conn: conn} do
       Admin.update_setting(%{non_admin_dungeons_enabled: false})
       conn = get conn, dungeon_path(conn, :index)
       assert redirected_to(conn) == crawler_path(conn, :show)
@@ -130,20 +103,20 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   end
 
   describe "show with a registered user" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
-    test "renders show", %{conn: conn, dungeon: dungeon} do
-      conn = get conn, dungeon_path(conn, :show, dungeon)
-      assert html_response(conn, 200) =~ dungeon.name
+    test "renders show", %{conn: conn, map_set: map_set} do
+      conn = get conn, dungeon_path(conn, :show, map_set)
+      assert html_response(conn, 200) =~ map_set.name
     end
   end
 
   describe "show with a registered user but dungeon belongs to someone else" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
     test "renders show", %{conn: conn} do
-      dungeon = fixture(:dungeon, insert_user(%{username: "Omer"}).id)
-      conn = get conn, dungeon_path(conn, :show, dungeon)
+      map_set = fixture(:map_set, insert_user(%{username: "Omer"}).id)
+      conn = get conn, dungeon_path(conn, :show, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :index)
     end
   end
@@ -161,152 +134,125 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     setup [:create_user]
 
     test "redirects to show when data is valid", %{conn: conn} do
-      conn = post conn, dungeon_path(conn, :create), map: @create_attrs
-
+      conn = post conn, dungeon_path(conn, :create), map_set: @create_attrs
       assert %{id: id} = redirected_params(conn)
       assert redirected_to(conn) == dungeon_path(conn, :show, id)
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post conn, dungeon_path(conn, :create), map: @invalid_attrs
+      conn = post conn, dungeon_path(conn, :create), map_set: @invalid_attrs
       assert html_response(conn, 200) =~ "New dungeon"
     end
   end
 
   describe "edit dungeon with a registered user" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
-    test "renders form for editing chosen dungeon", %{conn: conn, dungeon: dungeon} do
-      conn = get conn, dungeon_path(conn, :edit, dungeon)
+    test "renders form for editing chosen map set", %{conn: conn, map_set: map_set} do
+      conn = get conn, dungeon_path(conn, :edit, map_set)
       assert html_response(conn, 200) =~ "Edit dungeon"
     end
 
-    test "cannot edit active dungeon", %{conn: conn, dungeon: dungeon} do
-      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
-      conn = get conn, dungeon_path(conn, :edit, dungeon)
+    test "cannot edit active dungeon", %{conn: conn, map_set: map_set} do
+      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      conn = get conn, dungeon_path(conn, :edit, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
   end
 
   describe "update dungeon with a registered user" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
-    test "redirects when data is valid", %{conn: conn, dungeon: dungeon} do
-      tile_template = insert_tile_template(%{character: "X", color: "white", background_color: "blue"})
-      dmt_attrs = Map.take(Dungeon.get_map_tile(dungeon.id, 1, 1), [:dungeon_id, :row, :col, :tile_template_id, :character, :color, :background_color])
-      {:ok, other_tile} = Dungeon.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
-
-      tile_data = %{tile_changes: "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]",
-                    tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"}]",
-                    tile_deletions: "[{\"row\": 0, \"col\": 1, \"z_index\": 0}]",
-                    spawn_tiles: "[[4,1],[4,2],[4,3],[500,500]]"}
-
-      conn = put conn, dungeon_path(conn, :update, dungeon),
-                   map: Elixir.Map.merge(@update_attrs, tile_data)
-
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).character == tile_template.character
-      refute Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == tile_template.color
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == "red"
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).background_color == tile_template.background_color
-
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).character == other_tile.character
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).color == other_tile.color
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).background_color == other_tile.background_color
-
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).character == tile_template.character
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).color == "blue"
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
-
-      refute Dungeon.get_map_tile(dungeon.id, 0, 1, 1)
-
-      spawn_locations = DungeonCrawl.Repo.preload(dungeon, :spawn_locations).spawn_locations
-      assert [%{row: 4, col: 1}, %{row: 4, col: 2}, %{row: 4, col: 3}] = spawn_locations
-
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+    test "redirects when data is valid", %{conn: conn, map_set: map_set} do
+      conn = put conn, dungeon_path(conn, :update, map_set),
+                   map_set: @update_attrs
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
     end
 
-    test "renders errors when data is invalid", %{conn: conn, dungeon: dungeon} do
-      conn = put conn, dungeon_path(conn, :update, dungeon), map: @invalid_attrs
+    test "renders errors when data is invalid", %{conn: conn, map_set: map_set} do
+      conn = put conn, dungeon_path(conn, :update, map_set), map_set: @invalid_attrs
       assert html_response(conn, 200) =~ "Edit dungeon"
     end
 
-    test "cannot update active dungeon", %{conn: conn, dungeon: dungeon} do
-      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
-      conn = put conn, dungeon_path(conn, :update, dungeon), map: @update_attrs
+    test "cannot update active dungeon", %{conn: conn, map_set: map_set} do
+      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      conn = put conn, dungeon_path(conn, :update, map_set), map_set: @update_attrs
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
   end
 
   describe "delete dungeon with a registered user" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
-    test "soft deletes chosen dungeon", %{conn: conn, dungeon: dungeon} do
-      conn = delete conn, dungeon_path(conn, :delete, dungeon)
+    test "soft deletes chosen dungeon", %{conn: conn, map_set: map_set} do
+      conn = delete conn, dungeon_path(conn, :delete, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :index)
-      refute Repo.get!(Dungeon.Map, dungeon.id).deleted_at == nil
+      refute Repo.get!(Dungeon.MapSet, map_set.id).deleted_at == nil
     end
   end
 
   describe "activate dungeon" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
-    test "activtes chosen dungeon", %{conn: conn, dungeon: dungeon} do
-      conn = put conn, dungeon_activate_path(conn, :activate, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
-      assert Repo.get!(Dungeon.Map, dungeon.id).active
+    test "activtes chosen dungeon", %{conn: conn, map_set: map_set} do
+      conn = put conn, dungeon_activate_path(conn, :activate, map_set)
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
+      assert Repo.get!(Dungeon.MapSet, map_set.id).active
     end
 
-    test "problem activating chosen dungeon", %{conn: conn, dungeon: dungeon} do
+    test "problem activating chosen dungeon", %{conn: conn, map_set: map_set} do
+      dungeon = insert_stubbed_dungeon %{map_set_id: map_set.id, width: 40, height: 40}
       inactive_tile_template = insert_tile_template(%{name: "INT", active: false})
       Repo.insert_all(Dungeon.MapTile, [%{dungeon_id: dungeon.id, row: 1, col: 1, tile_template_id: inactive_tile_template.id, z_index: 0}] )
-      conn = put conn, dungeon_activate_path(conn, :activate, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      conn = put conn, dungeon_activate_path(conn, :activate, map_set)
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
       assert get_flash(conn, :error) == "Inactive tiles: INT (id: #{inactive_tile_template.id}) 1 times"
     end
 
-    test "soft deletes the previous version", %{conn: conn, dungeon: dungeon} do
-      new_map = insert_stubbed_dungeon(%{previous_version_id: dungeon.id, user_id: conn.assigns[:current_user].id})
-      conn = put conn, dungeon_activate_path(conn, :activate, new_map)
-      assert redirected_to(conn) == dungeon_path(conn, :show, new_map)
-      assert Repo.get!(Dungeon.Map, dungeon.id).deleted_at
-      assert Repo.get!(Dungeon.Map, new_map.id).active
+    test "soft deletes the previous version", %{conn: conn, map_set: map_set} do
+      new_map_set = insert_stubbed_map_set(%{previous_version_id: map_set.id, user_id: conn.assigns[:current_user].id})
+      conn = put conn, dungeon_activate_path(conn, :activate, new_map_set)
+      assert redirected_to(conn) == dungeon_path(conn, :show, new_map_set)
+      assert Repo.get!(Dungeon.MapSet, map_set.id).deleted_at
+      assert Repo.get!(Dungeon.MapSet, new_map_set.id).active
     end
   end
 
   describe "new_version dungeon" do
-    setup [:create_user, :create_dungeon]
+    setup [:create_user, :create_map_set]
 
-    test "does not create a new version if dungeon not active", %{conn: conn, dungeon: dungeon} do
-      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
-      assert get_flash(conn, :error) == "Inactive map"
+    test "does not create a new version if dungeon not active", %{conn: conn, map_set: map_set} do
+      conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
+      assert get_flash(conn, :error) == "Inactive map set"
     end
 
-    test "does not create a new version if dungeon already has a next version", %{conn: conn, dungeon: dungeon} do
-      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
-      _new_map = insert_stubbed_dungeon(%{previous_version_id: dungeon.id, user_id: conn.assigns[:current_user].id})
-      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+    test "does not create a new version if dungeon already has a next version", %{conn: conn, map_set: map_set} do
+      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      _new_map_set = insert_stubbed_map_set(%{previous_version_id: map_set.id, user_id: conn.assigns[:current_user].id})
+      conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
       assert get_flash(conn, :error) == "New version already exists"
     end
 
-    test "does not create a new version if dungeon fails validation", %{conn: conn, dungeon: dungeon} do
-      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
+    test "does not create a new version if dungeon fails validation", %{conn: conn, map_set: map_set} do
+      insert_stubbed_dungeon(%{map_set_id: map_set.id, height: 40, width: 40})
+      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
       Admin.update_setting(%{autogen_height: 20, autogen_width: 20, max_width: 20, max_height: 20})
-      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
+      conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
       assert get_flash(conn, :error) == "Cannot create new version; dimensions restricted?"
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
     end
 
-    test "creates a new version", %{conn: conn, dungeon: dungeon} do
-      {:ok, dungeon} = Dungeon.update_map(dungeon, %{active: true})
-      conn = post conn, dungeon_new_version_path(conn, :new_version, dungeon)
-      new_version = Repo.get_by!(Dungeon.Map, %{previous_version_id: dungeon.id})
+    test "creates a new version", %{conn: conn, map_set: map_set} do
+      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
+      new_version = Repo.get_by!(Dungeon.MapSet, %{previous_version_id: map_set.id})
       assert redirected_to(conn) == dungeon_path(conn, :show, new_version)
-      refute Repo.get!(Dungeon.Map, dungeon.id).deleted_at
-      refute Repo.get!(Dungeon.Map, new_version.id).active
+      refute Repo.get!(Dungeon.MapSet, map_set.id).deleted_at
+      refute Repo.get!(Dungeon.MapSet, new_version.id).active
     end
   end
 
@@ -314,30 +260,37 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     setup [:create_user]
 
     test "creates an instance", %{conn: conn, user: user} do
-      dungeon = insert_autogenerated_dungeon(%{active: false, user_id: user.id})
+      map_set = insert_autogenerated_map_set(%{active: false, user_id: user.id})
 
-      conn = post conn, dungeon_test_crawl_path(conn, :test_crawl, dungeon)
+      conn = post conn, dungeon_test_crawl_path(conn, :test_crawl, map_set)
       assert redirected_to(conn) == crawler_path(conn, :show)
       location = Player.get_location(user.user_id_hash)
-      assert Player.get_dungeon(location) == dungeon
+      assert Player.get_map_set(location) == map_set
     end
 
     test "clears the players previous location if applicable", %{conn: conn, user: user} do
-      dungeon = insert_autogenerated_dungeon(%{active: false, user_id: user.id})
+      map_set = insert_autogenerated_map_set(%{active: false, user_id: user.id})
 
-      instance = insert_autogenerated_dungeon_instance(%{active: true})
+      instance = Enum.at(Repo.preload(insert_autogenerated_map_set_instance(%{active: true}),:maps).maps, 0)
       location = insert_player_location(%{map_instance_id: instance.id, user_id_hash: user.user_id_hash})
 
-      _conn = post conn, dungeon_test_crawl_path(conn, :test_crawl, dungeon)
+      _conn = post conn, dungeon_test_crawl_path(conn, :test_crawl, map_set)
 
       refute Repo.get(DungeonCrawl.Player.Location, location.id)
+    end
+
+    test "does not test crawl if the map set has no levels", %{conn: conn, user: user} do
+      map_set = fixture(:map_set, user.id)
+      conn = post conn, dungeon_test_crawl_path(conn, :test_crawl, map_set)
+      assert get_flash(conn, :error) == "Add a dungeon level first"
+      assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
     end
   end
   # /With a registered user
 
-  defp create_dungeon(opts) do
-    dungeon = fixture(:dungeon, (opts.conn.assigns[:current_user] || insert_user(%{username: "CSwaggins"})).id )
-    {:ok, conn: opts.conn, dungeon: dungeon}
+  defp create_map_set(opts) do
+    map_set = fixture(:map_set, (opts.conn.assigns[:current_user] || insert_user(%{username: "CSwaggins"})).id )
+    {:ok, conn: opts.conn, map_set: map_set}
   end
 
   defp create_user(_) do

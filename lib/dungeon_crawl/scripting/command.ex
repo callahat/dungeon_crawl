@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Scripting.Command do
   The various scripting commands available to a program.
   """
 
-  alias DungeonCrawl.Action.{Move, Pull, Shoot}
+  alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
@@ -51,6 +51,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
+      :passage      -> :passage
       :pull         -> :pull
       :push         -> :push
       :put          -> :put
@@ -64,6 +65,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :terminate    -> :terminate
       :take         -> :take
       :text         -> :text
+      :transport    -> :transport
       :try          -> :try
       :unlock       -> :unlock
       :walk         -> :walk
@@ -702,6 +704,24 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def noop(%Runner{} = runner_state, _ignored \\ nil) do
     runner_state
+  end
+
+  @doc """
+  Registers the map tile as a passage exit. Parameter is the passage identifier that will be used to find
+  it when the TRANSPORT command is invoked. The parameter can be a literal value, or it can be a state variable
+  such as the objects color.
+
+  ## Examples
+
+    iex> Command.passage(%Runner{object_id: object_id}, [{:state_variable, :background_color}])
+    %Runner{ state: %Instances{..., passage_exits: [{object_id, {:state_variable, :background_color}}] } }
+
+    iex> Command.passage(%Runner{object_id: object_id}, ["door1"])
+    %Runner{ state: %Instances{..., passage_exits: [{object_id, "door1"}] } }
+  """
+  def passage(%Runner{state: state, object_id: object_id} = runner_state, [match_key]) do
+    match_key = resolve_variable(runner_state, match_key)
+    %{ runner_state | state: %{ state | passage_exits: [ {object_id, match_key} | state.passage_exits] } }
   end
 
   @doc """
@@ -1429,6 +1449,67 @@ defmodule DungeonCrawl.Scripting.Command do
     else
       runner_state
     end
+  end
+
+  @doc """
+  Transports a player map tile from one dungeon instance to another dungeon instance that is part
+  of the same map set. First param is the who (which should resolve to a map tile id; but if its not
+  a player's map tile this command will do nothing).
+
+  Second param can either be a fixed level number, "up" or "down" (up or down will resolve to the level
+  above or below the current one). If the level doesn't exist the nothing will be done.
+
+  Third param is optional, and is used to specify what passage_exit will be used.
+  For example, if the match key is "green", then only passage exits that also have that match key will be considered.
+  When more than one match, one is randomly picked. Also, when there is no match key specified, a random passage_exit
+  will be used. When no match key is specified, and there are no passage exits, then a random spawn coordinate will
+  be used as a last option.
+
+  ## Examples
+
+    iex> Command.transport(%Runner{program: %Program{},
+                                   object_id: object_id,
+                                   state: state},
+                     [[:event_sender], "up", "stairsdown"])
+    %Runner{}
+  """
+  def transport(runner_state, params, travel_module \\ Travel)
+  def transport(%Runner{} = runner_state, [who, level], travel_module) do
+    transport(runner_state, [who, level, nil], travel_module)
+  end
+  def transport(%Runner{event_sender: event_sender} = runner_state, [[:event_sender], level, match_key], travel_module) do
+    case event_sender do
+      %{map_tile_instance_id: id} -> transport(runner_state, [id, level, match_key], travel_module) # player tile
+      _                           -> runner_state
+    end
+  end
+
+  def transport(%Runner{state: state} = runner_state, [who, level, match_key], travel_module) do
+    map_tile_id = case resolve_variable(runner_state, who) do
+                    %{id: id} -> id
+                    id        -> id
+                  end
+    level = resolve_variable(runner_state, level)
+    match_key = resolve_variable(runner_state, match_key)
+    player_location = Instances.get_player_location(state, %{id: map_tile_id})
+    _transport(runner_state, player_location, level, match_key, travel_module)
+  end
+
+  defp _transport(runner_state, nil, _level, _match_key, _travel_module) do
+    runner_state
+  end
+
+  defp _transport(%Runner{state: state} = runner_state, player_location, "up", match_key, travel_module) do
+    _transport(runner_state, player_location, state.number + 1, match_key, travel_module)
+  end
+
+  defp _transport(%Runner{state: state} = runner_state, player_location, "down", match_key, travel_module) do
+    _transport(runner_state, player_location, state.number - 1, match_key, travel_module)
+  end
+
+  defp _transport(%Runner{state: state} = runner_state, player_location, level_number, match_key, travel_module) do
+    {:ok, state} = travel_module.passage(player_location, level_number, match_key, state)
+    %{ runner_state | state: state }
   end
 
   @doc """
