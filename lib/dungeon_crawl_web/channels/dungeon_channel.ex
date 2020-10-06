@@ -50,15 +50,15 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
       if player_tile && not _player_alive(player_tile) do
-        {player_tile, state} = Player.respawn(instance_state, player_tile)
+        {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
         death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
 
         payload = %{tiles: [
                      Map.put(Map.take(player_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(player_tile))
                     ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{instance_state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, player_tile)}
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(instance_state, player_tile)}
 
         {:ok, instance_state}
       else
