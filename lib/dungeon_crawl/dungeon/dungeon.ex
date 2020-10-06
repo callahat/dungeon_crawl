@@ -378,8 +378,7 @@ defmodule DungeonCrawl.Dungeon do
   """
   def list_dungeons(%MapSet{} = map_set) do
     Repo.all(from m in Map,
-             where: m.map_set_id == ^map_set.id,
-             where: is_nil(m.deleted_at))
+             where: m.map_set_id == ^map_set.id)
   end
 
   @doc """

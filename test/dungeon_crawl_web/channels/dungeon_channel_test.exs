@@ -41,7 +41,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     on_exit(fn -> InstanceRegistry.remove(DungeonInstanceRegistry, map_instance.id) end)
 
-    {:ok, socket: socket, player_location: player_location, basic_tiles: basic_tiles}
+    {:ok, socket: socket, player_location: player_location, basic_tiles: basic_tiles, instance: instance}
   end
 
   defp _player_location_north(player_location) do
@@ -179,6 +179,37 @@ defmodule DungeonCrawl.DungeonChannelTest do
   test "shoot into a nil space or idle does nothing", %{socket: socket} do
     push socket, "shoot", %{"direction" => "gibberish_which_becomes_idle"}
     refute_broadcast "tile_changes", _anything_really
+  end
+
+  @tag up_tile: "."
+  test "speak broadcasts to other players in the instance", %{socket: socket, player_location: player_location, instance: instance} do
+    other_player_location = \
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      other_player_location = insert_player_location(%{map_instance_id: instance_state.instance_id,
+                                                       row: @player_row-2,
+                                                       col: @player_col})
+      other_player_map_tile = Repo.preload(other_player_location, :map_tile).map_tile
+      {_, state} = Instances.create_player_map_tile(instance_state, other_player_map_tile, other_player_location)
+      {other_player_location, state}
+    end)
+
+    player_channel = "players:#{player_location.id}"
+    other_player_channel = "players:#{other_player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    DungeonCrawlWeb.Endpoint.subscribe(other_player_channel)
+    ref = push socket, "speak", %{"words" => "<i>words</i>"}
+
+    # HTML escapes the incoming payload
+    assert_reply ref, :ok, %{safe_words: "&lt;i&gt;words&lt;/i&gt;"}
+
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "message",
+        payload: _anything}
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^other_player_channel,
+        event: "message",
+        payload: %{message: "<b>AnonPlayer:</b> &lt;i&gt;words&lt;/i&gt;"}}
   end
 
   # TODO: refactor the underlying model/channel methods into more testable concerns
