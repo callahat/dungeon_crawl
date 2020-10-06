@@ -8,13 +8,6 @@ let Dungeon = {
       this.setupWindowListeners()
     }
 
-    document.getElementById("message_field").addEventListener('focus', (e) => {
-      this.typing = true
-    })
-    document.getElementById("message_field").addEventListener('blur', (e) => {
-      this.typing = false
-    })
-
     this.tuneInToChannel(socket, dungeonId)
 
     window.addEventListener('beforeunload', (event) => {
@@ -62,6 +55,8 @@ let Dungeon = {
       document.getElementById("message_field").addEventListener('keypress', e => {
         if (e.key === 'Enter' && !e.shiftKey) { this.sendMessage() }
       });
+      document.getElementById("message_field").addEventListener('focus', (e) => { this.typing = true })
+      document.getElementById("message_field").addEventListener('blur', (e) => { this.typing = false })
     }
 
     this.dungeonChannel.join()
