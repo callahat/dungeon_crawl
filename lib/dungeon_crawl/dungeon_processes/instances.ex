@@ -228,7 +228,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     program_contexts = program_contexts
                        |> Map.to_list
                        |> Enum.map(fn({pid, %{event_sender: event_sender, program: program} = program_context}) ->
-                            event_sender = if event_sender && event_sender.map_tile_id == old_temp_id do
+                            event_sender = if event_sender && Map.get(event_sender, :map_tile_id) == old_temp_id do
                                              %{ event_sender | map_tile_id: new_id}
                                            else
                                              event_sender
