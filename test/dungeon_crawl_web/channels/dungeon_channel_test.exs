@@ -21,11 +21,16 @@ defmodule DungeonCrawl.DungeonChannelTest do
     # set the tile north of player_loc, for testing purposes
     north_tile = basic_tiles[if(tile = config[:up_tile], do: tile, else: ".")]
 
-    map_instance = insert_stubbed_dungeon_instance(%{},
-      [Map.merge(%{row: @player_row-1, col: @player_col, tile_template_id: north_tile.id, z_index: 0},
-                 Map.take(north_tile, [:character,:color,:background_color,:state,:script, :name])),
-       Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
-                 Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script, :name]))])
+    map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [
+        [Map.merge(%{row: @player_row-1, col: @player_col, tile_template_id: north_tile.id, z_index: 0},
+                   Map.take(north_tile, [:character,:color,:background_color,:state,:script, :name])),
+         Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
+                   Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script, :name]))],
+        []
+      ])
+
+    map_instance = Enum.sort(Repo.preload(map_set_instance, :maps).maps, fn(a, b) -> a.number < b.number end)
+                   |> Enum.at(0)
 
     player_location = insert_player_location(%{map_instance_id: map_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1"})
                       |> Repo.preload(:map_tile)
@@ -182,35 +187,102 @@ defmodule DungeonCrawl.DungeonChannelTest do
   end
 
   @tag up_tile: "."
-  test "speak broadcasts to other players in the instance", %{socket: socket, player_location: player_location, instance: instance} do
+  test "speak broadcasts to other players that can hear", %{socket: socket, player_location: player_location, instance: instance} do
+    # setup
     other_player_location = \
     InstanceProcess.run_with(instance, fn (instance_state) ->
       other_player_location = insert_player_location(%{map_instance_id: instance_state.instance_id,
                                                        row: @player_row-2,
-                                                       col: @player_col})
+                                                       col: @player_col,
+                                                       user_id_hash: "samelvlhash"})
+
       other_player_map_tile = Repo.preload(other_player_location, :map_tile).map_tile
       {_, state} = Instances.create_player_map_tile(instance_state, other_player_map_tile, other_player_location)
       {other_player_location, state}
     end)
 
+    other_map_instance = Enum.sort(Repo.preload(player_location, [map_tile: [dungeon: [map_set: :maps]]]).map_tile.dungeon.map_set.maps,
+                                   fn(a,b) -> a.number < b.number end)
+                         |> Enum.at(1)
+                         
+
+    {:ok, other_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, other_map_instance.id)
+    other_level_pl = \
+    InstanceProcess.run_with(other_instance, fn (instance_state) ->
+      other_level_pl = insert_player_location(%{map_instance_id: instance_state.instance_id, user_id_hash: "otherlvlhash"})
+      Instances.create_player_map_tile(instance_state, Repo.preload(other_level_pl, :map_tile).map_tile, other_level_pl)
+      other_player_lvl_map_tile = Repo.preload(other_level_pl, :map_tile).map_tile
+      {_, state} = Instances.create_player_map_tile(instance_state, other_player_lvl_map_tile, other_level_pl)
+      {other_level_pl, state}
+    end)
+
     player_channel = "players:#{player_location.id}"
     other_player_channel = "players:#{other_player_location.id}"
+    other_level_player_channel = "players:#{other_level_pl.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     DungeonCrawlWeb.Endpoint.subscribe(other_player_channel)
+    DungeonCrawlWeb.Endpoint.subscribe(other_level_player_channel)
+    # /setup
+
     ref = push socket, "speak", %{"words" => "<i>words</i>"}
 
     # HTML escapes the incoming payload
     assert_reply ref, :ok, %{safe_words: "&lt;i&gt;words&lt;/i&gt;"}
 
     refute_receive %Phoenix.Socket.Broadcast{
-        topic: ^player_channel,
-        event: "message",
-        payload: _anything}
+        topic: ^player_channel}
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^other_player_channel,
         event: "message",
         payload: %{message: "<b>AnonPlayer:</b> &lt;i&gt;words&lt;/i&gt;"}}
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^other_level_player_channel}
+
+    # does not go through walls
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      wall_tile = %DungeonInstances.MapTile{id: "new_1",
+                                            state: "blocking: true",
+                                            character: "#",
+                                            map_instance_id: instance_state.instance_id,
+                                            row: @player_row-1,
+                                            col: @player_col,
+                                            z_index: 10}
+      Instances.create_map_tile(instance_state, wall_tile)
+    end)
+
+    ref = push socket, "speak", %{"words" => "<i>words</i>"}
+    assert_reply ref, :ok, %{safe_words: "&lt;i&gt;words&lt;/i&gt;"}
+    refute_receive %Phoenix.Socket.Broadcast{}
+
+    # /level prefix messages everyone in the level (even if blocked by a wall)
+    ref = push socket, "speak", %{"words" => "/level To everyone on this floor"}
+    assert_reply ref, :ok, %{safe_words: "To everyone on this floor"}
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel}
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^other_player_channel,
+        event: "message",
+        payload: %{message: "<b>AnonPlayer</b> <i>to level</i><b>:</b> To everyone on this floor"}}
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^other_level_player_channel,
+        event: "message",
+        payload: _anything}
+
+    # /dungeon prefix messages everyone in the same map set instance (ie, same dungeon including different levels
+    ref = push socket, "speak", %{"words" => "/dungeon <i>To everyone in this dungeon</i>"}
+    assert_reply ref, :ok, %{safe_words: "&lt;i&gt;To everyone in this dungeon&lt;/i&gt;"}
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel}
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^other_player_channel,
+        event: "message",
+        payload: %{message: "<b>AnonPlayer</b> <i>to dungeon</i><b>:</b> &lt;i&gt;To everyone in this dungeon&lt;/i&gt;"}}
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^other_level_player_channel,
+        event: "message",
+        payload: %{message: "<b>AnonPlayer</b> <i>to dungeon</i><b>:</b> &lt;i&gt;To everyone in this dungeon&lt;/i&gt;"}}
   end
+
 
   # TODO: refactor the underlying model/channel methods into more testable concerns
   @tag up_tile: "+"

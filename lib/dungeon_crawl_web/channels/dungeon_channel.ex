@@ -103,19 +103,24 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   def handle_in("speak", %{"words" => words}, socket) do
-    # This will reach everyone in the instance.
-    # TODO: different speak commands to explicitly reach everyone in the instance, dungeon (map set),
-    # and the default speak will only be heard by those in non blocked (soft block ok) line of sight
-    {:safe, safe_words} = html_escape words
-
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
-    InstanceProcess.run_with(instance, fn (instance_state) ->
-      {player_location, _player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+    instance_state = InstanceProcess.get_state(instance)
+    {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      _send_message_to_other_players_in_instance(player_location, safe_words, instance_state)
+    safe_words = \
+    case String.split(words, ~r/^\/(?:level|dungeon)\b/, include_captures: true, trim: true, parts: 2) do
+      ["/level", words] ->
+        {:safe, safe_words} = html_escape String.trim(words)
+        _send_message_to_other_players_in_instance(player_location, safe_words, instance_state)
 
-      {:ok, instance_state}
-    end)
+      ["/dungeon", words] ->
+        {:safe, safe_words} = html_escape String.trim(words)
+        _send_message_to_other_players_in_dungeon(player_location, safe_words, socket.assigns.instance_id)
+
+      [words] ->
+        {:safe, safe_words} = html_escape String.trim(words)
+        _send_message_to_other_players_in_range(player_tile, player_location, safe_words, instance_state)
+    end
 
     {:reply, {:ok, %{safe_words: "#{safe_words}"}}, socket}
   end
@@ -200,14 +205,59 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     :os.system_time(:millisecond) - socket.assigns[:last_action_at] > 100
   end
 
+  defp _send_message_to_other_players_in_range(player_tile, player_location, safe_msg, instance_state) do
+    # this might be too expensive to use
+    clear_coords = DungeonCrawl.Scripting.Shape.blob({instance_state, player_tile}, 10, false)
+    audiable_coords = DungeonCrawl.Scripting.Shape.blob({instance_state, player_tile}, 15, false) -- clear_coords
+
+    hearing_groups = \
+    instance_state.player_locations
+    |> Map.to_list()
+    |> Enum.reject(fn({map_tile_id, _location}) -> map_tile_id == player_tile.id end)
+    |> Enum.map(fn({map_tile_id, location}) -> {Instances.get_map_tile_by_id(instance_state, %{id: map_tile_id}), location} end)
+    |> Enum.group_by(fn({map_tile, _location}) -> cond do
+                                                    Enum.member?(clear_coords, {map_tile.row, map_tile.col}) -> :ok
+                                                    Enum.member?(audiable_coords, {map_tile.row, map_tile.col}) -> :quiet
+                                                    true -> nil
+                                                  end
+       end)
+
+    (hearing_groups[:ok] || [])
+    |> Enum.map(fn({_, location}) -> location.id end)
+    |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}:</b> #{safe_msg}")
+
+    (hearing_groups[:quiet] || [])
+    |> Enum.map(fn({_, location}) -> location.id end)
+    |> _send_message_to_player("You hear muffled voices")
+
+    safe_msg
+  end
+
   defp _send_message_to_other_players_in_instance(player_location, safe_msg, instance_state) do
     instance_state.player_locations
     |> Map.to_list()
     |> Enum.reject(fn({map_tile_id, _location}) -> map_tile_id == player_location.map_tile_instance_id end)
-    |> Enum.each(fn({_map_tile_id, location}) ->
-         DungeonCrawlWeb.Endpoint.broadcast "players:#{location.id}",
-                                            "message",
-                                            %{message: "<b>#{Account.get_name(player_location.user_id_hash)}:</b> #{safe_msg}"}
-       end)
+    |> Enum.map(fn({_map_tile_id, location}) -> location.id end)
+    |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to level</i><b>:</b> #{safe_msg}")
+
+    safe_msg
+  end
+
+  defp _send_message_to_other_players_in_dungeon(player_location, safe_msg, instance_id) do
+    Repo.preload(DungeonCrawl.DungeonInstances.get_map(instance_id), [map_set: :locations]).map_set.locations
+    |> Enum.map(fn(location) -> {location.id, location.map_tile_instance_id} end)
+    |> Enum.reject(fn({_, tile_id}) -> tile_id == player_location.map_tile_instance_id end)
+    |> Enum.map(fn({location_id, _}) -> location_id end)
+    |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to dungeon</i><b>:</b> #{safe_msg}")
+
+    safe_msg
+  end
+
+  defp _send_message_to_player([], _safe_msg), do: []
+  defp _send_message_to_player([location_id | location_ids], safe_msg) do
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{location_id}",
+                                       "message",
+                                       %{message: safe_msg}
+    _send_message_to_player(location_ids, safe_msg)
   end
 end
