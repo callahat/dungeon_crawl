@@ -14,12 +14,16 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   Two prefixes currently supported
 
+  ### Label
+
   : - label, used for program flow; it is where the program counter will
              jump when a message is sent, the following are events sent by
              the system
 
   :open
   :close
+
+  ### Command
 
   # - command, ie
   #become <kwargs>
@@ -28,7 +32,51 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   #end - stops the program until it receives a message that it can process.
 
+  ### State Value
+
+  @ - references a state value for the object. This can be used for setting a state value.
+
+  @flag = true
+
+  @counter += 1
+
+  ### Dungeon Value
+
+  @@ - references a state value for the dungeon instance (ie, the current "map"). Can be used for setting a dungeon value
+
+  @@doors_locked = false
+
+  @@countdown -= 1
+
+  ### Other's State Value
+
+  ?<target>@ - refernces the state value of another object. Can be used for setting the state value
+               on another object. Target can be a direction or an object id (but cannot target a player tile).
+               Does not trigger side effects (such as when a player dies when health reaches 0)
+
+  ?north@blocking = true
+
+  ?12345@ammo += 5
+
+  ### Movement Shorthand
+
+  There can be many movement shorthand commands on the same line. Valid directions are n,s,e, or w
+  (north, south, east or west, respectively). The shorthand command is a directive followed by a direction.
+
+  / - shorthand for the GO command; will keep retrying until the move is successful before moving on to the next instruction.
+  ? - shorthand for the TRY command; will try to move, but will not retry before continuing with the next instruction.
+
+  /n/n/w?w
+  ?s?w?e?n
+  /n
+  ?w
+
+  ### Text
+
   <no prefix> - this is treated as text that can be displayed to a player.
+  !<label>;   - this is treaded as a text action, which can be displayed to a player and
+                has an associated label/message that will be sent to the object when clicked.
+
 
   ## Examples
 

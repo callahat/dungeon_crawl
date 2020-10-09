@@ -194,8 +194,19 @@
       <td>&lt;no prefix&gt;</td>
       <td>Text</td>
       <td>This will display a text message to the player that sent the last message (ie, a player tile touches
-          a tile and said player sees a message). If there were none, nothing noticable happens.</td>
+          a tile and said player sees a message). If there were none, nothing noticable happens. When there are
+          several adjacent text commands, they may be displayed together in a text modal, instead of the side
+          chat log.</td>
       <td><pre class="script">Hello player</pre></td>
+    </tr>
+    <tr>
+      <td>&lt;!&gt;&lt;label&gt;;</td>
+      <td>Text Action</td>
+      <td>This will display a linked text message to the player. The display of the text will appear as a
+          clickable link in a text modal. When clicked, the link will send the message given between the '!' and ';'
+          to that object.</td>
+      <td><pre class="script">!buy_gems;Buy Gems</pre>
+          <pre class="script">!no;Answer "No"</pre></td>
     </tr>
   </table>
 
