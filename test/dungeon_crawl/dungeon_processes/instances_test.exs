@@ -130,6 +130,27 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                 map_by_coords: _ } = updated_state_3
   end
 
+  test "add_message_action/3" do
+    state = Instances.set_message_actions(%Instances{}, 123, ["maybe", "ok"])
+            |> Instances.set_message_actions(777, ["negative"])
+    assert state.message_actions == %{123 => ["maybe", "ok"], 777 => ["negative"]}
+  end
+
+  test "remove_message_actions/2" do
+    state = %Instances{ message_actions: %{123 => ["maybe", "ok"], 777 => ["negative"]} }
+    updated_state = Instances.remove_message_actions(state, 123)
+    refute Map.has_key?(updated_state, 123)
+    assert updated_state.message_actions == %{ 777 => ["negative"] }
+  end
+
+  test "valid_message_action?/3" do
+    state = %Instances{ message_actions: %{123 => ["maybe", "ok"], 777 => ["negative"]} }
+    assert Instances.valid_message_action?(state, 123, "maybe")
+    assert Instances.valid_message_action?(state, 777, "negative")
+    refute Instances.valid_message_action?(state, 777, "ok")
+    refute Instances.valid_message_action?(state, 999234, "ok")
+  end
+
   test "create_player_map_tile/3 creates a player map tile and regsiters it" do
     new_map_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
     location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}

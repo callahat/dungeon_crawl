@@ -1584,28 +1584,45 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # text with label get a modal, even when only one line
     program = program_fixture("!label;One line\n#end\n:label")
     runner_state = %{ runner_state | program: program }
-    %Runner{program: updated_program} = Command.text(runner_state, ["One line", "label"])
+    %Runner{program: updated_program, state: updated_state} = Command.text(runner_state, ["One line", "label"])
     assert updated_program.responses ==
        [{"message",
         %{message: ["    <span class='btn-link messageLink' data-label='label' data-tile-id='1'>▶One line</span>"],
           modal: true}}]
+    assert updated_state.message_actions == %{}
+
+    # when event_sender is a player it adds the messages to the registry for that player
+    runner_state = %{ runner_state | program: program }
+    event_sender = %Location{map_tile_instance_id: 444}
+    runner_state = %{ runner_state | program: program, event_sender: event_sender }
+    %Runner{program: updated_program, state: updated_state} = Command.text(runner_state, ["One line", "label"])
+    assert updated_program.responses ==
+       [{"message",
+        %{message: ["    <span class='btn-link messageLink' data-label='label' data-tile-id='1'>▶One line</span>"],
+          modal: true}}]
+    assert updated_state.message_actions == %{444 => ["label"]}
 
     # multiline
     program = program_fixture("""
                               One line
                               !label;Yes
+                              !no;NO!!!!
                               #END
                               :label
                               well, ok
+                              :no
                               """)
     runner_state = %{ runner_state | program: program }
-    %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
+    %Runner{program: updated_program, state: updated_state} = Command.text(runner_state, ["ignord"])
     assert updated_program.responses ==
        [{"message",
-        %{message: ["One line", "    <span class='btn-link messageLink' data-label='label' data-tile-id='1'>▶Yes</span>"],
+        %{message: ["One line",
+                    "    <span class='btn-link messageLink' data-label='label' data-tile-id='1'>▶Yes</span>",
+                    "    <span class='btn-link messageLink' data-label='no' data-tile-id='1'>▶NO!!!!</span>"],
           modal: true}}]
     assert updated_program.status == program.status
-    assert updated_program.pc == 2
+    assert updated_program.pc == 3
+    assert updated_state.message_actions == %{444 => ["no", "label"]}
   end
 
   test "TRANSPORT" do

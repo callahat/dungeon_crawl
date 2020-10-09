@@ -18,7 +18,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             program_messages: [],
             new_pids: [],
             spawn_coordinates: [],
-            passage_exits: []
+            passage_exits: [],
+            message_actions: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -127,6 +128,35 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         state
     end
   end
+
+  @doc """
+  Sets the labels for the event sender id. This will be used when a nonstandard message
+  is sent in to verify that the event sender may send it.
+  """
+  def set_message_actions(%Instances{message_actions: message_actions} = state, id, labels) do
+    %{ state | message_actions: Map.put(message_actions, id, labels) }
+  end
+
+  @doc """
+  Removes the labels for the event sender id. This clears the available messages it may send,
+  for cases when the sender has chosen an event to send, or for when it is no longer eligible
+  to send an event.
+  """
+  def remove_message_actions(%Instances{message_actions: message_actions} = state, id) do
+    %{ state | message_actions: Map.delete(message_actions, id) }
+  end
+
+  @doc """
+  Returns if the given label is valid for the event sender id. Ie, this player is allowed
+  to send that label because the program solicited it via a dialog window, and it is still valid.
+  """
+  def valid_message_action?(%Instances{message_actions: message_actions} = _state, id, label) do
+    case message_actions[id] do
+      nil -> false
+      labels -> Enum.member?(labels, label)
+    end
+  end
+
 
   @doc """
   Creates the given map tile for the player location in the parent instance state if it does not already exist.

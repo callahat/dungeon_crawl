@@ -1453,9 +1453,9 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.text(%Runner{program: program}, params: ["Door opened"])
     %Runner{ program: %{program | responses: ["Door opened"]} }
   """
-  def text(%Runner{} = runner_state, params) do
+  def text(%Runner{event_sender: event_sender} = runner_state, params) do
     if params != [""] do
-      { %Runner{program: program} = runner_state, lines } = _process_text(runner_state, runner_state.program.pc)
+      { %Runner{program: program, state: state} = runner_state, lines, labels } = _process_text(runner_state, runner_state.program.pc)
 
       payload = if length(lines) == 1 && ! String.contains?(Enum.at(lines, 0), "messageLink") do
                   %{message: Enum.at(lines, 0)}
@@ -1465,27 +1465,35 @@ defmodule DungeonCrawl.Scripting.Command do
 
       program = %{ program |  responses: [ {"message", payload} | program.responses] }
 
-      %{ runner_state | program: program }
+      case event_sender do
+        # only care about tracking available actions sent to a player
+        %Location{map_tile_instance_id: id} ->
+          state = Instances.set_message_actions(state, id, labels)
+          %{ runner_state | program: program, state: state }
+
+        _ ->
+          %{ runner_state | program: program }
+      end
     else
       runner_state
     end
   end
 
-  defp _process_text(%Runner{program: program, object_id: object_id} = runner_state, pc, lines \\ []) do
+  defp _process_text(%Runner{program: program, object_id: object_id} = runner_state, pc, lines \\ [], labels \\ []) do
     case program.instructions[pc] do
       [:text, [another_line]] ->
         runner_state = %{runner_state | program: %{ program | pc: pc }}
         {:safe, safe_text} = html_escape(another_line)
-        _process_text(runner_state, pc + 1, [ "#{ safe_text }" | lines])
+        _process_text(runner_state, pc + 1, [ "#{ safe_text }" | lines], labels)
 
       [:text, [another_line, label]] ->
         runner_state = %{runner_state | program: %{ program | pc: pc }}
         {:safe, safe_text} = html_escape(another_line)
         attrs = "class='btn-link messageLink' data-label='#{ label }' data-tile-id='#{ object_id }'"
-        _process_text(runner_state, pc + 1, [ "    <span #{attrs}>▶#{ safe_text }</span>" | lines])
+        _process_text(runner_state, pc + 1, [ "    <span #{attrs}>▶#{ safe_text }</span>" | lines], [ String.downcase(label) | labels ])
 
       _ ->
-        {runner_state, lines}
+        {runner_state, lines, labels}
     end
   end
 

@@ -103,6 +103,19 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div></div>"}]}
   end
 
+  @tag up_tile: "."
+  test "move clears the message_actions for that player", %{socket: socket, player_location: player_location, instance: instance} do
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      instance_state = Instances.set_message_actions(instance_state, player_location.map_tile_instance_id, ["messaged"])
+      {:ok, instance_state}
+    end)
+    push socket, "move", %{"direction" => "up"}
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      refute Map.has_key?(instance_state, player_location.map_tile_instance_id)
+      {:ok, instance_state}
+    end)
+  end
+
   @tag up_tile: "#"
   test "move broadcasts nothing if its not a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
@@ -124,11 +137,13 @@ defmodule DungeonCrawl.DungeonChannelTest do
   test "message_action handles an inbound message", %{socket: socket, player_location: player_location, instance: instance} do
     message_object = \
     InstanceProcess.run_with(instance, fn (instance_state) ->
+      instance_state = Instances.set_message_actions(instance_state, player_location.map_tile_instance_id, ["messaged"])
       {:ok, message_object} = DungeonInstances.new_map_tile(%{map_instance_id: instance_state.instance_id,
                                                               row: @player_row,
                                                               col: @player_col+1,
                                                               script: """
                                                                       #END
+                                                                      :touch
                                                                       :messaged
                                                                       oh hai mark
                                                                       """})
@@ -144,6 +159,16 @@ defmodule DungeonCrawl.DungeonChannelTest do
         topic: ^player_channel,
         event: "message",
         payload: %{message: "oh hai mark"}}
+
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      refute Map.has_key?(instance_state, player_location.map_tile_instance_id)
+      {:ok, instance_state}
+    end)
+
+    # when the message is not valid for the player to send, nothing happens
+    push socket, "message_action", %{"label" => "touch", "tile_id" => message_object.id}
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel }
   end
 
   test "message_action handles bad inbound messages ok", %{socket: socket, player_location: player_location} do
@@ -215,6 +240,19 @@ defmodule DungeonCrawl.DungeonChannelTest do
   test "shoot into a nil space or idle does nothing", %{socket: socket} do
     push socket, "shoot", %{"direction" => "gibberish_which_becomes_idle"}
     refute_broadcast "tile_changes", _anything_really
+  end
+
+  @tag up_tile: ".", ammo: 1
+  test "shoot clears the message_actions for that player", %{socket: socket, player_location: player_location, instance: instance} do
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      instance_state = Instances.set_message_actions(instance_state, player_location.map_tile_instance_id, ["messaged"])
+      {:ok, instance_state}
+    end)
+    push socket, "shoot", %{"direction" => "up"}
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      refute Map.has_key?(instance_state, player_location.map_tile_instance_id)
+      {:ok, instance_state}
+    end)
   end
 
   @tag up_tile: "."

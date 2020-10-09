@@ -48,12 +48,13 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      # TODO: maybe check that the user_id matches a list of unresponded messages for this object
       with target_tile when not is_nil(target_tile) <- Instances.get_map_tile_by_id(instance_state, %{id: tile_id}),
            {player_location, player_tile} when not is_nil(player_location) <-
              _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash),
+           true <- Instances.valid_message_action?(instance_state, player_tile.id, label),
            event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
         instance_state = Instances.send_event(instance_state, target_tile, label, event_sender)
+                         |> Instances.remove_message_actions(player_tile.id)
         {:ok, instance_state}
       else
         _ -> {:ok, instance_state}
@@ -97,6 +98,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     socket = \
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
 
       if _shot_ready(socket) && _player_alive(player_tile) do
         player_channel = "players:#{player_location.id}"
@@ -192,6 +194,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
 
       with true <- _player_alive(player_tile),
            target_tile when not is_nil(target_tile) <- Instances.get_map_tile(instance_state, player_tile, direction) do
