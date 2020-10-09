@@ -82,7 +82,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       %{"type" => type, "instruction" => state_element} when type != "" ->
         _parse_state_change(:change_other_state, type, state_element, program)
 
-      _ -> # If the last item in the program is also text, concat the two
+      _ ->
         _handle_text(line, program)
     end
   end
@@ -206,16 +206,16 @@ defmodule DungeonCrawl.Scripting.Parser do
     end
   end
 
-  defp _handle_text(text, program) do
-    # TODO: might make more sense to roll up multiline text commands in the runner to keep parsing errors able to get the right line number
-    #with line_number = Enum.count(program.instructions),
-    #     [:text, preceeding_text] <- program.instructions[line_number] do
-    #  {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, preceeding_text ++ [text] ]) } }
-    #else
-    #  _ ->
-        line_number = Enum.count(program.instructions) + 1
+  defp _handle_text(line, program) do
+    line_number = Enum.count(program.instructions) + 1
+
+    case Regex.named_captures(~r/(?:!(?<label>[A-Za-z\d_]+);)?(?<text>.*)$/, line) do
+      %{"label" => label, "text" => text} when label != "" ->
+        {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, [text, label] ]) } }
+
+      %{"text" => text} -> # Just a normal line of text
         {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, [text] ]) } }
-    #end
+    end
   end
 
   defp _sendable_command(command) do

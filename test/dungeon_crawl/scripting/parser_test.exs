@@ -96,6 +96,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #PASSAGE @background_color
                #TRANSPORT ?sender, up
                #TRANSPORT @target_player, 2, red
+               !buy;buy some more
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -162,6 +163,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  62 => [:passage, [{:state_variable, :background_color}]],
                                                  63 => [:transport, [[:event_sender], "up"]],
                                                  64 => [:transport, [{:state_variable, :target_player}, 2, "red"]],
+                                                 65 => [:text, ["buy some more", "buy"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

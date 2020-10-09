@@ -49,7 +49,7 @@ let Dungeon = {
       ressurectionEl.addEventListener('click', e => {this.respawn()} )
     }
 
-    let messageSendEl, words, payload
+    let messageSendEl, words, payload, multilineMessageEl
     if(messageSendEl = document.getElementById("submit_message")){
       messageSendEl.addEventListener('click', e => { this.sendMessage() });
       document.getElementById("message_field").addEventListener('keypress', e => {
@@ -57,6 +57,17 @@ let Dungeon = {
       });
       document.getElementById("message_field").addEventListener('focus', (e) => { this.typing = true })
       document.getElementById("message_field").addEventListener('blur', (e) => { this.typing = false })
+
+      multilineMessageEl = document.getElementById("multilineMessage")
+      multilineMessageEl.addEventListener('click', (e) => {
+        if(e.target.matches(".messageLink")){
+          let label = e.target.getAttribute("data-label"),
+              tile_id = e.target.getAttribute("data-tile-id")
+          $('#messageModal').modal('hide')
+          this.dungeonChannel.push("message_action", {label: label, tile_id: tile_id})
+          multilineMessageEl.innerHTML = ""
+        }
+      })
     }
 
     this.dungeonChannel.join()
@@ -165,6 +176,13 @@ let Dungeon = {
     `
     document.getElementById("sidebar_message_box").appendChild(template)
     document.getElementById("sidebar_message_box").scrollTop = document.getElementById("sidebar_message_box").scrollHeight
+  },
+  renderMessageModal(msg){
+    let messageArea = document.getElementById("multilineMessage")
+
+    messageArea.innerHTML = msg.join("<br/>")
+
+    $('#messageModal').modal('show')
   },
   respawn(){
     this.dungeonChannel.push("respawn", {})

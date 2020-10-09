@@ -40,6 +40,29 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     _motion(direction, &Move.go/3, socket)
   end
 
+  def handle_in("message_action", %{"label" => label, "tile_id" => tile_id}, socket) do
+    tile_id = case Integer.parse(tile_id) do
+                {tile_id, ""} -> tile_id
+                _ -> tile_id
+              end
+
+    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      # TODO: maybe check that the user_id matches a list of unresponded messages for this object
+      with target_tile when not is_nil(target_tile) <- Instances.get_map_tile_by_id(instance_state, %{id: tile_id}),
+           {player_location, player_tile} when not is_nil(player_location) <-
+             _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash),
+           event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
+        instance_state = Instances.send_event(instance_state, target_tile, label, event_sender)
+        {:ok, instance_state}
+      else
+        _ -> {:ok, instance_state}
+      end
+    end)
+
+    {:noreply, socket}
+  end
+
   def handle_in("pull", %{"direction" => direction}, socket) do
     _motion(direction, &Pull.pull/3, socket)
   end

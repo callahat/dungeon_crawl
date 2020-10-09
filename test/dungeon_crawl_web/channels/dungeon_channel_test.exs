@@ -118,11 +118,42 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "message",
-        payload: %{message: "Just a tile"}}
+        payload: %{message: ["Just a tile", "with line o text"], modal: true}}
+  end
+
+  test "message_action handles an inbound message", %{socket: socket, player_location: player_location, instance: instance} do
+    message_object = \
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      {:ok, message_object} = DungeonInstances.new_map_tile(%{map_instance_id: instance_state.instance_id,
+                                                              row: @player_row,
+                                                              col: @player_col+1,
+                                                              script: """
+                                                                      #END
+                                                                      :messaged
+                                                                      oh hai mark
+                                                                      """})
+
+      Instances.create_map_tile(instance_state, message_object)
+    end)
+
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "message_action", %{"label" => "messaged", "tile_id" => message_object.id}
+
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "message",
-        payload: %{message: "with line o text"}}
+        payload: %{message: "oh hai mark"}}
+  end
+
+  test "message_action handles bad inbound messages ok", %{socket: socket, player_location: player_location} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    assert push socket, "message_action", %{"label" => "messaged", "tile_id" => "new_0"}
+    assert push socket, "message_action", %{"label" => "messaged", "tile_id" => "123"}
+
+    refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel}
   end
 
   @tag up_tile: "."

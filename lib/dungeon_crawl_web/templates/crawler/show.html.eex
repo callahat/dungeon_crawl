@@ -2,6 +2,7 @@
 <div class="text-center">
   <%= render "stat_sidebar.html", player_stats: @player_stats %>
   <%= render "help_modal.html" %>
+  <%= render "dialog_modal.html" %>
   <%= render "death_notice_modal.html" # , dungeon: @player_location.map_tile.dungeon # TODO: some dungeons may have special rules around allowing respawns %>
 
   <div class="col-9 offset-3">

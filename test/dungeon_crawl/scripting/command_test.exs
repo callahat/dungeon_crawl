@@ -1570,14 +1570,42 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "TEXT" do
-    program = program_fixture()
+    program = program_fixture("One line<script>")
     stubbed_object = %{id: 1, state: "thing: true"}
     state = %Instances{map_by_ids: %{1 => stubbed_object}}
+    runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
 
-    %Runner{program: program} = Command.text(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["I am just a simple text."])
-    assert program.responses == [{"message", %{message: "I am just a simple text."}}]
-    assert program.status == :alive
-    assert program.pc == 1
+    # also html escapes the text
+    %Runner{program: updated_program} = Command.text(runner_state, ["One line<script>"])
+    assert updated_program.responses == [{"message", %{message: "One line&lt;script&gt;"}}]
+    assert updated_program.status == program.status
+    assert updated_program.pc == 1
+
+    # text with label get a modal, even when only one line
+    program = program_fixture("!label;One line\n#end\n:label")
+    runner_state = %{ runner_state | program: program }
+    %Runner{program: updated_program} = Command.text(runner_state, ["One line", "label"])
+    assert updated_program.responses ==
+       [{"message",
+        %{message: ["    <span class='btn-link messageLink' data-label='label' data-tile-id='1'>▶One line</span>"],
+          modal: true}}]
+
+    # multiline
+    program = program_fixture("""
+                              One line
+                              !label;Yes
+                              #END
+                              :label
+                              well, ok
+                              """)
+    runner_state = %{ runner_state | program: program }
+    %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
+    assert updated_program.responses ==
+       [{"message",
+        %{message: ["One line", "    <span class='btn-link messageLink' data-label='label' data-tile-id='1'>▶Yes</span>"],
+          modal: true}}]
+    assert updated_program.status == program.status
+    assert updated_program.pc == 2
   end
 
   test "TRANSPORT" do
