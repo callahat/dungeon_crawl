@@ -134,13 +134,13 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns map tile ids that are up to the range in steps from the origin. This will wrap around corners
   and blocking tiles as long as the number of steps to get to that coordinate is within the range.
   """
-  def blob(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
+  def blob(_state, _range, include_origin \\ true, bypass_blocking \\ "soft")
+  def blob(%Runner{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
-
-    %{row: row, col: col} = origin
-
+    blob({state, origin}, range, include_origin, bypass_blocking)
+  end
+  def blob({%Instances{} = state, %{row: row, col: col} = _origin}, range, include_origin, bypass_blocking) do
     coords = if include_origin, do: [{row, col}], else: []
-
     _blob(state, range, bypass_blocking, coords, [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}])
   end
 

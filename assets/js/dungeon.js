@@ -49,6 +49,27 @@ let Dungeon = {
       ressurectionEl.addEventListener('click', e => {this.respawn()} )
     }
 
+    let messageSendEl, words, payload, multilineMessageEl
+    if(messageSendEl = document.getElementById("submit_message")){
+      messageSendEl.addEventListener('click', e => { this.sendMessage() });
+      document.getElementById("message_field").addEventListener('keypress', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { this.sendMessage() }
+      });
+      document.getElementById("message_field").addEventListener('focus', (e) => { this.typing = true })
+      document.getElementById("message_field").addEventListener('blur', (e) => { this.typing = false })
+
+      multilineMessageEl = document.getElementById("multilineMessage")
+      multilineMessageEl.addEventListener('click', (e) => {
+        if(e.target.matches(".messageLink")){
+          let label = e.target.getAttribute("data-label"),
+              tile_id = e.target.getAttribute("data-tile-id")
+          $('#messageModal').modal('hide')
+          this.dungeonChannel.push("message_action", {label: label, tile_id: tile_id})
+          multilineMessageEl.innerHTML = ""
+        }
+      })
+    }
+
     this.dungeonChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeons channel!")
@@ -61,6 +82,8 @@ let Dungeon = {
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
+      if(this.typing){ return }
+
       if(parseInt(document.getElementById("health").innerText) <= 0) {
         $('#respawnModal').modal('show')
         return
@@ -138,6 +161,9 @@ let Dungeon = {
     this._useDoor(direction, "CLOSE")
   },
   renderMessage(msg){
+    if(msg == this.lastMessage) { return }
+    this.lastMessage = msg
+
     let template = document.createElement("div")
     template.setAttribute("class", "d-flex flex-row no-gutters")
     template.innerHTML = `
@@ -151,9 +177,31 @@ let Dungeon = {
     document.getElementById("sidebar_message_box").appendChild(template)
     document.getElementById("sidebar_message_box").scrollTop = document.getElementById("sidebar_message_box").scrollHeight
   },
+  renderMessageModal(msg){
+    let messageArea = document.getElementById("multilineMessage")
+
+    messageArea.innerHTML = msg.join("<br/>")
+
+    $('#messageModal').modal('show')
+  },
   respawn(){
     this.dungeonChannel.push("respawn", {})
                        .receive("error", e => console.log(e))
+  },
+  sendMessage(){
+    let words = document.getElementById("message_field").value.trim(),
+        payload
+    if(words != ""){
+      payload = {words: words}
+      this.dungeonChannel.push("speak", payload)
+        .receive("error", resp => this.renderMessage("Could not send message") )
+        .receive("ok", resp => {
+                         this.renderMessage("<b>Me:</b> " + resp.safe_words)
+                         document.getElementById("message_field").value = ""
+                       } )
+    } else {
+      document.getElementById("message_field").value = ""
+    }
   },
   _messageTimestamp(){
     return new Date().toLocaleTimeString("en-US", this.timestampOptions)
@@ -170,7 +218,9 @@ let Dungeon = {
          hour:  "2-digit",
          minute: "2-digit"
   },
-  dungeonChannel: null
+  dungeonChannel: null,
+  lastMessage: null,
+  typing: false
 }
 
 export default Dungeon

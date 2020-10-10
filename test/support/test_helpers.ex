@@ -128,7 +128,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
       row: 3,
       col: 1,
       character: "@",
-      state: "blocking: true",
+      state: "blocking: true, soft: true",
       script: ""
     }, attrs)
 

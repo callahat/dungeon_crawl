@@ -17,7 +17,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       state = %Instances{map_by_ids: %{1 => stubbed_object}}
 
       %Runner{program: run_program} = Runner.run(%Runner{state: state, program: program, object_id: stubbed_object.id})
-      assert run_program.responses == [{"message", %{message: "Line Two"}}, {"message", %{message: "Line One"}}]
+      assert run_program.responses == [{"message", %{message: ["Line One", "Line Two"], modal: true}}]
 
       %Runner{program: run_program} = Runner.run(%Runner{state: state, program: %{program | pc: 2}, object_id: stubbed_object.id})
       assert run_program.responses == [{"message", %{message: "Line Two"}}]

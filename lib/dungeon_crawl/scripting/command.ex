@@ -19,6 +19,8 @@ defmodule DungeonCrawl.Scripting.Command do
   import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
   import Direction, only: [is_valid_orthogonal_change: 1, is_valid_orthogonal: 1]
 
+  import Phoenix.HTML, only: [html_escape: 1]
+
   require Logger
 
   @doc """
@@ -1432,22 +1434,66 @@ defmodule DungeonCrawl.Scripting.Command do
        state: updated_state}
   end
 
-
   @doc """
   Adds text to the responses for showing to a player in particular (ie, one who TOUCHed the object).
+  When there are multiple text commands adjacent, then they will be combined and displayed together
+  in a modal.
+
+  Additionally, this will advance the program's pc to the last text instruction that was included
+  in the response.
+
+  When a label is provided as the second parameter, then the text will be able to be clicked by
+  the player.
+
+  When the initial text is empty string `""`, nothing is done. However empty strings or new lines
+  will be included after the first non empty text
 
   ## Examples
 
     iex> Command.text(%Runner{program: program}, params: ["Door opened"])
     %Runner{ program: %{program | responses: ["Door opened"]} }
   """
-  def text(%Runner{program: program} = runner_state, params) do
+  def text(%Runner{event_sender: event_sender} = runner_state, params) do
     if params != [""] do
-      # TODO: probably allow this to be refined by whomever the message is for
-      message = Enum.map(params, fn(param) -> String.trim(param) end) |> Enum.join("\n")
-      %{ runner_state | program: %{program | responses: [ {"message", %{message: message}} | program.responses] } }
+      { %Runner{program: program, state: state} = runner_state, lines, labels } = _process_text(runner_state, runner_state.program.pc)
+
+      payload = if length(lines) == 1 && ! String.contains?(Enum.at(lines, 0), "messageLink") do
+                  %{message: Enum.at(lines, 0)}
+                else
+                  %{message: Enum.reverse(lines), modal: true}
+                end
+
+      program = %{ program |  responses: [ {"message", payload} | program.responses] }
+
+      case event_sender do
+        # only care about tracking available actions sent to a player
+        %Location{map_tile_instance_id: id} ->
+          state = Instances.set_message_actions(state, id, labels)
+          %{ runner_state | program: program, state: state }
+
+        _ ->
+          %{ runner_state | program: program }
+      end
     else
       runner_state
+    end
+  end
+
+  defp _process_text(%Runner{program: program, object_id: object_id} = runner_state, pc, lines \\ [], labels \\ []) do
+    case program.instructions[pc] do
+      [:text, [another_line]] ->
+        runner_state = %{runner_state | program: %{ program | pc: pc }}
+        {:safe, safe_text} = html_escape(another_line)
+        _process_text(runner_state, pc + 1, [ "#{ safe_text }" | lines], labels)
+
+      [:text, [another_line, label]] ->
+        runner_state = %{runner_state | program: %{ program | pc: pc }}
+        {:safe, safe_text} = html_escape(another_line)
+        attrs = "class='btn-link messageLink' data-label='#{ label }' data-tile-id='#{ object_id }'"
+        _process_text(runner_state, pc + 1, [ "    <span #{attrs}>▶#{ safe_text }</span>" | lines], [ String.downcase(label) | labels ])
+
+      _ ->
+        {runner_state, lines, labels}
     end
   end
 

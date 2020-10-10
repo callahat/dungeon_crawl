@@ -10,7 +10,11 @@ let Player = {
     })
 
     playerChannel.on("message", (resp) => {
-      dungeonJs.renderMessage(resp.message)
+      if(!resp.modal) {
+        dungeonJs.renderMessage(resp.message)
+      } else {
+        dungeonJs.renderMessageModal(resp.message)
+      }
     })
 
     playerChannel.on("ping", ({count}) => console.log("PING", count))

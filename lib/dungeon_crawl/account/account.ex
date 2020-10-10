@@ -70,6 +70,24 @@ defmodule DungeonCrawl.Account do
   def get_by_username!(username, repo \\ Repo), do: repo.get_by!(User, username: username)
 
   @doc """
+  Returns the displayable name for the given user. When no name exists, "AnonPlayer" is returned.
+
+  ## Examples
+
+    iex> get_name(%User{name: "bob"})
+    "bob"
+
+    iex> get_name("useridhash")
+    "J04n"
+
+    iex> get_name("hashnoaccount")
+    "AnonPlayer"
+  """
+  def get_name(%User{name: name}), do: name
+  def get_name(nil), do: "AnonPlayer"
+  def get_name(user_id_hash, repo \\ Repo), do: get_name(repo.get_by(User, user_id_hash: user_id_hash))
+
+  @doc """
   Creates a user.
 
   ## Examples
