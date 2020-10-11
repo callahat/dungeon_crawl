@@ -80,6 +80,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         script: """
                 :main
                 #pull @facing
+                #if ?{@facing}@player, hurt_player
                 #if ?{@facing}@blocking, thud
                 #send main
                 #end
@@ -95,14 +96,26 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #send main
                 #end
                 :shot
-                #facing reverse
                 #send pede_died, @pulling
+                ?i
                 #die
                 #end
                 :surrounded
                 #facing reverse
                 #send surrounded, @pulling
                 #become slug: pedebody, color: @color, background_color: @background_color, pulling: false, pullable: @pulling
+                #end
+                :touch
+                #if not ?sender@player, main
+                #take health, 10, ?sender
+                #send pede_died, @pulling
+                ?i
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #send pede_died, @pulling
+                ?i
+                #die
                 """
     })
   end
@@ -138,6 +151,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 @pullable = @tmp
                 #send surrounded, @pullable
                 #end
+                :touch
+                #if not ?sender@player, done
+                #take health, 10, ?sender
+                #send pede_died, @pulling
+                ?i
+                #die
+                :done
                 """
     })
   end
