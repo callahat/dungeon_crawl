@@ -80,11 +80,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         script: """
                 :main
                 #pull @facing
-                #if ?{@facing}@player, hurt_player
                 #if ?{@facing}@blocking, thud
                 #send main
                 #end
                 :thud
+                #if ?sender@player, hurt_player
+                #if ?{@facing}@player, hurt_player
                 #if @pulling == false, not_surrounded
                 #if not ?clockwise@blocking,not_surrounded
                 #if not ?counterclockwise@blocking,not_surrounded
@@ -96,8 +97,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #send main
                 #end
                 :shot
+                :bombed
+                #lock
                 #send pede_died, @pulling
-                ?i
                 #die
                 #end
                 :surrounded
@@ -107,14 +109,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #end
                 :touch
                 #if not ?sender@player, main
+                #lock
                 #take health, 10, ?sender
                 #send pede_died, @pulling
-                ?i
                 #die
                 :hurt_player
                 #take health, 10, @facing
                 #send pede_died, @pulling
-                ?i
                 #die
                 """
     })
@@ -132,9 +133,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         script: """
                 #end
                 :shot
-                #facing reverse
+                :bombed
+                #lock
                 #send pede_died, @pulling
-                ?i
                 #die
                 :surrounded
                 #facing reverse
@@ -153,9 +154,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #end
                 :touch
                 #if not ?sender@player, done
+                #lock
                 #take health, 10, ?sender
                 #send pede_died, @pulling
-                ?i
                 #die
                 :done
                 """
