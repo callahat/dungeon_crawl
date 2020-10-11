@@ -5,6 +5,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.ColorDoors
   use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
+  use DungeonCrawl.TileTemplates.TileSeeder.Items
   use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
   use DungeonCrawl.TileTemplates.TileSeeder.Passageways
   use DungeonCrawl.TileTemplates.TileSeeder.Terrain
@@ -31,6 +32,14 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     expanding_foam()
     pede_head()
     pede_body()
+
+    # items
+    ammo()
+    cash()
+    gem()
+    heart()
+    medkit()
+    scroll()
 
     # ordinance
     bomb()
