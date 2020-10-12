@@ -509,6 +509,10 @@ defmodule DungeonCrawl.Scripting.Command do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _facing(new_runner_state, player_direction)
   end
+  def facing(%Runner{} = runner_state, [direction]) when is_tuple(direction) do
+    direction = resolve_variable(runner_state, direction)
+    facing(runner_state, [direction])
+  end
   def facing(%Runner{object_id: object_id, state: state} = runner_state, [change]) when is_valid_orthogonal_change(change) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = Direction.change_direction(object.parsed_state[:facing], change)

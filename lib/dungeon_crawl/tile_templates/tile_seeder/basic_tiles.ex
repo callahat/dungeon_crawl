@@ -80,13 +80,24 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
         description: "Its a bullet.",
         state: "blocking: false, wait_cycles: 1, not_pushing: true, not_squishing: true, damage: 5",
         script: """
+                :MAIN
                 #WALK @facing
                 :THUD
+                @ricochet = ?sender@ricochet
+                #IF @ricochet == clockwise, CHANGE_FACING
+                #IF @ricochet == counterclockwise, CHANGE_FACING
+                #IF @ricochet == reverse, CHANGE_FACING
+                #IF @ricochet, RANDOM_FACING
                 #SEND shot, ?sender
                 #DIE
                 :TOUCH
                 #SEND shot, ?sender
                 #DIE
+                :RANDOM_FACING
+                #RANDOM ricochet, clockwise, counterclockwise, reverse
+                :CHANGE_FACING
+                #FACING @ricochet
+                #IF true, MAIN
                 """
       })
   end

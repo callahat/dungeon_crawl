@@ -26,6 +26,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     normal_wall()
     breakable_wall()
     fake_wall()
+    invisible_wall()
 
     # creatures
     bandit()
@@ -55,7 +56,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     boulder()
     counter_clockwise_conveyor()
     clockwise_conveyor()
+    forest()
     grave()
+    ricochet()
 
     :ok
   end

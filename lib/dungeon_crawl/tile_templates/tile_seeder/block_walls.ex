@@ -64,12 +64,34 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
     })
   end
 
+  def invisible_wall() do
+    TileTemplates.update_or_create_tile_template!(
+      "invisible_wall",
+      %{character: ".",
+        name: "Invisible Wall",
+        description: "An invisible wall",
+        state: "blocking: true",
+        public: true,
+        active: true,
+        script: """
+                #end
+                :touch
+                #if ! ?sender@player, DONE
+                #become character: ▒
+                Oof, you bump into something
+                #terminate
+                :done
+                """
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def solid_wall(), do: unquote(__MODULE__).solid_wall()
       def normal_wall(), do: unquote(__MODULE__).normal_wall()
       def breakable_wall(), do: unquote(__MODULE__).breakable_wall()
       def fake_wall(), do: unquote(__MODULE__).fake_wall()
+      def invisible_wall(), do: unquote(__MODULE__).invisible_wall()
     end
   end
 end

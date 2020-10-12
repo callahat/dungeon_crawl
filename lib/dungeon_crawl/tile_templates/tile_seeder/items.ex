@@ -135,6 +135,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 #if true, main
                 #end
                 :touch
+                #if ! ?sender@player, main
                 ** YOUR TEXT HERE **
                    yup right here
                 #die

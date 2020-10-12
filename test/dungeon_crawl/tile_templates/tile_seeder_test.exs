@@ -48,10 +48,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert TileSeeder.normal_wall
     assert TileSeeder.breakable_wall
     assert TileSeeder.fake_wall
+    assert TileSeeder.invisible_wall
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Solid Wall")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Normal Wall")
-    assert Repo.one(from tt in TileTemplate, where: tt.name == "Fake Wall")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Breakable Wall")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Fake Wall")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Invisible Wall")
   end
 
   test "creatures" do
@@ -102,22 +104,26 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert TileSeeder.boulder
     assert TileSeeder.counter_clockwise_conveyor
     assert TileSeeder.clockwise_conveyor
+    assert TileSeeder.forest
     assert TileSeeder.grave
+    assert TileSeeder.ricochet
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Boulder")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Counter Clockwise Conveyor")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Clockwise Conveyor")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Forest")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Grave")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Ricochet")
   end
 
   test "seed_all/0" do
     initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
     TileSeeder.seed_all()
     seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count - initial_count == 47
+    assert seeded_count - initial_count == 50
 
     # does not add the seeds again
     TileSeeder.seed_all()
     seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count2 - initial_count == 47
+    assert seeded_count2 - initial_count == 50
   end
 end

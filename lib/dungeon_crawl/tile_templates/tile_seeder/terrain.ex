@@ -71,6 +71,28 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def forest() do
+    TileTemplates.update_or_create_tile_template!(
+      "forest",
+      %{character: "▓",
+        name: "Forest",
+        description: "A thick forest",
+        state: "blocking: true",
+        color: "green",
+        public: true,
+        active: true,
+        script: """
+                #end
+                :touch
+                #if ! ?sender@player, DONE
+                #become character: ░, blocking: false
+                You blaze a trail
+                #terminate
+                :done
+                """
+    })
+  end
+
   def grave() do
     TileTemplates.update_or_create_tile_template!(
       "grave",
@@ -83,12 +105,26 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def ricochet() do
+    TileTemplates.update_or_create_tile_template!(
+      "ricochet",
+      %{character: "*",
+        name: "Ricochet",
+        description: "Projectiles might bounce off this, watch out",
+        state: "ricochet: true, blocking: true",
+        public: true,
+        active: true,
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def boulder(), do: unquote(__MODULE__).boulder()
       def counter_clockwise_conveyor(), do: unquote(__MODULE__).counter_clockwise_conveyor()
       def clockwise_conveyor(), do: unquote(__MODULE__).clockwise_conveyor()
+      def forest(), do: unquote(__MODULE__).forest()
       def grave(), do: unquote(__MODULE__).grave()
+      def ricochet(), do: unquote(__MODULE__).ricochet()
     end
   end
 end

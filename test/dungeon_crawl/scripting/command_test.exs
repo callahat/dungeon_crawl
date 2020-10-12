@@ -439,36 +439,42 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "FACING" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up"})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up, rico: west"})
     program = program_fixture()
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["east"])
+    %Runner{state: updated_state} = Command.facing(runner_state, [{:state_variable, :rico}])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: east"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["clockwise"])
+    assert updated_map_tile.state == "facing: west, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["east"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: east"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["counterclockwise"])
+    assert updated_map_tile.state == "facing: east, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["clockwise"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: west"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["reverse"])
+    assert updated_map_tile.state == "facing: east, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["counterclockwise"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: south"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: west, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["reverse"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
+    assert updated_map_tile.state == "facing: south, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert updated_map_tile.state == "facing: idle, rico: west, target_player_map_tile_id: nil"
 
     # Facing to player direction targets that player when it is not targeting a player
     {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["player"])
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+    %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: south, target_player_map_tile_id: 43201"
+    assert updated_map_tile.state == "facing: south, rico: west, target_player_map_tile_id: 43201"
 
     # Facing to player direction when there is no players sets facing to idle and the target player to nil
     {_fake_player, state} = Instances.delete_map_tile(state, fake_player)
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["player"])
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+    %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
+    assert updated_map_tile.state == "facing: idle, rico: west, target_player_map_tile_id: nil"
   end
 
   test "FACING - derivative when facing state var does not exist" do
