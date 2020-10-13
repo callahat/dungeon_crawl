@@ -27,7 +27,7 @@ defmodule DungeonCrawl.Action.Move do
             end
         end
 
-      destination.parsed_state[:blocking] ->
+      destination.parsed_state[:blocking] && !(entity_map_tile.parsed_state[:flying] && destination.parsed_state[:low]) ->
         {:invalid}
 
       _is_squishable(destination, entity_map_tile) ->

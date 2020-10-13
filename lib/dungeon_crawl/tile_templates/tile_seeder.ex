@@ -6,6 +6,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
   use DungeonCrawl.TileTemplates.TileSeeder.Items
+  use DungeonCrawl.TileTemplates.TileSeeder.Misc
   use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
   use DungeonCrawl.TileTemplates.TileSeeder.Passageways
   use DungeonCrawl.TileTemplates.TileSeeder.Terrain
@@ -42,6 +43,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     medkit()
     scroll()
 
+    # misc
+    pushers()
+
     # ordinance
     bomb()
     explosion()
@@ -57,8 +61,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     counter_clockwise_conveyor()
     clockwise_conveyor()
     forest()
+    lava()
     grave()
     ricochet()
+    slider_horizontal()
+    slider_vertical()
 
     :ok
   end

@@ -93,6 +93,33 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def lava() do
+    TileTemplates.update_or_create_tile_template!(
+      "lava",
+      %{character: "░",
+        name: "Lava",
+        description: "Its molten rock",
+        state: "blocking: true, low: true, soft: true, wait_cycles: 20",
+        color: "black",
+        background_color: "red",
+        public: true,
+        active: true,
+        script: """
+                :main
+                #random char, ▒, ░, ░
+                #random bc, red, red, darkorange, orange
+                #become character: @char, background_color: @bc
+                /i
+                #if true, main
+                #end
+                :touch
+                #if ! ?sender@player, main
+                That lava looks hot, better not touch it.
+                #if true, main
+                """
+    })
+  end
+
   def grave() do
     TileTemplates.update_or_create_tile_template!(
       "grave",
@@ -117,14 +144,41 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def slider_horizontal() do
+    TileTemplates.update_or_create_tile_template!(
+      "slider_horizontal",
+      %{character: "↔",
+        name: "Slider Horizontal",
+        description: "It can be moved north and south",
+        state: "blocking: true, pushable: ew",
+        public: true,
+        active: true
+    })
+  end
+
+  def slider_vertical() do
+    TileTemplates.update_or_create_tile_template!(
+      "slider_vertical",
+      %{character: "↕",
+        name: "Slider Vertical",
+        description: "It can be moved north and south",
+        state: "blocking: true, pushable: ns",
+        public: true,
+        active: true
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def boulder(), do: unquote(__MODULE__).boulder()
       def counter_clockwise_conveyor(), do: unquote(__MODULE__).counter_clockwise_conveyor()
       def clockwise_conveyor(), do: unquote(__MODULE__).clockwise_conveyor()
       def forest(), do: unquote(__MODULE__).forest()
+      def lava(), do: unquote(__MODULE__).lava()
       def grave(), do: unquote(__MODULE__).grave()
       def ricochet(), do: unquote(__MODULE__).ricochet()
+      def slider_horizontal(), do: unquote(__MODULE__).slider_horizontal()
+      def slider_vertical(), do: unquote(__MODULE__).slider_vertical()
     end
   end
 end
