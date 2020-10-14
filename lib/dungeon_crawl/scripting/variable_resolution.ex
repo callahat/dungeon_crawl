@@ -76,6 +76,9 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
     state.state_values[var]
   end
+  def resolve_variable(%Runner{}, {:random, range}) do
+    Enum.random(range)
+  end
   def resolve_variable(%Runner{} = runner_state, {{:state_variable, state_var}, var}) do
     direction = resolve_variable(runner_state, {:state_variable, state_var})
     resolve_variable(runner_state, {{:direction, direction}, var})

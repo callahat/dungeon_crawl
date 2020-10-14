@@ -256,15 +256,19 @@
     </tr>
     <tr>
       <td>?</td>
-      <td>Another map tile. `?sender` refers to the map tile that sent the last message.
+      <td>Another map tile or thing. `?sender` refers to the map tile that sent the last message.
           Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
           that direction the map tile/object that sent the last message. Some commands require a
           tile, and some commands require a value. An interpolated direction may come from the map
-          tile's state value by using `?{@<state variable>}@`.</td>
+          tile's state value by using `?{@<state variable>}@`.<br/>
+          `?random@{upper bound}` may be used to get a random integer from between 1 and the upper
+          bound. This can be useful for "random" chance in IF commands, to maybe go to a label
+          only some of the time.</td>
       <td><pre class="script">?sender</pre>
           <pre class="script">?sender@health</pre>
           <pre class="script">?south@blocking</pre>
-          <pre class="script">?{@facing}@blocking</pre></td>
+          <pre class="script">?{@facing}@blocking</pre>
+          <pre class="script">?random@5</pre></td>
     </tr>
     <tr>
       <td>&lt;prefix&gt;&lt;variable&gt;+&lt;string&gt;</td>
