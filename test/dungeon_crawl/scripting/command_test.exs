@@ -613,6 +613,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
   end
 
+  test "JUMP when state check is TRUE" do
+    state = %Instances{}
+    program = program_fixture()
+    params = ["TOUCH"]
+
+    runner_state = %Runner{program: program, state: state}
+    %Runner{program: updated_program} = Command.jump(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
+
+    # no active matching label
+    updated_runner_state = Command.jump(runner_state, ["ZAPPEDLABEL"])
+    assert runner_state == updated_runner_state
+    refute updated_runner_state.program.pc == 3
+  end
+
   test "LOCK" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()

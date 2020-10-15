@@ -395,6 +395,14 @@
           <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre></td>
     </tr>
     <tr>
+      <td>JUMP</td>
+      <td>list - 1</td>
+      <td>Jump to a label. Instructions will be executed starting next at the first active matching label
+          (nothing happens if there is no matching active label).</td>
+      <td><pre class="script">#JUMP TOP</pre>
+          <pre class="script">#JUMP MAIN</pre></td>
+    </tr>
+    <tr>
       <td>LOCK</td>
       <td>none</td>
       <td>Locks the object. This will prevent it from receiving and acting on any
