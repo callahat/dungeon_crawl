@@ -100,9 +100,6 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #TRANSPORT ?sender, up, green, blue
     !TOUCH;Touch this or
     !NOLABEL;Click this
-    #JUMP touch
-    #JUMP NOLABEL
-    #JUMP touch, oof
     #RANDOM var, a, b, c
     #RANDOM var
     #SEQUENCE var, a, b,c
@@ -180,10 +177,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`",
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
-               "Line 70: JUMP command references nonexistant label `NOLABEL`",
-               "Line 71: JUMP command malformed",
-               "Line 73: RANDOM command has an invalid number of parameters",
-               "Line 75: SEQUENCE command has an invalid number of parameters",
+               "Line 70: RANDOM command has an invalid number of parameters",
+               "Line 72: SEQUENCE command has an invalid number of parameters",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -231,10 +226,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`",
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
-               "Line 70: JUMP command references nonexistant label `NOLABEL`",
-               "Line 71: JUMP command malformed",
-               "Line 73: RANDOM command has an invalid number of parameters",
-               "Line 75: SEQUENCE command has an invalid number of parameters",
+               "Line 70: RANDOM command has an invalid number of parameters",
+               "Line 72: SEQUENCE command has an invalid number of parameters",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

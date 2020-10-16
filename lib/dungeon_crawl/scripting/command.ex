@@ -50,7 +50,6 @@ defmodule DungeonCrawl.Scripting.Command do
       :give         -> :give
       :go           -> :go
       :if           -> :jump_if
-      :jump         -> :jump
       :lock         -> :lock
       :move         -> :move
       :noop         -> :noop
@@ -533,11 +532,13 @@ defmodule DungeonCrawl.Scripting.Command do
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
   """
-  def jump_if(%Runner{} = runner_state, [[neg, left, op, right], label]) do
-    if Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right)) do
-      jump(runner_state, [label])
+  def jump_if(%Runner{program: program} = runner_state, [[neg, left, op, right], label]) do
+    # first active matching label
+    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
+         true <- Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right)) do
+      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
     else
-      runner_state
+      _ -> runner_state
     end
   end
   def jump_if(%Runner{} = runner_state, [[left, op, right], label]) do
@@ -548,18 +549,6 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   def jump_if(%Runner{} = runner_state, [left, label]) do
     jump_if(runner_state, [["", left, "==", true], label])
-  end
-
-  @doc """
-  Jump program execution to a label, unconditionally. Program counter (pc) will be set to the location
-  of the first active label. When no active matching label, this will act as a noop.
-  """
-  def jump(%Runner{program: program} = runner_state, [label]) do
-    if line_number = Program.line_for(program, label) do
-      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
-    else
-      runner_state
-    end
   end
 
   @doc """

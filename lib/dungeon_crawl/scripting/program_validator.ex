@@ -113,19 +113,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
         _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
     end
   end
+
   defp _validate(program, [ {line_no, [ :jump_if, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
-  end
-
-  defp _validate(program, [ {line_no, [ :jump, [label] ]} | instructions], errors, user) do
-    if Program.line_for(program, label) do
-      _validate(program, instructions, errors, user)
-    else
-      _validate(program, instructions, ["Line #{line_no}: JUMP command references nonexistant label `#{label}`" | errors], user)
-    end
-  end
-  defp _validate(program, [ {line_no, [ :jump, _ ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: JUMP command malformed" | errors], user)
   end
 
   defp _validate(program, [ {line_no, [:move, [direction] ]} | instructions], errors, user) do
