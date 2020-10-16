@@ -103,6 +103,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #JUMP touch
     #JUMP NOLABEL
     #JUMP touch, oof
+    #RANDOM var, a, b, c
+    #RANDOM var
+    #SEQUENCE var, a, b,c
+    #SEQUENCE var
     """
   end
 
@@ -178,6 +182,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
                "Line 70: JUMP command references nonexistant label `NOLABEL`",
                "Line 71: JUMP command malformed",
+               "Line 73: RANDOM command has an invalid number of parameters",
+               "Line 75: SEQUENCE command has an invalid number of parameters",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -227,6 +233,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
                "Line 70: JUMP command references nonexistant label `NOLABEL`",
                "Line 71: JUMP command malformed",
+               "Line 73: RANDOM command has an invalid number of parameters",
+               "Line 75: SEQUENCE command has an invalid number of parameters",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

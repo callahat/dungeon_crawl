@@ -63,6 +63,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :remove       -> :remove
       :restore      -> :restore
       :send         -> :send_message
+      :sequence     -> :sequence
       :shift        -> :shift
       :shoot        -> :shoot
       :terminate    -> :terminate
@@ -1244,6 +1245,26 @@ defmodule DungeonCrawl.Scripting.Command do
       label,
       program_object_ids
     )
+  end
+
+  @doc """
+  Sets the specified state variable to the next value in the given sequence. The first parameter is the
+  state variable, and the subsequent parameters are the sequence values. As a side effect this will
+  update the instruction and move the HEAD element of the sequence to the tail.
+
+  ## Examples
+
+    iex> Command.sequence(%Runner{}, ["foo", "red", "yellow", "blue"])
+    %Runner{ state: %{...object => %{parsed_state => %{foo: "red"} } },
+             program: %{instructions: %{program.pc => [:sequence, ["foo", ["yellow", "blue", "red"]] ] } }
+  """
+  def sequence(%Runner{} = runner_state, [state_variable | [head | tail]]) do
+    runner_state = change_state(runner_state, [String.to_atom(state_variable), "=", head])
+
+    updated_instruction = [:sequence, [state_variable | Enum.reverse([ head | Enum.reverse(tail)])] ]
+    instructions = %{ runner_state.program.instructions | runner_state.program.pc => updated_instruction }
+
+    %{ runner_state | program: %{ runner_state.program | instructions: instructions } }
   end
 
   @doc """

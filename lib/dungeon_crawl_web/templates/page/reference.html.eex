@@ -524,6 +524,18 @@
           <pre class="script">#SEND done</pre></td>
     </tr>
     <tr>
+      <td>SEQUENCE</td>
+      <td>list - 2 or more</td>
+      <td>Sets the specified state variable to the next value in the given sequence. The first parameter is the
+          state variable, and the subsequent parameters are the sequence values. Starting with the first item
+          in the list, each time this command runs it sets the state value to that item in the sequence. Ie,
+          first time it runs, the state value is set to the first item in the sequence, the second time it is
+          set to the second item in the sequence, etc. When the last item has been assigned, it starts back over
+          at the first item</td>
+      <td><pre class="script">#SEQUENCE c, red, blue</pre>
+          <pre class="script">#SEQUENCE count, 9, 8, 6, 3, 1</pre></td>
+    </tr>
+    <tr>
       <td>SHIFT</td>
       <td>list - 1</td>
       <td>Rotates all the `pushable` tiles in the 8 adjacent squares about the object.

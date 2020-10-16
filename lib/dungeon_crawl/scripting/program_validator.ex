@@ -173,6 +173,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
   end
 
+  defp _validate(program, [ {line_no, [:random, [state_var | list]]} | instructions], errors, user)
+      when list != [] and is_list(list) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:random, _]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid number of parameters" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [ :replace, params ]} | instructions], errors, user) do
     _validate_map_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)
   end
@@ -197,6 +205,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
   defp _validate(program, [ {line_no, [:send_message, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
+  end
+
+  defp _validate(program, [ {line_no, [:sequence, [state_var | list]]} | instructions], errors, user)
+      when list != [] and is_list(list) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:sequence, _] } | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: SEQUENCE command has an invalid number of parameters" | errors], user)
   end
 
   defp _validate(program, [ {line_no, [:shift, [rotation] ]} | instructions], errors, user) do

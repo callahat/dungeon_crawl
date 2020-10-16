@@ -1355,6 +1355,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.program_messages == []
   end
 
+  test "SEQUENCE" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+
+    program = program_fixture("#sequence c, red, gold, blue")
+    runner_state = %Runner{object_id: map_tile.id, state: state, program: program}
+
+    %Runner{state: updated_state, program: updated_program} = Command.sequence(runner_state, ["c", "red", "gold", "blue"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert updated_map_tile.parsed_state[:c] == "red"
+    assert %{ 1 => [:sequence, ["c", "gold", "blue", "red"]] } = updated_program.instructions
+  end
+
   test "SHIFT" do
     state = %Instances{}
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 1, z_index: 0})
