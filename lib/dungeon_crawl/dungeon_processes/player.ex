@@ -85,7 +85,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
              end
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
-                |> Map.merge(%{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
+                |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
     {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
 
     script = """
@@ -114,7 +114,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   def respawn(%Instances{} = state, player_tile) do
     new_coords = _relocated_coordinates(state, player_tile)
     {player_tile, state} = Instances.update_map_tile(state, player_tile, new_coords)
-    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
+    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
   end
 
   @doc """

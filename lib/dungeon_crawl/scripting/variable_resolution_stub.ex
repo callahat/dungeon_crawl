@@ -56,6 +56,9 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:state_variable, :col}) do
     4
   end
+  def resolve_variable(%{}, {:state_variable, :slug}) do
+    :stubbed_slug
+  end
   def resolve_variable(%{}, {:state_variable, _var}) do
     "."
   end

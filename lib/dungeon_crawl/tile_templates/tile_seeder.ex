@@ -44,6 +44,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     scroll()
 
     # misc
+    beam_wall_emitter()
+    beam_walls()
     pushers()
     spinning_gun()
 
