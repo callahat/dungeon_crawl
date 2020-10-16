@@ -132,7 +132,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 #random c, red, orange, yellow,cyan, magenta, blue, white, green, purple, darkcyan, darkred
                 #become color: @c
                 /i
-                #if true, main
+                #send main
                 #end
                 :touch
                 #if ! ?sender@player, main

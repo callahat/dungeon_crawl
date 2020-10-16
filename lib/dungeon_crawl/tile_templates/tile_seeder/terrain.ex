@@ -26,17 +26,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
                 /i
                 :top
                 #SHIFT counterclockwise
-                #BECOME character: |
-                /i
-                #SHIFT counterclockwise
-                #BECOME character: \\
-                /i
-                #SHIFT counterclockwise
-                #BECOME character: -
-                /i
-                #SHIFT counterclockwise
-                #BECOME character: /
-                /i
+                #SEQUENCE char, |, \\, -, /
+                #BECOME character: @char
                 #send top
                 """
     })
@@ -54,18 +45,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         script: """
                 /i
                 :top
-                #SHIFT clockwise
-                #BECOME character: |
-                /i
-                #SHIFT clockwise
-                #BECOME character: /
-                /i
-                #SHIFT clockwise
-                #BECOME character: -
-                /i
-                #SHIFT clockwise
-                #BECOME character: \\
-                /i
+                #SEQUENCE char, |, /, -, \\
+                #BECOME character: @char
                 #send top
                 """
     })
@@ -110,12 +91,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
                 #random bc, red, red, darkorange, orange
                 #become character: @char, background_color: @bc
                 /i
-                #if true, main
+                #send main
                 #end
                 :touch
                 #if ! ?sender@player, main
                 That lava looks hot, better not touch it.
-                #if true, main
+                #send main
                 """
     })
   end
