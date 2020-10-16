@@ -99,6 +99,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [ :jump_if, [params] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [ :jump_if, [params, 1] ]} | instructions], errors, user)
+  end
   defp _validate(program, [ {line_no, [ :jump_if, [params, label] ]} | instructions], errors, user)
          when params != :error
          when length(params) == 2
@@ -107,13 +110,18 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     cond do
       (is_list(params) && Enum.any?(params, fn param -> param == :error end)) ->
         _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
+      is_integer(label) ->
+        if label < 1 do
+          _validate(program, instructions, ["Line #{line_no}: IF command jump distance must be positive `#{inspect label}`" | errors], user)
+        else
+          _validate(program, instructions, errors, user)
+        end
       Program.line_for(program, label) ->
         _validate(program, instructions, errors, user)
       true ->
         _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
     end
   end
-
   defp _validate(program, [ {line_no, [ :jump_if, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
   end

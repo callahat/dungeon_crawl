@@ -99,6 +99,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                !buy;buy some more
                #RANDOM dir, NORTH, SOUTH, PLAYER
                #SEQUENCE c, <, ^, >, v
+               #IF @ok, 3
+               #IF @notok
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -168,6 +170,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  65 => [:text, ["buy some more", "buy"]],
                                                  66 => [:random, ["dir", "NORTH", "SOUTH", "PLAYER"]],
                                                  67 => [:sequence, ["c", "<", "^", ">", "v"]],
+                                                 68 => [:jump_if, [{:state_variable, :ok}, 3]],
+                                                 69 => [:jump_if, {:state_variable, :notok}],
                                                  },
                                  status: :alive,
                                  pc: 1,

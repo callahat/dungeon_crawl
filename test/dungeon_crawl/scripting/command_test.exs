@@ -554,13 +554,30 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "JUMP_IF when state check is TRUE but no active label" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
     program = program_fixture()
-#    stubbed_object = %{state: "thing: true"}
-    params = [["!", {:state_variable, :thing}], "TOUCH"]
+    params = [{:state_variable, :thing}, "TOUCH"]
 
-    program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
+    program = %{ program | labels: %{"TOUCH" => [[3, true]]} }
     %Runner{program: program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "JUMP_IF when no label given" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
+    program = program_fixture()
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+
+    # when true, does not modify pc
+    params = [{:state_variable, :thing}]
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
+
+    # when flase, modifes the pc to skip the next instruction
+    params = [{:state_variable, :notathing}]
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 2
   end
 
   test "JUMP_IF when using a check against a variable on the event sender" do

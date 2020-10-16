@@ -531,15 +531,16 @@ defmodule DungeonCrawl.Scripting.Command do
   Conditionally jump to a label. Program counter (pc) will be set to the location of the first active label
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
+
+  When no label is given, or an integer is given instead, if the expression is false, then the following N instruction(s)
+  will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).
   """
-  def jump_if(%Runner{program: program} = runner_state, [[neg, left, op, right], label]) do
-    # first active matching label
-    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right)) do
-      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
-    else
-      _ -> runner_state
-    end
+  def jump_if(%Runner{} = runner_state, [check]) do
+    jump_if(runner_state, [check, 1])
+  end
+  def jump_if(%Runner{} = runner_state, [[neg, left, op, right], label]) do
+    check = Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right))
+    _jump_if(runner_state, check, label)
   end
   def jump_if(%Runner{} = runner_state, [[left, op, right], label]) do
     jump_if(runner_state, [["", left, op, right], label])
@@ -550,6 +551,20 @@ defmodule DungeonCrawl.Scripting.Command do
   def jump_if(%Runner{} = runner_state, [left, label]) do
     jump_if(runner_state, [["", left, "==", true], label])
   end
+
+  defp _jump_if(%Runner{program: program} = runner_state, true, label) when is_binary(label) do
+    # TODO: look into having this send the label, since all messages will get processed (might only do up to 10 messages
+    #       to prevent infinite loops from crashing the instance.
+    if line_number = Program.line_for(program, label)  do
+      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
+    else
+      runner_state
+    end
+  end
+  defp _jump_if(%Runner{program: program} = runner_state, false, skip) when is_integer(skip) do
+    %{ runner_state | program: %{program | pc: program.pc + skip, lc: 0} }
+  end
+  defp _jump_if(%Runner{} = runner_state, _, _), do: runner_state
 
   @doc """
   Locks the object. This will prevent it from receiving and acting on any

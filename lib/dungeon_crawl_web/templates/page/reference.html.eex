@@ -386,13 +386,17 @@
     </tr>
     <tr>
       <td>IF</td>
-      <td>list - 2</td>
+      <td>list - 1 - 2</td>
       <td>Conditionally jump to a label. If the expression evalutes to true, instructions will be executed
-          starting next at the first active matching label (nothing happens if there is no matching active label).</td>
+          starting next at the first active matching label (nothing happens if there is no matching active label).<br/>
+          When no label is given, or an integer is given instead, if the expression is false, then the following N instruction(s)
+          will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).</td>
       <td><pre class="script">#IF @open, ALREADY_OPEN</pre>
           <pre class="script">#IF ?sender@blocking, TOUCH</pre>
           <pre class="script">#IF @timer > 0, CONTINUE</pre>
-          <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre></td>
+          <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre>
+          <pre class="script">#IF @north</pre>
+          <pre class="script">#IF @skiptext, 10</pre></td>
     </tr>
     <tr>
       <td>LOCK</td>

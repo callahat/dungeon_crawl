@@ -14,6 +14,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #END
     :MORE
     thing is true
+    #IF @thing
     #MOVE south, true
     #GO south
     #CYCLE 3
@@ -50,7 +51,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GO hotpockets
     #FACING reverse
     #FACING inward
-    #IF bio = tho
+    #IF bio = tho, one, too many params
     #CYCLE 0
     #CYCLE false
     #ZAP TOUCH
@@ -104,6 +105,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #RANDOM var
     #SEQUENCE var, a, b,c
     #SEQUENCE var
+    #IF ?random@1-10
+    #IF @badjump, 0
     """
   end
 
@@ -179,6 +182,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
                "Line 70: RANDOM command has an invalid number of parameters",
                "Line 72: SEQUENCE command has an invalid number of parameters",
+               "Line 74: IF command jump distance must be positive `0`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
