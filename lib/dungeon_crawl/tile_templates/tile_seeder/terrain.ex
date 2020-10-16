@@ -23,8 +23,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         public: true,
         active: true,
         script: """
-                /i
                 :top
+                /i
                 #SHIFT counterclockwise
                 #SEQUENCE char, |, \\, -, /
                 #BECOME character: @char
@@ -43,8 +43,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         public: true,
         active: true,
         script: """
-                /i
                 :top
+                /i
+                #SHIFT clockwise
                 #SEQUENCE char, |, /, -, \\
                 #BECOME character: @char
                 #send top

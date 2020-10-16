@@ -45,6 +45,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # misc
     pushers()
+    spinning_gun()
 
     # ordinance
     bomb()
