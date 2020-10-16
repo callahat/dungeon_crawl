@@ -51,16 +51,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 @range -= 1
                 #IF @range == 0, done
                 ?i
-                #IF ?north@blocking, south
+                #IF ! ?north@blocking
                 #PUT slug: expanding_foam, direction: north, color: @color, range: @range
-                :south
-                #IF ?south@blocking, east
+                #IF ! ?south@blocking
                 #PUT slug: expanding_foam, direction: south, color: @color, range: @range
-                :east
-                #IF ?east@blocking, west
+                #IF ! ?east@blocking
                 #PUT slug: expanding_foam, direction: east, color: @color, range: @range
-                :west
-                #IF ?west@blocking, done
+                #IF ! ?west@blocking
                 #PUT slug: expanding_foam, direction: west, color: @color, range: @range
                 :done
                 #BECOME slug: breakable_wall, color: @color
