@@ -105,8 +105,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #RANDOM var
     #SEQUENCE var, a, b,c
     #SEQUENCE var
-    #IF ?random@1-10
+    #IF ?random@10
     #IF @badjump, 0
+    #TARGET_PLAYER someone
+    #TARGET_PLAYER
     """
   end
 
@@ -183,6 +185,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 70: RANDOM command has an invalid number of parameters",
                "Line 72: SEQUENCE command has an invalid number of parameters",
                "Line 74: IF command jump distance must be positive `0`",
+               "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
+               "Line 76: TARGET_PLAYER command specifies invalid target ``",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -232,6 +236,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
                "Line 70: RANDOM command has an invalid number of parameters",
                "Line 72: SEQUENCE command has an invalid number of parameters",
+               "Line 74: IF command jump distance must be positive `0`",
+               "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
+               "Line 76: TARGET_PLAYER command specifies invalid target ``",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

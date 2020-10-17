@@ -179,4 +179,20 @@ defmodule DungeonCrawl.Scripting.Direction do
          if(delta_col > 0, do: "east", else: "west")]
     end
   end
+
+  @doc """
+  Returns the distance between two map tiles, in terms of map tiles.
+
+  ## Examples
+
+    iex> Direction.distance(%{row: 0, col: 0}, %{row: 1, col: 0})
+    1.0
+    iex> Direction.distance(%{row: 2, col: 4}, %{row: 2, col: 7})
+    3.0
+    iex> Direction.distance(%{row: 5, col: 5}, %{row: 1, col: 0})
+    6.4031242374328485
+  """
+  def distance(%{row: origin_row, col: origin_col}, %{row: target_row, col: target_col}) do
+    :math.sqrt( :math.pow( target_row - origin_row, 2) + :math.pow( target_col - origin_col, 2) )
+  end
 end

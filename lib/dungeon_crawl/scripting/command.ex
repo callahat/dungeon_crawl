@@ -65,8 +65,9 @@ defmodule DungeonCrawl.Scripting.Command do
       :sequence     -> :sequence
       :shift        -> :shift
       :shoot        -> :shoot
-      :terminate    -> :terminate
       :take         -> :take
+      :target_player -> :target_player
+      :terminate    -> :terminate
       :text         -> :text
       :transport    -> :transport
       :try          -> :try
@@ -518,6 +519,14 @@ defmodule DungeonCrawl.Scripting.Command do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = Direction.change_direction(object.parsed_state[:facing], change)
     _facing(runner_state, direction)
+  end
+  def facing(%Runner{object_id: object_id, state: state} = runner_state, [tile_id]) when is_integer(tile_id) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    if target = Instances.get_map_tile_by_id(state, %{id: tile_id}) do
+      _facing(runner_state, Instances.direction_of_map_tile(state, object, target))
+    else
+      runner_state
+    end
   end
   def facing(runner_state, [direction]) do
     _facing(runner_state, direction)
@@ -1458,6 +1467,54 @@ defmodule DungeonCrawl.Scripting.Command do
       runner_state
     end
   end
+
+  @doc """
+  Targets a player. If there is already a target player (target_player_map_tile_id), it will be replaced
+  by this command. Two different parameters may be used; nearest and random. Nearest will target the closest player
+  (if more than one are the same distance, one is chosen at random). Random picks a random player as the target.
+  When no suitable targets are to be found, @target_player_map_tile_id is set to nil
+  """
+  def target_player(%Runner{state: %{player_locations: locs}} = runner_state, _) when locs == %{} do
+    change_state(runner_state, [:target_player_map_tile_id, "=", nil])
+  end
+
+  def target_player(%Runner{} = runner_state, [what]) do
+    _target_player(runner_state, String.downcase(what))
+  end
+
+  defp _target_player(%Runner{object_id: object_id, state: state} = runner_state, "nearest") do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    player_map_tile = \
+    Map.keys(state.player_locations)
+    |> Enum.map(fn(map_tile_id) ->
+         map_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+         {Direction.distance(map_tile, object), map_tile}
+       end)
+    |> Enum.reduce([1000, []], fn {distance, map_tile}, [closest, map_tiles] ->
+         cond do
+           distance < closest ->
+             [distance, [ map_tile ] ]
+
+           distance == closest ->
+             [closest, [ map_tile | map_tiles ]]
+
+           true ->
+             [closest, map_tiles]
+         end
+       end)
+    |> Enum.at(1)
+    |> Enum.random()
+
+    change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile.id])
+  end
+
+  defp _target_player(%Runner{state: state} = runner_state, "random") do
+    map_tile_ids = Map.keys(state.player_locations)
+    player_map_tile_id = Enum.random(map_tile_ids)
+    change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile_id])
+  end
+
+  defp _target_player(%Runner{} = runner_state, _), do: runner_state
 
   @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance).

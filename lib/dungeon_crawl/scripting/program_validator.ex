@@ -255,6 +255,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
 
+  defp _validate(program, [ {line_no, [:target_player, [what] ]} | instructions], errors, user) do
+    errors = unless String.downcase(what) == "nearest" || String.downcase(what) == "random" ,
+               do: ["Line #{line_no}: TARGET_PLAYER command specifies invalid target `#{what}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:text, [_text, label] ]} | instructions], errors, user) do
     cond do
       Program.line_for(program, label) ->

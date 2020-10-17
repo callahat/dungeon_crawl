@@ -101,6 +101,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #SEQUENCE c, <, ^, >, v
                #IF @ok, 3
                #IF @notok
+               #TARGET_PLAYER nearest
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -171,7 +172,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  66 => [:random, ["dir", "NORTH", "SOUTH", "PLAYER"]],
                                                  67 => [:sequence, ["c", "<", "^", ">", "v"]],
                                                  68 => [:jump_if, [{:state_variable, :ok}, 3]],
-                                                 69 => [:jump_if, {:state_variable, :notok}],
+                                                 69 => [:jump_if, [{:state_variable, :notok}]],
+                                                 70 => [:target_player, ["nearest"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

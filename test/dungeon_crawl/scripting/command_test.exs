@@ -47,6 +47,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:remove) == :remove
     assert Command.get_command(:restore) == :restore
     assert Command.get_command(:shift) == :shift
+    assert Command.get_command(:target_player) == :target_player
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
     assert Command.get_command(:transport) == :transport
@@ -1590,6 +1591,46 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # Does nothing when there is no event sender
     %Runner{state: updated_state} = Command.take(%{runner_state | event_sender: nil}, [:health, {:state_variable, :nonexistant}, [:event_sender]])
     assert updated_state == state
+  end
+
+  test "TARGET_PLAYER" do
+    # setup
+    state = %Instances{}
+    {_, state} = Instances.create_player_map_tile(state,
+                                                  %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "A"},
+                                                  %Location{})
+    {_, state} = Instances.create_player_map_tile(state,
+                                                  %MapTile{id: 43202, row: 3, col: 14, z_index: 0, character: "B"},
+                                                  %Location{})
+    {_, state} = Instances.create_player_map_tile(state,
+                                                  %MapTile{id: 43203, row: 3, col: 3, z_index: 0, character: "C"},
+                                                  %Location{})
+    {object_1, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: "X", row: 2, col: 3, z_index: 0, state: ""})
+    {object_2, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: "Y", row: 5, col: 20, z_index: 0, state: ""})
+
+    # nearest uses the nearest player tile
+    runner_state = %Runner{object_id: object_1.id, state: state}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_1)
+    target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
+    assert Enum.member?(["A", "C"], target_tile.character)
+
+    runner_state = %Runner{object_id: object_2.id, state: state}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_2)
+    target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
+    assert target_tile.character == "B"
+
+    # random uses a random player tile
+    runner_state = %Runner{object_id: object_2.id, state: state}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["random"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_2)
+    target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
+    assert Enum.member?(["A", "B", "C"], target_tile.character)
+
+    # bad parameter does not cause a crash, even though the program validator should make this not possible
+    # under normal conditions
+    assert runner_state == Command.target_player(runner_state, ["qwerty"])
   end
 
   test "TERMINATE" do
