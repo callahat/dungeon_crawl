@@ -441,6 +441,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "FACING" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up, rico: west"})
+    {west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
     program = program_fixture()
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
@@ -476,10 +477,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
     assert updated_map_tile.state == "facing: idle, rico: west, target_player_map_tile_id: nil"
+
+    # facing tile id
+    %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, [west_tile.id])
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    assert updated_map_tile.state == "facing: west, rico: west"
   end
 
   test "FACING - derivative when facing state var does not exist" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
     program = program_fixture()
 
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["clockwise"])
@@ -489,6 +496,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert updated_map_tile.state == "facing: idle"
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["reverse"])
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    assert updated_map_tile.state == "facing: idle"
+    %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, [111])
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert updated_map_tile.state == "facing: idle"
   end

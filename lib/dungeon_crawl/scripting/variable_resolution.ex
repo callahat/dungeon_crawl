@@ -79,6 +79,17 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{}, {:random, range}) do
     Enum.random(range)
   end
+  def resolve_variable(%Runner{object_id: object_id, state: state} = runner_state, {target, :distance}) do
+    case resolve_variable(runner_state, target) do
+      target_id when is_integer(target_id) ->
+        object = Instances.get_map_tile_by_id(state, %{id: object_id})
+        target = Instances.get_map_tile_by_id(state, %{id: target_id})
+        Direction.distance(object, target)
+
+      _ ->
+        nil
+    end
+  end
   def resolve_variable(%Runner{} = runner_state, {{:state_variable, state_var}, var}) do
     direction = resolve_variable(runner_state, {:state_variable, state_var})
     resolve_variable(runner_state, {{:direction, direction}, var})

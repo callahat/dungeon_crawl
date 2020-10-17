@@ -66,6 +66,23 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :color, "_key"}) == "red_key"
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass, "_key"}) == "bob_key"
       assert VariableResolution.resolve_variable(runner_state2, {:event_sender_variable, :color, "_key"}) == nil
+
+      # handles range
+      assert VariableResolution.resolve_variable(runner_state1, {2, :distance}) == 1.0
+      assert VariableResolution.resolve_variable(runner_state2, {{:state_variable, :id}, :distance}) == 0.0
+    end
+  end
+
+  describe "resolve_keyed_variable" do
+    test "resolves keyed_variable that might have specific format/size" do
+      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40}},
+                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "newcolor: teal"})
+
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      var = {:state_variable, :newcolor}
+
+      assert VariableResolution.resolve_keyed_variable(runner_state1, :color, var) == {:color, "teal"}
+      assert VariableResolution.resolve_keyed_variable(runner_state1, :character, var) == {:character, "t"}
     end
   end
 

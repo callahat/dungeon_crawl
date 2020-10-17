@@ -83,6 +83,9 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:random, _var}) do
     7 # is a fine random number
   end
+  def resolve_variable(%{}, {_target, :distance}) do
+    3.14
+  end
   def resolve_variable(%{}, {{:direction, _direction}, _var}) do
     "from a direction"
   end
