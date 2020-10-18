@@ -263,12 +263,19 @@
           tile's state value by using `?{@<state variable>}@`.<br/>
           `?random@{upper bound}` may be used to get a random integer from between 1 and the upper
           bound. This can be useful for "random" chance in IF commands, to maybe go to a label
-          only some of the time.</td>
+          only some of the time.<br/>
+          `?any_player@is_facing` is special. `is_facing` is special in that it is a check for a
+          target being directly in line (ie, when the object is facing west, the target must be west and on
+          the same row, a row above or below will not return true). Instead of `any_player` a specific player
+          map tile id may be used (`?{ @target_player_map_tile_id }@is_facing`) to only return true for a
+          specific player (or other map tile).</td>
       <td><pre class="script">?sender</pre>
           <pre class="script">?sender@health</pre>
           <pre class="script">?south@blocking</pre>
           <pre class="script">?{@facing}@blocking</pre>
-          <pre class="script">?random@5</pre></td>
+          <pre class="script">?random@5</pre>
+          <pre class="script">?any_player@is_facing</pre>
+          <pre class="script">?{ @target_player_map_tile_id }@is_facing</pre></td>
     </tr>
     <tr>
       <td>&lt;prefix&gt;&lt;variable&gt;+&lt;string&gt;</td>
