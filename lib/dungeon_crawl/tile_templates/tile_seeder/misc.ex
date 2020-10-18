@@ -85,19 +85,28 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
       %{character: "↑",
         name: "Spinning Gun",
         description: "Spins and shoots bullets",
-        state: "blocking: true, facing: north",
+        state: "int: 5, freq: 5, blocking: true, facing: north",
         color: "black",
         public: true,
         active: true,
         script: """
                 :main
                 /i
-                #facing clockwise
                 #sequence char, →, ↓, ←, ↑
                 #become character: @char
-                #if ?random@2 == 1, main
+                @rotations=4
+                :spin
+                #facing clockwise
+                @rotations -= 1
+                #if ?random@10 < @int
+                #if ?any_player@is_facing, shoot
+                #if ?random@10 < @freq, shoot
+                #if @rotations <= 0, main
+                #send spin
+                #end
+                :shoot
                 #shoot @facing
-                #send main
+                #send spin
                 """
     })
   end
