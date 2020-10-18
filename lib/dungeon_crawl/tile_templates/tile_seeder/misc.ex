@@ -98,7 +98,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
                 :spin
                 #facing clockwise
                 @rotations -= 1
-                #if ?random@10 < @int
+                #if ?random@10 <= @int
                 #if ?any_player@is_facing, shoot
                 #if ?random@10 < @freq, shoot
                 #if @rotations <= 0, main

@@ -31,6 +31,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # creatures
     bandit()
+    bear()
     expanding_foam()
     pede_head()
     pede_body()

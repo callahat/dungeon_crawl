@@ -37,6 +37,47 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def bear do
+    TileTemplates.update_or_create_tile_template!(
+      "bear",
+      %{character: "ö",
+        name: "Bear",
+        description: "The hibernate this time of year",
+        state: "int: 4, range: 5, blocking: true, soft: true, destroyable: true, pushable: true, awake: false",
+        color: "brown",
+        public: true,
+        active: true,
+        script: """
+                :top
+                #target_player nearest
+                #if @awake, sniffed
+                :listening
+                #if ?{@target_player_map_tile_id}@distance <= @range, sniffed
+                @awake = false
+                #send top
+                #end
+                :sniffed
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= @int
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #if ?{@target_player_map_tile_id}@distance > @range, 2
+                #if ?random@4 == 1
+                @awake = false
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #die
+                """
+    })
+  end
+
   def expanding_foam do
     TileTemplates.update_or_create_tile_template!(
       "expanding_foam",
@@ -163,6 +204,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   defmacro __using__(_params) do
     quote do
       def bandit(), do: unquote(__MODULE__).bandit()
+      def bear(), do: unquote(__MODULE__).bear()
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
