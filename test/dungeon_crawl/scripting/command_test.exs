@@ -486,7 +486,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "FACING - derivative when facing state var does not exist" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
-    {west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
+    {_west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
     program = program_fixture()
 
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["clockwise"])

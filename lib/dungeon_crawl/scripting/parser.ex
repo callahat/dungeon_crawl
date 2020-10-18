@@ -409,6 +409,8 @@ defmodule DungeonCrawl.Scripting.Parser do
           %{"sender" => "sender"}  -> :event_sender_variable
           %{"sender" => ""}        -> :event_sender_variable
 
+          %{"sender" => "any_player"} -> :any_player
+
           %{"sender" => direction} -> {:direction, direction}
         end
 

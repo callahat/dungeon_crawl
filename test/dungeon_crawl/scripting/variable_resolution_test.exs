@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.VariableResolution
 
@@ -110,7 +111,30 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
                        instance: true}
 
       assert VariableResolution.resolve_variable_map(runner_state1, variable_map) == expected
+    end
+  end
 
+  describe "special resolutions" do
+    test "?any_player@is_facing returns true if the object is directly facing a player" do
+      {fake_player, state} = Instances.create_player_map_tile(%Instances{}, %MapTile{id: 2, row: 4, col: 2, character: "@"}, %Location{})
+      {map_tile_1, state} = Instances.create_map_tile(state, %MapTile{id: 1, row: 4, col: 4, character: "?", state: "facing: west"})
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      assert VariableResolution.resolve_variable(runner_state1, {:any_player, :is_facing})
+
+      {_fake_player, state} = Instances.update_map_tile(state, fake_player, %{row: 3})
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      refute VariableResolution.resolve_variable(runner_state1, {:any_player, :is_facing})
+    end
+
+    test "?{ @target_player_map_tile_id }@is_facing returns true if the object is directly facing targeted player" do
+      {_fake_player, state} = Instances.create_player_map_tile(%Instances{}, %MapTile{id: 1, row: 4, col: 2, character: "@"}, %Location{})
+      {_other_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 2, row: 1, col: 4, character: "@"}, %Location{})
+      {map_tile_1, state} = Instances.create_map_tile(state, %MapTile{id: 3, row: 4, col: 4, character: "?", state: "facing: west, target_player_map_tile_id: 1"})
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :target_player_map_tile_id}, :is_facing})
+      # also works with ID, as the above resolves to it at run time
+      assert VariableResolution.resolve_variable(runner_state1, {1, :is_facing})
+      refute VariableResolution.resolve_variable(runner_state1, {2, :is_facing})
     end
   end
 end

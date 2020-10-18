@@ -102,6 +102,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF @ok, 3
                #IF @notok
                #TARGET_PLAYER nearest
+               #IF ?any_player@is_facing, touch
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -174,6 +175,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  68 => [:jump_if, [{:state_variable, :ok}, 3]],
                                                  69 => [:jump_if, [{:state_variable, :notok}]],
                                                  70 => [:target_player, ["nearest"]],
+                                                 71 => [:jump_if, [{:any_player, :is_facing}, "touch"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

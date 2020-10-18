@@ -86,6 +86,12 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {_target, :distance}) do
     3.14
   end
+  def resolve_variable(%{}, {:any_player, :is_facing}) do
+    true
+  end
+  def resolve_variable(%{}, {id, :is_facing}) when is_integer(id) do
+    false
+  end
   def resolve_variable(%{}, {{:direction, _direction}, _var}) do
     "from a direction"
   end
