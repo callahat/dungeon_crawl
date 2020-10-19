@@ -62,7 +62,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     if @valid_facings |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
-      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{direction}`" | errors], user)
+      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{inspect direction}`" | errors], user)
     end
   end
 

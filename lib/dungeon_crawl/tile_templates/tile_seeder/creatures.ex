@@ -106,6 +106,37 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def lion do
+    TileTemplates.update_or_create_tile_template!(
+      "lion",
+      %{character: "Ω",
+        name: "Lion",
+        description: "Hear its mighty roar",
+        state: "int: 4, blocking: true, soft: true, destroyable: true, pushable: true",
+        color: "darkorange",
+        public: true,
+        active: true,
+        script: """
+                :top
+                #target_player nearest
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= @int
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #die
+                """
+    })
+  end
+
   def pede_head do
     TileTemplates.update_or_create_tile_template!(
       "pedehead",
@@ -206,6 +237,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       def bandit(), do: unquote(__MODULE__).bandit()
       def bear(), do: unquote(__MODULE__).bear()
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
+      def lion(), do: unquote(__MODULE__).lion()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
     end
