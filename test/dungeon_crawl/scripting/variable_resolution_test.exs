@@ -66,6 +66,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       # handles a concatenation
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :color, "_key"}) == "red_key"
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass, "_key"}) == "bob_key"
+      assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :name}) == "two"
       assert VariableResolution.resolve_variable(runner_state2, {:event_sender_variable, :color, "_key"}) == nil
 
       # handles range

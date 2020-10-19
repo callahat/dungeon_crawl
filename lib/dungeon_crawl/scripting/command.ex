@@ -694,7 +694,7 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       Program.line_for(program, "THUD") ->
-        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state, name: blocking_obj.name},
                                   else: %{map_tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
@@ -712,7 +712,7 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       Program.line_for(program, "THUD") ->
-        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state, name: blocking_obj.name},
                                   else: %{map_tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
@@ -1256,7 +1256,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state}} |
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state, name: object.name}} |
                                                               state.program_messages] } },
       label,
       program_object_ids

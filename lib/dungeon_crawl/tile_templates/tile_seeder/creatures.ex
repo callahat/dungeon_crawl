@@ -42,7 +42,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       "bear",
       %{character: "ö",
         name: "Bear",
-        description: "The hibernate this time of year",
+        description: "They hibernate this time of year",
         state: "int: 4, range: 5, blocking: true, soft: true, destroyable: true, pushable: true, awake: false",
         color: "brown",
         public: true,
@@ -65,6 +65,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #if ?{@target_player_map_tile_id}@distance > @range, 2
                 #if ?random@4 == 1
                 @awake = false
+                ?i
                 #send top
                 #end
                 :touch
@@ -74,6 +75,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :hurt_player
                 #take health, 10, @facing
                 #die
+                :thud
+                #if ?sender@name==Breakable Wall, 2
+                #send shot, ?sender
+                #die
+                ?i
+                #send top
                 """
     })
   end

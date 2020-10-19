@@ -58,6 +58,9 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.parsed_state[var]
   end
+  def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, :name}) do
+    event_sender && event_sender.name
+  end
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
     event_sender && event_sender.parsed_state[var]
   end

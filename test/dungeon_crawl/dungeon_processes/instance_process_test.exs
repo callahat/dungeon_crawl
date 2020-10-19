@@ -211,9 +211,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
     tt = insert_tile_template()
 
     map_tiles = [
-        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
-        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
-        %{character: "O", row: 1, col: 4, z_index: 0, script: ""}
+        %{name: "a", character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
+        %{name: "b", character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
+        %{name: "c", character: "O", row: 1, col: 4, z_index: 0, script: ""}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
@@ -226,9 +226,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert [] == program_messages # should be cleared after punting the messages to the actual progams
 
     # The last map tile in this setup has no active program
-    expected = %{ map_tile_id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}}],
-                  Enum.at(map_tiles,0).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}}],
-                  Enum.at(map_tiles,1).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}}}] }
+    expected = %{ map_tile_id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}, name: "b"}}],
+                  Enum.at(map_tiles,0).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}, name: "b"}}],
+                  Enum.at(map_tiles,1).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}, name: "b"}}] }
 
     actual = program_contexts
              |> Map.to_list
