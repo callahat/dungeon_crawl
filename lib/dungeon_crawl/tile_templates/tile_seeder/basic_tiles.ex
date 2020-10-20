@@ -88,16 +88,23 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
                 #IF @ricochet == counterclockwise, CHANGE_FACING
                 #IF @ricochet == reverse, CHANGE_FACING
                 #IF @ricochet, RANDOM_FACING
+                #IF @owner==enemy, ENEMY_BULLET
                 #SEND shot, ?sender
                 #DIE
                 :TOUCH
+                #IF @owner==enemy, ENEMY_BULLET
                 #SEND shot, ?sender
                 #DIE
                 :RANDOM_FACING
                 #RANDOM ricochet, clockwise, counterclockwise, reverse
                 :CHANGE_FACING
                 #FACING @ricochet
-                #IF true, MAIN
+                #SEND MAIN
+                #END
+                :ENEMY_BULLET
+                #IF ?sender@player
+                #SEND shot, ?sender
+                #DIE
                 """
       })
   end
