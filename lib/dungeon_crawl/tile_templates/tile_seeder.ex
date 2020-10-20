@@ -36,6 +36,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     lion()
     pede_head()
     pede_body()
+    tiger()
 
     # items
     ammo()

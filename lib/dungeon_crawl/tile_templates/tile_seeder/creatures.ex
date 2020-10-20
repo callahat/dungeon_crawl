@@ -239,6 +239,44 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def tiger do
+    TileTemplates.update_or_create_tile_template!(
+      "tiger",
+      %{character: "π",
+        name: "Tiger",
+        description: "Cunning and swift, a prince of the jungle",
+        state: "int: 4, wis: 7, gun: 5, blocking: true, soft: true, destroyable: true, pushable: true, wait_cycles: 3",
+        color: "teal",
+        public: true,
+        active: true,
+        script: """
+                :top
+                #target_player nearest
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= @int
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #if ?random@10 <= @gun, shoot
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #die
+                :shoot
+                #random shoot_dir, north, south, east, west
+                #if ?random@10 <= @wis
+                @shoot_dir = player
+                #shoot @shoot_dir
+                #send top
+                """
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def bandit(), do: unquote(__MODULE__).bandit()
@@ -247,6 +285,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       def lion(), do: unquote(__MODULE__).lion()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
+      def tiger(), do: unquote(__MODULE__).tiger()
     end
   end
 end
