@@ -58,6 +58,15 @@
       <td>When true, this map tile will be removed if it receives the "SHOT" or "BOMBED" message.</td>
     </tr>
     <tr>
+      <td>teleporter</td>
+      <td>This indicates that the tile is a teleporter. For it to be active, the tile also needs "facing" set.
+          When a player moves (or something is pushed) onto one of these tiles from the opposite direction direction
+          it is facing, it may be teleported to a tile farther away but still in line. Candidate destinations include
+          the tile past the teleporter, and tiles on the other side of other teleporters facing the activated transporter.
+          If no candidates are available, it will not transport (pushables may be pushed out of the way on the teleport
+          movement).</td>
+    </tr>
+    <tr>
       <td>not_pushing</td>
       <td>If set to true, this tile will not push tiles when moving. It will treat a pushable tile as non blocking
           (unless that tile actually has the blocking value true).</td>
