@@ -61,6 +61,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     passage()
     stairs_up()
     stairs_down()
+    teleporters()
 
     # terrain
     boulder()
