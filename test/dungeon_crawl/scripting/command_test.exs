@@ -979,6 +979,20 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.new_ids == %{"new_0" => 0}
     assert updated_state.map_by_ids["new_0"]
 
+    # PUT a clone
+    params = [%{clone: map_tile.id, direction: "east", cloned: true}]
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
+    map_tile_1_3 = Instances.get_map_tile(updated_state, %{row: 1, col: 3})
+    assert map_tile_1_3.parsed_state[:cloned]
+    assert Map.take(map_tile_1_3, [:character, :color]) == Map.take(map_tile, [:character, :color])
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 3, rendering: "<div style='color: orange'>.</div>", row: 1}]}]]
+
+    # PUT a clone noop if bad clone id
+    params = [%{clone: 12312312312, direction: "east", cloned: true}]
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
+    assert updated_state == runner_state.state
+    assert program.broadcasts == []
+
     # PUT with shape kwargs
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "line", include_origin: false}]
     %Runner{program: program, state: updated_state} = Command.put(runner_state, params)

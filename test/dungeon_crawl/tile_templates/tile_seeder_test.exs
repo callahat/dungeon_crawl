@@ -91,11 +91,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
   test "misc" do
     assert TileSeeder.beam_wall_emitter
     assert TileSeeder.beam_walls
+    assert TileSeeder.clone_machine
     assert TileSeeder.pushers
     assert TileSeeder.spinning_gun
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Beam Wall Horizontal")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Beam Wall Vertical")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Beam Wall Emitter")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Clone Machine")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Pusher North")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Pusher South")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Pusher East")
@@ -151,11 +153,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
     TileSeeder.seed_all()
     seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count - initial_count == 68
+    assert seeded_count - initial_count == 69
 
     # does not add the seeds again
     TileSeeder.seed_all()
     seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count2 - initial_count == 68
+    assert seeded_count2 - initial_count == 69
   end
 end

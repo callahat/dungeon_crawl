@@ -22,7 +22,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+            |> Enum.reduce(%Instances{instance_id: instance.id}, fn(dmt, state) ->
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
@@ -151,13 +151,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     passage_2 = Instances.get_map_tile(state, %{row: 1, col: 6})
     state = %{ state | passage_exits: [{passage_1.id, "red"}, {passage_2.id, "red"}] }
 
-    {placed_player_map_tile, updated_other_state} = Player.place(state, player_map_tile, player_location, passage_1, "red")
-    placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
+    {placed_player_map_tile, updated_state} = Player.place(state, player_map_tile, player_location, passage_1, "red")
+    placed_tile = Instances.get_map_tile(updated_state, placed_player_map_tile)
     assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
 
     assert placed_tile.row == 1
     assert placed_tile.col == 6
-    assert placed_tile.z_index == 1
+    assert placed_tile.z_index == 3
     assert placed_tile.map_instance_id == state.instance_id
   end
 

@@ -841,6 +841,11 @@ defmodule DungeonCrawl.Scripting.Command do
   @doc """
   Puts a new tile specified by the given `slug` in the given `direction`. If no `direction` is given, then the new tile
   is placed on top of the tile associated with the running script.
+
+  Alternatively, instead of putting a slug, an existing tile may be used instead, by using `clone` and the id
+  of the tile to use as a base (or just a straight up clone). If there is a script on the cloned tile, the script
+  will start from the top (and not where the script is currently executing on the original tile).
+
   Additionally, instead of a direction, `row` and `col` coordinates can be supplied to put the tile in a specific
   location. Direction can also be given to put the tile one square from the given coordinates in that direction.
   If both `row` and `col` are not given, then neither are used. If the specified location or direction is invalid/off the map,
@@ -859,12 +864,30 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>J</div>"}]}] ]},
             object_id: object_id,
             state: updated_state }
+    iex> Command.put(%Runner{}, [%{clone:  {:state_variable, :clone_id}, direction:  {:state_variable, :facing}}])
+    %Runner{}
   """
-  def put(%Runner{} = runner_state, [params]) do
+  def put(%Runner{state: state} = runner_state, [%{clone: clone_tile} = params]) do
     params = resolve_variable_map(runner_state, params)
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    clone_tile = resolve_variable(runner_state, clone_tile)
+    clone_base_tile = Instances.get_map_tile_by_id(state, %{id: clone_tile})
 
-    if slug_tile  do
+    if clone_base_tile do
+      attributes = Map.take(clone_base_tile, [:character, :color, :background_color, :state, :script, :name, :tile_template_id])
+                   |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
+      new_state_attrs = resolve_variable_map(runner_state,
+                                             Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape, :clone] )))
+      _put(runner_state, attributes, params, new_state_attrs)
+    else
+      runner_state
+    end
+  end
+
+  def put(%Runner{} = runner_state, [%{slug: slug} = params]) do
+    params = resolve_variable_map(runner_state, params)
+    slug_tile = TileTemplates.get_tile_template_by_slug(slug)
+
+    if slug_tile do
       attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
                    |> Map.put(:tile_template_id, slug_tile.id)
                    |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
@@ -932,7 +955,6 @@ defmodule DungeonCrawl.Scripting.Command do
     z_index = if target_tile = Instances.get_map_tile(state, map_tile_attrs), do: target_tile.z_index + 1, else: 0
     map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
 
-#    case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
     case DungeonCrawl.DungeonInstances.new_map_tile(map_tile_attrs) do
       {:ok, new_tile} -> # all that other stuff below
         {new_tile, state} = Instances.create_map_tile(state, new_tile)

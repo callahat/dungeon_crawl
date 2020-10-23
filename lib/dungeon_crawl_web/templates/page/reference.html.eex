@@ -454,6 +454,11 @@
       <td>KWARGS</td>
       <td>Puts a new tile specified by the given "slug" in the given "direction". If no "direction" is given, then the new tile
           is placed on top of the tile associated with the running script.
+
+          Alternatively, instead of putting a slug, an existing tile may be used instead, by using `clone` and the id
+          of the tile to use as a base (or just a straight up clone). If there is a script on the cloned tile, the script
+          will start from the top (and not where the script is currently executing on the original tile).
+
           Additionally, instead of a direction, "row" and "col" coordinates can be supplied to put the tile in a specific
           location. Direction can also be given to put the tile one square from the given coordinates in that direction.
           If both "row" and "col" are not given, then neither are used. If the specified location or direction is invalid/off the map,

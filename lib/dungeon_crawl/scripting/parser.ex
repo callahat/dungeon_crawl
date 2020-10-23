@@ -356,6 +356,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
+    # todo: look into relaxing the left/right charcters for the capture groups
     case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+ ]+?))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->

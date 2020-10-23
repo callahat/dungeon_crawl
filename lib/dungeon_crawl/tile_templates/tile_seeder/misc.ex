@@ -58,6 +58,33 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
     end)
   end
 
+  def clone_machine() do
+    TileTemplates.update_or_create_tile_template!(
+      "clone_machine",
+      %{character: "0",
+        name: "Clone Machine",
+        description: "Copies from one side and pushes out the other",
+        state: "facing: north, wait_cycles: 10, blocking: true",
+        public: true,
+        active: true,
+        script: """
+                :main
+                /i
+                #sequence char, ∙, ∘, o, O, 0
+                #become character: @char
+                #if @char != 0, main
+                @clone_id = ?{@facing}@id
+                #facing reverse
+                #push @facing, 1
+                #if not ?{@facing}@cloned, 2
+                #if not ?{@facing}@blocking
+                #put direction: @facing, clone: @clone_id, cloned: true
+                #facing reverse
+                #send main
+                """
+    })
+  end
+
   def pushers do
     [ {"▲", "North"}, {"▶", "East"}, {"▼", "South"}, {"◀", "West"} ]
     |> Enum.each(fn({char, dir}) ->
@@ -116,6 +143,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
     quote do
       def beam_wall_emitter(), do: unquote(__MODULE__).beam_wall_emitter()
       def beam_walls(), do: unquote(__MODULE__).beam_walls()
+      def clone_machine(), do: unquote(__MODULE__).clone_machine()
       def pushers(), do: unquote(__MODULE__).pushers()
       def spinning_gun(), do: unquote(__MODULE__).spinning_gun()
     end

@@ -7,7 +7,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       %{character: "♂",
         name: "Bomb",
         description: "A bomb. Better not touch it, looks dangerous.",
-        state: "blocking: true, bomb_damage: 20, counter: 9",
+        state: "blocking: true, bomb_damage: 20, counter: 9, pushable: true, soft: true",
         color: "black",
         public: true,
         active: true,

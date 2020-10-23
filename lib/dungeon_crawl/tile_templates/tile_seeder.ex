@@ -49,6 +49,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     # misc
     beam_wall_emitter()
     beam_walls()
+    clone_machine()
     pushers()
     spinning_gun()
 
