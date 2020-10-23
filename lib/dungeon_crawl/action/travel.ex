@@ -26,7 +26,7 @@ defmodule DungeonCrawl.Action.Travel do
   # catch
   #   :exit, _value -> sleep very short random time, then try again
   # end
-  def passage(%Location{} = player_location, level_number, match_key, %Instances{} = state) do
+  def passage(%Location{} = player_location, %{} = passage, level_number, match_key, %Instances{} = state) do
     player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
 
     target_map = DungeonInstances.get_map(state.map_set_instance_id, level_number)
@@ -37,7 +37,7 @@ defmodule DungeonCrawl.Action.Travel do
 
       player_map_tile.map_instance_id == target_map.id ->
         old_coords = Elixir.Map.take(player_map_tile, [:row, :col])
-        {player_map_tile, state} = Player.place(state, player_map_tile, player_location, match_key)
+        {player_map_tile, state} = Player.place(state, player_map_tile, player_location, passage, match_key)
         _broadcast_tile_change(state, old_coords)
         _broadcast_tile_change(state, player_map_tile)
         {:ok, state}
@@ -45,7 +45,7 @@ defmodule DungeonCrawl.Action.Travel do
       true ->
         {:ok, dest_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, target_map.id)
         InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
-          {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location, match_key)
+          {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location, passage, match_key)
 
           DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
 

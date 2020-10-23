@@ -26,7 +26,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     %{player_location: player_location, level_1: level_1, level_2: level_2}
   end
 
-  test "passage/4 same instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2} do
+  test "passage/5 same instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     dungeon_1_channel = "dungeons:#{level_1.id}"
@@ -37,7 +37,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, level_1.id)
     InstanceProcess.run_with(instance_1, fn (state) ->
-      assert {:ok, state} = Travel.passage(player_location, 1, nil, state)
+      assert {:ok, state} = Travel.passage(player_location, %{}, 1, nil, state)
       level_1_id = level_1.id
       assert %{row: 6, col: 9, map_instance_id: ^level_1_id} = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
       {:ok, state}
@@ -55,7 +55,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     refute_receive %Phoenix.Socket.Broadcast{topic: ^player_channel}
   end
 
-  test "passage/4 different instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2} do
+  test "passage/5 different instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     dungeon_1_channel = "dungeons:#{level_1.id}"
@@ -66,7 +66,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, level_1.id)
     InstanceProcess.run_with(instance_1, fn (state) ->
-      assert {:ok, state} = Travel.passage(player_location, 2, "red", state)
+      assert {:ok, state} = Travel.passage(player_location, %{}, 2, "red", state)
       refute Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
       {:ok, state}
     end)
@@ -92,11 +92,11 @@ defmodule DungeonCrawl.Action.TravelTest do
         payload: %{dungeon_id: ^level_2_id, dungeon_render: _rendered_dungeon}}
   end
 
-  test "passage/4 does nothing when target level does not exist", %{player_location: player_location, level_1: level_1} do
+  test "passage/5 does nothing when target level does not exist", %{player_location: player_location, level_1: level_1} do
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, level_1.id)
     InstanceProcess.run_with(instance_1, fn (state) ->
-      assert {:ok, state_travelled} = Travel.passage(player_location, 12, nil, state)
+      assert {:ok, state_travelled} = Travel.passage(player_location, %{}, 12, nil, state)
       assert state == state_travelled
       {:ok, state}
     end)

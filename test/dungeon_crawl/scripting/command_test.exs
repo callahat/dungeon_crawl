@@ -1714,8 +1714,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "TRANSPORT" do
     # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
     defmodule TravelMock1 do
-      def passage(%Location{} = player_location, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+        assert nil == passage
         assert level_number == 4
         assert match_key == nil
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
@@ -1723,8 +1724,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       end
     end
     defmodule TravelMock2 do
-      def passage(%Location{} = player_location, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+        assert %{row: 1, col: 1} = passage
         assert level_number == 2
         assert match_key == "red"
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
@@ -1742,7 +1744,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, "up"], TravelMock1)
     assert updated_state.player_locations == %{}
     # "down" with a match key
-    assert %Runner{state: updated_state} = Command.transport(%Runner{state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
+    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor.id, state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
     assert updated_state.player_locations == %{}
     # hard coded level number
     assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, 4], TravelMock1)
