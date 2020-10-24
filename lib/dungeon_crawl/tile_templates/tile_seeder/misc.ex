@@ -29,7 +29,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
                 @slug = beam_wall_vertical
                 :top
                 /i
-                #put direction: north, shape: line, range: 25, slug: @slug, wait_cycles: @beam_wait_cycles, color: @color
+                #put direction: @direction, shape: line, range: 25, slug: @slug, wait_cycles: @beam_wait_cycles, color: @color
                 #send top
                 """
     })
