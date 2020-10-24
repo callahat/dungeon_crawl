@@ -25,6 +25,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
                 #if direction == "south", vertical
                 @slug = beam_wall_horizontal
                 #send top
+                #end
                 :vertical
                 @slug = beam_wall_vertical
                 :top
