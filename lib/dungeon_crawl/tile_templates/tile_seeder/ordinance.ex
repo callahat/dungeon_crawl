@@ -131,12 +131,31 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       })
   end
 
+  def star_emitter() do
+    TileTemplates.update_or_create_tile_template!(
+      "star_emitter",
+      %{character: "┼",
+        name: "Star Emitter",
+        description: "Shoots stars",
+        public: true,
+        active: true,
+        state: "star_range: 50, star_damage: 10, wait_cycles: 100, blocking: true",
+        script: """
+                :top
+                #put direction: here, slug: star, range: @star_range, damage: @star_damage
+                /i
+                #send top
+                """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def bomb(), do: unquote(__MODULE__).bomb()
       def explosion(), do: unquote(__MODULE__).explosion()
       def smoke(), do: unquote(__MODULE__).smoke()
       def star(), do: unquote(__MODULE__).star()
+      def star_emitter(), do: unquote(__MODULE__).star_emitter()
     end
   end
 end

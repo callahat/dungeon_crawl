@@ -58,6 +58,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     explosion()
     smoke()
     star()
+    star_emitter()
 
     # passageways
     passage()
