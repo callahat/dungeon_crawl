@@ -883,9 +883,9 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  def put(%Runner{} = runner_state, [%{slug: slug} = params]) do
+  def put(%Runner{} = runner_state, [%{slug: _slug} = params]) do
     params = resolve_variable_map(runner_state, params)
-    slug_tile = TileTemplates.get_tile_template_by_slug(slug)
+    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
 
     if slug_tile do
       attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
