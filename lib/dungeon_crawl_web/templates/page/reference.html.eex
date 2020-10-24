@@ -166,7 +166,8 @@
     <tr>
       <td>?&lt;target&gt;@</td>
       <td>Other's State Value</td>
-      <td>This is for setting state values of another object. There may be instances when the GIVE or TAKE
+      <td>Not to be confused with the Shorthand for try.
+          This is for setting state values of another object. There may be instances when the GIVE or TAKE
           commands are insufficient. The target can be a direction, "sender" (for the event sender if applicable)
           or the id of the target object. Additionally, {@state_val} can be used to determine the target from
           a state value of the current object (which should resolve to a direction or object id). Cannot target a
@@ -265,7 +266,8 @@
     </tr>
     <tr>
       <td>?</td>
-      <td>Another map tile or thing. `?sender` refers to the map tile that sent the last message.
+      <td>Not to be confused with shorthand TRY (as mentioned in a section above).
+          Another map tile or thing. `?sender` refers to the map tile that sent the last message.
           Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
           that direction the map tile/object that sent the last message. Some commands require a
           tile, and some commands require a value. An interpolated direction may come from the map
