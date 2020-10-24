@@ -37,7 +37,11 @@ require Logger
       end
     else
       [{label, sender} | messages ] = program.messages
-      run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages } }, label)
+      if Program.line_for(program, label) do
+        run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }}, label)
+      else
+        run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }})
+      end
     end
   end
 

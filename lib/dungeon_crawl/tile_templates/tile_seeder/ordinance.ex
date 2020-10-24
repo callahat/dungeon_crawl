@@ -90,11 +90,53 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
     })
   end
 
+  def star() do
+    TileTemplates.update_or_create_tile_template!(
+      "star",
+      %{character: "/",
+        name: "Star",
+        description: "Its going to get you.",
+        public: true,
+        active: true,
+        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true",
+        script: """
+                #target_player random
+                :top
+                #facing player
+                ?p
+                #restore touch
+                #restore thud
+                #send spinning
+                #end
+                :touch
+                :thud
+                #zap touch
+                #zap thud
+                #if ?sender@name == Star, shoot
+                #if ?sender@name == Breakable Wall, shoot
+                #if ?sender@player, shoot
+                /i
+                :spinning
+                #sequence colour, red, green, darkorange, blue, purple
+                #sequence char, |, \\, -, /
+                #become character: @char, color: @colour
+                @range -= 1
+                #if @range > 0, top
+                #die
+                #end
+                :shoot
+                #send shot, ?sender
+                #die
+                """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def bomb(), do: unquote(__MODULE__).bomb()
       def explosion(), do: unquote(__MODULE__).explosion()
       def smoke(), do: unquote(__MODULE__).smoke()
+      def star(), do: unquote(__MODULE__).star()
     end
   end
 end
