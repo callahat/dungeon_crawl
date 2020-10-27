@@ -56,6 +56,9 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:state_variable, :col}) do
     4
   end
+  def resolve_variable(%{}, {:state_variable, :slug}) do
+    :stubbed_slug
+  end
   def resolve_variable(%{}, {:state_variable, _var}) do
     "."
   end
@@ -76,6 +79,18 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   end
   def resolve_variable(%{}, {:instance_state_variable, _var}) do
     "from the instance"
+  end
+  def resolve_variable(%{}, {:random, _var}) do
+    7 # is a fine random number
+  end
+  def resolve_variable(%{}, {_target, :distance}) do
+    3.14
+  end
+  def resolve_variable(%{}, {:any_player, :is_facing}) do
+    true
+  end
+  def resolve_variable(%{}, {id, :is_facing}) when is_integer(id) do
+    false
   end
   def resolve_variable(%{}, {{:direction, _direction}, _var}) do
     "from a direction"

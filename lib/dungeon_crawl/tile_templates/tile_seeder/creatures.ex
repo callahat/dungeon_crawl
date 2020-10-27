@@ -37,6 +37,54 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def bear do
+    TileTemplates.update_or_create_tile_template!(
+      "bear",
+      %{character: "ö",
+        name: "Bear",
+        description: "They hibernate this time of year",
+        state: "int: 4, range: 5, blocking: true, soft: true, destroyable: true, pushable: true, awake: false",
+        color: "brown",
+        public: true,
+        active: true,
+        script: """
+                :top
+                #target_player nearest
+                #if @awake, sniffed
+                :listening
+                #if ?{@target_player_map_tile_id}@distance <= @range, sniffed
+                @awake = false
+                #send top
+                #end
+                :sniffed
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= @int
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #if ?{@target_player_map_tile_id}@distance > @range, 2
+                #if ?random@4 == 1
+                @awake = false
+                ?i
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #die
+                :thud
+                #if ?sender@name==Breakable Wall, 2
+                #send shot, ?sender
+                #die
+                ?i
+                #send top
+                """
+    })
+  end
+
   def expanding_foam do
     TileTemplates.update_or_create_tile_template!(
       "expanding_foam",
@@ -51,19 +99,47 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 @range -= 1
                 #IF @range == 0, done
                 ?i
-                #IF ?north@blocking, south
+                #IF ! ?north@blocking
                 #PUT slug: expanding_foam, direction: north, color: @color, range: @range
-                :south
-                #IF ?south@blocking, east
+                #IF ! ?south@blocking
                 #PUT slug: expanding_foam, direction: south, color: @color, range: @range
-                :east
-                #IF ?east@blocking, west
+                #IF ! ?east@blocking
                 #PUT slug: expanding_foam, direction: east, color: @color, range: @range
-                :west
-                #IF ?west@blocking, done
+                #IF ! ?west@blocking
                 #PUT slug: expanding_foam, direction: west, color: @color, range: @range
                 :done
                 #BECOME slug: breakable_wall, color: @color
+                """
+    })
+  end
+
+  def lion do
+    TileTemplates.update_or_create_tile_template!(
+      "lion",
+      %{character: "Ω",
+        name: "Lion",
+        description: "Hear its mighty roar",
+        state: "int: 4, blocking: true, soft: true, destroyable: true, pushable: true",
+        color: "darkorange",
+        public: true,
+        active: true,
+        script: """
+                :top
+                #target_player nearest
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= @int
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #die
                 """
     })
   end
@@ -84,6 +160,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #send main
                 #end
                 :thud
+                #if ?sender@player, hurt_player
+                #if ?{@facing}@player, hurt_player
                 #if @pulling == false, not_surrounded
                 #if not ?clockwise@blocking,not_surrounded
                 #if not ?counterclockwise@blocking,not_surrounded
@@ -95,7 +173,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #send main
                 #end
                 :shot
-                #facing reverse
+                :bombed
+                #lock
                 #send pede_died, @pulling
                 #die
                 #end
@@ -103,6 +182,17 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #facing reverse
                 #send surrounded, @pulling
                 #become slug: pedebody, color: @color, background_color: @background_color, pulling: false, pullable: @pulling
+                #end
+                :touch
+                #if not ?sender@player, main
+                #lock
+                #take health, 10, ?sender
+                #send pede_died, @pulling
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #send pede_died, @pulling
+                #die
                 """
     })
   end
@@ -119,9 +209,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         script: """
                 #end
                 :shot
-                #facing reverse
+                :bombed
+                #lock
                 #send pede_died, @pulling
-                ?i
                 #die
                 :surrounded
                 #facing reverse
@@ -138,6 +228,51 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 @pullable = @tmp
                 #send surrounded, @pullable
                 #end
+                :touch
+                #if not ?sender@player, done
+                #lock
+                #take health, 10, ?sender
+                #send pede_died, @pulling
+                #die
+                :done
+                """
+    })
+  end
+
+  def tiger do
+    TileTemplates.update_or_create_tile_template!(
+      "tiger",
+      %{character: "π",
+        name: "Tiger",
+        description: "Cunning and swift, a prince of the jungle",
+        state: "int: 4, wis: 7, gun: 5, blocking: true, soft: true, destroyable: true, pushable: true, wait_cycles: 3",
+        color: "teal",
+        public: true,
+        active: true,
+        script: """
+                :top
+                #target_player nearest
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= @int
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #if ?random@10 <= @gun, shoot
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                #die
+                :hurt_player
+                #take health, 10, @facing
+                #die
+                :shoot
+                #random shoot_dir, north, south, east, west
+                #if ?random@10 <= @wis
+                @shoot_dir = player
+                #shoot @shoot_dir
+                #send top
                 """
     })
   end
@@ -145,9 +280,12 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
   defmacro __using__(_params) do
     quote do
       def bandit(), do: unquote(__MODULE__).bandit()
+      def bear(), do: unquote(__MODULE__).bear()
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
+      def lion(), do: unquote(__MODULE__).lion()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
+      def tiger(), do: unquote(__MODULE__).tiger()
     end
   end
 end

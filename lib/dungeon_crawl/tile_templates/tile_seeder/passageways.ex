@@ -59,11 +59,35 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
     })
   end
 
+  def teleporters do
+    [ {"∧", "^, -, ^, ∧", "North"}, {">", "}, |, }, >", "East"}, {"V", "v , _, v, V", "South"}, {"<", "{, |, {, <", "West"} ]
+    |> Enum.each(fn({char, sequence, dir}) ->
+         TileTemplates.update_or_create_tile_template!(
+           "teleporter_#{ String.downcase(dir) }",
+           %{character: char,
+             name: "Teleporter #{ dir }",
+             description: "Teleports to the #{ dir }",
+             state: "blocking: true, teleporter: true, facing: #{ String.downcase(dir) }, wait_cycles: 3",
+             color: "black",
+             public: true,
+             active: true,
+             script: """
+                     :MAIN
+                     /i
+                     #SEQUENCE char, #{ sequence }
+                     #BECOME character: @char
+                     #SEND main
+                     """
+         })
+      end)
+  end
+
   defmacro __using__(_params) do
     quote do
       def passage(), do: unquote(__MODULE__).passage()
       def stairs_up(), do: unquote(__MODULE__).stairs_up()
       def stairs_down(), do: unquote(__MODULE__).stairs_down()
+      def teleporters(), do: unquote(__MODULE__).teleporters()
     end
   end
 end

@@ -58,6 +58,9 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.parsed_state[var]
   end
+  def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, :name}) do
+    event_sender && event_sender.name
+  end
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
     event_sender && event_sender.parsed_state[var]
   end
@@ -75,6 +78,47 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   end
   def resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
     state.state_values[var]
+  end
+  def resolve_variable(%Runner{}, {:random, range}) do
+    Enum.random(range)
+  end
+  def resolve_variable(%Runner{object_id: object_id, state: state} = runner_state, {target, :distance}) do
+    case resolve_variable(runner_state, target) do
+      target_id when is_integer(target_id) ->
+        object = Instances.get_map_tile_by_id(state, %{id: object_id})
+        target = Instances.get_map_tile_by_id(state, %{id: target_id})
+        Direction.distance(object, target)
+
+      _ ->
+        nil
+    end
+  end
+  def resolve_variable(%Runner{object_id: object_id, state: state}, {:any_player, :is_facing}) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    case object.parsed_state[:facing] do
+      nil ->    false
+      "idle" -> false
+      direction ->
+        state.player_locations
+        |> Map.to_list()
+        |> Enum.map(fn({map_tile_id, _}) ->
+             player_map_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+             Direction.orthogonal_direction(object, player_map_tile)
+           end)
+        |> Enum.member?([direction])
+    end
+  end
+  def resolve_variable(%Runner{object_id: object_id, state: state} = runner_state, {target, :is_facing}) do
+    case resolve_variable(runner_state, target) do
+      map_tile_id when is_integer(map_tile_id) ->
+        object = Instances.get_map_tile_by_id(state, %{id: object_id})
+        player_map_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+        ! is_nil(object.parsed_state[:facing]) &&
+          Direction.orthogonal_direction(object, player_map_tile) == [object.parsed_state[:facing]]
+
+      _ ->
+        false
+    end
   end
   def resolve_variable(%Runner{} = runner_state, {{:state_variable, state_var}, var}) do
     direction = resolve_variable(runner_state, {:state_variable, state_var})

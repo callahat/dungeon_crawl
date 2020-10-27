@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.VariableResolution
 
@@ -65,7 +66,25 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       # handles a concatenation
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :color, "_key"}) == "red_key"
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass, "_key"}) == "bob_key"
+      assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :name}) == "two"
       assert VariableResolution.resolve_variable(runner_state2, {:event_sender_variable, :color, "_key"}) == nil
+
+      # handles range
+      assert VariableResolution.resolve_variable(runner_state1, {2, :distance}) == 1.0
+      assert VariableResolution.resolve_variable(runner_state2, {{:state_variable, :id}, :distance}) == 0.0
+    end
+  end
+
+  describe "resolve_keyed_variable" do
+    test "resolves keyed_variable that might have specific format/size" do
+      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40}},
+                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "newcolor: teal"})
+
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      var = {:state_variable, :newcolor}
+
+      assert VariableResolution.resolve_keyed_variable(runner_state1, :color, var) == {:color, "teal"}
+      assert VariableResolution.resolve_keyed_variable(runner_state1, :character, var) == {:character, "t"}
     end
   end
 
@@ -93,7 +112,30 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
                        instance: true}
 
       assert VariableResolution.resolve_variable_map(runner_state1, variable_map) == expected
+    end
+  end
 
+  describe "special resolutions" do
+    test "?any_player@is_facing returns true if the object is directly facing a player" do
+      {fake_player, state} = Instances.create_player_map_tile(%Instances{}, %MapTile{id: 2, row: 4, col: 2, character: "@"}, %Location{})
+      {map_tile_1, state} = Instances.create_map_tile(state, %MapTile{id: 1, row: 4, col: 4, character: "?", state: "facing: west"})
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      assert VariableResolution.resolve_variable(runner_state1, {:any_player, :is_facing})
+
+      {_fake_player, state} = Instances.update_map_tile(state, fake_player, %{row: 3})
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      refute VariableResolution.resolve_variable(runner_state1, {:any_player, :is_facing})
+    end
+
+    test "?{ @target_player_map_tile_id }@is_facing returns true if the object is directly facing targeted player" do
+      {_fake_player, state} = Instances.create_player_map_tile(%Instances{}, %MapTile{id: 1, row: 4, col: 2, character: "@"}, %Location{})
+      {_other_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 2, row: 1, col: 4, character: "@"}, %Location{})
+      {map_tile_1, state} = Instances.create_map_tile(state, %MapTile{id: 3, row: 4, col: 4, character: "?", state: "facing: west, target_player_map_tile_id: 1"})
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
+      assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :target_player_map_tile_id}, :is_facing})
+      # also works with ID, as the above resolves to it at run time
+      assert VariableResolution.resolve_variable(runner_state1, {1, :is_facing})
+      refute VariableResolution.resolve_variable(runner_state1, {2, :is_facing})
     end
   end
 end

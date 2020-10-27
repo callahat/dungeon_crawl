@@ -59,10 +59,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
-    if @valid_facings |> Enum.member?(direction) do
+    if @valid_facings |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
-      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{direction}`" | errors], user)
+      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{inspect direction}`" | errors], user)
     end
   end
 
@@ -99,6 +99,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [ :jump_if, [params] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [ :jump_if, [params, 1] ]} | instructions], errors, user)
+  end
   defp _validate(program, [ {line_no, [ :jump_if, [params, label] ]} | instructions], errors, user)
          when params != :error
          when length(params) == 2
@@ -107,13 +110,18 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     cond do
       (is_list(params) && Enum.any?(params, fn param -> param == :error end)) ->
         _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
+      is_integer(label) ->
+        if label < 1 do
+          _validate(program, instructions, ["Line #{line_no}: IF command jump distance must be positive `#{inspect label}`" | errors], user)
+        else
+          _validate(program, instructions, errors, user)
+        end
       Program.line_for(program, label) ->
         _validate(program, instructions, errors, user)
       true ->
         _validate(program, instructions, ["Line #{line_no}: IF command references nonexistant label `#{label}`" | errors], user)
     end
   end
-
   defp _validate(program, [ {line_no, [ :jump_if, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
   end
@@ -163,6 +171,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
   end
 
+  defp _validate(program, [ {_line_no, [:random, [_state_var | list]]} | instructions], errors, user)
+      when list != [] and is_list(list) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:random, _]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid number of parameters" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [ :replace, params ]} | instructions], errors, user) do
     _validate_map_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)
   end
@@ -187,6 +203,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
   defp _validate(program, [ {line_no, [:send_message, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
+  end
+
+  defp _validate(program, [ {_line_no, [:sequence, [_state_var | list]]} | instructions], errors, user)
+      when list != [] and is_list(list) do
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:sequence, _] } | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: SEQUENCE command has an invalid number of parameters" | errors], user)
   end
 
   defp _validate(program, [ {line_no, [:shift, [rotation] ]} | instructions], errors, user) do
@@ -227,6 +251,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
                else: errors
     errors = unless Program.line_for(program, label),
                do: ["Line #{line_no}: TAKE command references nonexistant label `#{label}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
+  defp _validate(program, [ {line_no, [:target_player, [what] ]} | instructions], errors, user) do
+    errors = unless String.downcase(what) == "nearest" || String.downcase(what) == "random" ,
+               do: ["Line #{line_no}: TARGET_PLAYER command specifies invalid target `#{what}`" | errors],
                else: errors
     _validate(program, instructions, errors, user)
   end
@@ -277,8 +308,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate_map_tile_kwargs(line_no, command, params, program, instructions, errors, user) do
     if is_map(Enum.at(params, 0)) && length(params) == 1 do
       params = Enum.at(params, 0)
+      params = resolve_variable_map(%{}, params)
       dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
-      settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
+      # settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
+      settable_params = Map.take(params, [:character, :color, :background_color])
       changeset =  TileTemplate.changeset(dummy_template, settable_params)
 
       errors = _validate_slug(command, line_no, params, errors, user)
@@ -318,7 +351,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate_slug(command, line_no, params, errors, user) do
     tt = TileTemplates.get_tile_template_by_slug(params[:slug], :validation)
     cond do
-      is_nil(params[:slug]) || is_nil(user) ->
+      is_nil(params[:slug]) || is_nil(user) || params[:slug] == :stubbed_slug ->
         errors
 
       is_nil(tt) ->

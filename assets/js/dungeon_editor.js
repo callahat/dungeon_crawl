@@ -14,15 +14,6 @@ let DungeonEditor = {
       color.addEventListener('mousedown', e => { this.updateActiveColor(e) });
     }
 
-    for(let character of document.getElementsByName("character_picker")){
-      character.addEventListener('click', e => {
-        if(!e.target) { return }
-        console.log(e.target.textContent)
-        document.getElementById("tile_template_character").value = e.target.textContent
-        $("#characterPickModal").modal('hide')
-      });
-    }
-
     this.updateActiveTile(document.getElementsByName("paintable_tile_template")[0])
 
     document.getElementById("dungeon").addEventListener('mousedown', e => {
@@ -242,11 +233,6 @@ let DungeonEditor = {
     // Tile Detail
     document.getElementById("tile_detail_tool").addEventListener("click", function(event){
       $('#tileDetailModal').modal({show: true})
-    })
-
-    // Character Picker
-    document.getElementById("show_character_picker").addEventListener("click", function(event){
-      $('#characterPickModal').modal({show: true})
     })
 
     // Submit is overridden to build the JSON that updates the dungeon map tiles

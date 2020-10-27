@@ -7,7 +7,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       %{character: "♂",
         name: "Bomb",
         description: "A bomb. Better not touch it, looks dangerous.",
-        state: "blocking: true, bomb_damage: 20, counter: 9",
+        state: "blocking: true, bomb_damage: 20, counter: 9, pushable: true, soft: true",
         color: "black",
         public: true,
         active: true,
@@ -90,11 +90,72 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
     })
   end
 
+  def star() do
+    TileTemplates.update_or_create_tile_template!(
+      "star",
+      %{character: "/",
+        name: "Star",
+        description: "Its going to get you.",
+        public: true,
+        active: true,
+        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true",
+        script: """
+                #target_player random
+                :top
+                #facing player
+                ?p
+                #restore touch
+                #restore thud
+                #send spinning
+                #end
+                :touch
+                :thud
+                #zap touch
+                #zap thud
+                #if ?sender@name == Star, shoot
+                #if ?sender@name == Breakable Wall, shoot
+                #if ?sender@player, shoot
+                /i
+                :spinning
+                #sequence colour, red, green, darkorange, blue, purple
+                #sequence char, |, \\, -, /
+                #become character: @char, color: @colour
+                @range -= 1
+                #if @range > 0, top
+                #die
+                #end
+                :shoot
+                #send shot, ?sender
+                #die
+                """
+      })
+  end
+
+  def star_emitter() do
+    TileTemplates.update_or_create_tile_template!(
+      "star_emitter",
+      %{character: "┼",
+        name: "Star Emitter",
+        description: "Shoots stars",
+        public: true,
+        active: true,
+        state: "star_range: 50, star_damage: 10, wait_cycles: 100, blocking: true",
+        script: """
+                :top
+                #put direction: here, slug: star, range: @star_range, damage: @star_damage
+                /i
+                #send top
+                """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def bomb(), do: unquote(__MODULE__).bomb()
       def explosion(), do: unquote(__MODULE__).explosion()
       def smoke(), do: unquote(__MODULE__).smoke()
+      def star(), do: unquote(__MODULE__).star()
+      def star_emitter(), do: unquote(__MODULE__).star_emitter()
     end
   end
 end

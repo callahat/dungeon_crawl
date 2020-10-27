@@ -5,6 +5,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.ColorDoors
   use DungeonCrawl.TileTemplates.TileSeeder.BlockWalls
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
+  use DungeonCrawl.TileTemplates.TileSeeder.Items
+  use DungeonCrawl.TileTemplates.TileSeeder.Misc
   use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
   use DungeonCrawl.TileTemplates.TileSeeder.Passageways
   use DungeonCrawl.TileTemplates.TileSeeder.Terrain
@@ -25,28 +27,55 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     normal_wall()
     breakable_wall()
     fake_wall()
+    invisible_wall()
 
     # creatures
     bandit()
+    bear()
     expanding_foam()
+    lion()
     pede_head()
     pede_body()
+    tiger()
+
+    # items
+    ammo()
+    cash()
+    gem()
+    heart()
+    medkit()
+    scroll()
+
+    # misc
+    beam_wall_emitter()
+    beam_walls()
+    clone_machine()
+    pushers()
+    spinning_gun()
 
     # ordinance
     bomb()
     explosion()
     smoke()
+    star()
+    star_emitter()
 
     # passageways
     passage()
     stairs_up()
     stairs_down()
+    teleporters()
 
     # terrain
     boulder()
     counter_clockwise_conveyor()
     clockwise_conveyor()
+    forest()
+    lava()
     grave()
+    ricochet()
+    slider_horizontal()
+    slider_vertical()
 
     :ok
   end

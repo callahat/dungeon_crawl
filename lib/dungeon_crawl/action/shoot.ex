@@ -36,12 +36,12 @@ defmodule DungeonCrawl.Action.Shoot do
                       |> Map.put(:state, bullet_tile_template.state <> ", facing: " <> direction)
                       |> DungeonCrawl.DungeonInstances.new_map_tile()
       {bullet, state} = Instances.create_map_tile(state, bullet)
-      if bullet_damage = StateValue.get_int(shooter_map_tile, :bullet_damage) do
-        {_, state} = Instances.update_map_tile_state(state, bullet, %{damage: bullet_damage})
-        {:ok, state}
-      else
-        {:ok, state}
-      end
+      extras = if bullet_damage = StateValue.get_int(shooter_map_tile, :bullet_damage), do: %{damage: bullet_damage}, else: %{}
+      extras = if StateValue.get_bool(shooter_map_tile, :player), do: Map.put(extras, :owner, shooter_map_tile.id),
+                                                                  else: Map.put(extras, :owner, "enemy")
+
+      {_, state} = Instances.update_map_tile_state(state, bullet, extras)
+      {:ok, state}
     end
   end
 end

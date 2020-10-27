@@ -14,6 +14,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #END
     :MORE
     thing is true
+    #IF @thing
     #MOVE south, true
     #GO south
     #CYCLE 3
@@ -50,7 +51,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GO hotpockets
     #FACING reverse
     #FACING inward
-    #IF bio = tho
+    #IF bio = tho, one, too many params
     #CYCLE 0
     #CYCLE false
     #ZAP TOUCH
@@ -100,6 +101,14 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #TRANSPORT ?sender, up, green, blue
     !TOUCH;Touch this or
     !NOLABEL;Click this
+    #RANDOM var, a, b, c
+    #RANDOM var
+    #SEQUENCE var, a, b,c
+    #SEQUENCE var
+    #IF ?random@10
+    #IF @badjump, 0
+    #TARGET_PLAYER someone
+    #TARGET_PLAYER
     """
   end
 
@@ -135,7 +144,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 12: MOVE command references invalid direction `sooth`",
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
-               "Line 18: FACING command references invalid direction `inward`",
+               "Line 18: FACING command references invalid direction `\"inward\"`",
                "Line 19: IF command malformed",
                "Line 20: CYCLE command has invalid param `0`",
                "Line 21: CYCLE command has invalid param `false`",
@@ -173,6 +182,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`",
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
+               "Line 70: RANDOM command has an invalid number of parameters",
+               "Line 72: SEQUENCE command has an invalid number of parameters",
+               "Line 74: IF command jump distance must be positive `0`",
+               "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
+               "Line 76: TARGET_PLAYER command specifies invalid target ``",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -184,7 +198,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 12: MOVE command references invalid direction `sooth`",
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
-               "Line 18: FACING command references invalid direction `inward`",
+               "Line 18: FACING command references invalid direction `\"inward\"`",
                "Line 19: IF command malformed",
                "Line 20: CYCLE command has invalid param `0`",
                "Line 21: CYCLE command has invalid param `false`",
@@ -220,6 +234,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`",
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
+               "Line 70: RANDOM command has an invalid number of parameters",
+               "Line 72: SEQUENCE command has an invalid number of parameters",
+               "Line 74: IF command jump distance must be positive `0`",
+               "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
+               "Line 76: TARGET_PLAYER command specifies invalid target ``",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

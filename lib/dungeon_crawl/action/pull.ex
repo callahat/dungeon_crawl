@@ -19,7 +19,7 @@ defmodule DungeonCrawl.Action.Pull do
   """
   def pull(%MapTile{} = lead_map_tile, %MapTile{} = destination, %Instances{} = state) do
     # can_move is false if destination is blocking (regardless of it being pushable or squishable. That may change
-    # later.
+    # later. No pulling through a teleporter. Probably could actually implement the teleport and the pull, maybe later.
     if Move.can_move(destination) do
       movements =_pull_chain(lead_map_tile, destination, state)
       _execute_pull_chain({:ok, %{}, state}, movements)

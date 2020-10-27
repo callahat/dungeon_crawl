@@ -47,6 +47,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:remove) == :remove
     assert Command.get_command(:restore) == :restore
     assert Command.get_command(:shift) == :shift
+    assert Command.get_command(:target_player) == :target_player
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
     assert Command.get_command(:transport) == :transport
@@ -439,40 +440,53 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "FACING" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up"})
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up, rico: west"})
+    {west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
     program = program_fixture()
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["east"])
+    %Runner{state: updated_state} = Command.facing(runner_state, [{:state_variable, :rico}])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: east"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["clockwise"])
+    assert updated_map_tile.state == "facing: west, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["east"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: east"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["counterclockwise"])
+    assert updated_map_tile.state == "facing: east, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["clockwise"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: west"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["reverse"])
+    assert updated_map_tile.state == "facing: east, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["counterclockwise"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: south"
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["player"])
+    assert updated_map_tile.state == "facing: west, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["reverse"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
+    assert updated_map_tile.state == "facing: south, rico: west"
+    %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert updated_map_tile.state == "facing: idle, rico: west, target_player_map_tile_id: nil"
 
     # Facing to player direction targets that player when it is not targeting a player
     {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["player"])
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+    %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: south, target_player_map_tile_id: 43201"
+    assert updated_map_tile.state == "facing: south, rico: west, target_player_map_tile_id: 43201"
 
     # Facing to player direction when there is no players sets facing to idle and the target player to nil
     {_fake_player, state} = Instances.delete_map_tile(state, fake_player)
-    %Runner{state: updated_state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["player"])
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+    %Runner{state: updated_state} = Command.facing(runner_state, ["player"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
-    assert updated_map_tile.state == "facing: idle, target_player_map_tile_id: nil"
+    assert updated_map_tile.state == "facing: idle, rico: west, target_player_map_tile_id: nil"
+
+    # facing tile id
+    %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, [west_tile.id])
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    assert updated_map_tile.state == "facing: west, rico: west"
   end
 
   test "FACING - derivative when facing state var does not exist" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+    {_west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
     program = program_fixture()
 
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["clockwise"])
@@ -482,6 +496,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert updated_map_tile.state == "facing: idle"
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["reverse"])
+    updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
+    assert updated_map_tile.state == "facing: idle"
+    %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, [111])
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert updated_map_tile.state == "facing: idle"
   end
@@ -548,13 +565,30 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "JUMP_IF when state check is TRUE but no active label" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
     program = program_fixture()
-#    stubbed_object = %{state: "thing: true"}
-    params = [["!", {:state_variable, :thing}], "TOUCH"]
+    params = [{:state_variable, :thing}, "TOUCH"]
 
-    program = %{ program | labels: %{"TOUCH" => [[3, false]]} }
+    program = %{ program | labels: %{"TOUCH" => [[3, true]]} }
     %Runner{program: program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     assert program.status == :alive
     assert program.pc == 1
+  end
+
+  test "JUMP_IF when no label given" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
+    program = program_fixture()
+    runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
+
+    # when true, does not modify pc
+    params = [{:state_variable, :thing}]
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
+
+    # when flase, modifes the pc to skip the next instruction
+    params = [{:state_variable, :notathing}]
+    %Runner{program: updated_program} = Command.jump_if(runner_state, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 2
   end
 
   test "JUMP_IF when using a check against a variable on the event sender" do
@@ -945,6 +979,20 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.new_ids == %{"new_0" => 0}
     assert updated_state.map_by_ids["new_0"]
 
+    # PUT a clone
+    params = [%{clone: map_tile.id, direction: "east", cloned: true}]
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
+    map_tile_1_3 = Instances.get_map_tile(updated_state, %{row: 1, col: 3})
+    assert map_tile_1_3.parsed_state[:cloned]
+    assert Map.take(map_tile_1_3, [:character, :color]) == Map.take(map_tile, [:character, :color])
+    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 3, rendering: "<div style='color: orange'>.</div>", row: 1}]}]]
+
+    # PUT a clone noop if bad clone id
+    params = [%{clone: 12312312312, direction: "east", cloned: true}]
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
+    assert updated_state == runner_state.state
+    assert program.broadcasts == []
+
     # PUT with shape kwargs
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "line", include_origin: false}]
     %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
@@ -1245,22 +1293,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "SEND message to event sender" do
     sender = %{map_tile_id: 9001}
-    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
+    stubbed_object = Map.put(%MapTile{id: 1337, name: "test"}, :parsed_state, %{})
     state = %Instances{map_by_ids: %{1337 => stubbed_object}}
-    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
+    stubbed_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
 
     %Runner{state: state} = Command.send_message(%Runner{object_id: stubbed_object.id, event_sender: sender, state: state}, ["touch", [:event_sender]])
-    assert state.program_messages == [{9001, "touch", stubbed_id}]
+    assert state.program_messages == [{9001, "touch", stubbed_sender}]
 
     # program_messages has more recent messages at the front of the list
     %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: sender}, ["tap", [:event_sender]])
-    assert state.program_messages == [{9001, "tap", stubbed_id}, {9001, "touch", stubbed_id}]
+    assert state.program_messages == [{9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
 
     # also works when sender was a player
     player = %Location{map_tile_instance_id: 12345}
-    stubbed_player_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
+    stubbed_player_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: stubbed_object.name}
     %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: player}, ["tap", [:event_sender]])
-    assert state.program_messages == [{12345, "tap", stubbed_player_id}, {9001, "tap", stubbed_id}, {9001, "touch", stubbed_id}]
+    assert state.program_messages == [{12345, "tap", stubbed_player_sender}, {9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
 
     # doesnt break when event sender is junk
     state = %Instances{map_by_ids: %{1337 => stubbed_object}}
@@ -1270,22 +1318,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "SEND message to others" do
     program = program_fixture()
-    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
-    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
+    stubbed_object = Map.put(%MapTile{id: 1337, name: "test"}, :parsed_state, %{})
+    stubbed_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
     state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}, map_by_ids: %{1337 => stubbed_object}}
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["tap", "others"])
-    assert state.program_messages == [{9001, "tap", stubbed_id}, {55, "tap", stubbed_id}, {1, "tap", stubbed_id}]
+    assert state.program_messages == [{9001, "tap", stubbed_sender}, {55, "tap", stubbed_sender}, {1, "tap", stubbed_sender}]
   end
 
   test "SEND message to all" do
     program = program_fixture()
-    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
-    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
+    stubbed_object = Map.put(%MapTile{id: 1337, name: "test"}, :parsed_state, %{})
+    stubbed_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
     state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}, map_by_ids: %{1337 => stubbed_object}}
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["dance", "all"])
-    assert state.program_messages == [{9001, "dance", stubbed_id}, {1337, "dance", stubbed_id}, {55, "dance", stubbed_id}, {1, "dance", stubbed_id}]
+    assert state.program_messages == [{9001, "dance", stubbed_sender}, {1337, "dance", stubbed_sender}, {55, "dance", stubbed_sender}, {1, "dance", stubbed_sender}]
   end
 
   test "SEND message to tiles in a direction" do
@@ -1295,20 +1343,20 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 998,  character: ".", row: 2, col: 2, z_index: -1, script: ""})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
-    obj_id = %{map_tile_id: obj.id, parsed_state: obj.parsed_state}
+    sender = %{map_tile_id: obj.id, parsed_state: obj.parsed_state, name: nil}
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "north"])
-    assert updated_state.program_messages == [{123, "touch", obj_id}, {255, "touch", obj_id}]
+    assert updated_state.program_messages == [{123, "touch", sender}, {255, "touch", sender}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "south"])
-    assert updated_state.program_messages == [{999, "touch", obj_id}]
+    assert updated_state.program_messages == [{999, "touch", sender}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "here"])
-    assert updated_state.program_messages == [{998, "touch", obj_id}, {1337, "touch", obj_id}]
+    assert updated_state.program_messages == [{998, "touch", sender}, {1337, "touch", sender}]
 
     # Also works if the direction is in a state variable
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :facing}])
-    assert updated_state.program_messages == [{123, "touch", obj_id}, {255, "touch", obj_id}]
+    assert updated_state.program_messages == [{123, "touch", sender}, {255, "touch", sender}]
 
     # Doesnt break if nonexistant state var
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :fake}])
@@ -1321,16 +1369,28 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
-    obj_id = %{map_tile_id: obj.id, parsed_state: %{}}
+    sender = %{map_tile_id: obj.id, parsed_state: %{}, name: nil}
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "a"])
-    assert updated_state.program_messages == [{255, "name", obj_id}, {123, "name", obj_id}]
+    assert updated_state.program_messages == [{255, "name", sender}, {123, "name", sender}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "C"])
-    assert updated_state.program_messages == [{999, "name", obj_id}]
+    assert updated_state.program_messages == [{999, "name", sender}]
 
     %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "noname"])
     assert updated_state.program_messages == []
+  end
+
+  test "SEQUENCE" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+
+    program = program_fixture("#sequence c, red, gold, blue")
+    runner_state = %Runner{object_id: map_tile.id, state: state, program: program}
+
+    %Runner{state: updated_state, program: updated_program} = Command.sequence(runner_state, ["c", "red", "gold", "blue"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert updated_map_tile.parsed_state[:c] == "red"
+    assert %{ 1 => [:sequence, ["c", "gold", "blue", "red"]] } = updated_program.instructions
   end
 
   test "SHIFT" do
@@ -1557,6 +1617,46 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
   end
 
+  test "TARGET_PLAYER" do
+    # setup
+    state = %Instances{}
+    {_, state} = Instances.create_player_map_tile(state,
+                                                  %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "A"},
+                                                  %Location{})
+    {_, state} = Instances.create_player_map_tile(state,
+                                                  %MapTile{id: 43202, row: 3, col: 14, z_index: 0, character: "B"},
+                                                  %Location{})
+    {_, state} = Instances.create_player_map_tile(state,
+                                                  %MapTile{id: 43203, row: 3, col: 3, z_index: 0, character: "C"},
+                                                  %Location{})
+    {object_1, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: "X", row: 2, col: 3, z_index: 0, state: ""})
+    {object_2, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: "Y", row: 5, col: 20, z_index: 0, state: ""})
+
+    # nearest uses the nearest player tile
+    runner_state = %Runner{object_id: object_1.id, state: state}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_1)
+    target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
+    assert Enum.member?(["A", "C"], target_tile.character)
+
+    runner_state = %Runner{object_id: object_2.id, state: state}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_2)
+    target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
+    assert target_tile.character == "B"
+
+    # random uses a random player tile
+    runner_state = %Runner{object_id: object_2.id, state: state}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["random"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_2)
+    target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
+    assert Enum.member?(["A", "B", "C"], target_tile.character)
+
+    # bad parameter does not cause a crash, even though the program validator should make this not possible
+    # under normal conditions
+    assert runner_state == Command.target_player(runner_state, ["qwerty"])
+  end
+
   test "TERMINATE" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
     program = program_fixture()
@@ -1628,8 +1728,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "TRANSPORT" do
     # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
     defmodule TravelMock1 do
-      def passage(%Location{} = player_location, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+        assert nil == passage
         assert level_number == 4
         assert match_key == nil
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
@@ -1637,8 +1738,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       end
     end
     defmodule TravelMock2 do
-      def passage(%Location{} = player_location, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+        assert %{row: 1, col: 1} = passage
         assert level_number == 2
         assert match_key == "red"
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
@@ -1656,7 +1758,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, "up"], TravelMock1)
     assert updated_state.player_locations == %{}
     # "down" with a match key
-    assert %Runner{state: updated_state} = Command.transport(%Runner{state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
+    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor.id, state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
     assert updated_state.player_locations == %{}
     # hard coded level number
     assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, 4], TravelMock1)

@@ -62,10 +62,12 @@ defmodule DungeonCrawl.Scripting.Command do
       :remove       -> :remove
       :restore      -> :restore
       :send         -> :send_message
+      :sequence     -> :sequence
       :shift        -> :shift
       :shoot        -> :shoot
-      :terminate    -> :terminate
       :take         -> :take
+      :target_player -> :target_player
+      :terminate    -> :terminate
       :text         -> :text
       :transport    -> :transport
       :try          -> :try
@@ -509,10 +511,22 @@ defmodule DungeonCrawl.Scripting.Command do
     {new_runner_state, player_direction} = _direction_of_player(runner_state)
     _facing(new_runner_state, player_direction)
   end
+  def facing(%Runner{} = runner_state, [direction]) when is_tuple(direction) do
+    direction = resolve_variable(runner_state, direction)
+    facing(runner_state, [direction])
+  end
   def facing(%Runner{object_id: object_id, state: state} = runner_state, [change]) when is_valid_orthogonal_change(change) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = Direction.change_direction(object.parsed_state[:facing], change)
     _facing(runner_state, direction)
+  end
+  def facing(%Runner{object_id: object_id, state: state} = runner_state, [tile_id]) when is_integer(tile_id) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    if target = Instances.get_map_tile_by_id(state, %{id: tile_id}) do
+      _facing(runner_state, Instances.direction_of_map_tile(state, object, target))
+    else
+      runner_state
+    end
   end
   def facing(runner_state, [direction]) do
     _facing(runner_state, direction)
@@ -526,15 +540,16 @@ defmodule DungeonCrawl.Scripting.Command do
   Conditionally jump to a label. Program counter (pc) will be set to the location of the first active label
   if the expression evaluates to true. Otherwise the pc will not be changed. If there is no active matching label,
   the pc will also be unchanged.
+
+  When no label is given, or an integer is given instead, if the expression is false, then the following N instruction(s)
+  will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).
   """
-  def jump_if(%Runner{program: program} = runner_state, [[neg, left, op, right], label]) do
-    # first active matching label
-    with line_number when not is_nil(line_number) <- Program.line_for(program, label),
-         true <- Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right)) do
-      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
-    else
-      _ -> runner_state
-    end
+  def jump_if(%Runner{} = runner_state, [check]) do
+    jump_if(runner_state, [check, 1])
+  end
+  def jump_if(%Runner{} = runner_state, [[neg, left, op, right], label]) do
+    check = Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right))
+    _jump_if(runner_state, check, label)
   end
   def jump_if(%Runner{} = runner_state, [[left, op, right], label]) do
     jump_if(runner_state, [["", left, op, right], label])
@@ -545,6 +560,20 @@ defmodule DungeonCrawl.Scripting.Command do
   def jump_if(%Runner{} = runner_state, [left, label]) do
     jump_if(runner_state, [["", left, "==", true], label])
   end
+
+  defp _jump_if(%Runner{program: program} = runner_state, true, label) when is_binary(label) do
+    # TODO: look into having this send the label, since all messages will get processed (might only do up to 10 messages
+    #       to prevent infinite loops from crashing the instance.
+    if line_number = Program.line_for(program, label)  do
+      %{ runner_state | program: %{program | pc: line_number, lc: 0} }
+    else
+      runner_state
+    end
+  end
+  defp _jump_if(%Runner{program: program} = runner_state, false, skip) when is_integer(skip) do
+    %{ runner_state | program: %{program | pc: program.pc + skip, lc: 0} }
+  end
+  defp _jump_if(%Runner{} = runner_state, _, _), do: runner_state
 
   @doc """
   Locks the object. This will prevent it from receiving and acting on any
@@ -665,7 +694,7 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       Program.line_for(program, "THUD") ->
-        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state, name: blocking_obj.name},
                                   else: %{map_tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
@@ -683,7 +712,7 @@ defmodule DungeonCrawl.Scripting.Command do
     wait_cycles = StateValue.get_int(object, :wait_cycles, 5)
     cond do
       Program.line_for(program, "THUD") ->
-        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state},
+        sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state, name: blocking_obj.name},
                                   else: %{map_tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
@@ -777,30 +806,32 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _push(%Runner{state: state, program: program} = runner_state, object, direction, {row_d, col_d}, range) when range >= 0 do
-    case Instances.get_map_tile(state, %{row: object.row + row_d * range, col: object.col + col_d * range}) do
+    case Instances.get_map_tiles(state, %{row: object.row + row_d * range, col: object.col + col_d * range}) do
       nil ->
         _push(runner_state, object, direction, {row_d, col_d}, range - 1)
 
-      pushee ->
-        case pushee.parsed_state[:pushable] &&
-             pushee.id != object.id &&
-             Move.go(pushee, Instances.get_map_tile(state, pushee, direction), state) do
-          {:ok, tile_changes, new_state} ->
+      pushees ->
+        Enum.reduce(pushees, runner_state, fn(pushee, runner_state) ->
+          case pushee.parsed_state[:pushable] &&
+               pushee.id != object.id &&
+               Move.go(pushee, Instances.get_map_tile(state, pushee, direction), state) do
+            {:ok, tile_changes, new_state} ->
 
-            message = ["tile_changes",
-                       %{tiles: tile_changes
-                                |> Map.to_list
-                                |> Enum.map(fn({_coords, tile}) ->
-                                  Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                                end)}]
+              message = ["tile_changes",
+                         %{tiles: tile_changes
+                                  |> Map.to_list
+                                  |> Enum.map(fn({_coords, tile}) ->
+                                    Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                                  end)}]
 
-            %Runner{ runner_state |
-                     program: %{program | broadcasts: [message | program.broadcasts] },
-                     state: new_state}
+              %Runner{ runner_state |
+                       program: %{program | broadcasts: [message | program.broadcasts] },
+                       state: new_state}
 
-          _ ->
-            runner_state
-        end
+            _ ->
+              runner_state
+          end
+        end)
         |> _push(object, direction, {row_d, col_d}, range - 1)
     end
   end
@@ -810,6 +841,11 @@ defmodule DungeonCrawl.Scripting.Command do
   @doc """
   Puts a new tile specified by the given `slug` in the given `direction`. If no `direction` is given, then the new tile
   is placed on top of the tile associated with the running script.
+
+  Alternatively, instead of putting a slug, an existing tile may be used instead, by using `clone` and the id
+  of the tile to use as a base (or just a straight up clone). If there is a script on the cloned tile, the script
+  will start from the top (and not where the script is currently executing on the original tile).
+
   Additionally, instead of a direction, `row` and `col` coordinates can be supplied to put the tile in a specific
   location. Direction can also be given to put the tile one square from the given coordinates in that direction.
   If both `row` and `col` are not given, then neither are used. If the specified location or direction is invalid/off the map,
@@ -828,11 +864,30 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>J</div>"}]}] ]},
             object_id: object_id,
             state: updated_state }
+    iex> Command.put(%Runner{}, [%{clone:  {:state_variable, :clone_id}, direction:  {:state_variable, :facing}}])
+    %Runner{}
   """
-  def put(%Runner{} = runner_state, [params]) do
+  def put(%Runner{state: state} = runner_state, [%{clone: clone_tile} = params]) do
+    params = resolve_variable_map(runner_state, params)
+    clone_tile = resolve_variable(runner_state, clone_tile)
+    clone_base_tile = Instances.get_map_tile_by_id(state, %{id: clone_tile})
+
+    if clone_base_tile do
+      attributes = Map.take(clone_base_tile, [:character, :color, :background_color, :state, :script, :name, :tile_template_id])
+                   |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
+      new_state_attrs = resolve_variable_map(runner_state,
+                                             Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape, :clone] )))
+      _put(runner_state, attributes, params, new_state_attrs)
+    else
+      runner_state
+    end
+  end
+
+  def put(%Runner{} = runner_state, [%{slug: _slug} = params]) do
+    params = resolve_variable_map(runner_state, params)
     slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
 
-    if slug_tile  do
+    if slug_tile do
       attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
                    |> Map.put(:tile_template_id, slug_tile.id)
                    |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
@@ -900,7 +955,6 @@ defmodule DungeonCrawl.Scripting.Command do
     z_index = if target_tile = Instances.get_map_tile(state, map_tile_attrs), do: target_tile.z_index + 1, else: 0
     map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
 
-#    case DungeonCrawl.DungeonInstances.create_map_tile(map_tile_attrs) do
     case DungeonCrawl.DungeonInstances.new_map_tile(map_tile_attrs) do
       {:ok, new_tile} -> # all that other stuff below
         {new_tile, state} = Instances.create_map_tile(state, new_tile)
@@ -1224,11 +1278,31 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state}} |
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state, name: object.name}} |
                                                               state.program_messages] } },
       label,
       program_object_ids
     )
+  end
+
+  @doc """
+  Sets the specified state variable to the next value in the given sequence. The first parameter is the
+  state variable, and the subsequent parameters are the sequence values. As a side effect this will
+  update the instruction and move the HEAD element of the sequence to the tail.
+
+  ## Examples
+
+    iex> Command.sequence(%Runner{}, ["foo", "red", "yellow", "blue"])
+    %Runner{ state: %{...object => %{parsed_state => %{foo: "red"} } },
+             program: %{instructions: %{program.pc => [:sequence, ["foo", ["yellow", "blue", "red"]] ] } }
+  """
+  def sequence(%Runner{} = runner_state, [state_variable | [head | tail]]) do
+    runner_state = change_state(runner_state, [String.to_atom(state_variable), "=", head])
+
+    updated_instruction = [:sequence, [state_variable | Enum.reverse([ head | Enum.reverse(tail)])] ]
+    instructions = %{ runner_state.program.instructions | runner_state.program.pc => updated_instruction }
+
+    %{ runner_state | program: %{ runner_state.program | instructions: instructions } }
   end
 
   @doc """
@@ -1417,6 +1491,54 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  Targets a player. If there is already a target player (target_player_map_tile_id), it will be replaced
+  by this command. Two different parameters may be used; nearest and random. Nearest will target the closest player
+  (if more than one are the same distance, one is chosen at random). Random picks a random player as the target.
+  When no suitable targets are to be found, @target_player_map_tile_id is set to nil
+  """
+  def target_player(%Runner{state: %{player_locations: locs}} = runner_state, _) when locs == %{} do
+    change_state(runner_state, [:target_player_map_tile_id, "=", nil])
+  end
+
+  def target_player(%Runner{} = runner_state, [what]) do
+    _target_player(runner_state, String.downcase(what))
+  end
+
+  defp _target_player(%Runner{object_id: object_id, state: state} = runner_state, "nearest") do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    player_map_tile = \
+    Map.keys(state.player_locations)
+    |> Enum.map(fn(map_tile_id) ->
+         map_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+         {Direction.distance(map_tile, object), map_tile}
+       end)
+    |> Enum.reduce([1000, []], fn {distance, map_tile}, [closest, map_tiles] ->
+         cond do
+           distance < closest ->
+             [distance, [ map_tile ] ]
+
+           distance == closest ->
+             [closest, [ map_tile | map_tiles ]]
+
+           true ->
+             [closest, map_tiles]
+         end
+       end)
+    |> Enum.at(1)
+    |> Enum.random()
+
+    change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile.id])
+  end
+
+  defp _target_player(%Runner{state: state} = runner_state, "random") do
+    map_tile_ids = Map.keys(state.player_locations)
+    player_map_tile_id = Enum.random(map_tile_ids)
+    change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile_id])
+  end
+
+  defp _target_player(%Runner{} = runner_state, _), do: runner_state
+
+  @doc """
   Kills the script for the object. Returns a dead program, and deletes the script from the object (map_tile instance).
 
   ## Examples
@@ -1553,8 +1675,9 @@ defmodule DungeonCrawl.Scripting.Command do
     _transport(runner_state, player_location, state.number - 1, match_key, travel_module)
   end
 
-  defp _transport(%Runner{state: state} = runner_state, player_location, level_number, match_key, travel_module) do
-    {:ok, state} = travel_module.passage(player_location, level_number, match_key, state)
+  defp _transport(%Runner{state: state, object_id: object_id} = runner_state, player_location, level_number, match_key, travel_module) do
+    passage = Instances.get_map_tile_by_id(state, %{id: object_id})
+    {:ok, state} = travel_module.passage(player_location, passage, level_number, match_key, state)
     %{ runner_state | state: state }
   end
 

@@ -85,7 +85,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
              end
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
-                |> Map.merge(%{health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
+                |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
     {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
 
     script = """
@@ -114,7 +114,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   def respawn(%Instances{} = state, player_tile) do
     new_coords = _relocated_coordinates(state, player_tile)
     {player_tile, state} = Instances.update_map_tile(state, player_tile, new_coords)
-    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false})
+    Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
   end
 
   @doc """
@@ -126,8 +126,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     _place(state, player_tile, location, new_coords)
   end
 
-  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, passage_match_key) do
-    new_coords = _relocated_coordinates(state, player_tile, passage_match_key)
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, %{} = passage, passage_match_key) do
+    new_coords = _relocated_coordinates(state, player_tile, passage, passage_match_key)
     _place(state, player_tile, location, new_coords)
   end
 
@@ -152,7 +152,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     %{row: row, col: col, z_index: z_index}
   end
 
-  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, passage_match_key) do
+  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, passage, passage_match_key) do
     matched_exits = if is_nil(passage_match_key),
                          do:   passage_exits,
                          else: Enum.filter(passage_exits, fn {_id, match_key} -> match_key == passage_match_key end)
@@ -161,7 +161,16 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
         _relocated_coordinates(state, player_tile)
 
       exit_ids ->
-        passage_exit_id = Enum.random(exit_ids)
+        passage_exit_id =\
+        if length(exit_ids) > 1 do
+          Enum.reject(exit_ids, fn id ->
+            Map.take(Instances.get_map_tile_by_id(state, %{id: id}) || %{}, [:row, :col]) == Map.take(passage, [:row, :col])
+          end)
+          |> Enum.random()
+        else
+          Enum.random(exit_ids)
+        end
+
         spawn_location = Instances.get_map_tile_by_id(state, %{id: passage_exit_id})
         top_tile = Instances.get_map_tile(state, spawn_location)
         z_index = if top_tile, do: top_tile.z_index + 1, else: 0

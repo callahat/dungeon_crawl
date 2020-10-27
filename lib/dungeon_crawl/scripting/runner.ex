@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.StateValue
 
-  defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil
+  defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil, msg_count: 0
 
 require Logger
   @doc """
@@ -27,17 +27,26 @@ require Logger
     end
   end
 
-  def run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
-    if program.messages == [] || program.status == :alive || program.status == :dead do
-      # todo: maybe have the check for active tile live elsewhere
-      if Instances.get_map_tile_by_id(state, %{id: object_id}) do
-        _run(runner_state)
-      else
-        runner_state
-      end
-    else
-      [{label, sender} | messages ] = program.messages
-      run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages } }, label)
+  def run(%Runner{program: program, object_id: object_id, state: state, msg_count: msg_count} = runner_state) do
+    cond do
+      program.messages == [] || program.status == :alive || program.status == :dead ->
+        # todo: maybe have the check for active tile live elsewhere
+        if Instances.get_map_tile_by_id(state, %{id: object_id}) do
+          _run(runner_state)
+        else
+          runner_state
+        end
+
+      program.messages != [] && msg_count < 5 -> # a break to force bad scripts/infinite send loops from locking the instance indefinitely
+        [{label, sender} | messages ] = program.messages
+        if Program.line_for(program, label) do
+          run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }, msg_count: msg_count+1}, label)
+        else
+          # discard the unrespondable message
+          run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }, msg_count: msg_count+1})
+        end
+
+      true -> runner_state
     end
   end
 
@@ -48,7 +57,7 @@ require Logger
         [command, params] = program.instructions[program.pc]
 # Logging is expensive, comment/remove later
 if System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
-Logger.info "Running:"
+Logger.info "*******************************************Running:***************************************************"
 Logger.info inspect object_id
 Logger.info inspect command
 Logger.info inspect params
@@ -58,6 +67,7 @@ Logger.info "event sender:"
 Logger.info inspect runner_state.event_sender
 Logger.info "instance state:"
 Logger.info inspect state.state_values
+Logger.info "msg_count: " <> inspect(runner_state.msg_count)
 end
         runner_state = apply(Command, command, [runner_state, params])
 

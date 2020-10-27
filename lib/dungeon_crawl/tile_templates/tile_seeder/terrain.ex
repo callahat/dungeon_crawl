@@ -23,20 +23,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         public: true,
         active: true,
         script: """
-                /i
                 :top
-                #SHIFT counterclockwise
-                #BECOME character: |
                 /i
                 #SHIFT counterclockwise
-                #BECOME character: \\
-                /i
-                #SHIFT counterclockwise
-                #BECOME character: -
-                /i
-                #SHIFT counterclockwise
-                #BECOME character: /
-                /i
+                #SEQUENCE char, |, \\, -, /
+                #BECOME character: @char
                 #send top
                 """
     })
@@ -52,21 +43,61 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         public: true,
         active: true,
         script: """
-                /i
                 :top
-                #SHIFT clockwise
-                #BECOME character: |
                 /i
                 #SHIFT clockwise
-                #BECOME character: /
-                /i
-                #SHIFT clockwise
-                #BECOME character: -
-                /i
-                #SHIFT clockwise
-                #BECOME character: \\
-                /i
+                #SEQUENCE char, |, /, -, \\
+                #BECOME character: @char
                 #send top
+                """
+    })
+  end
+
+  def forest() do
+    TileTemplates.update_or_create_tile_template!(
+      "forest",
+      %{character: "▓",
+        name: "Forest",
+        description: "A thick forest",
+        state: "blocking: true",
+        color: "green",
+        public: true,
+        active: true,
+        script: """
+                #end
+                :touch
+                #if ! ?sender@player, DONE
+                #become character: ░, blocking: false
+                You blaze a trail
+                #terminate
+                :done
+                """
+    })
+  end
+
+  def lava() do
+    TileTemplates.update_or_create_tile_template!(
+      "lava",
+      %{character: "░",
+        name: "Lava",
+        description: "Its molten rock",
+        state: "blocking: true, low: true, soft: true, wait_cycles: 20",
+        color: "black",
+        background_color: "red",
+        public: true,
+        active: true,
+        script: """
+                :main
+                #random char, ▒, ░, ░
+                #random bc, red, red, darkorange, orange
+                #become character: @char, background_color: @bc
+                /i
+                #send main
+                #end
+                :touch
+                #if ! ?sender@player, main
+                That lava looks hot, better not touch it.
+                #send main
                 """
     })
   end
@@ -83,12 +114,53 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def ricochet() do
+    TileTemplates.update_or_create_tile_template!(
+      "ricochet",
+      %{character: "*",
+        name: "Ricochet",
+        description: "Projectiles might bounce off this, watch out",
+        state: "ricochet: true, blocking: true",
+        public: true,
+        active: true,
+    })
+  end
+
+  def slider_horizontal() do
+    TileTemplates.update_or_create_tile_template!(
+      "slider_horizontal",
+      %{character: "↔",
+        name: "Slider Horizontal",
+        description: "It can be moved north and south",
+        state: "blocking: true, pushable: ew",
+        public: true,
+        active: true
+    })
+  end
+
+  def slider_vertical() do
+    TileTemplates.update_or_create_tile_template!(
+      "slider_vertical",
+      %{character: "↕",
+        name: "Slider Vertical",
+        description: "It can be moved north and south",
+        state: "blocking: true, pushable: ns",
+        public: true,
+        active: true
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def boulder(), do: unquote(__MODULE__).boulder()
       def counter_clockwise_conveyor(), do: unquote(__MODULE__).counter_clockwise_conveyor()
       def clockwise_conveyor(), do: unquote(__MODULE__).clockwise_conveyor()
+      def forest(), do: unquote(__MODULE__).forest()
+      def lava(), do: unquote(__MODULE__).lava()
       def grave(), do: unquote(__MODULE__).grave()
+      def ricochet(), do: unquote(__MODULE__).ricochet()
+      def slider_horizontal(), do: unquote(__MODULE__).slider_horizontal()
+      def slider_vertical(), do: unquote(__MODULE__).slider_vertical()
     end
   end
 end

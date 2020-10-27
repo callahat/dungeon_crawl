@@ -6,10 +6,32 @@
   <% end %>
 
   <div class="row">
+    <div class="col-md-12">
+      <div class="form-group">
+        <%= label f, :slug, class: "control-label" %>
+        <%= text_input f, :slug, class: "form-control", disabled: :disabled %>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="form-group">
+        <%= label f, :name, class: "control-label" %>
+        <%= text_input f, :name, class: "form-control" %>
+        <%= error_tag f, :name %>
+      </div>
+    </div>
+
     <div class="col-md-2">
       <div class="form-group">
         <%= label f, :character, class: "control-label" %>
-        <%= text_input f, :character, class: "form-control", limit: 1 %>
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="show_character_picker">?</span>
+          </div>
+          <%= text_input f, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+        </div>
         <%= error_tag f, :character %>
       </div>
     </div>
@@ -23,23 +45,36 @@
     </div>
   </div>
 
-  <div class="form-group">
-    <%= label f, :slug, class: "control-label" %>
-    <%= text_input f, :slug, class: "form-control", disabled: :disabled %>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="form-group">
+        <%= label f, :color, class: "control-label" %>
+        <%= text_input f, :color, class: "form-control" %>
+        <%= error_tag f, :color %>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="form-group">
+        <%= label f, :background_color, class: "control-label" %>
+        <%= text_input f, :background_color, class: "form-control" %>
+        <%= error_tag f, :background_color %>
+      </div>
+    </div>
   </div>
 
-  <div class="form-group">
-    <%= label f, :name, class: "control-label" %>
-    <%= text_input f, :name, class: "form-control" %>
-    <%= error_tag f, :name %>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="form-group">
+        <%= label f, :description, class: "control-label" %>
+        <%= text_input f, :description, class: "form-control" %>
+        <%= error_tag f, :description %>
+      </div>
+    </div>
   </div>
 
-  <div class="form-group">
-    <%= label f, :description, class: "control-label" %>
-    <%= text_input f, :description, class: "form-control" %>
-    <%= error_tag f, :description %>
-  </div>
-
+  <div class="row">
+    <div class="col-md-3">
   <%= if @conn.assigns.current_user.is_admin && (f.data.user_id == @conn.assigns.current_user.id || f.data.user_id == nil) do %>
   <div class="form-group">
     <label class="control-label" for="self_owned">Owned by self</label>
@@ -47,35 +82,34 @@
     <input id="self_owned" name="self_owned" type="checkbox" value="true" <%= if f.data.user_id == @conn.assigns.current_user.id, do: "checked" %>>
   </div>
   <% end %>
-
-  <div class="form-group">
-    <%= label f, :public, class: "control-label" %>
-    <%= checkbox f, :public %>
-    <%= error_tag f, :public %>
+    </div>
+    <div class="col-md-3">
+      <div class="form-group">
+        <%= label f, :public, class: "control-label" %>
+        <%= checkbox f, :public %>
+        <%= error_tag f, :public %>
+      </div>
+    </div>
   </div>
 
-  <div class="form-group">
-    <%= label f, :color, class: "control-label" %>
-    <%= text_input f, :color, class: "form-control" %>
-    <%= error_tag f, :color %>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="form-group">
+        <%= label f, :state, class: "control-label" %>
+        <%= text_input f, :state, class: "form-control" %>
+        <%= error_tag f, :state %>
+      </div>
+    <div>
   </div>
 
-  <div class="form-group">
-    <%= label f, :background_color, class: "control-label" %>
-    <%= text_input f, :background_color, class: "form-control" %>
-    <%= error_tag f, :background_color %>
-  </div>
-
-  <div class="form-group">
-    <%= label f, :state, class: "control-label" %>
-    <%= text_input f, :state, class: "form-control" %>
-    <%= error_tag f, :state %>
-  </div>
-
-  <div class="form-group">
-    <%= label f, :script, class: "control-label" %>
-    <%= textarea f, :script, class: "form-control" %>
-    <%= error_pre_tag f, :script %>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="form-group">
+        <%= label f, :script, class: "control-label" %>
+        <%= textarea f, :script, class: "form-control" %>
+        <%= error_pre_tag f, :script %>
+      </div>
+    </div>
   </div>
 
   <div class="form-group">

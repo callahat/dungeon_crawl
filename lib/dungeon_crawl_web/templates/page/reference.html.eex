@@ -58,6 +58,15 @@
       <td>When true, this map tile will be removed if it receives the "SHOT" or "BOMBED" message.</td>
     </tr>
     <tr>
+      <td>teleporter</td>
+      <td>This indicates that the tile is a teleporter. For it to be active, the tile also needs "facing" set.
+          When a player moves (or something is pushed) onto one of these tiles from the opposite direction direction
+          it is facing, it may be teleported to a tile farther away but still in line. Candidate destinations include
+          the tile past the teleporter, and tiles on the other side of other teleporters facing the activated transporter.
+          If no candidates are available, it will not transport (pushables may be pushed out of the way on the teleport
+          movement).</td>
+    </tr>
+    <tr>
       <td>not_pushing</td>
       <td>If set to true, this tile will not push tiles when moving. It will treat a pushable tile as non blocking
           (unless that tile actually has the blocking value true).</td>
@@ -157,13 +166,15 @@
     <tr>
       <td>?&lt;target&gt;@</td>
       <td>Other's State Value</td>
-      <td>This is for setting state values of another object. There may be instances when the GIVE or TAKE
+      <td>Not to be confused with the Shorthand for try.
+          This is for setting state values of another object. There may be instances when the GIVE or TAKE
           commands are insufficient. The target can be a direction, "sender" (for the event sender if applicable)
           or the id of the target object. Additionally, {@state_val} can be used to determine the target from
           a state value of the current object (which should resolve to a direction or object id). Cannot target a
           player object. Additionally, if the target is invalid (ie, nonexistant, a player, etc), this will act
           as a noop. Its also important to note that this will not trigger any side effects (such as killing and
-          removing an object from the board when its health reaches zero), unlike the TAKE command.</td>
+          removing an object from the board when its health reaches zero), unlike the TAKE command.
+          Some of these are read only; such as ?random@[number] which cannot be assigned a different value.</td>
       <td><pre class="script">?north@locked = true</pre>
           <pre class="script">?{@facing}@blocking = false</pre>
           <pre class="script">?12345@health += 10</pre></td>
@@ -235,7 +246,7 @@
   <b>Variable prefixes</b>
 
   <p>Parameters can be a literal value, and sometimes can be a variable. A variable will have a prefix, denoting
-     its type</p>
+     its type.</p>
 
   <table class="table table-sm table-bordered">
     <tr>
@@ -256,15 +267,27 @@
     </tr>
     <tr>
       <td>?</td>
-      <td>Another map tile. `?sender` refers to the map tile that sent the last message.
+      <td>Not to be confused with shorthand TRY (as mentioned in a section above).
+          Another map tile or thing. `?sender` refers to the map tile that sent the last message.
           Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
           that direction the map tile/object that sent the last message. Some commands require a
           tile, and some commands require a value. An interpolated direction may come from the map
-          tile's state value by using `?{@<state variable>}@`.</td>
+          tile's state value by using `?{@<state variable>}@`.<br/>
+          `?random@{upper bound}` may be used to get a random integer from between 1 and the upper
+          bound. This can be useful for "random" chance in IF commands, to maybe go to a label
+          only some of the time.<br/>
+          `?any_player@is_facing` is special. `is_facing` is special in that it is a check for a
+          target being directly in line (ie, when the object is facing west, the target must be west and on
+          the same row, a row above or below will not return true). Instead of `any_player` a specific player
+          map tile id may be used (`?{ @target_player_map_tile_id }@is_facing`) to only return true for a
+          specific player (or other map tile).</td>
       <td><pre class="script">?sender</pre>
           <pre class="script">?sender@health</pre>
           <pre class="script">?south@blocking</pre>
-          <pre class="script">?{@facing}@blocking</pre></td>
+          <pre class="script">?{@facing}@blocking</pre>
+          <pre class="script">?random@5</pre>
+          <pre class="script">?any_player@is_facing</pre>
+          <pre class="script">?{ @target_player_map_tile_id }@is_facing</pre></td>
     </tr>
     <tr>
       <td>&lt;prefix&gt;&lt;variable&gt;+&lt;string&gt;</td>
@@ -382,13 +405,17 @@
     </tr>
     <tr>
       <td>IF</td>
-      <td>list - 2</td>
+      <td>list - 1 - 2</td>
       <td>Conditionally jump to a label. If the expression evalutes to true, instructions will be executed
-          starting next at the first active matching label (nothing happens if there is no matching active label).</td>
+          starting next at the first active matching label (nothing happens if there is no matching active label).<br/>
+          When no label is given, or an integer is given instead, if the expression is false, then the following N instruction(s)
+          will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).</td>
       <td><pre class="script">#IF @open, ALREADY_OPEN</pre>
           <pre class="script">#IF ?sender@blocking, TOUCH</pre>
           <pre class="script">#IF @timer > 0, CONTINUE</pre>
-          <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre></td>
+          <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre>
+          <pre class="script">#IF @north</pre>
+          <pre class="script">#IF @skiptext, 10</pre></td>
     </tr>
     <tr>
       <td>LOCK</td>
@@ -430,6 +457,11 @@
       <td>KWARGS</td>
       <td>Puts a new tile specified by the given "slug" in the given "direction". If no "direction" is given, then the new tile
           is placed on top of the tile associated with the running script.
+
+          Alternatively, instead of putting a slug, an existing tile may be used instead, by using `clone` and the id
+          of the tile to use as a base (or just a straight up clone). If there is a script on the cloned tile, the script
+          will start from the top (and not where the script is currently executing on the original tile).
+
           Additionally, instead of a direction, "row" and "col" coordinates can be supplied to put the tile in a specific
           location. Direction can also be given to put the tile one square from the given coordinates in that direction.
           If both "row" and "col" are not given, then neither are used. If the specified location or direction is invalid/off the map,
@@ -510,6 +542,18 @@
       <td><pre class="script">#SEND touch, ?sender</pre>
           <pre class="script">#SEND close, all</pre>
           <pre class="script">#SEND done</pre></td>
+    </tr>
+    <tr>
+      <td>SEQUENCE</td>
+      <td>list - 2 or more</td>
+      <td>Sets the specified state variable to the next value in the given sequence. The first parameter is the
+          state variable, and the subsequent parameters are the sequence values. Starting with the first item
+          in the list, each time this command runs it sets the state value to that item in the sequence. Ie,
+          first time it runs, the state value is set to the first item in the sequence, the second time it is
+          set to the second item in the sequence, etc. When the last item has been assigned, it starts back over
+          at the first item</td>
+      <td><pre class="script">#SEQUENCE c, red, blue</pre>
+          <pre class="script">#SEQUENCE count, 9, 8, 6, 3, 1</pre></td>
     </tr>
     <tr>
       <td>SHIFT</td>

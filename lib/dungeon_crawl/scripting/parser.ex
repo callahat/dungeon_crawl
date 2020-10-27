@@ -356,7 +356,8 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   # conditional state value
   defp _normalize_conditional(param) do
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+]+?))?$/i,
+    # todo: look into relaxing the left/right charcters for the capture groups
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+ ]+?))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->
         _normalize_state_arg(left)
@@ -409,7 +410,11 @@ defmodule DungeonCrawl.Scripting.Parser do
           %{"sender" => "sender"}  -> :event_sender_variable
           %{"sender" => ""}        -> :event_sender_variable
 
+          %{"sender" => "any_player"} -> :any_player
+
           %{"sender" => direction} -> {:direction, direction}
+
+          _ -> :error
         end
 
       #_ -> :error # should not even get here given the regex should have failed out in an upstream function

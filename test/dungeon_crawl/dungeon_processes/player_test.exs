@@ -22,7 +22,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+            |> Enum.reduce(%Instances{instance_id: instance.id}, fn(dmt, state) ->
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
@@ -126,10 +126,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert placed_tile.map_instance_id == other_instance.id
   end
 
-  test "place/4", %{player_map_tile: player_map_tile, player_location: player_location} do
+  test "place/5", %{player_map_tile: player_map_tile, player_location: player_location} do
     {other_instance, other_state} = _setup_other_instance_and_state()
 
-    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, "red")
+    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, %{}, "red")
     placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
     assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
 
@@ -139,10 +139,32 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert placed_tile.map_instance_id == other_instance.id
   end
 
-  test "place/4 when no keys match", %{player_map_tile: player_map_tile, player_location: player_location} do
+  test "place/5 at the same level prefers different passage exit", %{state: state, player_map_tile: player_map_tile, player_location: player_location} do
+    passage_tiles = [%MapTile{name: "Passage", character: "0", row: 1, col: 1, z_index: 2, state: "blocking: true", color: "red"},
+                     %MapTile{name: "Passage", character: "0", row: 1, col: 6, z_index: 2, state: "blocking: true", color: "red"}]
+
+    state = Enum.reduce(passage_tiles, state, fn(dmt, state) ->
+              {_, state} = Instances.create_map_tile(state, dmt)
+              state
+            end)
+    passage_1 = Instances.get_map_tile(state, %{row: 1, col: 1})
+    passage_2 = Instances.get_map_tile(state, %{row: 1, col: 6})
+    state = %{ state | passage_exits: [{passage_1.id, "red"}, {passage_2.id, "red"}] }
+
+    {placed_player_map_tile, updated_state} = Player.place(state, player_map_tile, player_location, passage_1, "red")
+    placed_tile = Instances.get_map_tile(updated_state, placed_player_map_tile)
+    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
+
+    assert placed_tile.row == 1
+    assert placed_tile.col == 6
+    assert placed_tile.z_index == 3
+    assert placed_tile.map_instance_id == state.instance_id
+  end
+
+  test "place/5 when no keys match", %{player_map_tile: player_map_tile, player_location: player_location} do
     {other_instance, other_state} = _setup_other_instance_and_state()
 
-    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, "fakecolor")
+    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, %{}, "fakecolor")
     placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
     assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
 
@@ -153,10 +175,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert placed_tile.map_instance_id == other_instance.id
   end
 
-  test "place/4 when match_key nil can use any exit", %{player_map_tile: player_map_tile, player_location: player_location} do
+  test "place/5 when match_key nil can use any exit", %{player_map_tile: player_map_tile, player_location: player_location} do
     {other_instance, other_state} = _setup_other_instance_and_state()
 
-    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, nil)
+    {placed_player_map_tile, updated_other_state} = Player.place(other_state, player_map_tile, player_location, %{}, nil)
     placed_tile = Instances.get_map_tile(updated_other_state, placed_player_map_tile)
     assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_map_tile, [:character, :health, :ammo, :gems, :cash])
 
