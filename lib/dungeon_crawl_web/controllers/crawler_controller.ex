@@ -11,8 +11,9 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 2, leave_and_broadcast: 1]
 
-  plug :assign_player_location when action in [:show, :create, :join, :destroy]
-  plug :validate_not_crawling  when action in [:create, :join]
+  plug :assign_player_location when action in [:show, :create, :join, :invite, :destroy]
+  plug :validate_not_crawling  when action in [:create, :join, :invite]
+  plug :validate_passcode when action in [:invite]
   plug :validate_active_or_owner when action in [:join]
   plug :validate_autogen_solo_enabled when action in [:create]
   plug :validate_instance_limit when action in [:join]
@@ -22,8 +23,12 @@ defmodule DungeonCrawlWeb.CrawlerController do
   def show(conn, _opts) do
     player_location = conn.assigns[:player_location]
 
-    map_sets = if player_location, do: [], else: Dungeon.list_active_map_sets_with_player_count()
-                                           |> Enum.map(fn(%{map_set: map_set}) -> Repo.preload(map_set, [:dungeons, :locations, :map_set_instances]) end)
+    map_sets = if player_location,
+                 do: [],
+                 else: Dungeon.list_active_map_sets_with_player_count()
+                       |> Enum.map(fn(%{map_set: map_set}) -> Repo.preload(map_set, [:dungeons, :locations, :map_set_instances]) end)
+    map_set = if player_location, do: Repo.preload(player_location, [map_tile: [dungeon: :map_set]]).map_tile.dungeon.map_set,
+                                  else: nil
 
     player_stats = if player_location do
                      PlayerInstance.current_stats(player_location.user_id_hash)
@@ -31,7 +36,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
                      %{}
                    end
 
-    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats)
+    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats, map_set: map_set)
   end
 
   def create(conn, _opts) do
@@ -72,6 +77,13 @@ defmodule DungeonCrawlWeb.CrawlerController do
     |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
+  def invite(conn, %{"map_set_instance_id" => _msi_id, "passcode" => _passcode}) do
+    join_and_broadcast(conn.assigns.map_set, conn.assigns[:user_id_hash])
+
+    conn
+    |> redirect(to: Routes.crawler_path(conn, :show))
+  end
+
   def destroy(conn, _opts) do
     location = Player.get_location(conn.assigns[:user_id_hash])
 
@@ -99,7 +111,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
       conn
     else
       conn
-      |> put_flash(:info, "Already crawling dungeon")
+      |> put_flash(:error, "Already crawling dungeon")
       |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
     end
@@ -117,6 +129,22 @@ defmodule DungeonCrawlWeb.CrawlerController do
       |> put_flash(:error, "Cannot join that dungeon")
       |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
+    end
+  end
+
+  defp validate_passcode(%{params: %{"map_set_instance_id" => msi_id, "passcode" => passcode}} = conn, _opts) do
+    map_set_instance = Repo.preload(DungeonInstances.get_map_set!(msi_id), :map_set)
+
+    cond do
+      is_nil(map_set_instance) || map_set_instance.map_set.deleted_at || map_set_instance.passcode != passcode ->
+        conn
+        |> put_flash(:error, "Cannot join that instance")
+        |> redirect(to: Routes.crawler_path(conn, :show))
+        |> halt()
+      # todo: check for max players in instance -> cannot join, but ok to let them know the info is correct
+      true ->
+        conn
+        |> assign(:map_set, map_set_instance)
     end
   end
 

@@ -23,6 +23,7 @@ defmodule DungeonCrawlWeb.Router do
     get "/crawler", CrawlerController, :show
     post "/crawler", CrawlerController, :create
     post "/crawler/join", CrawlerController, :join
+    get "/crawler/:map_set_instance_id/:passcode", CrawlerController, :invite
     delete "/crawler", CrawlerController, :destroy
 
     resources "/user", UserController, singleton: true
