@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.DungeonInstances.MapSetTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.DungeonInstances.MapSet
   alias DungeonCrawl.Player.Location
 
   test "on_delete deletes all associated player_locations" do
@@ -11,5 +12,10 @@ defmodule DungeonCrawl.DungeonInstances.MapSetTest do
     assert Repo.delete(map_set_instance)
     refute Repo.get_by(Location, %{user_id_hash: player_loc.user_id_hash})
     assert Repo.preload(instance, :locations).locations == []
+  end
+
+  test "valid changeset populates passcode" do
+    changeset = MapSet.changeset(%MapSet{}, %{name: "test", map_set_id: 1})
+    assert changeset.changes.passcode =~ ~r/^\w{8}$/
   end
 end
