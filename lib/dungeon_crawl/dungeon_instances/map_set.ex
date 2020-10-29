@@ -9,7 +9,7 @@ defmodule DungeonCrawl.DungeonInstances.MapSet do
     field :name, :string
     field :state, :string
     field :passcode, :string
-    field :is_private, :boolean
+    field :is_private, :boolean, default: false
 
     belongs_to :map_set, DungeonCrawl.Dungeon.MapSet
     has_many :maps, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_set_instance_id, on_delete: :delete_all

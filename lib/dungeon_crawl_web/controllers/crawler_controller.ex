@@ -117,23 +117,9 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
-  defp validate_active_or_owner(%{params: %{"map_set_id" => map_set_id}} = conn, _opts) do
-    map_set = Dungeon.get_map_set!(map_set_id)
-
-    if !map_set.deleted_at && (map_set.active ||
-                              (conn.assigns.current_user && map_set.user_id == conn.assigns.current_user.id)) do #|| conn.assigns.current_user.is_admin
-      conn
-      |> assign(:map_set, map_set)
-    else
-      conn
-      |> put_flash(:error, "Cannot join that dungeon")
-      |> redirect(to: Routes.crawler_path(conn, :show))
-      |> halt()
-    end
-  end
-
   defp validate_passcode(%{params: %{"map_set_instance_id" => msi_id, "passcode" => passcode}} = conn, _opts) do
-    map_set_instance = Repo.preload(DungeonInstances.get_map_set!(msi_id), :map_set)
+    map_set_instance = DungeonInstances.get_map_set(msi_id)
+    map_set_instance = if map_set_instance, do: Repo.preload(map_set_instance, :map_set), else: nil
 
     cond do
       is_nil(map_set_instance) || map_set_instance.map_set.deleted_at || map_set_instance.passcode != passcode ->
@@ -148,10 +134,25 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
+  defp validate_active_or_owner(%{params: %{"map_set_id" => map_set_id}} = conn, _opts) do
+    map_set = Dungeon.get_map_set(map_set_id)
+
+    if map_set && !map_set.deleted_at && (map_set.active ||
+        (conn.assigns.current_user && map_set.user_id == conn.assigns.current_user.id)) do #|| conn.assigns.current_user.is_admin
+      conn
+      |> assign(:map_set, map_set)
+    else
+      conn
+      |> put_flash(:error, "Cannot join that dungeon")
+      |> redirect(to: Routes.crawler_path(conn, :show))
+      |> halt()
+    end
+  end
+
   defp validate_active_or_owner(%{params: %{"map_set_instance_id" => msi_id}} = conn, _opts) do
     map_set_instance = Repo.preload(DungeonInstances.get_map_set!(msi_id), :map_set)
 
-    if !map_set_instance.map_set.deleted_at && map_set_instance.map_set.active do #|| conn.assigns.current_user.is_admin
+    if map_set_instance && !map_set_instance.map_set.deleted_at && map_set_instance.map_set.active && !map_set_instance.is_private do #|| conn.assigns.current_user.is_admin
       conn
       |> assign(:instance, map_set_instance)
     else
