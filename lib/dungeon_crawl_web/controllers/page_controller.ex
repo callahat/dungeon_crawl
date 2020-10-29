@@ -4,7 +4,7 @@ defmodule DungeonCrawlWeb.PageController do
   plug :set_sidebar_col when action in [:reference]
 
   def index(conn, _params) do
-    render conn, "index.html"
+    redirect(conn, to: Routes.crawler_path(conn, :show))
   end
 
   def reference(conn, _params) do
