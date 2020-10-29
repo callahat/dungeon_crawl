@@ -53,7 +53,7 @@
           <td><%= map_set.dungeons |> Enum.count %></td>
           <td>
             <table class="table table-sm">
-            <%= for msi <- map_set.map_set_instances do %>
+            <%= for msi <- Enum.reject(map_set.map_set_instances, fn(msi) -> msi.is_private end) do %>
               <tr>
                 <td><%= msi.locations |> Enum.count %></td>
                 <td>
@@ -66,7 +66,12 @@
               <tr>
                 <td colspan=100%>
                   <span class="pull-right">
-                    <%= if can_start_new_instance(map_set.id), do: link "Join New Instance", to: Routes.crawler_path(@conn, :join, map_set_id: map_set.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                    <%= if can_start_new_instance(map_set.id) do %>
+                      Join New Instance:
+                      <%= link "Private", to: Routes.crawler_path(@conn, :join, map_set_id: map_set.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-warning btn-sm" %>
+
+                      <%= link "Public", to: Routes.crawler_path(@conn, :join, map_set_id: map_set.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                    <% end %>
                   </span>
                 </td>
               <tr>

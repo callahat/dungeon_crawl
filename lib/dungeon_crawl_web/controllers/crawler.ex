@@ -29,8 +29,8 @@ defmodule DungeonCrawlWeb.Crawler do
      location
   end
 
-  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash) do
-    {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where)
+  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash, is_private) do
+    {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where, is_private)
 
     # ensure all map instances are running
     Repo.preload(map_set_instance, :maps).maps
@@ -42,7 +42,7 @@ defmodule DungeonCrawlWeb.Crawler do
   defp _broadcast_join_event(location) do
     map_tile = Repo.preload(location, :map_tile).map_tile
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_tile.map_instance_id)
-    
+
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {top, instance_state} = Instances.create_player_map_tile(instance_state, map_tile, location)
       tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""

@@ -11,12 +11,14 @@
 <table class="table">
   <tr>
     <th>ID</th>
+    <th>Private?</th>
     <th>Players</th>
     <th></th>
   </tr>
   <%= for msi <- @map_set.map_set_instances do %>
   <tr>
     <td><%= link msi.id, to: Routes.manage_dungeon_path(@conn, :show, @map_set, instance_id: msi.id) %></td>
+    <td><%= msi.is_private %></td>
     <td><%= Enum.count(msi.locations) %></td>
     <td><%= link "Delete Instance", to: Routes.manage_dungeon_path(@conn, :delete, @map_set, instance_id: msi.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
   </tr>
