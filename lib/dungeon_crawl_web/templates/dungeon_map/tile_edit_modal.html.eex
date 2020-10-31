@@ -9,62 +9,89 @@
         </button>
       </div>
       <div class="modal-body">
-
         <div class="row">
           <div class="col-12">
             <div id="tile_errors" class="alert alert-danger hidden" role="alert"></div>
           </div>
-          <div class="col-6">
+
+          <div class="col-12">
+            <ul class="nav nav-tabs" id="tool_tab" role="tablist">
+              <li class="nav-item">
+                <a class="nav-link active" id="details-tab" data-toggle="tab" href="#details" role="tab" aria-controls="details" aria-selected="true">
+                  Details
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" id="script-tab" data-toggle="tab" href="#script" role="tab" aria-controls="script" aria-selected="false">
+                  Script
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tool_tab_content">
+          <div class="tab-pane show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+            <div class="row">
+              <div class="col-6">
+                <div class="form-group">
+                  <%= label :tile_template, :name, class: "control-label" %>
+                  <%= text_input :tile_template, :name, class: "form-control" %>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="form-group">
+                  <%= label :tile_template, :character, class: "control-label" %>
+                  <div class="input-group">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text" id="show_character_picker">?</span>
+                    </div>
+                    <%= text_input :tile_template, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+                  </div>
+                </div>
+              </div>
+              <div class="col-3">
+                <br/>
+                <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
+                &nbsp;
+                <pre id="character_preview_small" class="tile_template_preview"></pre>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="form-group col-6">
+                <%= label :tile_template, :color, class: "control-label" %>
+                <%= text_input :tile_template, :color, class: "form-control" %>
+              </div>
+
+              <div class="form-group col-6">
+                <%= label :tile_template, :background_color, class: "control-label" %>
+                <%= text_input :tile_template, :background_color, class: "form-control" %>
+              </div>
+            </div>
+
             <div class="form-group">
-              <%= label :tile_template, :name, class: "control-label" %>
-              <%= text_input :tile_template, :name, class: "form-control" %>
+              <%= label :tile_template, :state, class: "control-label" %>
+              <%= text_input :tile_template, :state, class: "form-control" %>
+              <pre id="tile_template_state_error_messages"></pre>
             </div>
           </div>
-          <div class="col-3">
-            <div class="form-group">
-              <%= label :tile_template, :character, class: "control-label" %>
-              <div class="input-group">
-                <div class="input-group-prepend">
-                  <span class="input-group-text" id="show_character_picker">?</span>
+
+          <div class="tab-pane" id="script" role="tabpanel" aria-labelledby="script-tab">
+            <div class="row">
+              <div class="col-12">
+                <div class="form-group">
+                  <%= label :tile_template, :script, class: "control-label" %>
+                  <%= textarea :tile_template, :script, class: "form-control script" %>
+                  <pre id="tile_template_script_error_messages"></pre>
                 </div>
-                <%= text_input :tile_template, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+                <%= hidden_input :tile_template, :row %>
+                <%= hidden_input :tile_template, :col %>
+                <%= hidden_input :tile_template, :z_index %>
               </div>
             </div>
           </div>
-          <div class="col-3">
-            <br/>
-            <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
-            &nbsp;
-            <pre id="character_preview_small" class="tile_template_preview"></pre>
-          </div>
         </div>
-
-        <div class="row">
-          <div class="form-group col-6">
-            <%= label :tile_template, :color, class: "control-label" %>
-            <%= text_input :tile_template, :color, class: "form-control" %>
-          </div>
-
-          <div class="form-group col-6">
-            <%= label :tile_template, :background_color, class: "control-label" %>
-            <%= text_input :tile_template, :background_color, class: "form-control" %>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <%= label :tile_template, :state, class: "control-label" %>
-          <%= text_input :tile_template, :state, class: "form-control" %>
-          <pre id="tile_template_state_error_messages"></pre>
-        </div>
-
-        <div class="form-group">
-          <%= label :tile_template, :script, class: "control-label" %>
-          <%= textarea :tile_template, :script, class: "form-control" %>
-          <pre id="tile_template_script_error_messages"></pre>
-        </div>
-        <%= hidden_input :tile_template, :row %>
-        <%= hidden_input :tile_template, :col %>
-        <%= hidden_input :tile_template, :z_index %>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>

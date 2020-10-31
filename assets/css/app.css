@@ -120,6 +120,10 @@ input#tile_template_character {
   border-color: #dc3545;
 }
 
+.form-control.script {
+  height: 21em;
+}
+
 /*
  * Table with sticky header row
  */
