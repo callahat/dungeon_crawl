@@ -1,6 +1,7 @@
 /* This file is for your main application css. */
 @import "../node_modules/bootstrap/dist/css/bootstrap.css";
 @import "../node_modules/font-awesome/css/font-awesome.css";
+@import "../node_modules/codemirror/lib/codemirror.css";
 
 pre.script {
   background: #f5f5f5;
@@ -281,4 +282,12 @@ input#tile_template_character {
 
 .max-content {
   width: max-content;
+}
+
+/*
+ *
+ */
+.CodeMirror {
+    border: 1px solid black;
+    font-size: 13px;
 }
