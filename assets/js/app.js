@@ -27,6 +27,8 @@ window.$ = $
 // Local files can be imported directly using relative
 // paths "./socket" or full ones "web/static/js/socket".
 
+import 'codemirror/addon/mode/simple.js';
+
 import socket from "./socket"
 import Dungeon from "./dungeon"
 import Player from "./player"

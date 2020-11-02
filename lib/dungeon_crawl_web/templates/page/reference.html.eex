@@ -211,7 +211,7 @@
       <td><pre class="script">Hello player</pre></td>
     </tr>
     <tr>
-      <td>&lt;!&gt;&lt;label&gt;;</td>
+      <td>!&lt;label&gt;;</td>
       <td>Text Action</td>
       <td>This will display a linked text message to the player. The display of the text will appear as a
           clickable link in a text modal. When clicked, the link will send the message given between the '!' and ';'
@@ -269,7 +269,7 @@
       <td>?</td>
       <td>Not to be confused with shorthand TRY (as mentioned in a section above).
           Another map tile or thing. `?sender` refers to the map tile that sent the last message.
-          Additionally, `?<direction>@` can be used to refer to a state value for a tile in 
+          Additionally, `?<direction>@` can be used to refer to a state value for a tile in
           that direction the map tile/object that sent the last message. Some commands require a
           tile, and some commands require a value. An interpolated direction may come from the map
           tile's state value by using `?{@<state variable>}@`.<br/>

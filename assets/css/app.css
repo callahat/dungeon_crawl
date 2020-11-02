@@ -285,9 +285,16 @@ input#tile_template_character {
 }
 
 /*
- *
+ * Codemirror
  */
 .CodeMirror {
     border: 1px solid black;
     font-size: 13px;
 }
+
+.cm-link {text-decoration: underline;}
+
+.cm-s-default .cm-command {color: #708;}
+.cm-s-default .cm-label {color: #00f;}
+.cm-s-default .cm-link {color: #00c;}
+
