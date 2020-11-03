@@ -93,8 +93,14 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
              #END
              :TOUCH
              #IF not ?sender@player, TOP
+             Here lies #{player_tile.name || "Unknown"}
+             !DEFILE;Dig up the grave?
+             #END
+             :DEFILE
              You defile the grave
              #{items_stolen}
+             #IF ?random@4 == 1
+             #BECOME slug: zombie
              #DIE
              """
 

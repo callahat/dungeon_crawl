@@ -277,6 +277,50 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def zombie do
+    TileTemplates.update_or_create_tile_template!(
+      "zombie",
+      %{character: "@",
+        name: "Zombie",
+        description: "Consumed by a mindless hunger",
+        state: "blocking: true, soft: true, hits: 3, pushable: true",
+        color: "green",
+        public: true,
+        active: true,
+        script: """
+                #cycle 8
+                :top
+                #target_player nearest
+                #random move_dir, north, south, east, west
+                #if ?random@10 <= 9
+                @move_dir = player
+                #try @move_dir
+                #if ?{@facing}@player, hurt_player
+                #send top
+                #end
+                :touch
+                #if not ?sender@player, top
+                #take health, 10, ?sender
+                /i
+                #send top
+                #end
+                :hurt_player
+                #take health, 10, @facing
+                /i
+                #send top
+                #end
+                :shot
+                #if ?sender@owner == enemy, top
+                @hits--
+                #if @hits < 1, dead
+                #send top
+                #end
+                :dead
+                #die
+                """
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def bandit(), do: unquote(__MODULE__).bandit()
@@ -286,6 +330,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
       def tiger(), do: unquote(__MODULE__).tiger()
+      def zombie(), do: unquote(__MODULE__).zombie()
     end
   end
 end
