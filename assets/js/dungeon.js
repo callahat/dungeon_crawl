@@ -84,6 +84,8 @@ let Dungeon = {
     window.addEventListener("keydown", e => {
       if(this.typing){ return }
 
+      $('#messageModal').modal('hide')
+
       if(parseInt(document.getElementById("health").innerText) <= 0) {
         $('#respawnModal').modal('show')
         return
