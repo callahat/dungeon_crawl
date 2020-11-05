@@ -154,6 +154,10 @@ input#tile_template_character {
   padding: 56px 0 0; /* Height of navbar */
 }
 
+.sidebar-scroll {
+  overflow-y: scroll;
+}
+
 .sidebar-sticky {
   position: relative;
   top: 0;
@@ -192,6 +196,11 @@ input#tile_template_character {
 .sidebar-heading {
   font-size: .75rem;
   text-transform: uppercase;
+}
+
+.compact .nav-link {
+  display: inline;
+  padding: 0;
 }
 
 /*
@@ -262,10 +271,6 @@ input#tile_template_character {
 
 .smaller {
   font-size: smaller;
-}
-
-.reference h5 {
-  padding-top: 56px;
 }
 
 .reference table {
