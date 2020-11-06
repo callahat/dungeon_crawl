@@ -72,6 +72,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     counter_clockwise_conveyor()
     clockwise_conveyor()
     forest()
+    junk_pile()
     lava()
     grave()
     ricochet()

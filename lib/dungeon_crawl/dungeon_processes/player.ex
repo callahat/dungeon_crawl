@@ -47,8 +47,9 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     |> Map.put(:keys, keys)
   end
 
-  defp _door_keys(tile) do
-    tile.parsed_state
+  defp _door_keys(%{parsed_state: parsed_state} = _tile), do: _door_keys(parsed_state)
+  defp _door_keys(parsed_state) do
+    parsed_state
     |> Map.to_list
     |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
   end
@@ -61,19 +62,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   """
   def bury(%Instances{} = state, %{id: map_tile_id} = _player_tile) do
     player_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
-    grave_tile_template = DungeonCrawl.TileTemplates.TileSeeder.grave()
-
-    items_stolen = Map.take(player_tile.parsed_state, [:gems, :cash, :ammo])
-                   |> Map.to_list
-                   |> Enum.concat(_door_keys(player_tile))
-                   |> Enum.reject(fn {_, count} -> count <= 0 end)
-                   |> Enum.map(fn {item, count} ->
-                        """
-                        Found #{count} #{item}
-                        #GIVE #{item}, #{count}, ?sender
-                        """
-                      end)
-                   |> Enum.join("\n")
+    original_player_tile_state = player_tile.parsed_state
 
     bottom_z_index = Enum.at(Instances.get_map_tiles(state, player_tile), -1).z_index
     last_player_z_index = player_tile.z_index
@@ -88,29 +77,87 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                 |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
     {player_tile, state} = Instances.update_map_tile_state(state, player_tile, new_state)
 
-    script = """
-             :TOP
-             #END
-             :TOUCH
-             #IF not ?sender@player, TOP
-             Here lies #{player_tile.name || "Unknown"}
-             !DEFILE;Dig up the grave?
-             #END
-             :DEFILE
-             You defile the grave
-             #{items_stolen}
-             #IF ?random@4 == 1
-             #BECOME slug: zombie
-             #DIE
-             """
+    script_fn = fn items -> """
+                            :TOP
+                            #END
+                            :TOUCH
+                            #IF not ?sender@player, TOP
+                            Here lies #{player_tile.name || "Unknown"}
+                            !DEFILE;Dig up the grave?
+                            !TOP;Do nothing
+                            #END
+                            :DEFILE
+                            You defile the grave
+                            #{items}
+                            #IF ?random@4 == 1
+                            #BECOME slug: zombie
+                            #DIE
+                            """
+                end
 
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
-    grave = Map.take(player_tile, [:map_instance_id, :row, :col])
-             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: last_player_z_index})
-             |> Map.merge(Map.take(grave_tile_template, [:character, :color, :background_color, :state, :script]))
-             |> Map.put(:script, script)
-             |> DungeonCrawl.DungeonInstances.create_map_tile!()
-    Instances.create_map_tile(state, grave)
+#    grave_tile_template = DungeonCrawl.TileTemplates.TileSeeder.grave()
+#    grave = Map.take(player_tile, [:map_instance_id, :row, :col])
+#             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: last_player_z_index})
+#             |> Map.merge(Map.take(grave_tile_template, [:character, :color, :background_color, :state, :script]))
+#             |> Map.put(:script, script)
+#             |> DungeonCrawl.DungeonInstances.create_map_tile!()
+#    Instances.create_map_tile(state, grave)
+    _spawn_loot_tile(state, :grave, script_fn, original_player_tile_state, player_tile, last_player_z_index)
+  end
+
+  @doc """
+  Takes all the players items and drops them in a pile. This places a junk pile map tile above the player's current location.
+  Mean to be used when a player leaves, as this will not update the player map tile since it should be deleted upon
+  the player leaving.
+  """
+  def drop_all_items(%Instances{} = state, %{id: map_tile_id} = _player_tile) do
+    player_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+
+    z_index_plus_one = Enum.at(Instances.get_map_tiles(state, player_tile), 0).z_index + 1
+
+    # maybe have a rat pop out sometimes?
+    script_fn = fn items -> """
+                            :TOP
+                            #END
+                            :TOUCH
+                            #IF not ?sender@player, TOP
+                            Someone left behind a pile of trash, maybe there
+                            is something other than typhus among the debris.
+                            !GRAB;Dig through it?
+                            !TOP;Don't touch it
+                            #END
+                            :GRAB
+                            You rummage through the refuse...
+                            #{items}
+                            #DIE
+                            """
+                end
+
+    _spawn_loot_tile(state, :junk_pile, script_fn, player_tile.parsed_state, player_tile, z_index_plus_one)
+  end
+
+  defp _spawn_loot_tile(%Instances{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
+    items_stolen = Map.take(original_state, [:gems, :cash, :ammo])
+                   |> Map.to_list
+                   |> Enum.concat(_door_keys(original_state))
+                   |> Enum.reject(fn {_, count} -> count <= 0 end)
+                   |> Enum.map(fn {item, count} ->
+                        """
+                        Found #{count} #{item}
+                        #GIVE #{item}, #{count}, ?sender
+                        """
+                      end)
+                   |> Enum.join("\n")
+
+    # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
+    tile_template = apply(DungeonCrawl.TileTemplates.TileSeeder, tile_template, [])
+    tile = Map.take(player_tile, [:map_instance_id, :row, :col])
+           |> Map.merge(%{tile_template_id: tile_template.id, z_index: z_index})
+           |> Map.merge(Map.take(tile_template, [:character, :color, :background_color, :state, :script]))
+           |> Map.put(:script, script_fn.(items_stolen))
+           |> DungeonCrawl.DungeonInstances.create_map_tile!()
+    Instances.create_map_tile(state, tile)
   end
 
   @doc """

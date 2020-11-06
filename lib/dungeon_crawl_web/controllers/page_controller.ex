@@ -8,9 +8,4 @@ defmodule DungeonCrawlWeb.PageController do
   def reference(conn, _params) do
     render conn, "reference.html"
   end
-
-  defp set_sidebar_col(conn, _opts) do
-    conn
-    |> assign(:sidebar_col, 2)
-  end
 end

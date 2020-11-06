@@ -75,6 +75,20 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def junk_pile() do
+    TileTemplates.update_or_create_tile_template!(
+      "junk_pile",
+      %{character: "Д",
+        name: "Junk Pile",
+        description: "Just a pile of junk, maybe some of its useful.",
+        state: "blocking: false",
+        color: "gray",
+        background_color: "linen",
+        public: false,
+        active: true,
+    })
+  end
+
   def lava() do
     TileTemplates.update_or_create_tile_template!(
       "lava",
@@ -156,6 +170,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
       def counter_clockwise_conveyor(), do: unquote(__MODULE__).counter_clockwise_conveyor()
       def clockwise_conveyor(), do: unquote(__MODULE__).clockwise_conveyor()
       def forest(), do: unquote(__MODULE__).forest()
+      def junk_pile(), do: unquote(__MODULE__).junk_pile()
       def lava(), do: unquote(__MODULE__).lava()
       def grave(), do: unquote(__MODULE__).grave()
       def ricochet(), do: unquote(__MODULE__).ricochet()
