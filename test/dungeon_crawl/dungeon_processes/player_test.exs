@@ -78,6 +78,22 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert 2 = state.map_by_ids[player_map_tile.id].parsed_state[:deaths]
   end
 
+  test "drop_all_items/2", %{state: state, player_map_tile: player_map_tile} do
+    {junk_pile, _state} = Player.drop_all_items(state, player_map_tile)
+
+    assert %{z_index: player_map_tile.z_index + 1,
+             row: player_map_tile.row,
+             col: player_map_tile.col,
+             character: "Д"} == Map.take(junk_pile, [:z_index, :row, :col, :character])
+    # CYRILLIC CAPITAL LETTER DE
+    assert junk_pile.z_index == 2
+
+    assert junk_pile.script =~ ~r/#GIVE ammo, 4, \?sender/i
+    assert junk_pile.script =~ ~r/#GIVE cash, 420, \?sender/i
+    assert junk_pile.script =~ ~r/#GIVE gems, 1, \?sender/i
+    assert junk_pile.script =~ ~r/#GIVE red_key, 1, \?sender/i
+  end
+
   test "respawn/2", %{state: state, player_map_tile: player_map_tile} do
     {respawned_player_map_tile, updated_state} = Player.respawn(state, player_map_tile)
     respawned_tile = Instances.get_map_tile(updated_state, respawned_player_map_tile)

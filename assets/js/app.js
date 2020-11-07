@@ -27,12 +27,15 @@ window.$ = $
 // Local files can be imported directly using relative
 // paths "./socket" or full ones "web/static/js/socket".
 
+import 'codemirror/addon/mode/simple.js';
+
 import socket from "./socket"
 import Dungeon from "./dungeon"
 import Player from "./player"
 import TileTemplatePreview from "./tile_template_preview"
 import DungeonEditor from "./dungeon_editor"
 import CharacterPicker from "./character_picker"
+import CodemirrorWrapper from "./codemirror_wrapper"
 
 Dungeon.init(socket, document.getElementById("dungeon_instance"))
 Player.init(socket, Dungeon, document.getElementById("player"))
@@ -40,3 +43,4 @@ TileTemplatePreview.init(document.getElementById("character_preview"))
 TileTemplatePreview.init(document.getElementById("character_preview_small"))
 DungeonEditor.init(document.getElementById("dungeon_editor"))
 CharacterPicker.init(document.getElementById("show_character_picker"))
+CodemirrorWrapper.init(document.getElementById("tile_template_script"), document.getElementById("script-tab"))

@@ -5,109 +5,128 @@
     </div>
   <% end %>
 
-  <div class="row">
-    <div class="col-md-12">
-      <div class="form-group">
-        <%= label f, :slug, class: "control-label" %>
-        <%= text_input f, :slug, class: "form-control", disabled: :disabled %>
-      </div>
-    </div>
-  </div>
+  <ul class="nav nav-tabs" id="tool_tab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="details-tab" data-toggle="tab" href="#details" role="tab" aria-controls="details" aria-selected="true">
+        Details
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="script-tab" data-toggle="tab" href="#script" role="tab" aria-controls="script" aria-selected="false">
+        Script
+      </a>
+    </li>
+  </ul>
 
-  <div class="row">
-    <div class="col-md-6">
-      <div class="form-group">
-        <%= label f, :name, class: "control-label" %>
-        <%= text_input f, :name, class: "form-control" %>
-        <%= error_tag f, :name %>
-      </div>
-    </div>
-
-    <div class="col-md-2">
-      <div class="form-group">
-        <%= label f, :character, class: "control-label" %>
-        <div class="input-group">
-          <div class="input-group-prepend">
-            <span class="input-group-text" id="show_character_picker">?</span>
+  <div class="tab-content" id="tool_tab_content">
+    <div class="tab-pane show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :slug, class: "control-label" %>
+            <%= text_input f, :slug, class: "form-control", disabled: :disabled %>
           </div>
-          <%= text_input f, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
         </div>
-        <%= error_tag f, :character %>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <%= label f, :name, class: "control-label" %>
+            <%= text_input f, :name, class: "form-control" %>
+            <%= error_tag f, :name %>
+          </div>
+        </div>
+
+        <div class="col-md-2">
+          <div class="form-group">
+            <%= label f, :character, class: "control-label" %>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text" id="show_character_picker">?</span>
+              </div>
+              <%= text_input f, :character, class: "form-control", maxlength: 1, onClick: "this.setSelectionRange(0, this.value.length)" %>
+            </div>
+            <%= error_tag f, :character %>
+          </div>
+        </div>
+        <div class="col-md-1">
+          <br/>
+          <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
+        </div>
+        <div class="col-md-1">
+          <br/>
+          <pre id="character_preview_small" class="tile_template_preview"></pre>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <%= label f, :color, class: "control-label" %>
+            <%= text_input f, :color, class: "form-control" %>
+            <%= error_tag f, :color %>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="form-group">
+            <%= label f, :background_color, class: "control-label" %>
+            <%= text_input f, :background_color, class: "form-control" %>
+            <%= error_tag f, :background_color %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :description, class: "control-label" %>
+            <%= text_input f, :description, class: "form-control" %>
+            <%= error_tag f, :description %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-3">
+      <%= if @conn.assigns.current_user.is_admin && (f.data.user_id == @conn.assigns.current_user.id || f.data.user_id == nil) do %>
+      <div class="form-group">
+        <label class="control-label" for="self_owned">Owned by self</label>
+        <input id="self_owned" name="self_owned" type="hidden" value="false">
+        <input id="self_owned" name="self_owned" type="checkbox" value="true" <%= if f.data.user_id == @conn.assigns.current_user.id, do: "checked" %>>
+      </div>
+      <% end %>
+        </div>
+        <div class="col-md-3">
+          <div class="form-group">
+            <%= label f, :public, class: "control-label" %>
+            <%= checkbox f, :public %>
+            <%= error_tag f, :public %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :state, class: "control-label" %>
+            <%= text_input f, :state, class: "form-control" %>
+            <%= error_tag f, :state %>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="col-md-1">
-      <br/>
-      <pre id="character_preview" class="tile_template_preview embiggen_most"></pre>
-    </div>
-    <div class="col-md-1">
-      <br/>
-      <pre id="character_preview_small" class="tile_template_preview"></pre>
-    </div>
-  </div>
 
-  <div class="row">
-    <div class="col-md-6">
-      <div class="form-group">
-        <%= label f, :color, class: "control-label" %>
-        <%= text_input f, :color, class: "form-control" %>
-        <%= error_tag f, :color %>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="form-group">
-        <%= label f, :background_color, class: "control-label" %>
-        <%= text_input f, :background_color, class: "form-control" %>
-        <%= error_tag f, :background_color %>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-12">
-      <div class="form-group">
-        <%= label f, :description, class: "control-label" %>
-        <%= text_input f, :description, class: "form-control" %>
-        <%= error_tag f, :description %>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-3">
-  <%= if @conn.assigns.current_user.is_admin && (f.data.user_id == @conn.assigns.current_user.id || f.data.user_id == nil) do %>
-  <div class="form-group">
-    <label class="control-label" for="self_owned">Owned by self</label>
-    <input id="self_owned" name="self_owned" type="hidden" value="false">
-    <input id="self_owned" name="self_owned" type="checkbox" value="true" <%= if f.data.user_id == @conn.assigns.current_user.id, do: "checked" %>>
-  </div>
-  <% end %>
-    </div>
-    <div class="col-md-3">
-      <div class="form-group">
-        <%= label f, :public, class: "control-label" %>
-        <%= checkbox f, :public %>
-        <%= error_tag f, :public %>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-12">
-      <div class="form-group">
-        <%= label f, :state, class: "control-label" %>
-        <%= text_input f, :state, class: "form-control" %>
-        <%= error_tag f, :state %>
-      </div>
-    <div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-12">
-      <div class="form-group">
-        <%= label f, :script, class: "control-label" %>
-        <%= textarea f, :script, class: "form-control" %>
-        <%= error_pre_tag f, :script %>
+    <div class="tab-pane" id="script" role="tabpanel" aria-labelledby="script-tab">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :script, class: "control-label" %>
+            <%= textarea f, :script, class: "form-control script" %>
+            <%= error_pre_tag f, :script %>
+          </div>
+        </div>
       </div>
     </div>
   </div>

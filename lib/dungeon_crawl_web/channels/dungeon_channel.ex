@@ -51,6 +51,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       with target_tile when not is_nil(target_tile) <- Instances.get_map_tile_by_id(instance_state, %{id: tile_id}),
            {player_location, player_tile} when not is_nil(player_location) <-
              _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash),
+           label <- String.downcase(label),
            true <- Instances.valid_message_action?(instance_state, player_tile.id, label),
            event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
         instance_state = Instances.send_event(instance_state, target_tile, label, event_sender)

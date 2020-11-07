@@ -52,6 +52,7 @@ module.exports = (env, options) => ({
       // add jquery
       $: 'jquery',
       jQuery: 'jquery',
+      CodeMirror: 'codemirror',
     }),
   ]
 });

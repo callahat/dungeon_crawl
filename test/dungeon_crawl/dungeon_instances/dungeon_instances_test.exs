@@ -23,6 +23,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert Elixir.Map.take(instance, [:name, :width, :height, :state, :number, :entrance]) ==
              Elixir.Map.take(dungeon, [:name, :width, :height, :state, :number, :entrance])
       assert _map_tile_details(dungeon) == _map_tile_details(instance)
+      assert msi.passcode =~ ~r/^\w{8}$/
     end
 
     test "delete_map_set/1" do

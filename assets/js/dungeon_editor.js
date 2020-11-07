@@ -228,6 +228,8 @@ let DungeonEditor = {
           map_location_td = document.getElementById(row + "_" + col)
       this.showVisibleTileAtCoordinate(map_location_td, document.getElementById("z_index_current").value)
       this.resetTileModalErrors()
+
+      $("#details-tab").tab("show")
     })
 
     // Tile Detail
@@ -435,7 +437,7 @@ let DungeonEditor = {
       document.getElementById("tile_template_background_color").value = map_location.getAttribute("data-background-color")
       document.getElementById("tile_template_state").value = map_location.getAttribute("data-state")
       document.getElementById("tile_template_script").value = map_location.getAttribute("data-script")
- 
+
       document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
 
       $('#tileEditModal').modal({show: true})

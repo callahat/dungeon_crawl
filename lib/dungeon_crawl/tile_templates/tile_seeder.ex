@@ -37,6 +37,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     pede_head()
     pede_body()
     tiger()
+    zombie()
 
     # items
     ammo()
@@ -71,6 +72,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     counter_clockwise_conveyor()
     clockwise_conveyor()
     forest()
+    junk_pile()
     lava()
     grave()
     ricochet()

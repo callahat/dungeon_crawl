@@ -1,6 +1,7 @@
 /* This file is for your main application css. */
 @import "../node_modules/bootstrap/dist/css/bootstrap.css";
 @import "../node_modules/font-awesome/css/font-awesome.css";
+@import "../node_modules/codemirror/lib/codemirror.css";
 
 pre.script {
   background: #f5f5f5;
@@ -120,6 +121,10 @@ input#tile_template_character {
   border-color: #dc3545;
 }
 
+.form-control.script {
+  height: 21em;
+}
+
 /*
  * Table with sticky header row
  */
@@ -147,6 +152,10 @@ input#tile_template_character {
   left: 0;
   z-index: 100; /* Behind the navbar */
   padding: 56px 0 0; /* Height of navbar */
+}
+
+.sidebar-scroll {
+  overflow-y: scroll;
 }
 
 .sidebar-sticky {
@@ -187,6 +196,11 @@ input#tile_template_character {
 .sidebar-heading {
   font-size: .75rem;
   text-transform: uppercase;
+}
+
+.compact .nav-link {
+  display: inline;
+  padding: 0;
 }
 
 /*
@@ -259,10 +273,6 @@ input#tile_template_character {
   font-size: smaller;
 }
 
-.reference h5 {
-  padding-top: 56px;
-}
-
 .reference table {
   font-size: 90%;
 }
@@ -278,3 +288,18 @@ input#tile_template_character {
 .max-content {
   width: max-content;
 }
+
+/*
+ * Codemirror
+ */
+.CodeMirror {
+    border: 1px solid black;
+    font-size: 13px;
+}
+
+.cm-link {text-decoration: underline;}
+
+.cm-s-default .cm-command {color: #708;}
+.cm-s-default .cm-label {color: #00f;}
+.cm-s-default .cm-link {color: #00c;}
+

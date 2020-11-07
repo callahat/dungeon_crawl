@@ -6,6 +6,7 @@ defmodule DungeonCrawl.Player do
   import Ecto.Query, warn: false
   alias DungeonCrawl.Repo
 
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Player.Location
 
   @doc """
@@ -59,12 +60,12 @@ defmodule DungeonCrawl.Player do
       {:ok, %Location{}}
   """
   def create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash) do
-    map_tile = _create_map_tile_for_location(msi)
+    map_tile = _create_map_tile_for_location(msi, user_id_hash)
 
     create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: user_id_hash})
   end
 
-  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.MapSet{} = msi) do
+  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash) do
     instance_maps = Repo.preload(msi, maps: [dungeon: :spawn_locations]).maps
     entrance = _entrance(instance_maps) || _random_entrance(instance_maps)
     spawn_location = _spawn_location(entrance) || _random_floor(entrance)
@@ -77,6 +78,7 @@ defmodule DungeonCrawl.Player do
     |> Map.merge(%{map_instance_id: entrance.id})
     |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: z_index})
     |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
+    |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end
 
