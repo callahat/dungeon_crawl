@@ -19,7 +19,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
   def new(conn, _params) do
-    changeset = Dungeon.change_map(%Map{map_set_id: conn.assigns.map_set.id})
+    changeset = Dungeon.change_map(%Map{}, %{height: conn.assigns.map_set.default_map_height, width: conn.assigns.map_set.default_map_width})
     generators = ["Rooms", "Labrynth", "Empty Map"]
     render(conn, "new.html", map_set: conn.assigns.map_set, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
   end
@@ -41,7 +41,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
       {:error, :dungeon, changeset, _others} ->
         generators = ["Rooms", "Labrynth", "Empty Map"]
-        render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
+        render(conn, "new.html", changeset: changeset, generators: generators, map_set: conn.assigns.map_set, max_dimensions: _max_dimensions())
     end
   end
 
@@ -83,7 +83,8 @@ defmodule DungeonCrawlWeb.DungeonMapController do
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
         spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
                           |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
-        render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
+
+        render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, map_set: conn.assigns.map_set, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
     end
   end
 

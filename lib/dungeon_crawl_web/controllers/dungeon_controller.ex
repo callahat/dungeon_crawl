@@ -22,7 +22,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def new(conn, _params) do
     changeset = Dungeon.change_map_set(%MapSet{})
-    render(conn, "new.html", changeset: changeset)
+    render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
   end
 
   def create(conn, %{"map_set" => dungeon_params}) do
@@ -38,7 +38,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
       {:error, changeset} ->
-        render(conn, "new.html", changeset: changeset)
+        render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
     end
   end
 
@@ -58,7 +58,7 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     changeset = Dungeon.change_map_set(map_set)
 
-    render(conn, "edit.html", map_set: map_set, changeset: changeset)
+    render(conn, "edit.html", map_set: map_set, changeset: changeset, max_dimensions: _max_dimensions())
   end
 
   def update(conn, %{"id" => _id, "map_set" => map_set_params}) do
@@ -71,7 +71,7 @@ defmodule DungeonCrawlWeb.DungeonController do
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
 
       {:error, changeset} ->
-        render(conn, "edit.html", map_set: map_set, changeset: changeset)
+        render(conn, "edit.html", map_set: map_set, changeset: changeset, max_dimensions: _max_dimensions())
     end
   end
 
@@ -177,5 +177,9 @@ defmodule DungeonCrawlWeb.DungeonController do
       |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
+  end
+
+  defp _max_dimensions() do
+    Elixir.Map.take(Admin.get_setting, [:max_height, :max_width])
   end
 end
