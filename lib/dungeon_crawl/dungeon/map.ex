@@ -13,6 +13,11 @@ defmodule DungeonCrawl.Dungeon.Map do
     field :height, :integer
     field :state, :string
 
+    field :number_north, :integer
+    field :number_south, :integer
+    field :number_east, :integer
+    field :number_west, :integer
+
     has_many :map_instances, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_id
     has_many :dungeon_map_tiles, DungeonCrawl.Dungeon.MapTile, foreign_key: :dungeon_id, on_delete: :delete_all
     has_many :spawn_locations, DungeonCrawl.Dungeon.SpawnLocation, foreign_key: :dungeon_id, on_delete: :delete_all
@@ -26,7 +31,8 @@ defmodule DungeonCrawl.Dungeon.Map do
   def changeset(map, attrs) do
     %{max_height: max_height, max_width: max_width} = Map.take(Admin.get_setting, [:max_height, :max_width])
     map
-    |> cast(attrs, [:name, :map_set_id, :number, :entrance, :height, :width, :state])
+    |> cast(attrs, [:name, :map_set_id, :number, :entrance, :height, :width, :state,
+                    :number_north, :number_south, :number_east, :number_west])
     |> cast_assoc(:dungeon_map_tiles)
     |> validate_length(:name, max: 32)
     |> validate_required([:map_set_id, :number, :height, :width])

@@ -100,7 +100,8 @@ defmodule DungeonCrawl.DungeonInstances do
 
   """
   def create_map(%Dungeon.Map{} = map, msi_id) do
-    dungeon_attrs = Elixir.Map.merge(Elixir.Map.take(map, [:entrance, :number, :name, :width, :height, :state]),
+    dungeon_attrs = Elixir.Map.merge(Elixir.Map.take(map, [:entrance, :number, :name, :width, :height, :state,
+                                                           :number_north, :number_south, :number_east, :number_west]),
                                      %{map_set_instance_id: msi_id, map_id: map.id})
     Multi.new()
     |> Multi.insert(:dungeon, Map.changeset(%Map{}, dungeon_attrs))
