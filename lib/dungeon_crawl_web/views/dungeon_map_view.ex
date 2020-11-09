@@ -1,6 +1,23 @@
 defmodule DungeonCrawlWeb.DungeonMapView do
   use DungeonCrawl.Web, :view
 
+  def adjacent_selects(form, dungeons) do
+    options = Enum.map(dungeons, &{"#{&1.number} #{&1.name}", &1.number})
+    ["north", "south", "east", "west"]
+    |> Enum.map(fn direction ->
+       {:safe, label_html} = label(form, direction, class: "control-label")
+       {:safe, select_html} = select(form, String.to_atom("number_#{direction}"), options, class: "form-control", prompt: "None")
+       """
+       <div class="form-group col-md-3">
+         #{ label_html }
+         #{ select_html }
+       </div>
+       """
+       end)
+    |> Enum.join("\n")
+    |> _make_it_safe()
+  end
+
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
     |> Enum.map(fn(tile_template) ->

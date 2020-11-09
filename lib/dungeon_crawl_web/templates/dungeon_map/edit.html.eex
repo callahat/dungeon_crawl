@@ -1,17 +1,14 @@
 <h2>Edit dungeon</h2>
 
-<%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions,
-                        action: Routes.dungeon_map_path(@conn, :update, @map_set, @dungeon.id) %>
-
-<div class="text-center" id="dungeon_editor" data-map-set-id="<%= @dungeon.map_set_id %>" data-map-id="<%= @dungeon.id %>">
-
+<div class="text-center">
 <%= render "tile_pallette_sidebar.html", tile_templates: @tile_templates,
                                          historic_templates: @historic_templates,
                                          low_z_index: @low_z_index,
                                          high_z_index: @high_z_index %>
-
-<%= render(DungeonCrawlWeb.SharedView, "editor_dungeon.html", dungeon: @dungeon, readonly: true) %>
 </div>
+
+<%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, dungeon: @dungeon, map_set: @map_set,
+                        action: Routes.dungeon_map_path(@conn, :update, @map_set, @dungeon.id) %>
 
 <script>window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %></script>
 

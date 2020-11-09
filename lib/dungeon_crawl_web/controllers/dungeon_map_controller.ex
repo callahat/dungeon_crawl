@@ -21,7 +21,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   def new(conn, _params) do
     changeset = Dungeon.change_map(%Map{}, %{height: conn.assigns.map_set.default_map_height, width: conn.assigns.map_set.default_map_width})
     generators = ["Rooms", "Labrynth", "Empty Map"]
-    render(conn, "new.html", map_set: conn.assigns.map_set, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
+    render(conn, "new.html", map_set: conn.assigns.map_set, dungeon: nil, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
   end
 
   def create(conn, %{"map" => dungeon_params}) do
