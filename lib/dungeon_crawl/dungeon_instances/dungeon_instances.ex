@@ -91,6 +91,25 @@ defmodule DungeonCrawl.DungeonInstances do
   def get_map(map_set_instance_id, level), do: Repo.get_by(Map, %{map_set_instance_id: map_set_instance_id, number: level})
 
   @doc """
+  Gets the adjacent dungeon map instances, returns a map of the binary direction as the key and the instance as the value.
+
+  ## Examples
+
+    iex> get_adjacent_maps(123)
+    %{"north" => %Map{},...}
+
+    iex> get_adjacent_maps(456)
+    %{"north" => nil, ...}
+  """
+  def get_adjacent_maps(%Map{} = instance) do
+    %{"north" => if(instance.number_north, do: get_map(instance.map_set_instance_id, instance.number_north)) || %{id: nil},
+      "south" => if(instance.number_south, do: get_map(instance.map_set_instance_id, instance.number_south)) || %{id: nil},
+      "east" => if(instance.number_east, do: get_map(instance.map_set_instance_id, instance.number_east)) || %{id: nil},
+      "west" => if(instance.number_west, do: get_map(instance.map_set_instance_id, instance.number_west)) || %{id: nil}}
+  end
+  def get_adjacent_maps(id), do: get_adjacent_maps(get_map(id))
+
+  @doc """
   Creates a dungeon instance.
 
   ## Examples

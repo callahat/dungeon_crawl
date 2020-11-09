@@ -19,7 +19,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             new_pids: [],
             spawn_coordinates: [],
             passage_exits: [],
-            message_actions: %{}
+            message_actions: %{},
+            adjacent_map_ids: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
