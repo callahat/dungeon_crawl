@@ -289,6 +289,11 @@ input#tile_template_character {
   width: max-content;
 }
 
+.compact-table {
+  width: auto;
+  font-size: 75%;
+}
+
 /*
  * Codemirror
  */

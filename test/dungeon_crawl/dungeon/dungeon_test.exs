@@ -424,6 +424,17 @@ defmodule DungeonCrawl.DungeonTest do
       map = map_fixture()
       assert %Ecto.Changeset{} = Dungeon.change_map(map)
     end
+
+    test "adjacent_map_names/1" do
+      map_1 = map_fixture(%{number: 1, number_north: 2, number_west: 3})
+      _map_2 = map_fixture(%{number: 2, map_set_id: map_1.map_set_id, number_south: 3})
+      _map_3 = map_fixture(%{number: 3, map_set_id: map_1.map_set_id, name: "Number Three"})
+
+      assert %{ north: "2 - some content",
+                south: nil,
+                east: nil,
+                west: "3 - Number Three"} == Dungeon.adjacent_map_names(map_1)
+    end
   end
 
   describe "dungeon_map_tiles" do

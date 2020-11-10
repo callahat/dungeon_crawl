@@ -658,6 +658,29 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
+  Returns a map of the direction (key) and displayable version of the adjacent dungeon number and name (value).
+  """
+  def adjacent_map_names(%Map{} = map) do
+    adjacents = \
+    Repo.all(from m in Map,
+             where: m.map_set_id == ^map.map_set_id,
+             where: m.number in [^map.number_north, ^map.number_south, ^map.number_east, ^map.number_west],
+             select: %{number: m.number, name: m.name})
+
+    %{ north: _extract_adjacent_map_name(map.number_north, adjacents),
+       south: _extract_adjacent_map_name(map.number_south, adjacents),
+       east: _extract_adjacent_map_name(map.number_east, adjacents),
+       west: _extract_adjacent_map_name(map.number_west, adjacents)}
+  end
+
+  defp _extract_adjacent_map_name(level_number, adjacents) do
+    case Enum.find(adjacents, fn %{number: number} -> number == level_number end) do
+      nil -> nil
+      %{number: number, name: name} -> "#{number} - #{name}"
+    end
+  end
+
+  @doc """
   Returns the list of dungeon_map_tiles.
 
   ## Examples
