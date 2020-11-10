@@ -85,6 +85,19 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div>.</div>"}]}
   end
 
+  @tag up_tile: "."
+  test "move broadcasts a tile_update if its a valid move at the edge", %{socket: socket, player_location: player_location, instance: instance} do
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      player_map_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
+      instance_state = %{instance_state | adjacent_map_ids: %{"north" => instance_state.instance_id}}
+      Instances.update_map_tile(instance_state, player_map_tile, %{row: 0})
+    end)
+
+    push socket, "move", %{"direction" => "up"}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 19, rendering: "<div>@</div>"}]}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 0, rendering: "<div> </div>"}]}
+  end
+
   @tag up_tile: ".", health: 0
   test "move broadcasts nothing if player is dead", %{socket: socket, player_location: player_location} do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id)
@@ -118,6 +131,17 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
   @tag up_tile: "#"
   test "move broadcasts nothing if its not a valid move", %{socket: socket} do
+    push socket, "move", %{"direction" => "up"}
+    refute_broadcast "tile_changes", _anything_really
+  end
+
+  @tag up_tile: "#"
+  test "move broadcasts nothing if there is no destination tile", %{socket: socket, instance: instance} do
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      wall_map_tile = Instances.get_map_tile(instance_state, %{row: 2, col: 1})
+      Instances.delete_map_tile(instance_state, wall_map_tile)
+    end)
+
     push socket, "move", %{"direction" => "up"}
     refute_broadcast "tile_changes", _anything_really
   end
@@ -273,7 +297,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
     other_map_instance = Enum.sort(Repo.preload(player_location, [map_tile: [dungeon: [map_set: :maps]]]).map_tile.dungeon.map_set.maps,
                                    fn(a,b) -> a.number < b.number end)
                          |> Enum.at(1)
-                         
+
 
     {:ok, other_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, other_map_instance.id)
     other_level_pl = \

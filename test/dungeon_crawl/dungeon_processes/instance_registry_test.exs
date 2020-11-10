@@ -15,7 +15,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
 
     InstanceRegistry.create(instance_registry, instance.id)
-    
+
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
   end
 
