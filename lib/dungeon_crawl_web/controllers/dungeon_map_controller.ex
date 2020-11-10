@@ -35,7 +35,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
     fixed_attributes = %{"user_id" => conn.assigns.current_user.id, "map_set_id" => map_set.id, "number" => Dungeon.next_level_number(map_set)}
 
     case Dungeon.generate_map(generator, Elixir.Map.merge(dungeon_params, fixed_attributes)) do
-      {:ok, %{dungeon: _dungeon}} ->
+      {:ok, %{dungeon: dungeon}} ->
+        Dungeon.link_unlinked_maps(dungeon)
+
         conn
         |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
@@ -63,6 +65,8 @@ defmodule DungeonCrawlWeb.DungeonMapController do
 
     case Dungeon.update_map(dungeon, dungeon_params) do
       {:ok, dungeon} ->
+        Dungeon.link_unlinked_maps(dungeon)
+
         _make_tile_updates(dungeon, dungeon_params["tile_changes"] || "")
         _make_tile_additions(dungeon, dungeon_params["tile_additions"] || "")
         _make_tile_deletions(dungeon, dungeon_params["tile_deletions"] || "")

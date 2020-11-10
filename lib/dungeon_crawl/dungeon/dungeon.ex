@@ -382,7 +382,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
-  Returns a list of maps with the dungeons and a count of players in them for 
+  Returns a list of maps with the dungeons and a count of players in them for
   the given map set.
 
   ## Examples
@@ -435,6 +435,8 @@ defmodule DungeonCrawl.Dungeon do
   """
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
+
+  def get_map(map_set_id, level), do: Repo.get_by(Map, %{map_set_id: map_set_id, number: level})
 
   @doc """
   Returns a tuple containing the lowest z_index and highest z_index values, respectively.
@@ -597,6 +599,30 @@ defmodule DungeonCrawl.Dungeon do
       end
     end
     |> Enum.concat
+  end
+
+  @doc """
+  Links the dungeons the given dungeon is adjacent to (ie, number_north, etc). If the adjacent dungeon
+  is not already linked to the given dungeon, the direction number field for it will be set to make
+  the adjacency mutual. (Ie, a map west of map A will have map A assigned to its east)
+
+  ## Examples
+
+    iex> link_unlinked_maps(%Map{number: 1, number_north: 2})
+    :ok
+    # %Map{number: 2, number_south: 1} ...
+  """
+  def link_unlinked_maps(dungeon) do
+    [[:number_north, :number_south], [:number_south, :number_north], [:number_east, :number_west], [:number_west, :number_east]]
+    |> Enum.each(fn [direction, opposite] ->
+         with adj_number when not is_nil(adj_number) <- Elixir.Map.get(dungeon, direction),
+              adj_dungeon when not is_nil(adj_dungeon) <- get_map(dungeon.map_set_id, adj_number),
+              nil <- Elixir.Map.get(adj_dungeon, opposite) do
+           update_map(adj_dungeon, %{opposite => dungeon.number})
+         end
+       end)
+
+    :ok
   end
 
   @doc """

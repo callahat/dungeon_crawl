@@ -231,16 +231,19 @@ defmodule DungeonCrawl.DungeonTest do
     @update_attrs %{name: "new name"}
     @invalid_attrs %{height: 1}
 
-    def map_fixture(attrs \\ %{}) do
-      {:ok, map_set} = Dungeon.create_map_set(%{name: "map set"})
-
+    def map_fixture(attrs \\ %{})
+    def map_fixture(%{map_set_id: map_set_id} = attrs) do
       {:ok, map} =
         attrs
         |> Enum.into(@valid_attrs)
-        |> Elixir.Map.put(:map_set_id, map_set.id)
+        |> Elixir.Map.put(:map_set_id, map_set_id)
         |> Dungeon.create_map()
 
       map
+    end
+    def map_fixture(attrs) do
+      {:ok, map_set} = Dungeon.create_map_set(%{name: "map set"})
+      map_fixture(Elixir.Map.put(attrs, :map_set_id, map_set.id))
     end
 
     test "list_dungeons/0 returns all dungeons for a map set" do
@@ -279,6 +282,12 @@ defmodule DungeonCrawl.DungeonTest do
     test "get_map!/1 returns the map with given id" do
       map = map_fixture()
       assert Dungeon.get_map!(map.id) == map
+    end
+
+    test "get_map/2 returns the map in the map set instance for that number" do
+      map = map_fixture()
+      assert Dungeon.get_map(map.map_set_id, map.number) == map
+      refute Dungeon.get_map(map.map_set_id, 123)
     end
 
     test "get_bounding_z_indexes!/1 returns the map's lowest and highest z index for given id" do
@@ -374,6 +383,18 @@ defmodule DungeonCrawl.DungeonTest do
       assert {:ok, map} = Dungeon.delete_map(map)
       assert %Map{} = map
       refute DungeonCrawl.Repo.get Dungeon.Map, map.id
+    end
+
+    test "link_unlinked_maps/1 links adjacent maps if they are not already linked" do
+      map_1 = map_fixture(%{number: 1, number_north: 2, number_west: 3})
+      map_2 = map_fixture(%{number: 2, map_set_id: map_1.map_set_id, number_south: 3})
+      map_3 = map_fixture(%{number: 3, map_set_id: map_1.map_set_id})
+
+      assert Dungeon.link_unlinked_maps(map_1)
+
+      assert %{number_north:   2, number_south: nil, number_east: nil, number_west:   3} = Dungeon.get_map(map_1.id)
+      assert %{number_north: nil, number_south:   3, number_east: nil, number_west: nil} = Dungeon.get_map(map_2.id)
+      assert %{number_north: nil, number_south: nil, number_east:   1, number_west: nil} = Dungeon.get_map(map_3.id)
     end
 
     test "delete_map!/1 deletes the map" do
