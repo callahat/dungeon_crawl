@@ -436,6 +436,7 @@ defmodule DungeonCrawl.Dungeon do
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
 
+  def get_map(_map_set_id, nil), do: nil
   def get_map(map_set_id, level), do: Repo.get_by(Map, %{map_set_id: map_set_id, number: level})
 
   @doc """
@@ -661,23 +662,43 @@ defmodule DungeonCrawl.Dungeon do
   Returns a map of the direction (key) and displayable version of the adjacent dungeon number and name (value).
   """
   def adjacent_map_names(%Map{} = map) do
-    adjacents = \
-    Repo.all(from m in Map,
-             where: m.map_set_id == ^map.map_set_id,
-             where: m.number in [^map.number_north, ^map.number_south, ^map.number_east, ^map.number_west],
-             select: %{number: m.number, name: m.name})
-
-    %{ north: _extract_adjacent_map_name(map.number_north, adjacents),
-       south: _extract_adjacent_map_name(map.number_south, adjacents),
-       east: _extract_adjacent_map_name(map.number_east, adjacents),
-       west: _extract_adjacent_map_name(map.number_west, adjacents)}
+    %{ north: _extract_adjacent_map_name(get_map(map.map_set_id, map.number_north)),
+       south: _extract_adjacent_map_name(get_map(map.map_set_id, map.number_south)),
+       east: _extract_adjacent_map_name(get_map(map.map_set_id, map.number_east)),
+       west: _extract_adjacent_map_name(get_map(map.map_set_id, map.number_west))}
   end
 
-  defp _extract_adjacent_map_name(level_number, adjacents) do
-    case Enum.find(adjacents, fn %{number: number} -> number == level_number end) do
-      nil -> nil
-      %{number: number, name: name} -> "#{number} - #{name}"
-    end
+  defp _extract_adjacent_map_name(nil), do: nil
+  defp _extract_adjacent_map_name(adjacent) do
+    "#{adjacent.number} - #{adjacent.name}"
+  end
+
+  @doc """
+  Returns a map of the direction (key) and the edge tiles of the adjacent dungeon. For example,
+  the dungeon adjacent to the west will return the tiles on its eastern edge.
+  """
+  def adjacent_map_edge_tiles(%Map{} = map) do
+    %{ north: map_edge_tiles(get_map(map.map_set_id, map.number_north), "south"),
+       south: map_edge_tiles(get_map(map.map_set_id, map.number_south), "north"),
+       east: map_edge_tiles(get_map(map.map_set_id, map.number_east), "west"),
+       west: map_edge_tiles(get_map(map.map_set_id, map.number_west), "east")}
+  end
+
+  def map_edge_tiles(_map, _edge, select \\ [:row, :col, :character, :color, :background_color])
+  def map_edge_tiles(nil, _edge, _select), do: nil
+  def map_edge_tiles(_map, nil, _select), do: nil
+  def map_edge_tiles(%Map{} = map, edge, select) do
+    edge = case edge do
+             "north" -> [row: 0]
+             "south" -> [row: map.height - 1]
+             "east"  -> [col: map.width - 1]
+             "west"  -> [col: 0]
+           end
+
+    Repo.all(from mt in MapTile,
+             where: mt.dungeon_id == ^map.id,
+             where: ^edge,
+             select: ^select)
   end
 
   @doc """
