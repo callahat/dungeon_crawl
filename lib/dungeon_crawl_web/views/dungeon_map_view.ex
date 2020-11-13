@@ -61,6 +61,24 @@ defmodule DungeonCrawlWeb.DungeonMapView do
     {:safe, html}
   end
 
+  def edges_json(adjacent_map_edge_tiles) do
+    %{ north: edge_json(:north, adjacent_map_edge_tiles[:north]),
+       south: edge_json(:south, adjacent_map_edge_tiles[:south]),
+       east: edge_json(:east, adjacent_map_edge_tiles[:east]),
+       west: edge_json(:west, adjacent_map_edge_tiles[:west])
+    }
+  end
+
+  def edge_json(edge, adjacent_map_tile_edge) when edge in [:north, :south, "north", "south"] do
+    (adjacent_map_tile_edge || [])
+    |> Enum.map(fn tile -> %{"id" => "#{ edge }_#{ tile.col }", "html" => DungeonCrawlWeb.SharedView.tile_and_style(tile)} end)
+  end
+  def edge_json(edge, adjacent_map_tile_edge) when edge in [:east, :west, "east", "west"] do
+    (adjacent_map_tile_edge || [])
+    |> Enum.map(fn tile -> %{"id" => "#{ edge }_#{ tile.row }", "html" => DungeonCrawlWeb.SharedView.tile_and_style(tile)} end)
+  end
+  def edge_json(_, _), do: []
+
   def render("map_tile_errors.json", %{map_tile_errors: map_tile_errors}) do
     errors = Enum.map(map_tile_errors, fn {field, detail} ->
       %{
@@ -70,6 +88,10 @@ defmodule DungeonCrawlWeb.DungeonMapView do
     end)
 
     %{errors: errors}
+  end
+
+  def render("adjacent_map_edge.json", %{edge: edge, adjacent_map_edge_tiles: adjacent_map_edge_tiles}) do
+    edge_json(edge, adjacent_map_edge_tiles)
   end
 
   defp _render_detail({message, values}) do

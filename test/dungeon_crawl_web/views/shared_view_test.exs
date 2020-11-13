@@ -104,6 +104,8 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r|<td id='1_1'>#{tile_b_1}#{tile_a_0_hidden}</td>|
     assert rows =~ ~r|<td id='1_2'>#{tile_a_0}</td>|
     assert rows =~ ~r|<td id='1_3'>#{tile_b_0}</td>|
+    assert rows =~ ~r|<td class='edge'|
+    assert rows =~ ~r|<td id='west_|
   end
 
   test "character_quick_list_html" do

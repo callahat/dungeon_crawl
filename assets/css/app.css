@@ -125,6 +125,23 @@ input#tile_template_character {
   height: 21em;
 }
 
+.edge {
+  background-color: lightgray !important;
+}
+
+.edge.north {
+  border-bottom: 1px solid black;
+}
+.edge.south {
+  border-top: 1px solid black;
+}
+.edge.east {
+  border-left: 1px solid black;
+}
+.edge.west {
+  border-right: 1px solid black;
+}
+
 /*
  * Table with sticky header row
  */

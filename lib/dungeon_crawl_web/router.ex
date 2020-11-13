@@ -31,6 +31,7 @@ defmodule DungeonCrawlWeb.Router do
     resources "/dungeons", DungeonController do
         resources "/levels", DungeonMapController, only: [:new, :create, :edit, :update, :delete], as: "map"
           post    "/levels/:id/validate_map_tile", DungeonMapController, :validate_map_tile, as: "map"
+          get     "/map_edge", DungeonMapController, :map_edge, as: "map"
       end
       post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate

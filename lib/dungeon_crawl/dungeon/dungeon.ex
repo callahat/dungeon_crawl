@@ -678,11 +678,15 @@ defmodule DungeonCrawl.Dungeon do
   the dungeon adjacent to the west will return the tiles on its eastern edge.
   """
   def adjacent_map_edge_tiles(%Map{} = map) do
-    %{ north: map_edge_tiles(get_map(map.map_set_id, map.number_north), "south"),
-       south: map_edge_tiles(get_map(map.map_set_id, map.number_south), "north"),
-       east: map_edge_tiles(get_map(map.map_set_id, map.number_east), "west"),
-       west: map_edge_tiles(get_map(map.map_set_id, map.number_west), "east")}
+    ["north", "south", "east", "west"]
+    |> Enum.map(fn direction -> adjacent_map_edge_tile(map, direction) end)
+    |> Enum.reduce(%{}, &Elixir.Map.merge/2)
   end
+
+  def adjacent_map_edge_tile(%Map{} = map, "north"), do: %{ north: map_edge_tiles(get_map(map.map_set_id, map.number_north), "south") }
+  def adjacent_map_edge_tile(%Map{} = map, "south"), do: %{ south: map_edge_tiles(get_map(map.map_set_id, map.number_south), "north") }
+  def adjacent_map_edge_tile(%Map{} = map, "east"),  do: %{ east: map_edge_tiles(get_map(map.map_set_id, map.number_east), "west") }
+  def adjacent_map_edge_tile(%Map{} = map, "west"),  do: %{ west: map_edge_tiles(get_map(map.map_set_id, map.number_west), "east") }
 
   def map_edge_tiles(_map, _edge, select \\ [:row, :col, :character, :color, :background_color])
   def map_edge_tiles(nil, _edge, _select), do: nil

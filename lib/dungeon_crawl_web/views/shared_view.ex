@@ -10,8 +10,14 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   def editor_dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
-    dungeon.dungeon_map_tiles
-    |> _editor_dungeon_table(height, width)
+    _edge(width, "north") <>
+    _editor_dungeon_table(dungeon.dungeon_map_tiles, height, width) <>
+    _edge(width, "south")
+  end
+
+  defp _edge(width, side) do
+    incells = Enum.map(0..width-1, fn col -> "<td id='#{side}_#{col}' class='edge #{side}'></td>" end)
+    "<tr><td class='edge'></td>#{ incells }<td class='edge'></td></tr>"
   end
 
   defp _dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
@@ -33,7 +39,7 @@ defmodule DungeonCrawlWeb.SharedView do
     |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
     |> DungeonCrawl.Repo.preload(:tile_template)
     |> Enum.reduce(%{}, fn(dmt,acc) -> if Map.has_key?(acc, {dmt.row, dmt.col}), do: acc, else: Map.put(acc, {dmt.row, dmt.col}, dmt) end)
-    |> rows(height, width)
+    |> rows(height, width, &cells/3)
   end
 # TODO: Probably move the editor stuff into the dungeon_view, since it will only be used for dungeon editing
   defp _editor_dungeon_table(dungeon_map_tiles, height, width) do
@@ -44,24 +50,16 @@ defmodule DungeonCrawlWeb.SharedView do
                                          tiles -> Map.put(acc, {dmt.row, dmt.col}, Map.put(tiles, dmt.z_index, dmt))
                                        end
        end )
-    |> editor_rows(height, width)
+    |> rows(height, width, &editor_cells/3)
   end
 
-  defp rows(map, height, width) do
+  defp rows(map, height, width, cells_func) do
     Enum.to_list(0..height-1)
-    |> Enum.map(fn(row) -> "<tr>#{cells(map, row, width)}</tr>" end ) |> Enum.join("\n")
+    |> Enum.map(fn(row) ->
+        "<tr>#{cells_func.(map, row, width)}</tr>"
+       end )
+    |> Enum.join("\n")
   end
-
-  defp editor_rows(map, height, width) do
-    Enum.to_list(0..height-1)
-    |> Enum.map(fn(row) -> "<tr>#{editor_cells(map, row, width)}</tr>" end ) |> Enum.join("\n")
-  end
-
-#  defp cells(map, row, width, true) do
-#    Enum.to_list(0..width-1)
-#    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}' #{data_attributes(map[{row, col}])}>#{ tile_and_style(map[{row, col}]) }</td>" end )
-#    |> Enum.join("")
-#  end
 
   defp cells(map, row, width) do
     Enum.to_list(0..width-1)
@@ -70,7 +68,8 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   defp editor_cells(map, row, width) do
-    Enum.to_list(0..width-1)
+    "<td id='west_#{row}' class='edge west'></td>" <>
+    (Enum.to_list(0..width-1)
     |> Enum.map(fn(col) ->
         cells = (map[{row, col}] || %{})
                 |> Map.to_list()
@@ -81,7 +80,8 @@ defmodule DungeonCrawlWeb.SharedView do
         _editor_cells(cells) <>
         "</td>"
        end )
-    |> Enum.join("")
+    |> Enum.join("")) <>
+    "<td id='east_#{row}' class='edge east'></td>"
   end
 
   defp _editor_cells([]), do: "<div class='blank' data-z-index=0 #{data_attributes(nil)}>#{ tile_and_style(nil) }</div>"

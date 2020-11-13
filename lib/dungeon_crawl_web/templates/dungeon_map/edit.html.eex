@@ -10,7 +10,10 @@
 <%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, dungeon: @dungeon, map_set: @map_set,
                         action: Routes.dungeon_map_path(@conn, :update, @map_set, @dungeon.id) %>
 
-<script>window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %></script>
+<script>
+window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %>
+window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_map_edge_tiles))} %>
+</script>
 
 <%= link "Back", to: Routes.dungeon_path(@conn, :show, @map_set) %>
 
