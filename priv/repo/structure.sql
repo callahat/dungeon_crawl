@@ -88,7 +88,11 @@ CREATE TABLE public.dungeons (
     state character varying(255),
     map_set_id bigint,
     number integer,
-    entrance boolean
+    entrance boolean,
+    number_north integer,
+    number_south integer,
+    number_east integer,
+    number_west integer
 );
 
 
@@ -126,7 +130,11 @@ CREATE TABLE public.map_instances (
     state character varying(255),
     map_set_instance_id bigint,
     number integer,
-    entrance boolean
+    entrance boolean,
+    number_north integer,
+    number_south integer,
+    number_east integer,
+    number_west integer
 );
 
 
@@ -200,7 +208,9 @@ CREATE TABLE public.map_sets (
     previous_version_id bigint,
     user_id bigint,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    default_map_width integer,
+    default_map_height integer
 );
 
 
@@ -896,5 +906,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414);
 
