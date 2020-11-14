@@ -56,8 +56,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
            label <- String.downcase(label),
            true <- Instances.valid_message_action?(instance_state, player_tile.id, label),
            event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
-        instance_state = Instances.send_event(instance_state, target_tile, label, event_sender)
-                         |> Instances.remove_message_actions(player_tile.id)
+        instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
+                         |> Instances.send_event(target_tile, label, event_sender)
         {:ok, instance_state}
       else
         _ -> {:ok, instance_state}

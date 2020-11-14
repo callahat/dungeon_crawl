@@ -534,6 +534,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         payload = %{tiles: [
                      Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
                     ]}
+        # TODO: maybe defer broadcasting til in the 50ms instance program cycle, and then consolidate outgoing messages
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
