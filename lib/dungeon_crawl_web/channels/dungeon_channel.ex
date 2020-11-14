@@ -298,6 +298,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     _send_message_to_player(location_ids, safe_msg)
   end
 
+  defp _adjacent_map_id(_, nil, _), do: nil
   defp _adjacent_map_id(instance_state, player_tile, "north"),
     do: player_tile.row == 0 && instance_state.adjacent_map_ids["north"]
   defp _adjacent_map_id(instance_state, player_tile, "south"),

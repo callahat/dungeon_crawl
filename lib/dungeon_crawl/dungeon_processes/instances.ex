@@ -52,6 +52,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         nil
     end
   end
+  def get_map_tile(_,_), do: nil
+  def get_map_tile(_,_,_), do: nil
 
   @doc """
   Returns the map tiles in the given directon from the provided coordinates.
