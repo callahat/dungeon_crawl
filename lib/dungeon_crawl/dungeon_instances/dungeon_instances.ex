@@ -88,6 +88,7 @@ defmodule DungeonCrawl.DungeonInstances do
   def get_map(id),  do: Repo.get(Map, id)
   def get_map!(id), do: Repo.get!(Map, id)
 
+  def get_map(_map_set_instance_id, nil), do: nil
   def get_map(map_set_instance_id, level), do: Repo.get_by(Map, %{map_set_instance_id: map_set_instance_id, number: level})
 
   @doc """

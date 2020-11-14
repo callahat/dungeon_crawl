@@ -1677,7 +1677,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _transport(%Runner{state: state, object_id: object_id} = runner_state, player_location, level_number, match_key, travel_module) do
     passage = Map.put(Instances.get_map_tile_by_id(state, %{id: object_id}) || %{}, :match_key, match_key)
-    {:ok, state} = travel_module.passage(player_location, passage, level_number, match_key, state)
+    {:ok, state} = travel_module.passage(player_location, passage, level_number, state)
     %{ runner_state | state: state }
   end
 

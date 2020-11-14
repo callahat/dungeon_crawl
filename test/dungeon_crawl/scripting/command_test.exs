@@ -1728,21 +1728,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "TRANSPORT" do
     # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
     defmodule TravelMock1 do
-      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
         assert %{match_key: nil} == passage
         assert level_number == 4
-        assert match_key == nil
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
         {:ok, state}
       end
     end
     defmodule TravelMock2 do
-      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
-        assert %{row: 1, col: 1} = passage
+        assert %{row: 1, col: 1, match_key: "red"} = passage
         assert level_number == 2
-        assert match_key == "red"
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
         {:ok, state}
       end
