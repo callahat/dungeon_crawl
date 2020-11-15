@@ -19,7 +19,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             new_pids: [],
             spawn_coordinates: [],
             passage_exits: [],
-            message_actions: %{}
+            message_actions: %{},
+            adjacent_map_ids: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -51,6 +52,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         nil
     end
   end
+  def get_map_tile(_,_), do: nil
+  def get_map_tile(_,_,_), do: nil
 
   @doc """
   Returns the map tiles in the given directon from the provided coordinates.
@@ -533,6 +536,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         payload = %{tiles: [
                      Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
                     ]}
+        # TODO: maybe defer broadcasting til in the 50ms instance program cycle, and then consolidate outgoing messages
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}

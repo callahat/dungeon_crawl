@@ -44,6 +44,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Sets the adjacent map instance id for the given direction
+  """
+  def set_adjacent_map_id(instance, map_instance_id, direction) do
+    GenServer.cast(instance, {:set_adjacent_map_id, {map_instance_id, direction}})
+  end
+
+  @doc """
   Sets the instance state values
   """
   def set_state_values(instance, state_values) do
@@ -227,6 +234,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_cast({:set_number, {number}}, %Instances{} = state) do
     {:noreply, %{ state | number: number }}
+  end
+
+  @impl true
+  def handle_cast({:set_adjacent_map_id, {map_instance_id, direction}}, %Instances{adjacent_map_ids: adjacent_map_ids} = state) do
+    {:noreply, %{ state | adjacent_map_ids: Map.put(adjacent_map_ids, direction, map_instance_id) }}
   end
 
   @impl true

@@ -3,6 +3,7 @@ let DungeonEditor = {
     let map_id = element.getAttribute("data-map-id"),
         map_set_id = element.getAttribute("data-map-set-id")
     this.validate_map_tile_url = "/dungeons/" + map_set_id +"/levels/" + map_id + "/validate_map_tile"
+    this.map_edge_url = "/dungeons/" + map_set_id +"/map_edge"
 
     for(let tile_template of document.getElementsByName("paintable_tile_template")){
       tile_template.addEventListener('click', e => { this.updateActiveTile(e.target) });
@@ -246,7 +247,14 @@ let DungeonEditor = {
     }
 
     this.updateVisibleStacks()
-  },
+
+    // show adjacent map edges so its easier to line up maps that connect on their sides
+    let sides = ["north", "south", "east", "west"]
+    sides.forEach( (side) =>  this.showEdgeTiles(side) )
+    sides.forEach( (side) => {
+      document.getElementById("map_number_" + side).addEventListener("change", (event) => this.updateEdgeTiles(side, event.target.value, this))
+    })
+  }, // end init
   resetTileModalErrors(){
     document.getElementById("tile_errors").classList.add("hidden")
     document.getElementById("tile_errors").innerText = ''
@@ -307,7 +315,7 @@ let DungeonEditor = {
 
     let tag = target.tagName == "DIV" && target.parentNode.tagName != "TD" ? target.parentNode : target
 
-    if(target.classList.contains("placeholder")) { return }
+    if(target.classList.contains("placeholder") || target.classList.contains("edge")) { return }
 
     document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
 
@@ -357,6 +365,8 @@ let DungeonEditor = {
     this.updateColorPreviews()
   },
   selectDungeonTile(event){
+    if(event.target.classList.contains("edge") || event.target.parentNode.classList.contains("edge") ) { return }
+
     if(this.mode == "tile_edit" || this.mode == "tile_erase" || this.mode == "spawn_location") { return }
 
     let map_location = this.getMapLocation(event)
@@ -380,6 +390,7 @@ let DungeonEditor = {
     }
   },
   paintEventHandler(event){
+    if(event.target.classList.contains("edge") || event.target.parentNode.classList.contains("edge") ) { return }
     if(!this.painting || this.painted) { return }
     if(this.mode == "tile_painting" && this.historicTile) { return }
 
@@ -636,7 +647,9 @@ let DungeonEditor = {
     let currentZIndex = document.getElementById("z_index_current").value;
 
     for(let td of document.querySelectorAll('#dungeon tr td')){
-      this.showVisibleTileAtCoordinate(td, currentZIndex)
+      if(!td.classList.contains("edge")){
+        this.showVisibleTileAtCoordinate(td, currentZIndex)
+      }
     }
   },
   showVisibleTileAtCoordinate(td, currentZIndex){
@@ -703,6 +716,31 @@ let DungeonEditor = {
     }
     return pairs
   },
+  showEdgeTiles(side){
+    let edgeTiles = document.querySelectorAll("#dungeon td.edge." + side),
+        tile
+
+    edgeTiles.forEach( (tile) => { tile.innerHTML = "" })
+
+    window.adjacent_tiles[side].forEach( (tileDetail) => {
+      if(tile = document.getElementById(tileDetail.id)) { tile.innerHTML = tileDetail.html}
+    })
+  },
+  updateEdgeTiles(edge, level_number, context){
+    if(level_number){
+      $.get(this.map_edge_url, {edge: edge, level_number: level_number, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
+        .done(function(resp){
+          window.adjacent_tiles[edge] = resp
+          context.showEdgeTiles(edge)
+         })
+         .fail(function(resp){
+            console.log(resp.status)
+         })
+    } else {
+      let edgeTiles = document.querySelectorAll("#dungeon td.edge." + edge)
+      edgeTiles.forEach( (tile) => { tile.innerHTML = "" })
+    }
+  },
   blankDivNode: null,
   selectedTileId: null,
   selectedTileHtml: null,
@@ -728,6 +766,7 @@ let DungeonEditor = {
   erased: false,
   hilightingSpawnTiles: false,
   validate_map_tile_url: null,
+  map_edge_url: null,
 
 }
 

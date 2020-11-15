@@ -58,8 +58,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   If instance_id is nil, an available one will be assigned, and injected into
   all the `dungeon_map_tiles`. Returns the `instance_id`.
   """
-  def create(server, instance_id, dungeon_map_tiles, spawn_coordinates \\ [], state_values \\ %{}, msiid \\ nil, number \\ nil) do
-    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number})
+  def create(server, instance_id, dungeon_map_tiles, spawn_coordinates \\ [], state_values \\ %{}, msiid \\ nil, number \\ nil, adjacent \\ %{}) do
+    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent})
   end
 
   @doc """
@@ -84,19 +84,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {:reply, Map.fetch(instance_ids, instance_id), state}
   end
 
+  # These first two are really to make test setup more convenient
   @impl true
-  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number}, _from, {instance_ids, refs}) do
+  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs}) do
     instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
     dungeon_map_tiles = Enum.map(dungeon_map_tiles, fn(dmt) -> Map.put(dmt, :map_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, {instance_ids, refs})}
+    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
   end
 
   @impl true
-  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number}, _from, {instance_ids, refs}) do
+  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs}) do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs}}
     else
-      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, {instance_ids, refs})}
+      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
     end
   end
 
@@ -113,7 +114,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
         dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
         spawn_locations = Repo.preload(dungeon_instance, :spawn_locations).spawn_locations
         spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
-        {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, {instance_ids, refs})}
+        adjacent = DungeonInstances.get_adjacent_maps(dungeon_instance)
+        {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
       else
         _error ->
           Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
@@ -140,7 +142,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {:noreply, state}
   end
 
-  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, {instance_ids, refs}) do
+  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs}) do
     {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
     InstanceProcess.set_instance_id(instance_process, instance_id)
     InstanceProcess.set_map_set_instance_id(instance_process, msiid)
@@ -149,6 +151,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     InstanceProcess.load_map(instance_process, dungeon_map_tiles)
     InstanceProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
     _link_player_locations(instance_process, instance_id)
+    if adjacent["north"], do: InstanceProcess.set_adjacent_map_id(instance_process, adjacent["north"].id, "north")
+    if adjacent["south"], do: InstanceProcess.set_adjacent_map_id(instance_process, adjacent["south"].id, "south")
+    if adjacent["east"], do: InstanceProcess.set_adjacent_map_id(instance_process, adjacent["east"].id, "east")
+    if adjacent["west"], do: InstanceProcess.set_adjacent_map_id(instance_process, adjacent["west"].id, "west")
+
     InstanceProcess.start_scheduler(instance_process)
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)

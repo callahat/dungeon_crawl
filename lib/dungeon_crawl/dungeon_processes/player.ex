@@ -179,8 +179,13 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     _place(state, player_tile, location, new_coords)
   end
 
-  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, %{} = passage, passage_match_key) do
-    new_coords = _relocated_coordinates(state, player_tile, passage, passage_match_key)
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, %{edge: _} = passage) do
+    new_coords = _relocated_coordinates(state, player_tile, passage)
+    _place(state, player_tile, location, new_coords)
+  end
+
+  def place(%Instances{} = state, %MapTile{} = player_tile, %Location{} = location, %{match_key: _} = passage) do
+    new_coords = _relocated_coordinates(state, player_tile, passage)
     _place(state, player_tile, location, new_coords)
   end
 
@@ -200,15 +205,26 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                                round(:math.fmod(player_tile.col, state.state_values.width))}
                     coords -> Enum.random(coords)
                  end
-    spawn_location = Instances.get_map_tile(state, %{row: row, col: col})
-    z_index = if spawn_location, do: spawn_location.z_index + 1, else: 0
-    %{row: row, col: col, z_index: z_index}
+
+    _relocated_coordinates_with_z(state, %{row: row, col: col})
   end
 
-  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, passage, passage_match_key) do
-    matched_exits = if is_nil(passage_match_key),
+  defp _relocated_coordinates(%Instances{state_values: %{rows: rows, cols: cols}} = state, player_tile, %{edge: edge}) do
+    {row, col} = case edge do
+                   "north" -> {0, player_tile.col}
+                   "south" -> {rows - 1, player_tile.col}
+                   "east" -> {player_tile.row, cols - 1}
+                   _west  -> {player_tile.row, 0}
+                 end
+
+    _relocated_coordinates_with_z(state, %{row: floor(:math.fmod(row, rows)), col: floor(:math.fmod(col, cols))})
+  end
+
+  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, %{match_key: match_key} = passage) do
+    matched_exits = if is_nil(match_key),
                          do:   passage_exits,
-                         else: Enum.filter(passage_exits, fn {_id, match_key} -> match_key == passage_match_key end)
+                         else: Enum.filter(passage_exits, fn {_id, mk} -> mk == match_key end)
+
     case Enum.map(matched_exits, fn {id, _} -> id end) do
       [] ->
         _relocated_coordinates(state, player_tile)
@@ -225,9 +241,13 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
         end
 
         spawn_location = Instances.get_map_tile_by_id(state, %{id: passage_exit_id})
-        top_tile = Instances.get_map_tile(state, spawn_location)
-        z_index = if top_tile, do: top_tile.z_index + 1, else: 0
-        %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
+        _relocated_coordinates_with_z(state, spawn_location)
     end
+  end
+
+  defp _relocated_coordinates_with_z(state, spawn_location) do
+    top_tile = Instances.get_map_tile(state, spawn_location)
+    z_index = if top_tile, do: top_tile.z_index + 1, else: 0
+    %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
   end
 end

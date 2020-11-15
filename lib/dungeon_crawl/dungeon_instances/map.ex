@@ -12,6 +12,11 @@ defmodule DungeonCrawl.DungeonInstances.Map do
     field :width, :integer
     field :state, :string
 
+    field :number_north, :integer
+    field :number_south, :integer
+    field :number_east, :integer
+    field :number_west, :integer
+
     belongs_to :dungeon, DungeonCrawl.Dungeon.Map, foreign_key: :map_id
     belongs_to :map_set, DungeonCrawl.DungeonInstances.MapSet, foreign_key: :map_set_instance_id
     has_many :dungeon_map_tiles, DungeonCrawl.DungeonInstances.MapTile, foreign_key: :map_instance_id, on_delete: :delete_all
@@ -25,7 +30,8 @@ defmodule DungeonCrawl.DungeonInstances.Map do
   def changeset(dungeon_instance, attrs) do
     # Probably don't need all these validations as it will copy them from the dungeon, which already has these validations
     dungeon_instance
-    |> cast(attrs, [:name, :map_set_instance_id, :map_id, :number, :entrance, :height, :width, :state])
+    |> cast(attrs, [:name, :map_set_instance_id, :map_id, :number, :entrance, :height, :width, :state,
+                    :number_north, :number_south, :number_east, :number_west])
     |> cast_assoc(:dungeon_map_tiles)
     |> validate_length(:name, max: 32)
     |> validate_required([:map_id, :map_set_instance_id, :height, :width])

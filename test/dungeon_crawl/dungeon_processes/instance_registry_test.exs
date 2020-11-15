@@ -15,7 +15,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
 
     InstanceRegistry.create(instance_registry, instance.id)
-    
+
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
   end
 
@@ -34,6 +34,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
                  Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
        %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: "", script: ""}])
+    instance = DungeonCrawl.DungeonInstances.Map.changeset(instance, %{number_north: instance.number}) |> Repo.update!
 
     location = insert_player_location(%{map_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
     map_tile = Repo.get_by(DungeonCrawl.DungeonInstances.MapTile, %{map_instance_id: instance.id, row: 1, col: 2})
@@ -47,7 +48,8 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                       state_values: state_values,
                       instance_id: instance_id,
                       player_locations: player_locations,
-                      spawn_coordinates: spawn_coordinates} = InstanceProcess.get_state(instance_process)
+                      spawn_coordinates: spawn_coordinates,
+                      adjacent_map_ids: adjacent_map_ids} = InstanceProcess.get_state(instance_process)
     assert programs == %{map_tile.id => %{
                                            object_id: map_tile.id,
                                            program: %Program{broadcasts: [],
@@ -70,6 +72,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert state_values == %{flag: false, cols: 20, rows: 20}
     assert spawn_coordinates == [{9, 10}]
     assert instance_id == instance.id
+    assert adjacent_map_ids == %{"east" => nil, "north" => instance.id, "south" => nil, "west" => nil}
   end
 
   test "create/3/4", %{instance_registry: instance_registry} do

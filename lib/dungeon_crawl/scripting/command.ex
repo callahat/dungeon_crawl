@@ -904,7 +904,7 @@ defmodule DungeonCrawl.Scripting.Command do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, params[:direction])
     bypass_blocking = if is_nil(params[:bypass_blocking]), do: "soft", else: params[:bypass_blocking]
-    
+
     case shape do
       "line" ->
         include_origin = if is_nil(params[:include_origin]), do: false, else: params[:include_origin]
@@ -1004,7 +1004,7 @@ defmodule DungeonCrawl.Scripting.Command do
     iex> Command.random(%Runner{}, ["foo", "1-10"])
     %Runner{ state: %{...object => %{parsed_state => %{foo: 2} } } }
     iex> Command.random(%Runner{}, ["foo", "one", "two", "three"])
-    %Runner{ state: %{...object => %{parsed_state => %{foo: "three"} } } 
+    %Runner{ state: %{...object => %{parsed_state => %{foo: "three"} } }
   """
   def random(%Runner{} = runner_state, [state_variable | values]) do
     random_value = if length(values) == 1 and Regex.match?(~r/^\d+\s?-\s?\d+$/, Enum.at(values,0)) do
@@ -1314,7 +1314,7 @@ defmodule DungeonCrawl.Scripting.Command do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
 
     shiftables = _shift_coords(direction, _shift_adj_coords())
-                 |> Enum.map(fn({{row_d, col_d}, {dest_row_d, dest_col_d}}) -> 
+                 |> Enum.map(fn({{row_d, col_d}, {dest_row_d, dest_col_d}}) ->
                       { Instances.get_map_tile(state, %{row: object.row + row_d, col: object.col + col_d}),
                         Instances.get_map_tile(state, %{row: object.row + dest_row_d, col: object.col + dest_col_d}) }
                     end)
@@ -1336,7 +1336,7 @@ defmodule DungeonCrawl.Scripting.Command do
     broadcasts = if message, do: [message | program.broadcasts], else: program.broadcasts
 
     %Runner{ runner_state |
-             program: %{program | 
+             program: %{program |
                         broadcasts: broadcasts,
                         status: :wait,
                         wait_cycles: object.parsed_state[:wait_cycles] || 5 } }
@@ -1676,8 +1676,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _transport(%Runner{state: state, object_id: object_id} = runner_state, player_location, level_number, match_key, travel_module) do
-    passage = Instances.get_map_tile_by_id(state, %{id: object_id})
-    {:ok, state} = travel_module.passage(player_location, passage, level_number, match_key, state)
+    passage = Map.put(Instances.get_map_tile_by_id(state, %{id: object_id}) || %{}, :match_key, match_key)
+    {:ok, state} = travel_module.passage(player_location, passage, level_number, state)
     %{ runner_state | state: state }
   end
 

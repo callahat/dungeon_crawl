@@ -11,7 +11,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
-  plug :assign_map_set when action in [:new, :create, :edit, :update, :delete]
+  plug :assign_map_set when action in [:new, :create, :edit, :update, :delete, :map_edge]
   plug :assign_dungeon when action in [:edit, :update, :delete]
   plug :validate_updateable when action in [:edit, :update]
   plug :set_sidebar_col when action in [:edit, :update]
@@ -19,9 +19,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
   def new(conn, _params) do
-    changeset = Dungeon.change_map(%Map{map_set_id: conn.assigns.map_set.id})
+    changeset = Dungeon.change_map(%Map{}, %{height: conn.assigns.map_set.default_map_height, width: conn.assigns.map_set.default_map_width})
     generators = ["Rooms", "Labrynth", "Empty Map"]
-    render(conn, "new.html", map_set: conn.assigns.map_set, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
+    render(conn, "new.html", map_set: conn.assigns.map_set, dungeon: nil, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
   end
 
   def create(conn, %{"map" => dungeon_params}) do
@@ -35,13 +35,15 @@ defmodule DungeonCrawlWeb.DungeonMapController do
     fixed_attributes = %{"user_id" => conn.assigns.current_user.id, "map_set_id" => map_set.id, "number" => Dungeon.next_level_number(map_set)}
 
     case Dungeon.generate_map(generator, Elixir.Map.merge(dungeon_params, fixed_attributes)) do
-      {:ok, %{dungeon: _dungeon}} ->
+      {:ok, %{dungeon: dungeon}} ->
+        Dungeon.link_unlinked_maps(dungeon)
+
         conn
         |> put_flash(:info, "Dungeon created successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
       {:error, :dungeon, changeset, _others} ->
         generators = ["Rooms", "Labrynth", "Empty Map"]
-        render(conn, "new.html", changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
+        render(conn, "new.html", changeset: changeset, generators: generators, map_set: conn.assigns.map_set, max_dimensions: _max_dimensions())
     end
   end
 
@@ -55,7 +57,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
     spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
                       |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
 
-    render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
+    adjacent_map_edge_tiles = Dungeon.adjacent_map_edge_tiles(dungeon)
+
+    render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations, adjacent_map_edge_tiles: adjacent_map_edge_tiles)
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do
@@ -63,6 +67,8 @@ defmodule DungeonCrawlWeb.DungeonMapController do
 
     case Dungeon.update_map(dungeon, dungeon_params) do
       {:ok, dungeon} ->
+        Dungeon.link_unlinked_maps(dungeon)
+
         _make_tile_updates(dungeon, dungeon_params["tile_changes"] || "")
         _make_tile_additions(dungeon, dungeon_params["tile_additions"] || "")
         _make_tile_deletions(dungeon, dungeon_params["tile_deletions"] || "")
@@ -83,7 +89,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
         historic_templates = Dungeon.list_historic_tile_templates(dungeon)
         spawn_locations = Repo.preload(dungeon, :spawn_locations).spawn_locations
                           |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
-        render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations)
+        adjacent_map_edge_tiles = Dungeon.adjacent_map_edge_tiles(dungeon)
+
+        render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, map_set: conn.assigns.map_set, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations, adjacent_map_edge_tiles: adjacent_map_edge_tiles)
     end
   end
 
@@ -176,6 +184,19 @@ defmodule DungeonCrawlWeb.DungeonMapController do
     conn
     |> put_flash(:info, "Dungeon level deleted successfully.")
     |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.map_set))
+  end
+
+  def map_edge(conn, %{"dungeon_id" => _map_set_id, "edge" => edge, "level_number" => level_number}) do
+    inverse_edge = case edge do
+                     "north" -> "south"
+                     "south" -> "north"
+                     "east" -> "west"
+                     "west" -> "east"
+                   end
+
+    adjacent_map_edge_tiles = Dungeon.map_edge_tiles(Dungeon.get_map(conn.assigns.map_set.id, level_number), inverse_edge)
+
+    render(conn, "adjacent_map_edge.json", edge: edge, adjacent_map_edge_tiles: adjacent_map_edge_tiles)
   end
 
   defp validate_edit_dungeon_available(conn, _opts) do

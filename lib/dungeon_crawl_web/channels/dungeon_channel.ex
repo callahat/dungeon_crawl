@@ -2,11 +2,13 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.Action.{Move, Pull, Shoot}
+  alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
   alias DungeonCrawl.Account
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
+
+  alias DungeonCrawl.Scripting.Direction
 
   import Phoenix.HTML, only: [html_escape: 1]
 
@@ -54,8 +56,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
            label <- String.downcase(label),
            true <- Instances.valid_message_action?(instance_state, player_tile.id, label),
            event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
-        instance_state = Instances.send_event(instance_state, target_tile, label, event_sender)
-                         |> Instances.remove_message_actions(player_tile.id)
+        instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
+                         |> Instances.send_event(target_tile, label, event_sender)
         {:ok, instance_state}
       else
         _ -> {:ok, instance_state}
@@ -159,32 +161,40 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   defp _motion(direction, move_func, socket) do
+    direction = Direction.normalize_orthogonal(direction)
     _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {_player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      with true <- _player_alive(player_tile),
-           destination <- Instances.get_map_tile(instance_state, player_tile, direction) do
+      adjacent_map_id = _adjacent_map_id(instance_state, player_tile, direction)
+      destination = Instances.get_map_tile(instance_state, player_tile, direction)
 
-        case move_func.(player_tile, destination, instance_state) do
-          {:ok, tile_changes, instance_state} ->
-            broadcast socket,
-                      "tile_changes",
-                      %{tiles: tile_changes
-                                |> Map.to_list
-                                |> Enum.map(fn({_coords, tile}) ->
-                                  Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                                end)}
-            {:ok, instance_state}
+      cond do
+        not _player_alive(player_tile) ->
+          {:ok, instance_state}
 
-          {:invalid} ->
-            {:ok, instance_state}
-        end
+        adjacent_map_id ->
+          Travel.passage(player_location, %{adjacent_map_id: adjacent_map_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
 
-      else
-        _ -> {:ok, instance_state}
+        destination ->
+          case move_func.(player_tile, destination, instance_state) do
+            {:ok, tile_changes, instance_state} ->
+              broadcast socket,
+                        "tile_changes",
+                        %{tiles: tile_changes
+                                  |> Map.to_list
+                                  |> Enum.map(fn({_coords, tile}) ->
+                                    Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                                  end)}
+              {:ok, instance_state}
+
+            {:invalid} ->
+              {:ok, instance_state}
+          end
+
+        true -> {:ok, instance_state}
       end
     end)
 
@@ -287,4 +297,15 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                                        %{message: safe_msg}
     _send_message_to_player(location_ids, safe_msg)
   end
+
+  defp _adjacent_map_id(_, nil, _), do: nil
+  defp _adjacent_map_id(instance_state, player_tile, "north"),
+    do: player_tile.row == 0 && instance_state.adjacent_map_ids["north"]
+  defp _adjacent_map_id(instance_state, player_tile, "south"),
+    do: player_tile.row == instance_state.state_values[:rows]-1  && instance_state.adjacent_map_ids["south"]
+  defp _adjacent_map_id(instance_state, player_tile, "east"),
+    do: player_tile.col == instance_state.state_values[:cols]-1 && instance_state.adjacent_map_ids["east"]
+  defp _adjacent_map_id(instance_state, player_tile, "west"),
+    do: player_tile.col == 0 && instance_state.adjacent_map_ids["west"]
+  defp _adjacent_map_id(_,_,_), do: nil
 end

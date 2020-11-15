@@ -5,10 +5,24 @@
     </div>
   <% end %>
 
-  <div class="form-group">
-    <%= label f, :name, class: "control-label" %>
-    <%= text_input f, :name, class: "form-control" %>
-    <%= error_tag f, :name %>
+  <div class="row">
+    <div class="form-group col-md-6">
+      <%= label f, :name, class: "control-label" %>
+      <%= text_input f, :name, class: "form-control" %>
+      <%= error_tag f, :name %>
+    </div>
+
+    <div class="form-group col-md-3">
+      <%= label f, :default_map_height, class: "control-label" %>
+      <%= text_input f, :default_map_height, class: "form-control", placeholder: "20 to #{@max_dimensions.max_height}" %>
+      <%= error_tag f, :default_map_height %>
+    </div>
+
+    <div class="form-group col-md-3">
+      <%= label f, :default_map_width, class: "control-label" %>
+      <%= text_input f, :default_map_width, class: "form-control", placeholder: "20 to #{@max_dimensions.max_width}" %>
+      <%= error_tag f, :default_map_width %>
+    </div>
   </div>
 
   <div class="form-group">

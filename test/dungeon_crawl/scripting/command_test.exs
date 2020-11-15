@@ -732,7 +732,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              state: "facing: south, target_player_map_tile_id: 43201",
              z_index: 1} = mover
 
-    # When target player leaves dungeon, another target is chosen 
+    # When target player leaves dungeon, another target is chosen
     {_, state} = Instances.delete_map_tile(state, fake_player)
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: mover.id, state: state}, ["player"])
     mover = Instances.get_map_tile_by_id(state, mover)
@@ -956,7 +956,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
@@ -1047,7 +1047,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
@@ -1503,7 +1503,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
@@ -1728,21 +1728,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   test "TRANSPORT" do
     # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
     defmodule TravelMock1 do
-      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
-        assert nil == passage
+        assert %{match_key: nil} == passage
         assert level_number == 4
-        assert match_key == nil
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
         {:ok, state}
       end
     end
     defmodule TravelMock2 do
-      def passage(%Location{} = player_location, passage, level_number, match_key, state) do
+      def passage(%Location{} = player_location, passage, level_number, state) do
         player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
-        assert %{row: 1, col: 1} = passage
+        assert %{row: 1, col: 1, match_key: "red"} = passage
         assert level_number == 2
-        assert match_key == "red"
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
         {:ok, state}
       end

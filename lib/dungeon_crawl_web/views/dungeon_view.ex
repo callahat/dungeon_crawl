@@ -14,4 +14,18 @@ defmodule DungeonCrawlWeb.DungeonView do
       link("Activate", to: Routes.dungeon_activate_path(conn, :activate, dungeon), method: :put, data: [confirm: "Are you sure?"], class: "btn btn-success btn-sm")]
     end
   end
+
+  def adjacent_map_names(dungeon) do
+    names = Dungeon.adjacent_map_names(dungeon)
+    {:safe,
+      """
+      <table class="table table-sm compact-table">
+        <tr><td>North:</td><td>#{ names.north }</td></tr>
+        <tr><td>South:</td><td>#{ names.south }</td></tr>
+        <tr><td>West:</td><td>#{ names.west }</td></tr>
+        <tr><td>East:</td><td>#{ names.east }</td></tr>
+      </table>
+      """
+    }
+  end
 end
