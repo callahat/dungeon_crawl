@@ -83,6 +83,14 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
+
+    # Also can be given the instance state object as well if thats available
+    instance_state = InstanceProcess.get_state(instance_process)
+    rows = dungeon_as_table(instance_state, instance.width, instance.height)
+
+    assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
+    assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
+    assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
   end
 
   test "editor_dungeon_as_table/3 returns table rows of the dungeon including the data attributes" do

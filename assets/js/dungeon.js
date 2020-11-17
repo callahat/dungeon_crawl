@@ -34,6 +34,10 @@ let Dungeon = {
         document.getElementById(tile.row + "_" + tile.col).innerHTML = tile.rendering
       }
     })
+
+    this.dungeonChannel.on("full_render", (msg) => {
+      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
+    })
     // These could be used to announce something, but the tile updating has been consolidated
     //dungeonChannel.on("player_left", (resp) => {
     //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile

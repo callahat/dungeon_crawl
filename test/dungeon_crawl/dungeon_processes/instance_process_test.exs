@@ -22,6 +22,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     InstanceProcess.set_instance_id(instance_process, map_instance.id)
     InstanceProcess.load_map(instance_process, [map_tile])
+    InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
 
     %{instance_process: instance_process, map_tile_id: map_tile.id, map_instance: map_instance}
   end

@@ -367,16 +367,24 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
-    tile_changes = \
-    state.rerender_coords
-    |> Map.keys
-    |> Enum.map(fn coord ->
-         tile = Instances.get_map_tile(state, coord)
-         Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-       end)
-    payload = %{tiles: tile_changes}
+    if length(Map.keys(state.rerender_coords)) > 50 do
+      dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+                                         "full_render",
+                                         %{dungeon_render: dungeon_table}
+    else
+      tile_changes = \
+      state.rerender_coords
+      |> Map.keys
+      |> Enum.map(fn coord ->
+           tile = Instances.get_map_tile(state, coord)
+           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+         end)
+      payload = %{tiles: tile_changes}
 
-    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.instance_id}", "tile_changes", payload)
+      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.instance_id}", "tile_changes", payload)
+    end
+
     %{ state | rerender_coords: %{} }
   end
 

@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry, InstanceProcess}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
 
@@ -29,6 +29,12 @@ defmodule DungeonCrawlWeb.SharedView do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon.id)
     instance_state = InstanceProcess.get_state(instance)
 
+    instance_state.map_by_ids
+    |> Enum.map(fn({_id, map_tile}) -> map_tile end)
+    |> _dungeon_table(height, width)
+  end
+
+  defp _dungeon_as_table(%Instances{} = instance_state, height, width) do
     instance_state.map_by_ids
     |> Enum.map(fn({_id, map_tile}) -> map_tile end)
     |> _dungeon_table(height, width)
