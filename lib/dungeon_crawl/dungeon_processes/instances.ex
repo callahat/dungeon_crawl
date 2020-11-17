@@ -20,7 +20,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             spawn_coordinates: [],
             passage_exits: [],
             message_actions: %{},
-            adjacent_map_ids: %{}
+            adjacent_map_ids: %{},
+            rerender_coords: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -41,6 +42,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     {d_row, d_col} = Direction.delta(direction)
     get_map_tile(state, %{row: row + d_row, col: col + d_col})
   end
+  def get_map_tile(_,_,_), do: nil
+
   def get_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _map_tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          [{_z_index, top_tile}] <- Map.to_list(tiles)
@@ -53,7 +56,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
   def get_map_tile(_,_), do: nil
-  def get_map_tile(_,_,_), do: nil
 
   @doc """
   Returns the map tiles in the given directon from the provided coordinates.
@@ -119,7 +121,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                                                                                state: state,
                                                                                event_sender: sender},
                                                                        event)
-                                  |> handle_broadcasting(state)
+                                  |> handle_broadcasting()
         if program.status == :dead do
           %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
         else
@@ -165,6 +167,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Creates the given map tile for the player location in the parent instance state if it does not already exist.
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
+  Does touch `rerender_coords` as this may result in something to be rendered.
   """
   def create_player_map_tile(%Instances{player_locations: player_locations} = state, map_tile, location) do
     {top, instance_state} = Instances.create_map_tile(state, map_tile)
@@ -175,6 +178,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Creates the given map tile in the parent instance state if it does not already exist.
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
+  Does touch `rerender_coords` as this may result in something to be rendered.
   """
   def create_map_tile(%Instances{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = map_tile) do
     new_id = "new_#{new_id_counter}"
@@ -185,7 +189,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     map_tile = _with_parsed_state(map_tile)
     {map_tile, state} = _register_map_tile(state, map_tile)
     {_, map_tile, state} = _parse_and_start_program(state, map_tile)
-    {map_tile, state}
+    rerender_coords = Map.put_new(state.rerender_coords, Map.take(map_tile, [:row, :col]), true)
+    {map_tile, %{ state | rerender_coords: rerender_coords} }
   end
 
   defp _with_parsed_state(map_tile) do
@@ -315,6 +320,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
     by_id = Map.put(by_id, map_tile_id, updated_tile)
     dirty_ids = Map.put(state.dirty_ids, map_tile_id, MapTile.changeset(previous_changeset, new_attributes))
+    rerender_coords = Map.put_new(state.rerender_coords, Map.take(updated_tile, [:row, :col]), true)
+                      |> Map.put_new(Map.take(old_tile_coords, [:row, :col]), true)
 
     if updated_tile_coords != old_tile_coords do
       z_index_map = by_coords[{updated_tile_coords.row, updated_tile_coords.col}] || %{}
@@ -325,11 +332,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       else
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), map_tile_id)
-        {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids }}
+        {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
         |> _update_program(script_changed)
       end
     else
-      {updated_tile, %Instances{ state | map_by_ids: by_id, dirty_ids: dirty_ids }}
+      {updated_tile, %Instances{ state | map_by_ids: by_id, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
       |> _update_program(script_changed)
     end
   end
@@ -370,6 +377,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     map_tile = by_id[map_tile_id]
 
     if map_tile do
+      rerender_coords = Map.put_new(state.rerender_coords, Map.take(map_tile, [:row, :col]), true)
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
       player_locations = Map.delete(player_locations, map_tile_id)
@@ -380,6 +388,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                              map_by_coords: by_coords,
                              dirty_ids: dirty_ids,
                              player_locations: player_locations,
+                             rerender_coords: rerender_coords,
                              new_ids: Map.delete(state.new_ids, map_tile_id) }}
     else
       {nil, state}
@@ -405,8 +414,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
-  def handle_broadcasting(runner_context, state) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{state.instance_id}")
+  def handle_broadcasting(runner_context) do
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.state.instance_id}")
     _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end
@@ -536,7 +545,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         payload = %{tiles: [
                      Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
                     ]}
-        # TODO: maybe defer broadcasting til in the 50ms instance program cycle, and then consolidate outgoing messages
+        # TODO: maybe defer broadcasting til in the 50ms instance program cycle, and then consolidate outgoing messages.
+        # but this might be ok to do individually, as state updates will happen significantly less often than other
+        # tile animations/movements
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}

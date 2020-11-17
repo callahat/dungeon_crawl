@@ -187,15 +187,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: red'>O</div>"}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>M</div>"}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div style='color: white'>M</div>"}]}}
+            payload: %{tiles: [%{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
+                               %{col: 3, rendering: "<div style='color: white'>M</div>", row: 1}]}}
     # These were either idle or had no script
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
@@ -463,13 +456,13 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "delete_tile/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    %Instances{ program_contexts: programs, 
+    %Instances{ program_contexts: programs,
                 map_by_ids: by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert programs[map_tile_id]
     assert by_id[map_tile_id]
     assert %{ {1, 1} => %{ 0 => ^map_tile_id} } = by_coord
-    
+
     assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id)
     refute InstanceProcess.get_tile(instance_process, map_tile_id)
     %Instances{ program_contexts: programs,
@@ -486,7 +479,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
                      Instances.create_map_tile(state, new_tile)
                    end)
     assert return_value == Map.put(new_tile, :parsed_state, %{})
-    %Instances{ program_contexts: _programs, 
+    %Instances{ program_contexts: _programs,
                 map_by_ids: _by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert %{ {1, 1} => %{ 0 => ^map_tile_id, 1 => 999} } = by_coord

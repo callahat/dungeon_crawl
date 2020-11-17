@@ -279,6 +279,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_info(:perform_actions, %Instances{} = state) do
     # start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
+            |> _rerender_tiles()
     # Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
 
     Process.send_after(self(), :perform_actions, @timeout)
@@ -341,7 +342,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
   defp _cycle_programs(%Instances{} = state) do
     {program_contexts, state} = state.program_contexts
-                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end) # TODO: cycle through program_context ids, and look up the context when needed.
+                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
                                 |> _cycle_programs(state)
     # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
@@ -354,7 +355,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _cycle_programs([[pid, program_context] | program_contexts], state) do
     runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object_id: program_context.object_id, state: state})
                               |> Map.put(:event_sender, program_context.event_sender) # This might not be needed
-                              |> Instances.handle_broadcasting(state)
+                              |> Instances.handle_broadcasting() # any nontile_update broadcasts left
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
     if runner_state.program.status == :dead do
@@ -362,6 +363,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     else
       {[ [pid, Map.take(runner_state, [:program, :object_id, :event_sender])] | other_program_contexts ], updated_state}
     end
+  end
+
+  defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
+  defp _rerender_tiles(state) do
+    tile_changes = \
+    state.rerender_coords
+    |> Map.keys
+    |> Enum.map(fn coord ->
+         tile = Instances.get_map_tile(state, coord)
+         Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+       end)
+    payload = %{tiles: tile_changes}
+
+    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.instance_id}", "tile_changes", payload)
+    %{ state | rerender_coords: %{} }
   end
 
   defp _message_programs(state) do

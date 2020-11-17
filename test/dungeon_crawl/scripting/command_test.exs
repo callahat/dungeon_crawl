@@ -79,7 +79,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: state, program: updated_program} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(state, map_tile)
     assert updated_map_tile.character == "~"
-    assert updated_program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>~</div>", row: 1}]}]]
+    assert updated_program.broadcasts == []
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
     assert Map.take(program, Map.keys(program) -- [:broadcasts]) == Map.take(updated_program, Map.keys(updated_program) -- [:broadcasts])
   end
 
@@ -244,27 +245,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
+    state = %{ state | rerender_coords: %{} }
+
     # Successful
     %Runner{program: program, state: state} = Command.compound_move(%Runner{object_id: mover.id, state: state},
                                                                     [{"west", true}, {"east", true}])
     mover = Instances.get_map_tile_by_id(state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{col: 1, rendering: "<div>c</div>", row: 1},
-                      %{col: 2, rendering: "<div>.</div>", row: 1}
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 0,
              lc: 1
            } = program
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 1}
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful (but its a try and move that does not keep trying)
+    state = %{ state | rerender_coords: %{} }
     %Runner{program: program, state: state} = Command.compound_move(%Runner{object_id: mover.id, state: state},
                                                                     [{"south", false}])
     mover = Instances.get_map_tile_by_id(state, mover)
@@ -274,6 +272,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 0,
              lc: 1
            } = program
+    assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful (but its a retry until successful)
@@ -286,6 +285,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 0,
              lc: 0
            } = program
+    assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Last movement already done
@@ -297,6 +297,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              pc: 1,
              lc: 0
            } = program
+    assert state.rerender_coords == %{}
   end
 
   test "COMPOUND_MOVE into something blocking (or a nil square) triggers a THUD event" do
@@ -334,10 +335,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.status == :dead
     assert program.pc == -1
     refute updated_map_tile
-    assert [ ["tile_changes",
-              %{tiles: [%{col: 2, rendering: "<div>.</div>", row: 1}]}
-              ]
-           ] = program.broadcasts
+    assert [] = program.broadcasts
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
   end
 
   test "GIVE" do
@@ -657,25 +656,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "#", row: 0, col: 1, z_index: 0, state: "blocking: true"})
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
+    state = %{ state | rerender_coords: %{} }
+
     # Successful
     %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, ["left"])
     mover = Instances.get_map_tile_by_id(state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{col: 1, rendering: "<div>c</div>", row: 1},
-                      %{col: 2, rendering: "<div>.</div>", row: 1}
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 1
            } = program
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 1}
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
     assert [{1, "touch", %{map_tile_id: 3}}] = state.program_messages
     state = %{state | program_messages: []}
+    state = %{ state | rerender_coords: %{} }
 
     # Unsuccessful (but its a try and move that does not keep trying)
     %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, ["down"])
@@ -685,6 +681,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              broadcasts: [],
              pc: 1
            } = program
+    assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
     assert [] = state.program_messages
     state = %{state | program_messages: []}
@@ -697,6 +694,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              broadcasts: [],
              pc: 1
            } = program
+    assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
     assert [{4, "touch", %{map_tile_id: 3}}] = state.program_messages
     state = %{state | program_messages: []}
@@ -709,6 +707,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              broadcasts: [],
              pc: 1
            } = program
+    assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
     assert [] = state.program_messages
 
@@ -763,32 +762,29 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
-    %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, ["left", true])
-    mover = Instances.get_map_tile_by_id(state, mover)
+    state = %{ state | rerender_coords: %{} }
+
+    %Runner{program: program, state: updated_state} = Command.move(%Runner{object_id: mover.id, state: state}, ["left", true])
+    mover = Instances.get_map_tile_by_id(updated_state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{col: 1, rendering: "<div>c</div>", row: 1},
-                      %{col: 2, rendering: "<div>.</div>", row: 1}
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 1
            } = program
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 1}
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
 
     # Unsuccessful
-    %Runner{program: program, state: _state} = Command.move(%Runner{object_id: mover.id, state: state}, ["down", true])
-    mover = Instances.get_map_tile_by_id(state, mover)
+    %Runner{program: program, state: updated_state} = Command.move(%Runner{object_id: mover.id, state: state}, ["down", true])
+    mover = Instances.get_map_tile_by_id(updated_state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 0 # decremented so when runner increments the PC it will still be the current move command
            } = program
-    assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
+    assert updated_state.rerender_coords == %{}
+    assert %{row: 1, col: 2, character: "c", z_index: 1} = mover
   end
 
   test "MOVE using a state variable" do
@@ -800,17 +796,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     mover = Instances.get_map_tile_by_id(state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{col: 1, rendering: "<div>c</div>", row: 1},
-                      %{col: 2, rendering: "<div>.</div>", row: 1}
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 1
            } = program
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 1}
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
   end
 
@@ -877,20 +867,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{program: program, state: state} = Command.pull(runner_state, ["south"])
     pulled = Instances.get_map_tile_by_id(state, pulled)
     puller = Instances.get_map_tile_by_id(state, puller)
-    assert %{broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{col: 1, rendering: "<div>.</div>", row: 0},
-                      %{col: 1, rendering: "<div>P</div>", row: 1},
-                      %{col: 1, rendering: "<div>@</div>", row: 2}
-                    ]
-                  }
-                ]],
+    assert %{broadcasts: [],
             status: :wait,
             wait_cycles: 5,
             pc: 1
            } = program
+    assert Map.has_key? state.rerender_coords, %{row: 0, col: 1}
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 1}
+    assert Map.has_key? state.rerender_coords, %{row: 2, col: 1}
 
     assert %{row: 1, col: 1, character: "P", z_index: 1} = Instances.get_map_tile_by_id(state, pulled)
     assert %{row: 2, col: 1, character: "@", z_index: 1} = Instances.get_map_tile_by_id(state, puller)
@@ -934,16 +918,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     runner_state = %Runner{object_id: pusher.id, state: state}
     %Runner{program: program, state: state} = Command.push(runner_state, [{:state_variable, :facing}, 3])
     pushed = Instances.get_map_tile_by_id(state, pushed)
-    assert %{broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{col: 1, rendering: "<div>2</div>", row: 1},
-                      %{col: 1, rendering: "<div>.</div>", row: 2}
-                    ]
-                  }
-                ]]
-           } = program
+    assert %{broadcasts: []} = program
+    assert Map.has_key? state.rerender_coords, %{col: 1, row: 1}
+    assert Map.has_key? state.rerender_coords, %{col: 1, row: 2}
     assert %{row: 1, col: 1, character: "2", z_index: 1} = pushed
   end
 
@@ -974,7 +951,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert new_map_tile.character == "?"
 #    assert new_map_tile.slug == squeaky_door.slug
     assert Map.take(new_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 2}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 2, col: 2}
     assert %{blocking: true} = new_map_tile.parsed_state
     assert updated_state.new_ids == %{"new_0" => 0}
     assert updated_state.map_by_ids["new_0"]
@@ -985,7 +963,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     map_tile_1_3 = Instances.get_map_tile(updated_state, %{row: 1, col: 3})
     assert map_tile_1_3.parsed_state[:cloned]
     assert Map.take(map_tile_1_3, [:character, :color]) == Map.take(map_tile, [:character, :color])
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 3, rendering: "<div style='color: orange'>.</div>", row: 1}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 3}
 
     # PUT a clone noop if bad clone id
     params = [%{clone: 12312312312, direction: "east", cloned: true}]
@@ -1000,23 +979,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     map_tile_1_4 = Instances.get_map_tile(updated_state, %{row: 1, col: 4})
     assert map_tile_1_3.character == "!"
     assert map_tile_1_4.character == "!"
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 3, rendering: "<div>!</div>", row: 1},
-                                                             %{col: 4, rendering: "<div>!</div>", row: 1}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 4}
     assert updated_state.new_ids == %{"new_0" => 0, "new_1" => 0}
     assert updated_state.map_by_ids["new_0"]
     assert updated_state.map_by_ids["new_1"]
 
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "cone", include_origin: false}]
-    %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
-    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+    %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
+    assert [] = program.broadcasts
+    assert updated_state.rerender_coords != %{}
 
     params = [%{slug: squeaky_door.slug, range: 2, shape: "circle"}]
     %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
-    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+    assert [] = program.broadcasts
+    assert updated_state.rerender_coords != %{}
 
     params = [%{slug: squeaky_door.slug, range: 2, shape: "blob"}]
     %Runner{program: program, state: _updated_state} = Command.put(runner_state, params)
-    assert [["tile_changes", %{tiles: _something}]] = program.broadcasts
+    assert [] = program.broadcasts
+    assert updated_state.rerender_coords != %{}
 
     # PUT with bad shape does nothing
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "banana", include_origin: false}]
@@ -1061,10 +1044,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{program: program, state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     new_map_tile = Instances.get_map_tile(updated_state, %{row: 4, col: 2})
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{col: 2, rendering: "<div>?</div>", row: 4}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 4, col: 2}
     assert %{blocking: true} = new_map_tile.parsed_state
     assert new_map_tile.character == "?"
-#    assert new_map_tile.slug == squeaky_door.slug
 
     # PUT in a direction with coords
     params = [%{slug: squeaky_door.slug, direction: "north", row: 4, col: 2}]
@@ -1072,7 +1055,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     new_map_tile = Instances.get_map_tile(updated_state, %{row: 3, col: 2})
     assert new_map_tile.character == "!"
-#    assert new_map_tile.slug == squeaky_door.slug
 
     # PUT at invalid coords does nothing
     params = [%{slug: squeaky_door.slug, row: 33, col: 33}]
@@ -1108,6 +1090,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north", map_instance_id: 1, script: "#end"})
 
+    state = %{ state | rerender_coords: %{} }
+
     tile_program = %Program{ pc: 3 }
     runner_state = %Runner{state: state, object_id: obj.id, program: tile_program}
 
@@ -1119,22 +1103,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "north", color: "beige"}])
     assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).color == "beige"
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123}).color == tile_123.color
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: beige'>.</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
 
     %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "south", color: "beige"}])
     assert Instances.get_map_tile_by_id(updated_state, %{id: 999}).color == "beige"
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div style='color: beige'>c</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 3, col: 2}
 
     # Also works if the direction is in a state variable
     %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: {:state_variable, :facing}, color: "beige"}])
     assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).color == "beige"
     refute Instances.get_map_tile_by_id(updated_state, %{id: 123}).color == "beige"
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: beige'>.</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
+
 
     # Doesnt break if nonexistant state var
     %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: {:state_variable, :fake}, color: "beige"}])
     assert updated_state == state
     assert program.broadcasts == []
+    assert updated_state.rerender_coords == %{}
   end
 
   test "REPLACE tiles by name" do
@@ -1146,6 +1135,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
     {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
+
+    state = %{ state | rerender_coords: %{} }
 
     tile_program = %Program{ pc: 3 }
     runner_state = %Runner{state: state, object_id: obj.id, program: tile_program}
@@ -1162,18 +1153,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).character == squeaky_door.character
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
     assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: red'>!</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
     assert program.pc == tile_program.pc
 
     %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "C", slug: squeaky_door.slug}])
     assert Instances.get_map_tile_by_id(updated_state, %{id: 999}).character == squeaky_door.character
     assert Instances.get_map_tile_by_id(updated_state, %{id: 255}) == tile_255
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div style='color: red'>!</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 3, col: 2}
     assert program.pc == tile_program.pc
 
-    %Runner{state: _updated_state, program: program} = Command.replace(runner_state, [%{target: "noname", slug: squeaky_door.slug}])
+    %Runner{state: updated_state, program: program} = Command.replace(runner_state, [%{target: "noname", slug: squeaky_door.slug}])
     assert program.broadcasts == []
+    assert updated_state.rerender_coords == %{}
   end
 
   test "REPLACE with only target_ kwargs" do
@@ -1201,27 +1195,33 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
 
+    state = %{ state | rerender_coords: %{} }
+
     runner_state = %Runner{state: state, object_id: obj.id}
 
     %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "north"}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div>.</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
 
     %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "south"}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 3, col: 2, rendering: "<div> </div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 3, col: 2}
 
     # Also works if the direction is in a state variable
     %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: {:state_variable, :facing}}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123})
-    assert program.broadcasts == [["tile_changes", %{tiles: [%{row: 1, col: 2, rendering: "<div>.</div>"}]}]]
+    assert program.broadcasts == []
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
 
     # Doesnt break if nonexistant state var
     %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: {:state_variable, :fake}}])
     assert updated_state == state
     assert program.broadcasts == []
+    assert updated_state.rerender_coords == %{}
   end
 
   test "REMOVE tiles by name" do
@@ -1407,6 +1407,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state}   = Instances.create_map_tile(state, %MapTile{id: 129,  character: ".", row: 3, col: 3, z_index: 0})
     {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "/", row: 2, col: 2, z_index: 0})
 
+    state = %{ state | rerender_coords: %{} }
+
     obj_123 = Instances.get_map_tile_by_id(state, %{id: 123})
     obj_124 = Instances.get_map_tile_by_id(state, %{id: 124})
     obj_125 = Instances.get_map_tile_by_id(state, %{id: 125})
@@ -1421,21 +1423,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{id: 603, row: 3, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{row: 1, col: 1, rendering: "<div>.</div>"},
-                      %{row: 1, col: 2, rendering: "<div>o</div>"},
-                      %{row: 2, col: 3, rendering: "<div>.</div>"},
-                      %{row: 3, col: 1, rendering: "<div>o</div>"},
-                      %{row: 3, col: 2, rendering: "<div>.</div>"},
-                      %{row: 3, col: 3, rendering: "<div>o</div>"},
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 1
            } = program
+    assert Map.has_key? updated_state.rerender_coords, %{col: 1, row: 1}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 1}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 2}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 1, row: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 3}
 
     assert obj_123 == Instances.get_map_tile_by_id(updated_state, %{id: 123})
     assert obj_124 == Instances.get_map_tile_by_id(updated_state, %{id: 124})
@@ -1451,18 +1447,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{id: 603, row: 3, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{row: 3, col: 2, rendering: "<div>o</div>"},
-                      %{row: 3, col: 3, rendering: "<div>.</div>"},
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 1
            } = program
+    assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 3}
 
+    updated_state = %{ updated_state | rerender_coords: %{} }
     %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["clockwise"])
     assert %{id: 601, row: 1, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
     assert %{id: 602, row: 3, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 602})
@@ -1471,6 +1462,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              wait_cycles: 5,
              broadcasts: []
            } = program
+    assert updated_state.rerender_coords == %{}
 
     %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["counterclockwise"])
     assert %{id: 601, row: 1, col: 1, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
@@ -1478,20 +1470,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{id: 603, row: 3, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 603})
     assert %{status: :wait,
              wait_cycles: 5,
-             broadcasts: [[
-                  "tile_changes",
-                  %{
-                    tiles: [
-                      %{row: 1, col: 1, rendering: "<div>o</div>"},
-                      %{row: 1, col: 2, rendering: "<div>.</div>"},
-                      %{row: 3, col: 1, rendering: "<div>.</div>"},
-                      %{row: 3, col: 2, rendering: "<div>o</div>"},
-                      %{row: 3, col: 3, rendering: "<div>o</div>"},
-                    ]
-                  }
-                ]],
+             broadcasts: [],
              pc: 1
            } = program
+    assert Map.has_key? updated_state.rerender_coords, %{col: 1, row: 1}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 1}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 1, row: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 3}
   end
 
   test "SHOOT" do
