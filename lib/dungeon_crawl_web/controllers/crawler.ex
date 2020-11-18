@@ -67,6 +67,8 @@ defmodule DungeonCrawlWeb.Crawler do
   """
   def leave_and_broadcast(%Player.Location{} = location) do
     map_tile = Repo.preload(location, :map_tile).map_tile
+    msi = Repo.preload(map_tile, [dungeon: [map_set: [:locations, :maps]]]).dungeon.map_set
+
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_tile.map_instance_id)
     deleted_location = InstanceProcess.run_with(instance, fn (instance_state) ->
       player_tile = Instances.get_map_tile_by_id(instance_state, map_tile)
@@ -80,8 +82,9 @@ defmodule DungeonCrawlWeb.Crawler do
       {deleted_location, instance_state}
     end)
 
-    if Player.players_in_dungeon(%{instance_id: deleted_location.map_tile.map_instance_id}) == 0 do
-      InstanceRegistry.remove(DungeonInstanceRegistry, deleted_location.map_tile.map_instance_id)
+    # should be preloaded with the player that left (plus any others)
+    if length(msi.locations) == 1 do # only the player was in this map set instance so delete
+      Enum.each(msi.maps, fn(map) -> InstanceRegistry.remove(DungeonInstanceRegistry, map.id) end)
     end
 
     deleted_location

@@ -277,10 +277,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
+  def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
+    # No player is here, so don't cycle programs and wait longer til the next cycle
+    Process.send_after(self(), :perform_actions, @timeout * 10)
+
+    {:noreply, state}
+  end
+
   def handle_info(:perform_actions, %Instances{} = state) do
     # start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
             |> _rerender_tiles()
+            |> _check_for_players()
     # Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
 
     Process.send_after(self(), :perform_actions, @timeout)
@@ -387,6 +395,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
 
     %{ state | rerender_coords: %{} }
+  end
+
+  defp _check_for_players(state) do
+    if state.player_locations != %{}, do:   state,
+                                      else: %{ state | count_to_idle: state.count_to_idle - 1 }
   end
 
   defp _message_programs(state) do

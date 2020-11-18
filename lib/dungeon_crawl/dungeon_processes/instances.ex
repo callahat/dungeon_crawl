@@ -4,6 +4,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   It wraps the retrival and changes of %Instances{}
   """
 
+  @count_to_idle 5
+
   defstruct instance_id: nil,
             map_set_instance_id: nil,
             number: 0,
@@ -21,7 +23,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             passage_exits: [],
             message_actions: %{},
             adjacent_map_ids: %{},
-            rerender_coords: %{}
+            rerender_coords: %{},
+            count_to_idle: @count_to_idle
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -170,6 +173,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
   def create_player_map_tile(%Instances{player_locations: player_locations} = state, map_tile, location) do
+    state = if state.count_to_idle < @count_to_idle, do: %{ state | count_to_idle: @count_to_idle }, else: state
+
     {top, instance_state} = Instances.create_map_tile(state, map_tile)
     {top, %{ instance_state | player_locations: Map.put(player_locations, map_tile.id, location)}}
   end
