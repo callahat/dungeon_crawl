@@ -51,6 +51,12 @@
     <%= error_tag f, :non_admin_dungeons_enabled %>
   </div>
 
+  <div class="form-group">
+    <%= label f, :full_rerender_threshold, class: "control-label" %>
+    <%= number_input f, :full_rerender_threshold, class: "form-control", placeholder: "How many dirty tiles in one cycle will instead rerender the whole dungeon" %>
+    <%= error_tag f, :full_rerender_threshold %>
+  </div>
+
   <div>
     <%= submit "Save" %>
   </div>

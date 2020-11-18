@@ -56,17 +56,17 @@ defmodule DungeonCrawl.Action.Travel do
         InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
           {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location, passage)
 
+          dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(other_instance_state, target_map.height, target_map.width)
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "change_dungeon",
+                                             %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
+
           DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
 
           _broadcast_tile_change(other_instance_state, %{row: updated_tile.row, col: updated_tile.col}) # draw
 
           {:ok, other_instance_state}
         end)
-
-        dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(target_map, target_map.height, target_map.width)
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
-                                           "change_dungeon",
-                                           %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
 
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
 

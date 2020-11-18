@@ -3,6 +3,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   require Logger
 
+  alias DungeonCrawl.Admin
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
@@ -367,7 +368,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
-    if length(Map.keys(state.rerender_coords)) > 50 do
+    if length(Map.keys(state.rerender_coords)) > Admin.get_setting().full_rerender_threshold do
       dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
       DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
                                          "full_render",
