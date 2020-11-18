@@ -95,12 +95,16 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
       %{character: "░",
         name: "Lava",
         description: "Its molten rock",
-        state: "blocking: true, low: true, soft: true, wait_cycles: 20",
+        state: "blocking: true, low: true, soft: true",
         color: "black",
         background_color: "red",
         public: true,
         active: true,
         script: """
+                #random offset, 5,10,15,20,25
+                @wait_cycles = @offset
+                /i
+                #cycle 20
                 :main
                 #random char, ▒, ░, ░
                 #random bc, red, red, darkorange, orange

@@ -98,7 +98,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Its going to get you.",
         public: true,
         active: true,
-        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true",
+        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true, flying: true",
         script: """
                 #target_player random
                 :top
