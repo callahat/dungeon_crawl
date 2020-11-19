@@ -350,7 +350,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
     Process.send_after(self(), :write_db, @db_update_timeout)
 
-    Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
+    if :os.system_time(:millisecond) - start_ms > 200 do
+      Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
+    end
 
     {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
