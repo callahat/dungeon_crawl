@@ -290,8 +290,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
             |> _rerender_tiles()
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
-    if elapsed_ms > @timeout * 2 / 3 do
-      Logger.warn "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+    if elapsed_ms > @timeout do
+      Logger.warn "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
     end
 
     Process.send_after(self(), :perform_actions, @timeout)
@@ -299,8 +299,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, state}
   end
 
+  # TODO: maybe there really isn't any need to write to the DB periodically. It is expensive and not really ever
+  # read back. It might be ok to to when all players leave and the processes are being shut down AND the instance
+  # is a permanent one. Currently when everyone is out of the instance, the DB and processes for the map set are
+  # removed.
   @impl true
   def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
+    start_ms = :os.system_time(:millisecond)
     # :deleted
     # :updated
     [deletes, updates] = dirty_ids
@@ -345,6 +350,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
     Process.send_after(self(), :write_db, @db_update_timeout)
 
+    Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
+
     {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
 
@@ -379,7 +386,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
-    if length(Map.keys(state.rerender_coords)) > Admin.get_setting().full_rerender_threshold do
+    if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
       dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
       DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
                                          "full_render",
@@ -403,6 +410,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _check_for_players(state) do
     if state.player_locations != %{}, do:   state,
                                       else: %{ state | count_to_idle: state.count_to_idle - 1 }
+  end
+
+  defp _full_rerender_threshold() do
+    if threshold = Application.get_env(:dungeon_crawl, :full_rerender_threshold) do
+      threshold
+    else
+      Application.put_env :dungeon_crawl, :full_rerender_threshold, Admin.get_setting().full_rerender_threshold || 50
+    end
   end
 
   defp _message_programs(state) do
