@@ -101,7 +101,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         public: true,
         active: true,
         script: """
-                #random offset, 5,10,15,20,25
+                #random offset, 1-4
                 @wait_cycles = @offset
                 /i
                 #cycle 20

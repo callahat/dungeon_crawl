@@ -285,11 +285,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   def handle_info(:perform_actions, %Instances{} = state) do
-    # start_ms = :os.system_time(:millisecond)
+    start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
             |> _rerender_tiles()
             |> _check_for_players()
-    # Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
+    elapsed_ms = :os.system_time(:millisecond) - start_ms
+    if elapsed_ms > @timeout * 2 / 3 do
+      Logger.warn "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+    end
 
     Process.send_after(self(), :perform_actions, @timeout)
 
