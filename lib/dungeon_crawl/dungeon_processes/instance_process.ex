@@ -306,30 +306,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
     start_ms = :os.system_time(:millisecond)
-    # :deleted
-    # :updated
-    [deletes, updates] = dirty_ids
-                         |> Map.to_list
-                         |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
-                         |> Enum.split_with(fn({_, event}) -> event == :deleted end)
-                         |> Tuple.to_list()
-                         |> Enum.map(fn(items) ->
-                              Enum.map(items, fn({id,_}) -> id end)
-                            end)
-
-    updates = updates -- deletes
-
-    if deletes != [] do
-      deletes |> DungeonInstances.delete_map_tiles()
-    end
-
-    if updates != [] do
-      updates
-      |> Enum.map(fn(updated_id) ->
-           dirty_ids[updated_id]
-         end)
-      |> DungeonInstances.update_map_tiles()
-    end
 
     {new_ids, ids_to_persist} = new_ids
                                 |> Map.to_list
@@ -337,8 +313,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                                 |> Enum.split_with(fn({_, age}) -> age < 2 end)
 
     # TODO: maybe cap the number of ids to persist, put the excess back on the new_ids list
-
-    # TODO: persist those old id's. create the DB record (after nilling the id), then update the ID the instance knows about
     state = ids_to_persist
             |> Enum.map(fn({id, _}) -> id end)
             |> Enum.reduce(state, fn(temp_id, state) ->
@@ -348,11 +322,41 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                  Instances.set_map_tile_id(state, map_tile, temp_id)
                end)
 
-    Process.send_after(self(), :write_db, @db_update_timeout)
+    myself = self()
 
-    if :os.system_time(:millisecond) - start_ms > 200 do
-      Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
-    end
+    # save off this other stuff but don't block the GenServer, and dont care about the result
+    Task.start(fn ->
+      # :deleted
+      # :updated
+      [deletes, updates] = dirty_ids
+                           |> Map.to_list
+                           |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
+                           |> Enum.split_with(fn({_, event}) -> event == :deleted end)
+                           |> Tuple.to_list()
+                           |> Enum.map(fn(items) ->
+                                Enum.map(items, fn({id,_}) -> id end)
+                              end)
+
+      updates = updates -- deletes
+
+      if deletes != [] do
+        deletes |> DungeonInstances.delete_map_tiles()
+      end
+
+      if updates != [] do
+        updates
+        |> Enum.map(fn(updated_id) ->
+             dirty_ids[updated_id]
+           end)
+        |> DungeonInstances.update_map_tiles()
+      end
+
+      Process.send_after(myself, :write_db, @db_update_timeout)
+
+      if :os.system_time(:millisecond) - start_ms > 200 do
+        Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
+      end
+    end)
 
     {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
