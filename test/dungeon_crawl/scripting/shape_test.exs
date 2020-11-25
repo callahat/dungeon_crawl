@@ -3,13 +3,18 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
 
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Shape
 
   setup do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
     map_tiles = for row <- 0..4, col <- 0..4, do: %MapTile{id: row * 100 + col, row: row, col: col, z_index: 0, character: "."}
-    state = %Instances{state_values: %{rows: 5, cols: 5}}
-    state = Enum.reduce(map_tiles, state, fn(map_tile, state) -> {_, state} = Instances.create_map_tile(state, map_tile); state end)
+    InstanceProcess.load_map(instance_process, map_tiles)
+    InstanceProcess.set_state_values(instance_process, %{rows: 5, cols: 5})
+
+    state = InstanceProcess.get_state(instance_process)
 
     %{state: state}
   end
@@ -88,7 +93,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.circle(runner_state, 1, false) == [{1, 2}, {2, 1}, {2, 3}, {3, 2}]
       assert Shape.circle(runner_state, 2) ==
                [{2, 2}, {0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
-                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4}, 
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
                         {4, 1}, {4, 2}, {4, 3}]
     end
 

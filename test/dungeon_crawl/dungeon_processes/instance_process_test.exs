@@ -4,6 +4,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.ProgramRegistry
+  alias DungeonCrawl.DungeonProcesses.ProgramProcess
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
@@ -25,6 +27,17 @@ defmodule DungeonCrawl.InstanceProcessTest do
     InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
 
     %{instance_process: instance_process, map_tile_id: map_tile.id, map_instance: map_instance}
+  end
+
+  test "it starts up its own ProgramRegistry" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
+    assert %{ program_registry: program_registry } = InstanceProcess.get_state(instance_process)
+    assert is_pid(program_registry)
+    assert %ProgramRegistry{ instance_process: ^instance_process,
+                             program_supervisor: program_supervisor } = ProgramRegistry.get_state(program_registry)
+
+    assert is_pid(program_supervisor)
   end
 
   test "set_instance_id" do
@@ -65,24 +78,26 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
 
     # Starts the program(s) for the tiles, no script nothing done for that tile.
-    assert %Instances{ program_contexts: programs,
-                       map_by_ids: by_id,
-                       map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
-    assert %{^map_tile_id => %{event_sender: nil,
-                       object_id: ^map_tile_id,
-                       program: %Program{status: :alive}},
-             236 => %{event_sender: nil,
-                       object_id: 236,
-                       program: %Program{status: :alive}}
-            } = programs
+    assert %Instances{ map_by_ids: by_id,
+                       map_by_coords: by_coord,
+                       program_registry: program_registry } = InstanceProcess.get_state(instance_process)
 
-    # Does not load a program overtop an already running program for that map_tile id
-    assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: map_tile_id, script: "#DIE"}])
-    assert %Instances{ program_contexts: ^programs,
-                       map_by_ids: ^by_id,
+    %{program: program_a, map_tile_id: ^map_tile_id} = ProgramRegistry.lookup(program_registry, map_tile_id)
+                                                       |> ProgramProcess.get_state()
+    %{program: program_b, map_tile_id: 236} = ProgramRegistry.lookup(program_registry, 236)
+                                              |> ProgramProcess.get_state()
+
+    assert %Program{status: :alive, instructions: program_a_instructions} = program_a
+    assert %Program{status: :alive} = program_b
+
+    # Does not update the tile nor load a program overtop if that tile already exists
+    assert :ok = InstanceProcess.load_map(instance_process, [%MapTile{id: map_tile_id, character: "P", script: "#DIE"}])
+    assert %Instances{ map_by_ids: ^by_id,
                        map_by_coords: ^by_coord,
-                       new_pids: [236, ^map_tile_id],
                        instance_id: _ } = InstanceProcess.get_state(instance_process)
+    %{program: program_a, map_tile_id: ^map_tile_id} = ProgramRegistry.lookup(program_registry, map_tile_id)
+                                                       |> ProgramProcess.get_state()
+    assert program_a.instructions == program_a_instructions
   end
 
   test "load_spawn_coordinates", %{instance_process: instance_process} do
@@ -92,18 +107,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "start_scheduler", %{instance_process: instance_process} do
-    # Starts the scheduler that will run every xxx ms and run the next parts of all the programs
+    # Starts the scheduler that will run every xxx ms and render changes
     InstanceProcess.start_scheduler(instance_process)
-  end
-
-  test "inspect_state returns a listing of running programs", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert %Instances{ program_contexts: programs,
-                       map_by_ids: _,
-                       map_by_coords: _ } = InstanceProcess.get_state(instance_process)
-    assert %{^map_tile_id => %{event_sender: nil,
-                       object_id: ^map_tile_id,
-                       program: %Program{status: :alive}}
-            } = programs
   end
 
   test "responds_to_event?", %{instance_process: instance_process, map_tile_id: map_tile_id} do
@@ -118,33 +123,29 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
-    %Instances{ program_contexts: %{^map_tile_id => %{program: program} },
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    %Instances{ program_registry: program_registry } = InstanceProcess.get_state(instance_process)
+    program_process = ProgramRegistry.lookup(program_registry, map_tile_id)
+
+    %{program: program} = ProgramProcess.get_state(program_process)
 
     # noop if it tile doesnt have a program
     InstanceProcess.send_event(instance_process, 111, "TOUCH", player_location)
-    %Instances{ program_contexts: %{^map_tile_id => %{program: same_program} },
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
-    assert program == same_program
 
     # it does something
     InstanceProcess.send_event(instance_process, map_tile_id, "TOUCH", player_location)
-    %Instances{ program_contexts: %{^map_tile_id => %{program: updated_program} },
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
-    refute program == updated_program
+
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
             event: "message",
             payload: %{message: "Hey"}}
+    %{program: updated_program} = ProgramProcess.get_state(program_process)
+    refute program == updated_program
 
     # prunes the program if died during the run of the label
     InstanceProcess.send_event(instance_process, map_tile_id, "TERMINATE", player_location)
-    %Instances{ program_contexts: %{} ,
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    prog_ref = Process.monitor(program_process)
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
+    refute ProgramRegistry.lookup(program_registry, map_tile_id)
   end
 
   test "perform_actions", %{instance_process: instance_process, map_instance: map_instance} do
@@ -155,8 +156,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
-        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
-        %{character: "O", row: 1, col: 4, z_index: 0, script: "#TERMINATE"}
+        %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white"},
+        %{character: "K", row: 1, col: 4, z_index: 0, script: "#TERMINATE"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
@@ -174,62 +175,68 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     # Sanity check that the programs are all there, including the one for the generated bullet
-    bullet_tile_id = InstanceProcess.get_tile(instance_process, 1, 2).id
+    bullet_tile_id = Enum.at(InstanceProcess.get_tiles(instance_process, 1, 2), -1).id
 
     assert state = InstanceProcess.get_state(instance_process)
     # this should still be active
-    assert %{program: %{status: :alive}} = state.program_contexts[bullet_tile_id]
+    assert %{status: :alive} = ProgramRegistry.lookup(state.program_registry, bullet_tile_id)
+                               |> ProgramProcess.get_state()
+                               |> Map.fetch!(:program)
     # these will be idle
-    assert %{program: %{status: :idle}} = state.program_contexts[shooter_tile_id]
-    assert %{program: %{status: :idle}} = state.program_contexts[east_tile_id]
+    assert %{status: :idle} = ProgramRegistry.lookup(state.program_registry, shooter_tile_id)
+                               |> ProgramProcess.get_state()
+                               |> Map.fetch!(:program)
+    assert %{status: :idle} = ProgramRegistry.lookup(state.program_registry, east_tile_id)
+                               |> ProgramProcess.get_state()
+                               |> Map.fetch!(:program)
     # This one is dead and removed from the contexts
-    refute state.program_contexts[eastest_tile_id]
+    refute ProgramRegistry.lookup(state.program_registry, eastest_tile_id)
 
+    # render with the bullet spawn
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{col: 1, rendering: "<div>O</div>", row: 1},
+                               %{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
+                               %{col: 3, rendering: "<div style='color: white'>M</div>", row: 1},
+                               %{col: 4, rendering: "<div>K</div>", row: 1}]}}
+
+    # render the bullet moved
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             event: "tile_changes",
             payload: %{tiles: [%{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
-                               %{col: 3, rendering: "<div style='color: white'>M</div>", row: 1}]}}
+                               %{col: 3, rendering: "<div>◦</div>", row: 1}]}}
+
     # These were either idle or had no script
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 1}]}}
   end
 
-  test "perform_actions adds messages to programs", %{instance_process: instance_process,
-                                                      map_instance: map_instance,
-                                                      map_tile_id: map_tile_id} do
+  test "perform_actions where messages send programs", %{instance_process: instance_process,
+                                                         map_instance: map_instance} do
     dungeon_channel = "dungeons:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
-    tt = insert_tile_template()
-
     map_tiles = [
-        %{name: "a", character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red"},
-        %{name: "b", character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
-        %{name: "c", character: "O", row: 1, col: 4, z_index: 0, script: ""}
+        %{name: "a", character: "O", row: 1, col: 2, z_index: 0, script: "#END\n:TOUCH\n#BECOME character: A"},
+        %{name: "b", character: "O", row: 1, col: 3, z_index: 0, script: "#SEND touch, all\n#END\n:TOUCH\n#BECOME character: B"},
+        %{name: "c", character: "O", row: 1, col: 4, z_index: 0, script: "#END\n:TOUCH\n#BECOME character: C"}
       ]
-      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
 
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ program_contexts: program_contexts ,
-                program_messages: program_messages } = InstanceProcess.get_state(instance_process)
-    assert [] == program_messages # should be cleared after punting the messages to the actual progams
-
-    # The last map tile in this setup has no active program
-    expected = %{ map_tile_id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}, name: "b"}}],
-                  Enum.at(map_tiles,0).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}, name: "b"}}],
-                  Enum.at(map_tiles,1).id => [{"touch", %{map_tile_id: Enum.at(map_tiles,1).id, parsed_state: %{}, name: "b"}}] }
-
-    actual = program_contexts
-             |> Map.to_list
-             |> Enum.map(fn {id, context} -> {id, context.program.messages} end)
-             |> Enum.into(%{})
-
-    assert actual == expected
+    # from the scripts responding to a touch event
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: [%{col: 2, rendering: "<div>A</div>", row: 1},
+                               %{col: 3, rendering: "<div>B</div>", row: 1},
+                               %{col: 4, rendering: "<div>C</div>", row: 1}]}}
   end
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
@@ -252,6 +259,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_location = %Location{id: 555, map_tile_instance_id: player_tile.id}
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
     InstanceProcess.run_with(instance_process, fn(state) ->
       Instances.create_player_map_tile(state, player_tile, player_location)
     end)
@@ -260,14 +268,14 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ map_by_ids: map_by_ids,
-                dirty_ids: _dirty_ids } = InstanceProcess.get_state(instance_process)
-
     # Wounded tiles
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
             event: "stat_update",
             payload: %{stats: %{health: 5}}}
+
+    %Instances{ map_by_ids: map_by_ids,
+                dirty_ids: _dirty_ids } = InstanceProcess.get_state(instance_process)
 
     assert map_by_ids[non_prog_tile.id].parsed_state[:health] == 5
     assert map_by_ids[player_tile.id].parsed_state[:health] == 5
@@ -285,9 +293,6 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ map_by_ids: map_by_ids,
-                dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
-
     # Dead tiles
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
@@ -301,6 +306,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^dungeon_channel,
             event: "tile_changes",
             payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>✝</div>"}]}}
+
+    %Instances{ map_by_ids: map_by_ids,
+                dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
 
     refute map_by_ids[non_prog_tile.id]
     assert map_by_ids[player_tile.id].parsed_state[:health] == 0
@@ -344,11 +352,14 @@ defmodule DungeonCrawl.InstanceProcessTest do
             event: "tile_changes",
             payload: %{tiles: [%{row: 1, col: 1, rendering: "<div> </div>"}]}}
 
-    %Instances{ program_contexts: program_contexts,
+    %Instances{ program_registry: program_registry,
                 map_by_ids: map_by_ids,
                 dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
 
-    assert [ ^shooter_map_tile_id ] = Map.keys(program_contexts)
+    assert %{status: :idle} = ProgramRegistry.lookup(program_registry, shooter_map_tile_id)
+                              |> ProgramProcess.get_state()
+                              |> Map.fetch!(:program)
+
     assert [ ^shooter_map_tile_id ] = Map.keys(map_by_ids)
     assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
   end
@@ -403,38 +414,39 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert "G" == Repo.get(MapTile, persisted_older_new_map_tile.id).character
   end
 
-  test "get_tile/2 gets a tile by its id", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert %MapTile{id: map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, map_tile_id)
+  describe "get_tile/2,3,4" do
+    test "gets a tile by its id", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+      assert %MapTile{id: map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, map_tile_id)
+    end
+
+    test "gets the top tile for the coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+      assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1)
+    end
+
+    test "gets nil if no tiles at the given coordinates", %{instance_process: instance_process} do
+      refute InstanceProcess.get_tile(instance_process, -1, -1)
+    end
+
+    test "gets the top tile in the direction from the coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+      assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1, "here")
+    end
   end
 
-  test "get_tile/3 gets the top tile for the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1)
-  end
+  describe "get_tiles/3,4" do
+    test "gets the top tile for the coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+      assert [map_tile] = InstanceProcess.get_tiles(instance_process, 1, 1)
+      assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = map_tile
+    end
 
-  test "get_tile/3 gets nil if no tiles at the given coordinates", %{instance_process: instance_process} do
-    refute InstanceProcess.get_tile(instance_process, -1, -1)
-  end
+    test "gets emtpy array if no tiles at the given coordinates", %{instance_process: instance_process} do
+      assert [] == InstanceProcess.get_tiles(instance_process, -1, -1)
+    end
 
-  test "get_tile/4 gets the top tile in the direction from the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1, "here")
+    test "gets the top tile in the direction from the coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+      assert [map_tile] = InstanceProcess.get_tiles(instance_process, 1, 1, "here")
+      assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = map_tile
+    end
   end
-
-# get tiles
-
-  test "get_tiles/3 gets the top tile for the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert [map_tile] = InstanceProcess.get_tiles(instance_process, 1, 1)
-    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = map_tile
-  end
-
-  test "get_tiles/3 gets emtpy array if no tiles at the given coordinates", %{instance_process: instance_process} do
-    assert [] == InstanceProcess.get_tiles(instance_process, -1, -1)
-  end
-
-  test "get_tiles/4 gets the top tile in the direction from the row, col coordinate", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    assert [map_tile] = InstanceProcess.get_tiles(instance_process, 1, 1, "here")
-    assert %MapTile{id: ^map_tile_id, character: "O", row: 1, col: 1, z_index: 0} = map_tile
-  end
-# end get tiles
 
   test "update_tile/3", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     assert :ok = InstanceProcess.update_tile(instance_process, map_tile_id, %{id: 11111, character: "X", row: 1, col: 1})
@@ -457,19 +469,20 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "delete_tile/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    %Instances{ program_contexts: programs,
+    %Instances{ program_registry: program_registry,
                 map_by_ids: by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
-    assert programs[map_tile_id]
+    assert program_process = ProgramRegistry.lookup(program_registry, map_tile_id)
     assert by_id[map_tile_id]
     assert %{ {1, 1} => %{ 0 => ^map_tile_id} } = by_coord
 
+    prog_ref = Process.monitor(program_process)
+
     assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id)
     refute InstanceProcess.get_tile(instance_process, map_tile_id)
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
-    refute programs[map_tile_id]
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :shutdown}
     refute by_id[map_tile_id]
     assert %{ {1, 1} => %{} } = by_coord
   end
@@ -480,8 +493,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
                      Instances.create_map_tile(state, new_tile)
                    end)
     assert return_value == Map.put(new_tile, :parsed_state, %{})
-    %Instances{ program_contexts: _programs,
-                map_by_ids: _by_id,
+    %Instances{ map_by_ids: _by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert %{ {1, 1} => %{ 0 => ^map_tile_id, 1 => 999} } = by_coord
   end

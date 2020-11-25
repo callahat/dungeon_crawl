@@ -4,11 +4,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   require Logger
 
   alias DungeonCrawl.Admin
-  alias DungeonCrawl.Scripting
-  alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.ProgramRegistry
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
 
   ## Client API
@@ -108,6 +106,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Send a standard behavior message to a map tile.
+  """
+  def send_standard_behavior(instance, tile_id, event, sender) do
+    GenServer.cast(instance, {:send_standard_behavior, {tile_id, event, sender}})
+  end
+
+  @doc """
   Gets the tile for the given map tile id.
   """
   def get_tile(instance, tile_id) do
@@ -172,7 +177,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def init(:ok) do
-    {:ok, %Instances{}}
+    {:ok, program_registry} = ProgramRegistry.start_link([])
+    ProgramRegistry.link_instance(program_registry, self())
+    {:ok, %Instances{program_registry: program_registry}}
   end
 
   @impl true
@@ -259,8 +266,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender}}, %Instances{} = state) do
+  def handle_cast({:send_event, {tile_id, event, sender}}, %Instances{} = state) do
     state = Instances.send_event(state, %{id: tile_id}, event, sender)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:send_standard_behavior, {tile_id, event, sender}}, %Instances{} = state) do
+    state = _standard_behaviors([ {tile_id, event, sender} ], state)
+
     {:noreply, state}
   end
 
@@ -286,12 +300,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   def handle_info(:perform_actions, %Instances{} = state) do
     start_ms = :os.system_time(:millisecond)
-    state = _cycle_programs(%{state | new_pids: []})
-            |> _rerender_tiles()
+    state = _rerender_tiles(state)
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
-      Logger.warn "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+      Logger.warn "perform_actions for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
     end
 
     Process.send_after(self(), :perform_actions, @timeout)
@@ -361,35 +374,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
 
-  # TODO: move these private functions to a new module and make them public so tests can isolate behaviors.
-  #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
-  #will be broadcast. Typically this will only be called by the scheduler.
-  # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
-  defp _cycle_programs(%Instances{} = state) do
-    {program_contexts, state} = state.program_contexts
-                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
-                                |> _cycle_programs(state)
-    # Merge the existing program_contexts with whatever new programs were spawned
-    program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
-                       |> Map.merge(Map.take(state.program_contexts, state.new_pids))
-    _standard_behaviors(state.program_messages, %{ state | program_contexts: program_contexts })
-    |> _message_programs()
-  end
-
-  defp _cycle_programs([], state), do: {[], state}
-  defp _cycle_programs([[pid, program_context] | program_contexts], state) do
-    runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object_id: program_context.object_id, state: state})
-                              |> Map.put(:event_sender, program_context.event_sender) # This might not be needed
-                              |> Instances.handle_broadcasting() # any nontile_update broadcasts left
-    {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
-
-    if runner_state.program.status == :dead do
-      { other_program_contexts, updated_state}
-    else
-      {[ [pid, Map.take(runner_state, [:program, :object_id, :event_sender])] | other_program_contexts ], updated_state}
-    end
-  end
-
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
@@ -423,23 +407,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       threshold
     else
       Application.put_env :dungeon_crawl, :full_rerender_threshold, Admin.get_setting().full_rerender_threshold || 50
-    end
-  end
-
-  defp _message_programs(state) do
-    program_contexts = state.program_messages
-                       |> _message_programs(state.program_contexts)
-    %{state | program_contexts: program_contexts, program_messages: []}
-  end
-  defp _message_programs([], program_contexts), do: program_contexts
-  defp _message_programs([ {po_id, label, sender} | messages], program_contexts) do
-    program_context = program_contexts[po_id]
-    if program_context do
-      program = program_context.program
-      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender),
-                                                                    event_sender: sender}})
-    else
-      _message_programs(messages, program_contexts)
     end
   end
 

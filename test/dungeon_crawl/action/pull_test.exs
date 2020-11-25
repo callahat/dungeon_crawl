@@ -4,8 +4,11 @@ defmodule DungeonCrawl.Action.PullTest do
   alias DungeonCrawl.Action.Pull
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
 
   setup _config do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{character: ".", row: 1, col: 2, z_index: 0},
        %MapTile{character: ".", row: 2, col: 2, z_index: 0},
@@ -17,12 +20,10 @@ defmodule DungeonCrawl.Action.PullTest do
        %MapTile{character: ".", row: 3, col: 1, z_index: 0}
       ])
 
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+
     # Quik and dirty state init
-    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
-                 {_, state} = Instances.create_map_tile(state, dmt)
-                 state
-               end)
+    state = InstanceProcess.get_state(instance_process)
 
     destination = Instances.get_map_tile(state, %{row: 1, col: 2})
     puller = Instances.get_map_tile(state, %{row: 2, col: 2})

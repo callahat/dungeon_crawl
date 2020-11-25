@@ -3,20 +3,24 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.VariableResolution
 
-  # TODO
-
   describe "resolve_variable" do
     test "resolves state_variable" do
-      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40}},
-                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"})
-      {map_tile_2, state} = Instances.create_map_tile(state,
-                              %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"})
+      {:ok, instance_process} = InstanceProcess.start_link([])
 
-      state = %{ state | state_values: Map.merge(state.state_values, %{flag1: true, flash: "fire"})}
+      map_tile_1 = %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"}
+      map_tile_2 = %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"}
+
+      InstanceProcess.load_map(instance_process, [map_tile_1, map_tile_2])
+      InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 40, flag1: true, flash: "fire"})
+      map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+      map_tile_2 = InstanceProcess.get_tile(instance_process, map_tile_2.id)
+
+      state = InstanceProcess.get_state(instance_process)
 
       runner_state1 = %Runner{state: state, object_id: map_tile_1.id, event_sender: map_tile_2}
       runner_state2 = %Runner{state: state, object_id: map_tile_2.id}
@@ -77,8 +81,15 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   describe "resolve_keyed_variable" do
     test "resolves keyed_variable that might have specific format/size" do
-      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40}},
-                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "newcolor: teal"})
+      {:ok, instance_process} = InstanceProcess.start_link([])
+
+      map_tile_1 = %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "newcolor: teal"}
+
+      InstanceProcess.load_map(instance_process, [map_tile_1])
+      InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 40})
+      map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+
+      state = InstanceProcess.get_state(instance_process)
 
       runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
       var = {:state_variable, :newcolor}
@@ -90,10 +101,17 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   describe "resolve_variable_map" do
     test "resolves a map of variables" do
-      {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray"})
-      {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X"})
+      {:ok, instance_process} = InstanceProcess.start_link([])
 
-      state = %{ state | state_values: %{flag1: true, flash: "fire"}}
+      map_tile_1 = %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray"}
+      map_tile_2 = %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X"}
+
+      InstanceProcess.load_map(instance_process, [map_tile_1, map_tile_2])
+      InstanceProcess.set_state_values(instance_process, %{flag1: true, flash: "fire"})
+      map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+      map_tile_2 = InstanceProcess.get_tile(instance_process, map_tile_2.id)
+
+      state = InstanceProcess.get_state(instance_process)
 
       runner_state1 = %Runner{state: state, object_id: map_tile_1.id, event_sender: map_tile_2}
 
@@ -117,8 +135,22 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   describe "special resolutions" do
     test "?any_player@is_facing returns true if the object is directly facing a player" do
-      {fake_player, state} = Instances.create_player_map_tile(%Instances{}, %MapTile{id: 2, row: 4, col: 2, character: "@"}, %Location{})
-      {map_tile_1, state} = Instances.create_map_tile(state, %MapTile{id: 1, row: 4, col: 4, character: "?", state: "facing: west"})
+      {:ok, instance_process} = InstanceProcess.start_link([])
+
+      map_tile_1 = %MapTile{id: 1, row: 4, col: 4, character: "?", state: "facing: west"}
+      fake_player = %MapTile{id: 2, row: 4, col: 2, character: "@"}
+
+      InstanceProcess.run_with(
+        instance_process,
+        fn state ->
+          Instances.create_player_map_tile(state, fake_player, %Location{})
+        end)
+      InstanceProcess.load_map(instance_process, [map_tile_1])
+      map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+      fake_player = InstanceProcess.get_tile(instance_process, fake_player.id)
+
+      state = InstanceProcess.get_state(instance_process)
+
       runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
       assert VariableResolution.resolve_variable(runner_state1, {:any_player, :is_facing})
 
@@ -128,9 +160,23 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
     end
 
     test "?{ @target_player_map_tile_id }@is_facing returns true if the object is directly facing targeted player" do
-      {_fake_player, state} = Instances.create_player_map_tile(%Instances{}, %MapTile{id: 1, row: 4, col: 2, character: "@"}, %Location{})
-      {_other_fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 2, row: 1, col: 4, character: "@"}, %Location{})
-      {map_tile_1, state} = Instances.create_map_tile(state, %MapTile{id: 3, row: 4, col: 4, character: "?", state: "facing: west, target_player_map_tile_id: 1"})
+      {:ok, instance_process} = InstanceProcess.start_link([])
+
+      map_tile_1 = %MapTile{id: 3, row: 4, col: 4, character: "?", state: "facing: west, target_player_map_tile_id: 1"}
+      fake_player = %MapTile{id: 1, row: 4, col: 2, character: "@"}
+      other_fake_player = %MapTile{id: 2, row: 1, col: 4, character: "@"}
+
+      InstanceProcess.run_with(
+        instance_process,
+        fn state ->
+          {_, state} = Instances.create_player_map_tile(state, fake_player, %Location{})
+          Instances.create_player_map_tile(state, other_fake_player, %Location{})
+        end)
+      InstanceProcess.load_map(instance_process, [map_tile_1])
+      map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+
+      state = InstanceProcess.get_state(instance_process)
+
       runner_state1 = %Runner{state: state, object_id: map_tile_1.id}
       assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :target_player_map_tile_id}, :is_facing})
       # also works with ID, as the above resolves to it at run time

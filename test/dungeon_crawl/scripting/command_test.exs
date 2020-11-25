@@ -8,8 +8,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.ProgramRegistry
+  alias DungeonCrawl.DungeonProcesses.ProgramProcess
 
   import ExUnit.CaptureLog
+
+  setup do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    state = InstanceProcess.get_state(instance_process)
+    %{instance_process: instance_process, state: state}
+  end
 
   def program_fixture(script \\ nil) do
     script = script ||
@@ -59,8 +68,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute Command.get_command(:fake_not_real)
   end
 
-  test "BECOME" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+  test "BECOME", %{state: state} do
+    {map_tile, state} = Instances.create_map_tile(state, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
     program = program_fixture()
     params = [%{character: "~", color: "puce", health: 20}]
 
@@ -71,9 +80,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.parsed_state == %{health: 20}
   end
 
-  test "BECOME when script should be unaffected" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1, script: "#END\n:TOUCH\n*creak*"})
-    program = state.program_contexts[map_tile.id].program
+  test "BECOME when script should be unaffected", %{state: state} do
+    {map_tile, state} = Instances.create_map_tile(state, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1, script: "#END\n:TOUCH\n*creak*"})
+
+    %{program: program} = ProgramRegistry.lookup(state.program_registry, map_tile.id)
+                          |> ProgramProcess.get_state()
+
     params = [%{character: "~"}]
 
     %Runner{state: state, program: updated_program} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
@@ -84,8 +96,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.take(program, Map.keys(program) -- [:broadcasts]) == Map.take(updated_program, Map.keys(updated_program) -- [:broadcasts])
   end
 
-  test "BECOME a ttid" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+  test "BECOME a ttid", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
     params = [{:ttid, squeaky_door.id}]
@@ -115,8 +131,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.status == :dead
   end
 
-  test "BECOME a ttid deprecated log" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+  test "BECOME a ttid deprecated log", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     squeaky_door = insert_tile_template(%{script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true"})
     params = [{:ttid, squeaky_door.id}]
@@ -126,8 +146,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       end) =~ ~r/\[warn\] DEPRECATION - BECOME command used `TTID:#{squeaky_door.id}`, replace this with `slug: #{squeaky_door.slug}`/
   end
 
-  test "BECOME a SLUG" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+  test "BECOME a SLUG", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
     program = program_fixture()
     squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
     params = [%{slug: squeaky_door.slug, character: "?"}]
@@ -177,8 +200,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.character == not_updated_map_tile.character
   end
 
-  test "CHANGE_STATE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"})
+  test "CHANGE_STATE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "one: 100, add: 8"}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
 
     %Runner{state: updated_state} = Command.change_state(%Runner{program: program, object_id: map_tile.id, state: state}, [:add, "+=", 1])
@@ -192,8 +219,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
   end
 
-  test "CHANGE_INSTANCE_STATE" do
-    {_map_tile, state} = Instances.create_map_tile(%Instances{state_values: %{one: 100, add: 8}}, %MapTile{id: 123, row: 1, col: 2, character: "."})
+  test "CHANGE_INSTANCE_STATE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    InstanceProcess.set_state_values(instance_process, %{one: 100, add: 8})
+    state = InstanceProcess.get_state(instance_process)
 
     %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:add, "+=", 1])
     assert updated_state.state_values == %{add: 9, one: 100}
@@ -203,9 +233,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.state_values == %{add: 8, new: 1, one: 100}
   end
 
-  test "CHANGE_OTHER_STATE" do
-    {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "@", state: "one: 100, add: 8, player: true"})
-    {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 0, col: 2, z_index: 0, character: ".", state: "one: 1"})
+  test "CHANGE_OTHER_STATE", %{instance_process: instance_process} do
+    map_tile_1 = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "@", state: "one: 100, add: 8, player: true"}
+    map_tile_2 = %MapTile{id: 124, row: 0, col: 2, z_index: 0, character: ".", state: "one: 1"}
+    InstanceProcess.load_map(instance_process, [map_tile_1, map_tile_2])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+    map_tile_2 = InstanceProcess.get_tile(instance_process, map_tile_2.id)
+
     program = program_fixture()
 
     runner_state = %Runner{program: program, object_id: map_tile_1.id, state: state}
@@ -225,8 +260,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == runner_state.state
   end
 
-  test "CYCLE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+  test "CYCLE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
 
     %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [3])
@@ -240,10 +279,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map_tile.state == "wait_cycles: 1"
   end
 
-  test "COMPOUND_MOVE" do
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "COMPOUND_MOVE", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
 
     state = %{ state | rerender_coords: %{} }
 
@@ -292,7 +333,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     runner_state = %Runner{object_id: mover.id, state: state, program: %Program{ status: :alive, lc: 2 }}
     %Runner{program: program} = Command.compound_move(runner_state, [{"idle", true}, {"east", true}])
     assert %{status: :alive,
-             wait_cycles: 0,
+             wait_cycles: 5,
              broadcasts: [],
              pc: 1,
              lc: 0
@@ -300,33 +341,41 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert state.rerender_coords == %{}
   end
 
-  test "COMPOUND_MOVE into something blocking (or a nil square) triggers a THUD event" do
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "COMPOUND_MOVE into something blocking (or a nil square) triggers a THUD event", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0, map_instance_id: 1}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0, map_instance_id: 1}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, map_instance_id: 1, script: "#end\n:thud\n#become character: !"}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
-    program = program_fixture("""
-                              /s/w?e?e
-                              #END
-                              #END
-                              :THUD
-                              #BECOME character: X
-                              """)
+    program_process = ProgramRegistry.lookup(state.program_registry, mover.id)
+    %{program: program} = ProgramProcess.get_state(program_process)
 
-    %Runner{program: program} = Command.compound_move(%Runner{program: program, object_id: mover.id, state: state}, [{"south", true}])
+    %Runner{program: program, state: state} = Command.compound_move(%Runner{program: program, object_id: mover.id, state: state, instance_process: instance_process}, [{"south", true}])
 
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
              pc: 1,
              lc: 0,
-             messages: [{"THUD", %{map_tile_id: nil, parsed_state: %{}}}]
            } = program
+
+    # The event is a cast, so it will not update the state immediately
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, mover.id).character == "!"
+    assert state.rerender_coords == %{%{col: 1, row: 1} => true, %{col: 2, row: 1} => true}
   end
 
-  test "DIE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 1, character: "$"})
-    {under_tile, state} = Instances.create_map_tile(state, %MapTile{id: 45, row: 1, col: 2, z_index: 0, character: "."})
+  test "DIE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 1, character: "$"}
+    under_tile = %MapTile{id: 45, row: 1, col: 2, z_index: 0, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile, under_tile])
+    InstanceProcess.set_state_values(instance_process, %{one: 100, add: 8})
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+    under_tile = InstanceProcess.get_tile(instance_process, under_tile.id)
+
     program = program_fixture()
 
     %Runner{program: program, state: state} = Command.die(%Runner{program: program, object_id: map_tile.id, state: state})
@@ -339,18 +388,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
   end
 
-  test "GIVE" do
+  test "GIVE", %{instance_process: instance_process} do
     script = """
              #END
              :fullhealth
              Already at full health
              """
-    {receiving_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 1"})
-    {giver, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "medkits: 3", script: script, color: "red"})
+    receiving_tile = %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 1"}
+    giver = %MapTile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "medkits: 3", script: script, color: "red"}
+    InstanceProcess.load_map(instance_process, [receiving_tile, giver])
+    state = InstanceProcess.get_state(instance_process)
+    giver = InstanceProcess.get_tile(instance_process, giver.id)
 
-    program = program_fixture(script)
+    program_process = ProgramRegistry.lookup(state.program_registry, giver.id)
+    %{program: program} = ProgramProcess.get_state(program_process)
 
-    runner_state = %Runner{object_id: giver.id, state: state, program: program}
+    runner_state = %Runner{object_id: giver.id, state: state, program: program, instance_process: instance_process}
 
     # give state var in direction
     %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, ["health", {:state_variable, :medkits}, "north"])
@@ -405,7 +458,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state, program: up} = Command.give(runner_state, ["health", 1, "north", 1, "fullhealth"])
     assert updated_state.map_by_ids[receiving_tile.id].parsed_state[:health] == 1
     assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
-    assert [] = updated_state.program_messages
 
     # Give using interpolated value
     %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, [{:state_variable, :color, "_key"}, 1, "north", 1])
@@ -416,12 +468,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map[receiving_tile.id].parsed_state == %{health: 1}
   end
 
-  test "GO" do
-    # Basically Move with true
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "GO", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
+    # Basically Move with true
     assert Command.go(%Runner{object_id: mover.id, state: state}, ["left"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["left", true])
 
     # Unsuccessful
@@ -430,17 +485,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "HALT/END" do
     program = program_fixture()
-#    stubbed_object = %{id: 1, state: ""}
-#    stubbed_state = %{map_by_ids: %{1 => stubbed_object}}
 
     %Runner{program: program} = Command.halt(%Runner{program: program})
     assert program.status == :idle
     assert program.pc == -1
   end
 
-  test "FACING" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up, rico: west"})
-    {west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
+  test "FACING", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up, rico: west"}
+    west_tile = %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile, west_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
@@ -483,9 +540,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "facing: west, rico: west"
   end
 
-  test "FACING - derivative when facing state var does not exist" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
-    {_west_tile, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: "."})
+  test "FACING - derivative when facing state var does not exist", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "facing: up, rico: west", map_instance_id: 1}
+    west_tile = %MapTile{id: 124, row: 1, col: 1, z_index: 1, character: ".", map_instance_id: 1}
+    InstanceProcess.load_map(instance_process, [map_tile, west_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, west_tile.id)
+
     program = program_fixture()
 
     %Runner{state: state} = Command.facing(%Runner{program: program, object_id: map_tile.id, state: state}, ["clockwise"])
@@ -502,11 +563,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.state == "facing: idle"
   end
 
-  test "JUMP_IF when state check is TRUE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true", color: "red", background_color: "white"})
+  test "JUMP_IF when state check is TRUE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1, state: "thing: true", color: "red", background_color: "white"}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
-#    map_tile = %{id: 1, state: "thing: true", parsed_state: %{thing: true}}
-#    state = %Instances{map_by_ids: %{1 => stubbed_object}}
+
     params = [{:state_variable, :thing}, "TOUCH"]
 
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: map_tile.id, state: state}, params)
@@ -526,10 +590,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 3
   end
 
-  test "JUMP_IF when state check is FALSE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
+  test "JUMP_IF when state check is FALSE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1, state: "thing: true"}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
     program = program_fixture()
-#    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
+
     params = [["!", {:state_variable, :thing}], "TOUCH"]
 
     assert program.status == :alive
@@ -561,8 +628,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
   end
 
-  test "JUMP_IF when state check is TRUE but no active label" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
+  test "JUMP_IF when state check is TRUE but no active label", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1, state: "thing: true"}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     params = [{:state_variable, :thing}, "TOUCH"]
 
@@ -572,8 +643,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.pc == 1
   end
 
-  test "JUMP_IF when no label given" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, state: "thing: true"})
+  test "JUMP_IF when no label given", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1, state: "thing: true"}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
 
@@ -590,8 +665,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 2
   end
 
-  test "JUMP_IF when using a check against a variable on the event sender" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1})
+  test "JUMP_IF when using a check against a variable on the event sender", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     event_sender = %{parsed_state: %{health: "50"}}
     program = program_fixture()
     params = [[{:event_sender_variable, :health}, ">", 25], "TOUCH"]
@@ -609,8 +688,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
   end
 
-  test "JUMP_IF when using a check against an instance state value" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{state_values: %{red_flag: true}}, %MapTile{id: 1})
+  test "JUMP_IF when using a check against an instance state value", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    InstanceProcess.set_state_values(instance_process, %{red_flag: true})
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     params = [{:instance_state_variable, :red_flag}, "TOUCH"]
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
@@ -621,9 +705,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 3
   end
 
-  test "JUMP_IF when using a check against a tile in a direction" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, row: 1, col: 1})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, row: 0, col: 1, state: "password: bob"})
+  test "JUMP_IF when using a check against a tile in a direction", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 1, row: 1, col: 1}
+    other_tile = %MapTile{id: 2, row: 0, col: 1, state: "password: bob"}
+    InstanceProcess.load_map(instance_process, [map_tile, other_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
     params = [[{{:direction, "north"}, :password}, "==", "bob"], "TOUCH"]
     runner_state = %Runner{program: program, object_id: map_tile.id, state: state}
@@ -640,8 +728,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
   end
 
-  test "LOCK" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+  test "LOCK", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+
     program = program_fixture()
 
     %Runner{state: state} = Command.lock(%Runner{program: program, object_id: map_tile.id, state: state}, [])
@@ -650,16 +742,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map_tile.parsed_state == %{locked: true}
   end
 
-  test "MOVE with one param" do
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "#", row: 0, col: 1, z_index: 0, state: "blocking: true"})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
-
-    state = %{ state | rerender_coords: %{} }
+  test "MOVE with one param", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0, map_instance_id: 1, script: "#end\n:touch\n#become character: !"}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0, map_instance_id: 1}
+    wall = %MapTile{id: 4, character: "#", row: 0, col: 1, z_index: 0, map_instance_id: 1, state: "blocking: true"}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, wall, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
     # Successful
     %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, ["left"])
+    :timer.sleep 1
     mover = Instances.get_map_tile_by_id(state, mover)
     assert %{status: :wait,
              wait_cycles: 5,
@@ -669,8 +763,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 1}
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
-    assert [{1, "touch", %{map_tile_id: 3}}] = state.program_messages
-    state = %{state | program_messages: []}
+    # Just smoke testing the touch event was sent
+    assert InstanceProcess.get_tile(instance_process, floor_1.id).character == "!"
+    assert InstanceProcess.get_tile(instance_process, floor_2.id).character == "."
+    assert InstanceProcess.get_tile(instance_process, wall.id).character == "#"
+    InstanceProcess.update_tile(instance_process, floor_1.id, %{character: "."})
     state = %{ state | rerender_coords: %{} }
 
     # Unsuccessful (but its a try and move that does not keep trying)
@@ -683,8 +780,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
            } = program
     assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
-    assert [] = state.program_messages
-    state = %{state | program_messages: []}
+    assert InstanceProcess.get_state(instance_process).map_by_ids[floor_1.id].character == "."
+    assert InstanceProcess.get_state(instance_process).map_by_ids[floor_2.id].character == "."
+    assert InstanceProcess.get_state(instance_process).map_by_ids[wall.id].character == "#"
 
     # Unsuccessful - uses the wait cycles from the state
     %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, ["up"])
@@ -696,8 +794,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
            } = program
     assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
-    assert [{4, "touch", %{map_tile_id: 3}}] = state.program_messages
-    state = %{state | program_messages: []}
 
     # Idle
     %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, ["idle"])
@@ -709,7 +805,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
            } = program
     assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
-    assert [] = state.program_messages
 
     # Moving in player direction targets a player when it is not targeting a player
     {fake_player, state} = Instances.create_player_map_tile(state, %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}, %Location{})
@@ -757,10 +852,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
              z_index: 1} = mover
   end
 
-  test "MOVE with two params" do
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "MOVE with two params", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
     state = %{ state | rerender_coords: %{} }
 
@@ -787,10 +885,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 2, character: "c", z_index: 1} = mover
   end
 
-  test "MOVE using a state variable" do
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"})
+  test "MOVE using a state variable", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
     %Runner{program: program, state: state} = Command.move(%Runner{object_id: mover.id, state: state}, [{:state_variable, :facing}, true])
     mover = Instances.get_map_tile_by_id(state, mover)
@@ -804,28 +905,40 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
   end
 
-  test "MOVE into something blocking (or a nil square) triggers a THUD event" do
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: ".", row: 2, col: 2, z_index: 0, state: "blocking: true"})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "MOVE into something blocking (or a nil square) triggers a THUD event", %{instance_process: instance_process} do
+    script = """
+             #END
+             #END
+             :THUD
+             #BECOME character: X
+             """
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    wall = %MapTile{id: 4, character: "#", row: 2, col: 2, z_index: 0, state: "blocking: true"}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, map_instance_id: 1, script: script}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover, wall])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
-    program = program_fixture("""
-                              #MOVE south
-                              #END
-                              #END
-                              :THUD
-                              #BECOME character: X
-                              """)
+    program_process = ProgramRegistry.lookup(state.program_registry, mover.id)
+    %{program: program} = ProgramProcess.get_state(program_process)
 
-    %Runner{program: program} = Command.move(%Runner{program: program, object_id: mover.id, state: state}, ["south", true])
+    state = %{ state | rerender_coords: %{} }
+
+    runner_state = %Runner{program: program, object_id: mover.id, state: state, instance_process: instance_process}
+    %Runner{program: program} = Command.move(runner_state, ["south", true])
+    :timer.sleep 1
 
     assert %{status: :wait,
              wait_cycles: 5,
              broadcasts: [],
-             pc: 1,
-             messages: [{"THUD", %{map_tile_id: 4, parsed_state: %{blocking: true}}}]
+             pc: 1
            } = program
+
+    # The event is a cast, so it will not update the state immediately
+    assert InstanceProcess.get_tile(instance_process, mover.id).character == "X"
+    assert InstanceProcess.get_state(instance_process).rerender_coords ==
+           %{%{col: 1, row: 1} => true, %{col: 2, row: 1} => true, %{col: 2, row: 2} => true}
   end
 
   test "NOOP" do
@@ -836,9 +949,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.noop(runner_state)
   end
 
-  test "PASSAGE" do
-    {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: "<"})
-    {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 124, row: 1, col: 4, character: ">", background_color: "puce"})
+  test "PASSAGE", %{instance_process: instance_process} do
+    map_tile_1 = %MapTile{id: 123, row: 1, col: 2, character: "<"}
+    map_tile_2 = %MapTile{id: 124, row: 1, col: 4, character: ">", background_color: "puce"}
+    InstanceProcess.load_map(instance_process, [map_tile_1, map_tile_2])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile_1 = InstanceProcess.get_tile(instance_process, map_tile_1.id)
+    map_tile_2 = InstanceProcess.get_tile(instance_process, map_tile_2.id)
 
     %Runner{state: state} = Command.passage(%Runner{state: state, object_id: map_tile_1.id}, ["gray"])
     assert state.passage_exits == [{map_tile_1.id, "gray"}]
@@ -846,24 +963,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert state.passage_exits == [{map_tile_2.id, "puce"}, {map_tile_1.id, "gray"}]
   end
 
-  test "PULL" do
-    state = %Instances{}
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0})
-    {pulled, state} = Instances.create_map_tile(state, %MapTile{id: 5, character: "P", row: 0, col: 1, z_index: 1, state: "pullable: true"})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 1, z_index: 0})
-    {puller, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "@", row: 1, col: 1, z_index: 1, script: "#PULL south\n#NOOP"})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: ".", row: 2, col: 1, z_index: 0})
+  test "PULL", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 1, z_index: 0}
+    floor_3 = %MapTile{id: 3, character: ".", row: 2, col: 1, z_index: 0}
+    pulled = %MapTile{id: 5, character: "P", row: 0, col: 1, z_index: 1, state: "pullable: true"}
+    puller = %MapTile{id: 4, character: "@", row: 1, col: 1, z_index: 1, script: "#PULL south\n#END\n:THUD"}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, floor_3, pulled, puller])
+    state = InstanceProcess.get_state(instance_process)
+    pulled = InstanceProcess.get_tile(instance_process, pulled.id)
+    puller = InstanceProcess.get_tile(instance_process, puller.id)
 
-    program = program_fixture("""
-                              #PULL south
-                              #END
-                              #END
-                              :THUD
-                              #BECOME character: X
-                              """)
+    program_process = ProgramRegistry.lookup(state.program_registry, puller.id)
+    %{program: program} = ProgramProcess.get_state(program_process)
 
     # pull
-    runner_state = %Runner{object_id: puller.id, state: state, program: program}
+    runner_state = %Runner{object_id: puller.id, state: state, program: program, instance_process: instance_process}
     %Runner{program: program, state: state} = Command.pull(runner_state, ["south"])
     pulled = Instances.get_map_tile_by_id(state, pulled)
     puller = Instances.get_map_tile_by_id(state, puller)
@@ -892,17 +1007,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{program: program} = Command.pull(runner_state, ["west", true])
     assert program == %{ runner_state.program | pc: 1,
                                                 status: :wait,
-                                                wait_cycles: 5,
-                                                messages: [{"THUD", %{map_tile_id: nil, parsed_state: %{}}}]}
+                                                wait_cycles: 5 }
   end
 
-  test "PUSH" do
-    state = %Instances{}
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 5, character: "@", row: 0, col: 1, z_index: 1, state: "pushable: true, blocking: true"})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: ".", row: 2, col: 1, z_index: 0})
-    {pusher, state} = Instances.create_map_tile(state, %MapTile{id: 4, character: "P", row: 3, col: 1, z_index: 0, state: "facing: north, side: norf, pushable: true"})
+  test "PUSH", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 0, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 1, z_index: 0}
+    floor_3 = %MapTile{id: 3, character: ".", row: 2, col: 1, z_index: 0}
+    pushed = %MapTile{id: 5, character: "@", row: 0, col: 1, z_index: 1, state: "pushable: true, blocking: true"}
+    pusher = %MapTile{id: 4, character: "P", row: 3, col: 1, z_index: 0, state: "facing: north, side: norf, pushable: true"}
+
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, floor_3, pushed, pusher])
+    state = InstanceProcess.get_state(instance_process)
+    pusher = InstanceProcess.get_tile(instance_process, pusher.id)
 
     # Nothing in range
     runner_state = %Runner{object_id: pusher.id, state: state}
@@ -914,7 +1031,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == updated_runner_state
 
     # Pushes
-    {pushed, state} = Instances.create_map_tile(state, %MapTile{id: 6, character: "2", row: 2, col: 1, z_index: 1, state: "pushable: true, blocking: true"})
+    pushed = %MapTile{id: 6, character: "2", row: 2, col: 1, z_index: 1, state: "pushable: true, blocking: true"}
+    InstanceProcess.load_map(instance_process, [pushed])
+    state = InstanceProcess.get_state(instance_process)
+    pushed = InstanceProcess.get_tile(instance_process, pushed.id)
+
     runner_state = %Runner{object_id: pusher.id, state: state}
     %Runner{program: program, state: state} = Command.push(runner_state, [{:state_variable, :facing}, 3])
     pushed = Instances.get_map_tile_by_id(state, pushed)
@@ -924,20 +1045,18 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{row: 1, col: 1, character: "2", z_index: 1} = pushed
   end
 
-  test "PUT" do
+  test "PUT", %{instance_process: instance_process} do
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{character: ".", row: 1, col: 2, z_index: 0, color: "orange"},
        %MapTile{character: ".", row: 1, col: 3, z_index: 0},
        %MapTile{character: ".", row: 1, col: 4, z_index: 0},
        %MapTile{character: ".", row: 1, col: 5, z_index: 0}])
 
-    # Quik and dirty state init
-    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
-                 {_, state} = Instances.create_map_tile(state, dmt)
-                 state
-               end)
-    state = Map.put(state, :state_values, %{rows: 20, cols: 20})
+    InstanceProcess.set_instance_id(instance_process, instance.id)
+    InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+
+    state = InstanceProcess.get_state(instance_process)
 
     map_tile = Instances.get_map_tile(state, %{row: 1, col: 2})
 
@@ -1024,17 +1143,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
   end
 
-  test "PUT using coordinates" do
+  test "PUT using coordinates", %{instance_process: instance_process} do
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{character: ".", row: 1, col: 2, z_index: 0}])
 
-    # Quik and dirty state init
-    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
-                 {_, state} = Instances.create_map_tile(state, dmt)
-                 state
-               end)
-    state = Map.put(state, :state_values, %{rows: 20, cols: 20})
+    InstanceProcess.set_instance_id(instance_process, instance.id)
+    InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+
+    state = InstanceProcess.get_state(instance_process)
 
     map_tile = Instances.get_map_tile(state, %{row: 1, col: 2})
 
@@ -1063,8 +1180,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
   end
 
-  test "RANDOM" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+  test "RANDOM", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
 
     # range
     %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["cookies", "5 - 10"])
@@ -1082,14 +1202,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Enum.member?(["- 5"], updated_map_tile.parsed_state[:flaw])
   end
 
-  test "REPLACE tile in a direction" do
-    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
-    state = %Instances{}
-    {tile_123, state}  = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
-    {_tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
-    {_tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north", map_instance_id: 1, script: "#end"})
+  test "REPLACE tile in a direction", %{instance_process: instance_process} do
+    tile_123 = %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}
+    tile_255 = %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1}
+    tile_999 = %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1}
+    obj = %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north", map_instance_id: 1, script: "#end"}
 
+    InstanceProcess.load_map(instance_process, [tile_123, tile_255, tile_999, obj])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
+    # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
     state = %{ state | rerender_coords: %{} }
 
     tile_program = %Program{ pc: 3 }
@@ -1126,15 +1249,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.rerender_coords == %{}
   end
 
-  test "REPLACE tiles by name" do
+  test "REPLACE tiles by name", %{instance_process: instance_process} do
+    tile_123 = %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}
+    tile_255 = %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1}
+    tile_999 = %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1}
+    obj = %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1}
+
+    InstanceProcess.load_map(instance_process, [tile_255, tile_999, obj])
+    InstanceProcess.run_with(instance_process, fn instance_state ->
+                                                 Instances.create_player_map_tile(instance_state, tile_123, %Location{})
+                                               end)
+    state = InstanceProcess.get_state(instance_process)
+    tile_123 = InstanceProcess.get_tile(instance_process, tile_123.id)
+    tile_255 = InstanceProcess.get_tile(instance_process, tile_255.id)
+    tile_999 = InstanceProcess.get_tile(instance_process, tile_999.id)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
     # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
     squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
-
-    state = %Instances{}
-    {tile_123, state} = Instances.create_player_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}, %Location{})
-    {tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END", map_instance_id: 1})
-    {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
 
     state = %{ state | rerender_coords: %{} }
 
@@ -1170,34 +1302,44 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.rerender_coords == %{}
   end
 
-  test "REPLACE with only target_ kwargs" do
+  test "REPLACE with only target_ kwargs", %{instance_process: instance_process} do
+    tile_123 = %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}
+    tile_255 = %MapTile{id: 255, character: ".", row: 1, col: 2, z_index: 1, color: "red", state: "me: true", script: "#END", map_instance_id: 1}
+    tile_999 = %MapTile{id: 999, character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1}
+    obj = %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1}
+
+    InstanceProcess.load_map(instance_process, [tile_255, tile_999, obj])
+    InstanceProcess.run_with(instance_process, fn instance_state ->
+                                                 Instances.create_player_map_tile(instance_state, tile_123, %Location{})
+                                               end)
+    state = InstanceProcess.get_state(instance_process)
+    tile_123 = InstanceProcess.get_tile(instance_process, tile_123.id)
+    tile_999 = InstanceProcess.get_tile(instance_process, tile_999.id)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
     # Replace uses BECOME, so mainly just verify that the right tiles are getting replaced
     squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true, color: "red"})
-
-    state = %Instances{}
-    {tile_123, state} = Instances.create_player_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END", map_instance_id: 1}, %Location{})
-    {_tile_255, state} = Instances.create_map_tile(state, %MapTile{id: 255, character: ".", row: 1, col: 2, z_index: 1, color: "red", state: "me: true", script: "#END", map_instance_id: 1})
-    {tile_999, state} = Instances.create_map_tile(state, %MapTile{id: 999, character: "c", row: 3, col: 2, z_index: 0, script: "#END", map_instance_id: 1})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1})
 
     # must match all target kwargs
     %Runner{state: updated_state} = Command.replace(%Runner{state: state, object_id: obj.id}, [%{target_me: true, target_color: "red", slug: squeaky_door.slug}])
     assert Instances.get_map_tile_by_id(updated_state, %{id: 255}).character == squeaky_door.character
     assert Instances.get_map_tile_by_id(updated_state, %{id: 123}) == tile_123
     assert Instances.get_map_tile_by_id(updated_state, %{id: 999}) == tile_999
-    assert updated_state.program_messages == []
   end
 
-  test "REMOVE tile in a direction" do
-    state = %Instances{}
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
+  test "REMOVE tile in a direction", %{instance_process: instance_process} do
+    tile_123 = %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"}
+    tile_255 = %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"}
+    tile_999 = %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0}
+    obj = %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"}
+
+    InstanceProcess.load_map(instance_process, [tile_123, tile_255, tile_999, obj])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
 
     state = %{ state | rerender_coords: %{} }
 
-    runner_state = %Runner{state: state, object_id: obj.id}
+    runner_state = %Runner{state: state, object_id: obj.id, instance_process: instance_process}
 
     %Runner{state: updated_state, program: program} = Command.remove(runner_state, [%{target: "north"}])
     refute Instances.get_map_tile_by_id(updated_state, %{id: 255})
@@ -1224,12 +1366,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.rerender_coords == %{}
   end
 
-  test "REMOVE tiles by name" do
-    state = %Instances{}
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+  test "REMOVE tiles by name", %{instance_process: instance_process} do
+    tile_123 = %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END"}
+    tile_255 = %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"}
+    tile_999 = %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"}
+    obj = %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0}
+
+    InstanceProcess.load_map(instance_process, [tile_123, tile_255, tile_999, obj])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
 
     %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "a", target_color: "red"}])
     assert Instances.get_map_tile_by_id(updated_state, %{id: 255})
@@ -1243,15 +1388,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute Instances.get_map_tile_by_id(updated_state, %{id: 999})
 
     %Runner{state: updated_state} = Command.remove(%Runner{state: state, object_id: obj.id}, [%{target: "noname"}])
-    assert updated_state.program_messages == []
+    assert updated_state == state
   end
 
-  test "REMOVE tiles with only other target KWARGS" do
-    state = %Instances{}
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, color: "red"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, state: "moo: cow"})
-    {_, state}   = Instances.create_player_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, color: "red"}, %Location{})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0})
+  test "REMOVE tiles with only other target KWARGS", %{instance_process: instance_process} do
+    tile_123 = %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, color: "red"}
+    tile_255 = %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, state: "moo: cow"}
+    tile_999 = %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, color: "red"}
+    obj = %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0}
+
+    InstanceProcess.load_map(instance_process, [tile_123, tile_255, obj])
+    InstanceProcess.run_with(instance_process, fn instance_state ->
+                                                 Instances.create_player_map_tile(instance_state, tile_999, %Location{})
+                                               end)
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
 
     runner_state = %Runner{state: state, object_id: obj.id}
 
@@ -1277,115 +1428,207 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.restore(runner_state, ["derp"])
   end
 
-  test "SEND message to self" do
-    program = program_fixture()
-    stubbed_object = Map.put(%MapTile{id: 1337}, :parsed_state, %{})
-    state = %Instances{map_by_ids: %{1337 => stubbed_object}}
-    stubbed_id = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
+  test "SEND message to self", %{instance_process: instance_process} do
+    obj = %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1, script: "#end"}
 
-    %Runner{state: state} = Command.send_message(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["touch"])
-    assert state.program_messages == [{1337, "touch", stubbed_id}]
+    InstanceProcess.load_map(instance_process, [obj])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
+    program_process = ProgramRegistry.lookup(state.program_registry, obj.id)
+    %{program: program} = ProgramProcess.get_state(program_process)
+
+    runner_state = %Runner{program: program, object_id: obj.id, state: state, instance_process: instance_process}
+
+    Command.send_message(runner_state, ["touch"])
+    # this might get processed to quick so it might be flaky
+    assert  {:messages,
+              [
+                "$gen_cast": {:send_event,
+                 {"touch", %{map_tile_id: 1337, parsed_state: %{}}}}
+              ]} == :erlang.process_info(program_process, :messages)
+#    :timer.sleep 1
+#    assert InstanceProcess.get_tile(instance_process, obj.id).character == "T"
 
     # program_messages has more recent messages at the front of the list
-    %Runner{state: state} = Command.send_message(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["tap", "self"])
-    assert state.program_messages == [{1337, "tap", stubbed_id}, {1337, "touch", stubbed_id}]
+    Command.send_message(runner_state, ["tap", "self"])
+    assert  {:messages,
+              [
+                "$gen_cast": {:send_event,
+                 {"tap", %{map_tile_id: 1337, parsed_state: %{}}}}
+              ]} == :erlang.process_info(program_process, :messages)
+#    :timer.sleep 1
+#    assert InstanceProcess.get_tile(instance_process, obj.id).character == "t"
   end
 
-  test "SEND message to event sender" do
-    sender = %{map_tile_id: 9001}
-    stubbed_object = Map.put(%MapTile{id: 1337, name: "test"}, :parsed_state, %{})
-    state = %Instances{map_by_ids: %{1337 => stubbed_object}}
-    stubbed_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
+  test "SEND message to event sender", %{instance_process: instance_process} do
+    sender = %MapTile{id: 9001, character: "c", row: 2, col: 5, z_index: 0, map_instance_id: 1}
+    obj = %MapTile{id: 1337, name: "active", character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1, script: "#end"}
 
-    %Runner{state: state} = Command.send_message(%Runner{object_id: stubbed_object.id, event_sender: sender, state: state}, ["touch", [:event_sender]])
-    assert state.program_messages == [{9001, "touch", stubbed_sender}]
+    InstanceProcess.load_map(instance_process, [obj, sender])
+    state = InstanceProcess.get_state(instance_process)
+    sender = InstanceProcess.get_tile(instance_process, sender.id)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
+    stubbed_sender = %{map_tile_id: obj.id, parsed_state: obj.parsed_state, name: obj.name}
+    event_sender = %{map_tile_id: sender.id, parsed_state: sender.parsed_state, name: sender.name}
+
+    runner_state = %Runner{program: program_fixture(), object_id: obj.id, event_sender: event_sender, state: state, instance_process: instance_process}
+
+    # these asserts may need commented out as they can be flaky due to the async nature of sending a cast to a genserver
+    Command.send_message(runner_state, ["touch", [:event_sender]])
+    assert  {:messages,
+              [
+                "$gen_cast": {:send_event,
+                 {sender.id, "touch", stubbed_sender}}
+              ]} == :erlang.process_info(instance_process, :messages)
 
     # program_messages has more recent messages at the front of the list
-    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: sender}, ["tap", [:event_sender]])
-    assert state.program_messages == [{9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
+    Command.send_message(runner_state, ["tap", [:event_sender]])
+    assert  {:messages,
+              [
+                "$gen_cast": {:send_event,
+                 {sender.id, "tap", stubbed_sender}}
+              ]} == :erlang.process_info(instance_process, :messages)
 
     # also works when sender was a player
-    player = %Location{map_tile_instance_id: 12345}
-    stubbed_player_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: stubbed_object.name}
-    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: player}, ["tap", [:event_sender]])
-    assert state.program_messages == [{12345, "tap", stubbed_player_sender}, {9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
+    player = %Location{map_tile_instance_id: 9001}
+
+    Command.send_message(%{ runner_state | event_sender: player}, ["tap", [:event_sender]])
+    assert  {:messages, process_messages} = :erlang.process_info(instance_process, :messages)
+    assert Enum.member? process_messages,
+                {:"$gen_cast", {:send_event,
+                 {player.map_tile_instance_id, "tap", stubbed_sender}} }
 
     # doesnt break when event sender is junk
-    state = %Instances{map_by_ids: %{1337 => stubbed_object}}
-    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: nil}, ["tap", [:event_sender]])
-    assert state.program_messages == []
+    Command.send_message(%{ runner_state | event_sender: nil}, ["tap", [:event_sender]])
+    assert  {:messages, process_messages} = :erlang.process_info(instance_process, :messages)
+    refute Enum.member? process_messages,
+                {:"$gen_cast", {:send_event, {player.map_tile_instance_id, "tap", stubbed_sender}} }
   end
 
-  test "SEND message to others" do
+  test "SEND message to others", %{instance_process: instance_process} do
+    script = """
+             #end
+             :tap
+             #become character: t
+             """
+    obj = %MapTile{id: 1337, name: "active", character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1, script: script}
+    inert = %MapTile{id: 9001, character: "c", row: 2, col: 5, z_index: 0, map_instance_id: 1}
+    p1 = %MapTile{id: 1, character: "c", row: 1, col: 1, map_instance_id: 1, script: script}
+    p2 = %MapTile{id: 55, character: "c",row: 1, col: 3, map_instance_id: 1, script: script}
+
+    InstanceProcess.load_map(instance_process, [obj, inert, p1, p2])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
     program = program_fixture()
-    stubbed_object = Map.put(%MapTile{id: 1337, name: "test"}, :parsed_state, %{})
-    stubbed_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
-    state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}, map_by_ids: %{1337 => stubbed_object}}
 
-    %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["tap", "others"])
-    assert state.program_messages == [{9001, "tap", stubbed_sender}, {55, "tap", stubbed_sender}, {1, "tap", stubbed_sender}]
+    runner_state = %Runner{state: state, program: program, object_id: obj.id, instance_process: instance_process}
+
+    Command.send_message(runner_state, ["tap", "others"])
+    :timer.sleep 2
+    assert InstanceProcess.get_tile(instance_process, obj.id).character == "c"
+    assert InstanceProcess.get_tile(instance_process, p1.id).character == "t"
+    assert InstanceProcess.get_tile(instance_process, p2.id).character == "t"
   end
 
-  test "SEND message to all" do
+  test "SEND message to all", %{instance_process: instance_process} do
+    script = "#end\n:tap\n#become character: t"
+    obj = %MapTile{id: 1337, name: "active", character: "c", row: 2, col: 2, z_index: 0, map_instance_id: 1, script: script}
+    inert = %MapTile{id: 9001, character: "c", row: 2, col: 5, z_index: 0, map_instance_id: 1}
+    p1 = %MapTile{id: 1, character: "c", row: 1, col: 1, map_instance_id: 1, script: script}
+    p2 = %MapTile{id: 55, character: "c",row: 1, col: 3, map_instance_id: 1, script: script}
+
+    InstanceProcess.load_map(instance_process, [obj, inert, p1, p2])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
+
     program = program_fixture()
-    stubbed_object = Map.put(%MapTile{id: 1337, name: "test"}, :parsed_state, %{})
-    stubbed_sender = %{map_tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
-    state = %Instances{program_contexts: %{1337 => %Program{}, 55 => %Program{}, 1 => %Program{}, 9001 => %Program{}}, map_by_ids: %{1337 => stubbed_object}}
 
-    %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["dance", "all"])
-    assert state.program_messages == [{9001, "dance", stubbed_sender}, {1337, "dance", stubbed_sender}, {55, "dance", stubbed_sender}, {1, "dance", stubbed_sender}]
+    runner_state = %Runner{state: state, program: program, object_id: obj.id, instance_process: instance_process}
+
+    Command.send_message(runner_state, ["tap", "all"])
+    :timer.sleep 2
+    assert InstanceProcess.get_tile(instance_process, obj.id).character == "t"
+    assert InstanceProcess.get_tile(instance_process, p1.id).character == "t"
+    assert InstanceProcess.get_tile(instance_process, p2.id).character == "t"
   end
 
-  test "SEND message to tiles in a direction" do
-    state = %Instances{}
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 998,  character: ".", row: 2, col: 2, z_index: -1, script: ""})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "c", row: 2, col: 2, z_index: 0, state: "facing: north"})
-    sender = %{map_tile_id: obj.id, parsed_state: obj.parsed_state, name: nil}
+  test "SEND message to tiles in a direction", %{instance_process: instance_process} do
+    script = "#end\n:a\n#become character: a\n#end\n:b\n#become character: b\n#end\n:c\n#become character: c"
+    obj = %MapTile{id: 1337, character: "0", row: 2, col: 2, z_index: 0, map_instance_id: 1, state: "facing: north"}
+    t123 = %MapTile{id: 123,  character: ".", row: 1, col: 2, z_index: 0, map_instance_id: 1, script: script}
+    t255 = %MapTile{id: 255,  character: ".", row: 1, col: 2, z_index: 1, map_instance_id: 1, script: script}
+    t999 = %MapTile{id: 999,  character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1, script: script}
+    t998 = %MapTile{id: 998,  character: ".", row: 2, col: 2, z_index: -1, map_instance_id: 1, script: script}
 
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "north"])
-    assert updated_state.program_messages == [{123, "touch", sender}, {255, "touch", sender}]
+    InstanceProcess.load_map(instance_process, [obj, t123, t255, t999, t998])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
 
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "south"])
-    assert updated_state.program_messages == [{999, "touch", sender}]
+    runner_state = %Runner{state: state, object_id: obj.id, instance_process: instance_process}
 
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", "here"])
-    assert updated_state.program_messages == [{998, "touch", sender}, {1337, "touch", sender}]
+    Command.send_message(runner_state, ["a", "north"])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, t123.id).character == "a"
+    assert InstanceProcess.get_tile(instance_process, t255.id).character == "a"
+
+    Command.send_message(runner_state, ["a", "south"])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, t999.id).character == "a"
+
+    Command.send_message(runner_state, ["a", "here"])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, t998.id).character == "a"
 
     # Also works if the direction is in a state variable
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :facing}])
-    assert updated_state.program_messages == [{123, "touch", sender}, {255, "touch", sender}]
+    Command.send_message(runner_state, ["b", {:state_variable, :facing}])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, t123.id).character == "b"
+    assert InstanceProcess.get_tile(instance_process, t255.id).character == "b"
 
     # Doesnt break if nonexistant state var
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["touch", {:state_variable, :fake}])
-    assert updated_state.program_messages == []
+    Command.send_message(runner_state, ["c", {:state_variable, :fake}])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, obj.id).character != "c"
   end
 
-  test "SEND message to tiles by name" do
-    state = %Instances{}
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  name: "A", character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 255,  name: "A", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 999,  name: "C", character: "c", row: 3, col: 2, z_index: 0, script: "#END"})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
-    sender = %{map_tile_id: obj.id, parsed_state: %{}, name: nil}
+  test "SEND message to tiles by name", %{instance_process: instance_process} do
+    script = "#end\n:a\n#become character: a\n#end\n:b\n#become character: b\n#end\n:c\n#become character: c"
+    obj = %MapTile{id: 1337, character: "0", row: 2, col: 2, z_index: 0, map_instance_id: 1}
+    t123 = %MapTile{id: 123, name: "A", character: ".", row: 1, col: 2, z_index: 0, map_instance_id: 1, script: script}
+    t255 = %MapTile{id: 255, name: "A", character: ".", row: 1, col: 2, z_index: 1, map_instance_id: 1, script: script}
+    t999 = %MapTile{id: 999, name: "C", character: "c", row: 3, col: 2, z_index: 0, map_instance_id: 1, script: script}
 
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "a"])
-    assert updated_state.program_messages == [{255, "name", sender}, {123, "name", sender}]
+    InstanceProcess.load_map(instance_process, [obj, t123, t255, t999])
+    state = InstanceProcess.get_state(instance_process)
+    obj = InstanceProcess.get_tile(instance_process, obj.id)
 
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "C"])
-    assert updated_state.program_messages == [{999, "name", sender}]
+    Command.send_message(%Runner{state: state, object_id: obj.id}, ["a", "a"])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, t123.id).character == "a"
+    assert InstanceProcess.get_tile(instance_process, t255.id).character == "a"
 
-    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "noname"])
-    assert updated_state.program_messages == []
+    Command.send_message(%Runner{state: state, object_id: obj.id}, ["b", "C"])
+    :timer.sleep 1
+    assert InstanceProcess.get_tile(instance_process, t999.id).character == "b"
+
+    Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "noname"])
+    assert InstanceProcess.get_tile(instance_process, obj.id).character != "c"
   end
 
-  test "SEQUENCE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+  test "SEQUENCE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", script: "#sequence c, red, gold, blue"}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    InstanceProcess.set_state_values(instance_process, %{red_flag: true})
+    state = InstanceProcess.get_state(instance_process)
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
 
-    program = program_fixture("#sequence c, red, gold, blue")
-    runner_state = %Runner{object_id: map_tile.id, state: state, program: program}
+    program_process = ProgramRegistry.lookup(state.program_registry, map_tile.id)
+    %{program: program} = ProgramProcess.get_state(program_process)
+
+    runner_state = %Runner{state: state, object_id: map_tile.id, program: program, instance_process: instance_process}
 
     %Runner{state: updated_state, program: updated_program} = Command.sequence(runner_state, ["c", "red", "gold", "blue"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
@@ -1393,29 +1636,32 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert %{ 1 => [:sequence, ["c", "gold", "blue", "red"]] } = updated_program.instructions
   end
 
-  test "SHIFT" do
-    state = %Instances{}
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123,  character: ".", row: 1, col: 1, z_index: 0})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 601,  character: "o", row: 1, col: 1, z_index: 1, state: "blocking: true, pushable: true"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 124,  character: ".", row: 1, col: 2, z_index: 0})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 125,  character: "#", row: 1, col: 3, z_index: 0, state: "blocking: true"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 126,  character: ".", row: 2, col: 3, z_index: 0})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 602,  character: "o", row: 2, col: 3, z_index: 1, state: "blocking: true, pushable: true"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 127,  character: ".", row: 3, col: 1, z_index: 0})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 128,  character: ".", row: 3, col: 2, z_index: 0})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 603,  character: "o", row: 3, col: 2, z_index: 1, state: "blocking: true, pushable: true"})
-    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 129,  character: ".", row: 3, col: 3, z_index: 0})
-    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, character: "/", row: 2, col: 2, z_index: 0})
+  test "SHIFT", %{instance_process: instance_process} do
+    obj = %MapTile{id: 1337, character: "/", row: 2, col: 2, z_index: 0}
+    InstanceProcess.load_map(instance_process,
+      [obj,
+       %MapTile{id: 123,  character: ".", row: 1, col: 1, z_index: 0},
+       %MapTile{id: 601,  character: "o", row: 1, col: 1, z_index: 1, state: "blocking: true, pushable: true"},
+       %MapTile{id: 124,  character: ".", row: 1, col: 2, z_index: 0},
+       %MapTile{id: 125,  character: "#", row: 1, col: 3, z_index: 0, state: "blocking: true"},
+       %MapTile{id: 126,  character: ".", row: 2, col: 3, z_index: 0},
+       %MapTile{id: 602,  character: "o", row: 2, col: 3, z_index: 1, state: "blocking: true, pushable: true"},
+       %MapTile{id: 127,  character: ".", row: 3, col: 1, z_index: 0},
+       %MapTile{id: 128,  character: ".", row: 3, col: 2, z_index: 0},
+       %MapTile{id: 603,  character: "o", row: 3, col: 2, z_index: 1, state: "blocking: true, pushable: true"},
+       %MapTile{id: 129,  character: ".", row: 3, col: 3, z_index: 0}])
+
+    state = InstanceProcess.get_state(instance_process)
 
     state = %{ state | rerender_coords: %{} }
 
-    obj_123 = Instances.get_map_tile_by_id(state, %{id: 123})
-    obj_124 = Instances.get_map_tile_by_id(state, %{id: 124})
-    obj_125 = Instances.get_map_tile_by_id(state, %{id: 125})
-    obj_126 = Instances.get_map_tile_by_id(state, %{id: 126})
-    obj_127 = Instances.get_map_tile_by_id(state, %{id: 127})
-    obj_128 = Instances.get_map_tile_by_id(state, %{id: 128})
-    obj_129 = Instances.get_map_tile_by_id(state, %{id: 129})
+    obj_123 = InstanceProcess.get_tile(instance_process, 123)
+    obj_124 = InstanceProcess.get_tile(instance_process, 124)
+    obj_125 = InstanceProcess.get_tile(instance_process, 125)
+    obj_126 = InstanceProcess.get_tile(instance_process, 126)
+    obj_127 = InstanceProcess.get_tile(instance_process, 127)
+    obj_128 = InstanceProcess.get_tile(instance_process, 128)
+    obj_129 = InstanceProcess.get_tile(instance_process, 129)
 
     %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: state, object_id: obj.id}, ["clockwise"])
     assert %{id: 601, row: 1, col: 2, z_index: 1} = Instances.get_map_tile_by_id(updated_state, %{id: 601})
@@ -1480,32 +1726,29 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 3}
   end
 
-  test "SHOOT" do
+  test "SHOOT", %{instance_process: instance_process} do
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{character: ".", row: 1, col: 2, z_index: 0},
        %MapTile{character: ".", row: 2, col: 2, z_index: 0},
        %MapTile{character: "#", row: 3, col: 2, z_index: 0, state: "blocking: true"},
        %MapTile{character: "@", row: 2, col: 2, z_index: 1}])
 
-    # Quik and dirty state init
-    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
-                 {_, state} = Instances.create_map_tile(state, dmt)
-                 state
-               end)
+    InstanceProcess.set_instance_id(instance_process, instance.id)
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+
+    state = InstanceProcess.get_state(instance_process)
 
     obj = Instances.get_map_tile(state, %{row: 2, col: 2})
 
     # shooting into an empty space spawns a bullet heading in that direction
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["north"])
-    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+    assert bullet = Enum.at(Instances.get_map_tiles(updated_state, %{row: 2, col: 2}), -1)
 
     assert bullet.character == "◦"
     assert bullet.parsed_state[:facing] == "north"
-    assert updated_state.program_contexts[bullet.id]
-    assert updated_state.program_messages == []
-    assert updated_state.new_pids == [bullet.id]
-    assert updated_state.program_contexts[bullet.id].program.status == :alive
+#    assert updated_state.program_contexts[bullet.id]
+    assert ProgramRegistry.lookup(state.program_registry, bullet.id)
+ #   assert updated_state.program_contexts[bullet.id].program.status == :alive
 
     # bad direction / idle also does not spawn a bullet or do anything
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["gibberish"])
@@ -1518,20 +1761,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 #    obj = %{obj | parsed_state: %{facing: "north"}}
     {obj, state} = Instances.update_map_tile_state(updated_state, obj, %{facing: "north"})
     %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, [{:state_variable, :facing}])
-    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+    assert bullet = Enum.at(Instances.get_map_tiles(updated_state, %{row: 2, col: 2}), -1)
 
     assert bullet.character == "◦"
   end
 
-  test "TAKE" do
+  test "TAKE", %{instance_process: instance_process} do
     script = """
              #END
              :toopoor
              /i
              You don't have enough
              """
-    {losing_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1, cash: 2"})
-    {taker, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", color: "red", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script})
+    losing_tile = %MapTile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1, cash: 2"}
+    taker = %MapTile{id: 3, character: "c", color: "red", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script}
+
+    InstanceProcess.load_map(instance_process, [losing_tile, taker])
+    state = InstanceProcess.get_state(instance_process)
+    taker = InstanceProcess.get_tile(instance_process, taker.id)
 
     program = program_fixture(script)
 
@@ -1578,10 +1825,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     runner_state_with_player = %{ runner_state |
                                     state: %{ runner_state.state |
                                                 player_locations: %{losing_tile.id => %Location{map_tile_instance_id: losing_tile.id} }}}
-    %Runner{state: updated_state, program: up} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
+    %Runner{program: up} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
                                                  ["gems", 2, "north", "toopoor"])
     assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
-    assert [] = updated_state.program_messages
 
     # take state var to event sender (tile)
     %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state | event_sender: %{map_tile_id: losing_tile.id}},
@@ -1603,36 +1849,45 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
   end
 
-  test "TARGET_PLAYER" do
+  test "TARGET_PLAYER", %{instance_process: instance_process} do
     # setup
-    state = %Instances{}
-    {_, state} = Instances.create_player_map_tile(state,
-                                                  %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "A"},
-                                                  %Location{})
-    {_, state} = Instances.create_player_map_tile(state,
-                                                  %MapTile{id: 43202, row: 3, col: 14, z_index: 0, character: "B"},
-                                                  %Location{})
-    {_, state} = Instances.create_player_map_tile(state,
-                                                  %MapTile{id: 43203, row: 3, col: 3, z_index: 0, character: "C"},
-                                                  %Location{})
-    {object_1, state} = Instances.create_map_tile(state, %MapTile{id: 1, character: "X", row: 2, col: 3, z_index: 0, state: ""})
-    {object_2, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: "Y", row: 5, col: 20, z_index: 0, state: ""})
+    InstanceProcess.run_with(
+      instance_process,
+      fn state ->
+        {_, state} = Instances.create_player_map_tile(state,
+                                                      %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "A"},
+                                                      %Location{})
+        {_, state} = Instances.create_player_map_tile(state,
+                                                      %MapTile{id: 43202, row: 3, col: 14, z_index: 0, character: "B"},
+                                                      %Location{})
+        Instances.create_player_map_tile(state,
+                                         %MapTile{id: 43203, row: 3, col: 3, z_index: 0, character: "C"},
+                                         %Location{})
+      end)
+
+    object_1 = %MapTile{id: 1, character: "X", row: 2, col: 3, z_index: 0, state: ""}
+    object_2 = %MapTile{id: 2, character: "Y", row: 5, col: 20, z_index: 0, state: ""}
+    InstanceProcess.load_map(instance_process, [object_1, object_2])
+    object_1 = InstanceProcess.get_tile(instance_process, object_1.id)
+    object_2 = InstanceProcess.get_tile(instance_process, object_2.id)
+
+    state = InstanceProcess.get_state(instance_process)
 
     # nearest uses the nearest player tile
-    runner_state = %Runner{object_id: object_1.id, state: state}
+    runner_state = %Runner{object_id: object_1.id, state: state, instance_process: instance_process}
     %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
     object_tile = Instances.get_map_tile_by_id(updated_state, object_1)
     target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
     assert Enum.member?(["A", "C"], target_tile.character)
 
-    runner_state = %Runner{object_id: object_2.id, state: state}
+    runner_state = %Runner{object_id: object_2.id, state: state, instance_process: instance_process}
     %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
     object_tile = Instances.get_map_tile_by_id(updated_state, object_2)
     target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
     assert target_tile.character == "B"
 
     # random uses a random player tile
-    runner_state = %Runner{object_id: object_2.id, state: state}
+    runner_state = %Runner{object_id: object_2.id, state: state, instance_process: instance_process}
     %Runner{state: updated_state} = Command.target_player(runner_state, ["random"])
     object_tile = Instances.get_map_tile_by_id(updated_state, object_2)
     target_tile = Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
@@ -1643,8 +1898,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert runner_state == Command.target_player(runner_state, ["qwerty"])
   end
 
-  test "TERMINATE" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+  test "TERMINATE", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
+    state = InstanceProcess.get_state(instance_process)
     program = program_fixture()
 
     %Runner{program: program, state: state} = Command.terminate(%Runner{program: program, object_id: map_tile.id, state: state})
@@ -1711,7 +1969,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.message_actions == %{444 => ["no", "label"]}
   end
 
-  test "TRANSPORT" do
+  test "TRANSPORT", %{instance_process: instance_process} do
     # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
     defmodule TravelMock1 do
       def passage(%Location{} = player_location, passage, level_number, state) do
@@ -1732,23 +1990,28 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       end
     end
 
-    {floor, state} = Instances.create_map_tile(%Instances{number: 3}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {fake_player, state} = Instances.create_player_map_tile(state,
-                                                            %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"},
-                                                            %Location{map_tile_instance_id: 43201})
+    floor2 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor1 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    fake_player = %MapTile{id: 43201, row: 2, col: 2, z_index: 0, character: "@"}
+
+    InstanceProcess.set_level_number(instance_process, 3)
+    InstanceProcess.load_map(instance_process, [floor1, floor2])
+    InstanceProcess.run_with(instance_process, fn instance_state ->
+                                                 Instances.create_player_map_tile(instance_state, fake_player, %Location{map_tile_instance_id: 43201})
+                                               end)
+    state = InstanceProcess.get_state(instance_process)
 
     # paths that are ok; "up"
     assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, "up"], TravelMock1)
     assert updated_state.player_locations == %{}
     # "down" with a match key
-    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor.id, state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
+    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor2.id, state: state, event_sender: %{map_tile_instance_id: fake_player.id}}, [[:event_sender], "down", "red"], TravelMock2)
     assert updated_state.player_locations == %{}
     # hard coded level number
     assert %Runner{state: updated_state} = Command.transport(%Runner{state: state}, [fake_player, 4], TravelMock1)
     assert updated_state.player_locations == %{}
     # not an actual player, so the tile is not moved and nothing happens
-    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor.id, state: state}, [floor, {:state_variable, :id}], TravelMock1)
+    assert %Runner{state: updated_state} = Command.transport(%Runner{object_id: floor2.id, state: state}, [floor2, {:state_variable, :id}], TravelMock1)
     refute updated_state.player_locations == %{}
     assert updated_state == state
     # not an actual player, so the tile is not moved and nothing happens
@@ -1757,20 +2020,25 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
   end
 
-  test "TRY" do
-    # Basically Move with false
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "TRY", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
+    # Basically Move with false
     assert Command.try(%Runner{object_id: mover.id, state: state}, ["left"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["left", false])
 
     # Unsuccessful
     assert Command.try(%Runner{object_id: mover.id, state: state}, ["down"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["down", false])
   end
 
-  test "UNLOCK" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."})
+  test "UNLOCK", %{instance_process: instance_process} do
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}
+    InstanceProcess.load_map(instance_process, [map_tile])
+    state = InstanceProcess.get_state(instance_process)
     program = program_fixture()
 
     %Runner{state: state} = Command.unlock(%Runner{program: program, object_id: map_tile.id, state: state}, [])
@@ -1779,12 +2047,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map_tile.parsed_state == %{locked: false}
   end
 
-  test "WALK" do
-    # Basically Move with until it cannot move
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
+  test "WALK", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
+    # Basically Move with until it cannot move
     expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["left", false])
     expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
 
@@ -1794,12 +2065,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.walk(%Runner{state: state, object_id: mover.id}, ["down"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["down", false])
   end
 
-  test "WALK with a continue and facing" do
-    # Basically Move with until it cannot move
-    {_, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0})
-    {_, state} = Instances.create_map_tile(state, %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
-    {mover, state} = Instances.create_map_tile(state, %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"})
+  test "WALK with a continue and facing", %{instance_process: instance_process} do
+    floor_1 = %MapTile{id: 1, character: ".", row: 1, col: 1, z_index: 0}
+    floor_2 = %MapTile{id: 2, character: ".", row: 1, col: 2, z_index: 0}
+    mover = %MapTile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: "facing: west"}
+    InstanceProcess.load_map(instance_process, [floor_1, floor_2, mover])
+    state = InstanceProcess.get_state(instance_process)
+    mover = InstanceProcess.get_tile(instance_process, mover.id)
 
+
+    # Basically Move with until it cannot move
     expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["west", false])
     expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
 

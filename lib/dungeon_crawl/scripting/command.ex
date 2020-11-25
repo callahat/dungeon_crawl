@@ -1,11 +1,15 @@
 defmodule DungeonCrawl.Scripting.Command do
   @moduledoc """
   The various scripting commands available to a program.
+  Meant to be run within the context of an InstanceProcess.run block, and returns the updated Instance State.
   """
 
   alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.DungeonProcesses.ProgramProcess
+  alias DungeonCrawl.DungeonProcesses.ProgramRegistry
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Maths
@@ -104,7 +108,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid), %{})
   end
   def become(%Runner{} = runner_state, [params]) do
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    slug_tile = params[:slug] && TileTemplates.get_tile_template_by_slug(params[:slug])
     new_attrs = if slug_tile do
                   Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
                   |> Map.put(:tile_template_id, slug_tile.id)
@@ -127,17 +131,20 @@ defmodule DungeonCrawl.Scripting.Command do
                           state,
                           %{id: object_id},
                           new_attrs)
-        {object, state} = Instances.update_map_tile_state(
+        {_, state} =      Instances.update_map_tile_state(
                           state,
                           object,
                           new_state_attrs)
-
+IO.puts "lookup program process from registry"
+        program_process = ProgramRegistry.lookup(state.program_registry, object_id)
+IO.puts "uh oh found the deadlock"
         current_program = cond do
-                            is_nil(Map.get(state.program_contexts, object.id)) ->
+                            is_nil(program_process) ->
                               %{ program | status: :dead }
                             Map.has_key?(new_attrs, :script) ->
                               # A changed script will update the program, so get the current
-                              %{ Map.get(state.program_contexts, object.id).program | pc: 0, lc: 0, status: :wait }
+                              %{program: program} = ProgramProcess.get_state(program_process)
+                              %{ program | pc: 0, lc: 0, status: :wait }
                             true ->
                               program
                           end
@@ -146,8 +153,7 @@ defmodule DungeonCrawl.Scripting.Command do
              program: %{current_program | responses: program.responses },
              state: state }
 
-      false ->
-        runner_state
+      false -> runner_state
     end
   end
 
@@ -674,10 +680,8 @@ defmodule DungeonCrawl.Scripting.Command do
       Program.line_for(program, "THUD") ->
         sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state, name: blocking_obj.name},
                                   else: %{map_tile_id: nil, parsed_state: %{}}
-        program = %{program | status: :wait, wait_cycles: wait_cycles}
-        %{ runner_state |
-             program: Program.send_message(program, "THUD", sender) }
-
+        InstanceProcess.send_event(runner_state.instance_process, object_id, "THUD", sender)
+        %{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
@@ -692,10 +696,8 @@ defmodule DungeonCrawl.Scripting.Command do
       Program.line_for(program, "THUD") ->
         sender = if blocking_obj, do: %{map_tile_id: blocking_obj.id, parsed_state: blocking_obj.parsed_state, name: blocking_obj.name},
                                   else: %{map_tile_id: nil, parsed_state: %{}}
-        program = %{program | status: :wait, wait_cycles: wait_cycles}
-        %{ runner_state |
-             program: Program.send_message(program, "THUD", sender) }
-
+        InstanceProcess.send_event(runner_state.instance_process, object_id, "THUD", sender)
+        %{ runner_state | program: %{program | status: :wait, wait_cycles: wait_cycles} }
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
       true ->
@@ -1179,8 +1181,12 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{map_tile_id: object.id, parsed_state: object.parsed_state}} |
-                                                            state.program_messages] } }
+    # this should never fail since self would be from a running process, but just in case
+    if program_process = ProgramRegistry.lookup(state.program_registry, object.id) do
+      ProgramProcess.send_event(program_process, label, %{map_tile_id: object.id, parsed_state: object.parsed_state})
+    end
+
+    runner_state
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "others"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -1211,21 +1217,23 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _send_message_id_filter(%Runner{state: state} = runner_state, label, filter) do
-    program_object_ids = state.program_contexts
-                         |> Map.keys()
+    program_object_ids = ProgramRegistry.list_all_program_ids(state.program_registry)
                          |> Enum.filter(&filter.(&1))
     _send_message_via_ids(runner_state, label, program_object_ids)
   end
 
   defp _send_message_via_ids(runner_state, _label, []), do: runner_state
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{map_tile_id: object_id, parsed_state: object.parsed_state, name: object.name}} |
-                                                              state.program_messages] } },
-      label,
-      program_object_ids
-    )
+      object = Instances.get_map_tile_by_id(state, %{id: object_id})
+      sender = %{map_tile_id: object_id, parsed_state: object.parsed_state, name: object.name}
+
+      if program_process = ProgramRegistry.lookup(state.program_registry, po_id) do
+        ProgramProcess.send_event(program_process, label, sender)
+      else
+        InstanceProcess.send_event(runner_state.instance_process, po_id, label, sender)
+      end
+
+    _send_message_via_ids(runner_state, label, program_object_ids)
   end
 
   @doc """

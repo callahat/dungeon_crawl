@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.StateValue
 
-  defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil, msg_count: 0
+  defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil, msg_count: 0, instance_process: nil
 
 require Logger
   @doc """
@@ -15,6 +15,7 @@ require Logger
   first priority for updating the pc and executing the script from
   there.
   """
+  # Label will be unused due to usign build in otp messaging sending instead
   def run(%Runner{program: program, object_id: object_id, state: state} = runner_state, label) do
     with object when not(is_nil(object)) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
          false <- StateValue.get_bool(object, :locked),
@@ -27,36 +28,43 @@ require Logger
     end
   end
 
-  def run(%Runner{program: program, object_id: object_id, state: state, msg_count: msg_count} = runner_state) do
-    cond do
-      program.messages == [] || program.status == :alive || program.status == :dead ->
-        # todo: maybe have the check for active tile live elsewhere
-        if Instances.get_map_tile_by_id(state, %{id: object_id}) do
-          _run(runner_state)
-        else
-          runner_state
-        end
-
-      program.messages != [] && msg_count < 5 -> # a break to force bad scripts/infinite send loops from locking the instance indefinitely
-        [{label, sender} | messages ] = program.messages
-        if Program.line_for(program, label) do
-          run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }, msg_count: msg_count+1}, label)
-        else
-          # discard the unrespondable message
-          run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }, msg_count: msg_count+1})
-        end
-
-      true -> runner_state
+  def run(%Runner{object_id: object_id, state: state} = runner_state) do
+IO.puts "RUN"
+    # might still want to add a cycle breaker to keep a process from an infinite loop without waiting
+    if Instances.get_map_tile_by_id(state, %{id: object_id}) do
+      _run(runner_state)
+    else
+      runner_state
     end
+#    cond do
+#      program.status == :alive || program.status == :dead ->
+#        # todo: maybe have the check for active tile live elsewhere
+#        if Instances.get_map_tile_by_id(state, %{id: object_id}) do
+#          _run(runner_state)
+#        else
+#          runner_state
+#        end
+#
+#      program.messages != [] && msg_count < 5 -> # a break to force bad scripts/infinite send loops from locking the instance indefinitely
+#        [{label, sender} | messages ] = program.messages
+#        if Program.line_for(program, label) do
+#          run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }, msg_count: msg_count+1}, label)
+#        else
+#          # discard the unrespondable message
+#          run(%{ runner_state | event_sender: sender, program: %{ program | messages: messages }, msg_count: msg_count+1})
+#        end
+#
+#      true -> runner_state
+#    end
   end
 
   def _run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]
 # Logging is expensive, comment/remove later
-if System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
+if true || System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
+object = Instances.get_map_tile_by_id(state, %{id: object_id})
 Logger.info "*******************************************Running:***************************************************"
 Logger.info inspect object_id
 Logger.info inspect command
