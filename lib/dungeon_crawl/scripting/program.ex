@@ -10,8 +10,7 @@ defmodule DungeonCrawl.Scripting.Program do
             locked: false,
             broadcasts: [],
             responses: [],
-            wait_cycles: 5,
-            event_sender: nil
+            wait_cycles: 5
 
   @doc """
   Returns the line number for the given active label for the program.

@@ -212,9 +212,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         if !Instances.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
         end
-IO.puts "Instance.send event, get stuck?"
         instance_state = Instances.send_event(instance_state, target_tile, action, Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state])))
-IO.puts "sent the event, but this doesnt change?"
 
         {:ok, instance_state}
       else

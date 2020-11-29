@@ -113,7 +113,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute Map.take(updated_map_tile, [:parsed_state]) == %{parsed_state: map_tile.parsed_state}
     refute Map.take(updated_map_tile, [:script]) == %{script: map_tile.script}
     assert Map.take(updated_map_tile, [:character, :color, :script]) == Map.take(squeaky_door, [:character, :color, :script])
-    assert program.status == :wait
+    assert program.status == :dead # a new program process is spun up
+    %{ program: program} = ProgramRegistry.lookup(state.program_registry, updated_map_tile.id)
+                           |> ProgramProcess.get_state()
+
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
              3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
@@ -122,7 +125,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # BECOME a ttid with no script, when currently has script
     fake_door = insert_tile_template(%{script: "", state: "blocking: true", character: "'"})
     params = [{:ttid, fake_door.id}]
-
     %Runner{program: program, state: updated_state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
 
@@ -165,10 +167,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_map_tile.character == squeaky_door.character
     assert updated_map_tile.character == "?"
     assert Map.take(updated_map_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
-    assert program.status == :wait
-    assert %{1 => [:halt, [""]],
-             2 => [:noop, "TOUCH"],
-             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+    assert program.status == :dead # a new program process is spun up
+    %{ program: program} = ProgramRegistry.lookup(state.program_registry, updated_map_tile.id)
+                           |> ProgramProcess.get_state()
     assert %{blocking: true} = updated_map_tile.parsed_state
 
     # BECOME with variables that resolve to invalid values does nothing
@@ -261,22 +262,21 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "CYCLE", %{instance_process: instance_process} do
-    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: "."}
+    map_tile = %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: "var: 6"}
     InstanceProcess.load_map(instance_process, [map_tile])
     state = InstanceProcess.get_state(instance_process)
     map_tile = InstanceProcess.get_tile(instance_process, map_tile.id)
 
     program = program_fixture()
 
-    %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [3])
-    map_tile = Instances.get_map_tile_by_id(state, map_tile)
-    assert map_tile.state == "wait_cycles: 3"
-    %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [-2])
-    map_tile = Instances.get_map_tile_by_id(state, map_tile)
-    assert map_tile.state == "wait_cycles: 3"
-    %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [1])
-    map_tile = Instances.get_map_tile_by_id(state, map_tile)
-    assert map_tile.state == "wait_cycles: 1"
+    %Runner{program: program} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [3])
+    assert program.wait_cycles == 3
+    %Runner{program: program} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [-2])
+    assert program.wait_cycles == 3
+    %Runner{program: program} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [1])
+    assert program.wait_cycles == 1
+    %Runner{program: program} = Command.cycle(%Runner{program: program, object_id: map_tile.id, state: state}, [{:state_variable, :var}])
+    assert program.wait_cycles == 6
   end
 
   test "COMPOUND_MOVE", %{instance_process: instance_process} do
@@ -457,7 +457,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # If already at max and there's a label, jump to it
     %Runner{state: updated_state, program: up} = Command.give(runner_state, ["health", 1, "north", 1, "fullhealth"])
     assert updated_state.map_by_ids[receiving_tile.id].parsed_state[:health] == 1
-    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
+    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 5 }
 
     # Give using interpolated value
     %Runner{state: %{map_by_ids: map}} = Command.give(runner_state, [{:state_variable, :color, "_key"}, 1, "north", 1])
@@ -1827,7 +1827,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                                                 player_locations: %{losing_tile.id => %Location{map_tile_instance_id: losing_tile.id} }}}
     %Runner{program: up} = Command.take(%{runner_state_with_player | event_sender: %Location{map_tile_instance_id: losing_tile.id}},
                                                  ["gems", 2, "north", "toopoor"])
-    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
+    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 5 }
 
     # take state var to event sender (tile)
     %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state | event_sender: %{map_tile_id: losing_tile.id}},
@@ -1896,6 +1896,20 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # bad parameter does not cause a crash, even though the program validator should make this not possible
     # under normal conditions
     assert runner_state == Command.target_player(runner_state, ["qwerty"])
+  end
+
+  test "TARGET_PLAYER when there are no players", %{instance_process: instance_process} do
+    object_1 = %MapTile{id: 1, character: "X", row: 2, col: 3, z_index: 0, state: ""}
+    InstanceProcess.load_map(instance_process, [object_1])
+    object_1 = InstanceProcess.get_tile(instance_process, object_1.id)
+
+    state = InstanceProcess.get_state(instance_process)
+
+    # nearest uses the nearest player tile
+    runner_state = %Runner{object_id: object_1.id, state: state, instance_process: instance_process}
+    %Runner{state: updated_state} = Command.target_player(runner_state, ["nearest"])
+    object_tile = Instances.get_map_tile_by_id(updated_state, object_1)
+    refute Instances.get_map_tile_by_id(updated_state, %{id: object_tile.parsed_state[:target_player_map_tile_id]})
   end
 
   test "TERMINATE", %{instance_process: instance_process} do

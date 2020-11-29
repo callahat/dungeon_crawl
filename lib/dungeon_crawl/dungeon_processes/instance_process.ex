@@ -292,8 +292,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
-    # No player is here, so don't cycle programs and wait longer til the next cycle
-    Process.send_after(self(), :perform_actions, @timeout * 10)
+    ProgramRegistry.pause_all_programs(state.program_registry)
 
     {:noreply, state}
   end

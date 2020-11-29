@@ -64,6 +64,14 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ number: ^number } = InstanceProcess.get_state(instance_process)
   end
 
+  test "set_adjacent_map_id" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    map_instance = insert_stubbed_dungeon_instance()
+    number = map_instance.number
+    InstanceProcess.set_adjacent_map_id(instance_process, number, "west")
+    assert %{ adjacent_map_ids: %{"west" => ^number} } = InstanceProcess.get_state(instance_process)
+  end
+
   test "set_state_values" do
     {:ok, instance_process} = InstanceProcess.start_link([])
     InstanceProcess.set_state_values(instance_process, %{flag: false})
@@ -112,6 +120,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "responds_to_event?", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    :timer.sleep 5 # flakey test, looks like something wasnt done spinning up so the below was timing out
     assert InstanceProcess.responds_to_event?(instance_process, map_tile_id, "TOUCH")
     refute InstanceProcess.responds_to_event?(instance_process, map_tile_id, "SNIFF")
     refute InstanceProcess.responds_to_event?(instance_process, map_tile_id-1, "ANYTHING")
@@ -364,6 +373,38 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
   end
 
+  test "perform actions when no players present", %{instance_process: instance_process} do
+    %{count_to_idle: count_to_idle, program_registry: program_registry} = InstanceProcess.get_state(instance_process)
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+    assert count_to_idle - 1 == InstanceProcess.get_state(instance_process).count_to_idle
+    # after n no player cycles, the instance goes idle
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+    assert 0 == InstanceProcess.get_state(instance_process).count_to_idle
+
+    program_ids = ProgramRegistry.list_all_program_ids(program_registry)
+
+    Enum.each(program_ids, fn program_id ->
+      assert %{active: false, timer_ref: nil} = ProgramRegistry.lookup(program_registry, program_id)
+                                                |> ProgramProcess.get_state()
+    end)
+
+    # when a player enters the instance, the instance wakes back up
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      Instances.create_player_map_tile(state, %MapTile{id: "newguy", row: 5, col: 5}, %Location{})
+    end)
+
+    assert 0 < InstanceProcess.get_state(instance_process).count_to_idle
+    Enum.each(program_ids, fn program_id ->
+      assert %{active: true, timer_ref: ref} = ProgramRegistry.lookup(program_registry, program_id)
+                                                |> ProgramProcess.get_state()
+      assert ref
+    end)
+  end
+
   test "write_db", %{instance_process: instance_process, map_instance: map_instance} do
     tt = insert_tile_template()
 
@@ -482,7 +523,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute InstanceProcess.get_tile(instance_process, map_tile_id)
     %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
-    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :shutdown}
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
     refute by_id[map_tile_id]
     assert %{ {1, 1} => %{} } = by_coord
   end

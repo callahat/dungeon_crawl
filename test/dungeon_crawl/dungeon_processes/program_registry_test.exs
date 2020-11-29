@@ -90,8 +90,9 @@ defmodule DungeonCrawl.ProgramRegistryTest do
     end
 
     test "replaces a program if id already exists", %{program_registry: program_registry} do
-      program_process = ProgramRegistry.lookup(program_registry, "new_1")
-      original_program = ProgramProcess.get_state(program_process)
+      original_program_process = ProgramRegistry.lookup(program_registry, "new_1")
+      original_program = ProgramProcess.get_state(original_program_process)
+      original_prog_ref = Process.monitor(original_program_process)
 
       ProgramRegistry.start_program(program_registry, "new_1", "#become character: y")
 
@@ -104,6 +105,8 @@ defmodule DungeonCrawl.ProgramRegistryTest do
                       status: :alive
              } = new_program
       assert new_program.instructions != original_program.program.instructions
+      assert original_program_process != program_process
+      assert_receive {:DOWN, ^original_prog_ref, :process, ^original_program_process, :normal}
     end
   end
 
@@ -136,7 +139,7 @@ defmodule DungeonCrawl.ProgramRegistryTest do
       program_process = ProgramRegistry.lookup(program_registry, "new_1")
       prog_ref = Process.monitor(program_process)
       assert :ok = ProgramRegistry.stop_program(program_registry, "new_1")
-      assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :shutdown}
+      assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
       refute ProgramRegistry.lookup(program_registry, "new_1")
     end
 

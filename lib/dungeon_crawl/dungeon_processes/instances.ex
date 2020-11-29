@@ -10,15 +10,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             map_set_instance_id: nil,
             number: 0,
             state_values: %{},
-            # program_contexts: %{}, # todo: program process completely replacing this
             map_by_ids: %{},
             map_by_coords: %{},
             dirty_ids: %{},
             new_ids: %{},
             new_id_counter: 0,
             player_locations: %{},
-            # program_messages: [], #todo: messages will be sent directly to the program process
-            # new_pids: [], # todo: also replaced by program processes
             spawn_coordinates: [],
             passage_exits: [],
             message_actions: %{}, # todo: this will probably be moved to the program process
@@ -158,7 +155,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
   def create_player_map_tile(%Instances{player_locations: player_locations} = state, map_tile, location) do
-    state = if state.count_to_idle < @count_to_idle, do: %{ state | count_to_idle: @count_to_idle }, else: state
+    if state.count_to_idle == 0, do: ProgramRegistry.resume_all_programs(state.program_registry)
+    state = if state.count_to_idle < @count_to_idle,
+              do: %{ state | count_to_idle: @count_to_idle },
+              else: state
 
     {top, instance_state} = Instances.create_map_tile(state, map_tile)
     {top, %{ instance_state | player_locations: Map.put(player_locations, map_tile.id, location)}}
@@ -249,8 +249,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     new_attributes = Map.delete(new_attributes, :id)
     previous_changeset = state.dirty_ids[map_tile_id] || MapTile.changeset(by_id[map_tile_id], %{})
 
-    if !!new_attributes[:script] do
-      ProgramRegistry.start_program(state.program_registry, map_tile_id, new_attributes[:script])
+    if new_attributes[:script] do
+      if program_process = ProgramRegistry.lookup(state.program_registry, map_tile_id) do
+        ProgramProcess.end_program(program_process)
+      end
+      if new_attributes[:script] != "" do
+        ProgramRegistry.start_program(state.program_registry, map_tile_id, new_attributes[:script])
+      end
     end
 
     updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes)
@@ -290,7 +295,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   but will be associated with another instance, so removing it from the instance process is sufficient.
   """
   def delete_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations, passage_exits: passage_exits} = state, %{id: map_tile_id}, mark_as_dirty \\ true) do
-    ProgramRegistry.stop_program(state.program_registry, map_tile_id)
+    if program_process = ProgramRegistry.lookup(state.program_registry, map_tile_id) do
+      ProgramProcess.end_program(program_process)
+    end
 
     passage_exits = Enum.reject(passage_exits, fn({id, _}) -> id == map_tile_id end)
     dirty_ids = if mark_as_dirty, do: Map.put(state.dirty_ids, map_tile_id, :deleted), else: state.dirty_ids
@@ -330,29 +337,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         if length(non_blocking_dirs) == 0, do: Enum.random(dirs), else: Enum.random(non_blocking_dirs)
     end
   end
-
-  @doc """
-  Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
-  """
-  def handle_broadcasting(runner_context) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.state.instance_id}")
-    _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
-    %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
-  end
-
-  defp _handle_broadcasts([ [event, payload] | messages], socket) when is_binary(socket) do
-    DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
-    _handle_broadcasts(messages, socket)
-  end
-  defp _handle_broadcasts([{type, payload} | messages], player_location = %DungeonCrawl.Player.Location{}) do
-    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", type, payload
-    _handle_broadcasts(messages, player_location)
-  end
-  # If this should be implemented, this is what broadcasting to a "program" method would look like.
-  # Could also just use an id that is assumed to be the linked map tile for the program. Since this
-  # is used to figure out what channel to send text, programs wouldnt really do anythign with it.
-#  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.DungeonInstances.MapTile{}), do: 'implement'
-  defp _handle_broadcasts(_, _), do: nil
 
   defp _remove_coord(by_coords, %{row: row, col: col, z_index: z_index}) do
     z_indexes = case Map.fetch(by_coords, {row, col}) do

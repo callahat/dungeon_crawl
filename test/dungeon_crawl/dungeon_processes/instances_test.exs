@@ -129,7 +129,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # prunes the program if died during the run of the label
     state = Instances.send_event(state, %{id: 999}, "TERMINATE", player_location)
     prog_ref = Process.monitor(program_process)
-    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :shutdown}
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
     refute ProgramRegistry.lookup(state.program_registry, 999)
   end
 
@@ -371,10 +371,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
            } = program
 
     # Adds a different program to something with one already
-    assert program_process = ProgramRegistry.lookup(state.program_registry, 999)
+    assert previous_program_process = ProgramRegistry.lookup(state.program_registry, 999)
     assert %{ program: program } = ProgramProcess.get_state(program_process)
     assert Enum.member? [:alive, :idle], program.status
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: 999}, %{script: "?n"})
+    assert program_process = ProgramRegistry.lookup(state.program_registry, 999)
+    assert previous_program_process != program_process
     assert %{ program: program } = ProgramProcess.get_state(program_process)
     assert %{map_by_ids: %{999 => %MapTile{script: "?n"}}} = state
     assert %DungeonCrawl.Scripting.Program{
@@ -455,7 +457,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                 dirty_ids: %{^map_tile_id => :deleted},
                 passage_exits: passage_exits } = state
     prog_ref = Process.monitor(program_process)
-    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :shutdown}
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
     refute by_id[map_tile_id]
     assert passage_exits == []
     assert %{ {1, 2} => %{} } = by_coord

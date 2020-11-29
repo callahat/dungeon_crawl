@@ -7,7 +7,6 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
 
-  alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.ProgramProcess
 
@@ -15,7 +14,8 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
             active: false,
             program: %Program{},
             map_tile_id: nil,
-            timer_ref: nil
+            timer_ref: nil,
+            event_sender: nil
 
   ## Client API
 
@@ -33,6 +33,13 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
   """
   def initialize_program(program_process, instance_process, map_tile_id, script) do
     GenServer.cast(program_process, {:initialize_program, {instance_process, map_tile_id, script}})
+  end
+
+  @doc """
+  Ends the program. This is useful when the current program for a tile is replaced by a different program.
+  """
+  def end_program(program_process) do
+    GenServer.cast(program_process, {:end_program})
   end
 
   @doc """
@@ -121,7 +128,8 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
   def handle_cast({:initialize_program, {instance_process, map_tile_id, script}}, state) do
     case _parse_program(script) do
       {:ok, program} ->
-        program = %{ program | broadcasts: state.program.broadcasts, responses: state.program.responses }
+        object = InstanceProcess.get_tile(instance_process, map_tile_id) || %{parsed_state: %{}}
+        program = %{ program | responses: state.program.responses, wait_cycles: object.parsed_state[:wait_cycles] || 5 }
         {:noreply, %ProgramProcess{instance_process: instance_process, active: true, program: program, map_tile_id: map_tile_id}}
       {:none} ->        {:stop, :normal, state}
       _ ->              {:stop, :normal, state}
@@ -129,18 +137,19 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
   end
 
   @impl true
+  def handle_cast({:end_program}, state) do
+    {:stop, :normal, state}
+  end
+
+  @impl true
   def handle_cast({:send_event, {event, sender}}, %ProgramProcess{program: program, timer_ref: timer_ref} = state) do
     with false <- program.locked,
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, event),
-         program <- %{program | pc: next_pc, lc: 0, status: :alive, event_sender: sender} do
+         program <- %{program | pc: next_pc, lc: 0, status: :alive} do
 
       if timer_ref && Process.read_timer(timer_ref), do: Process.cancel_timer(timer_ref)
 
-      program = _run_commands(%{ state | program: program, timer_ref: nil })
-
-      timer_ref = Process.send_after(self(), :perform_actions, @timeout)
-
-      {:noreply, %{ state | program: program, timer_ref: timer_ref }}
+      _run_commands(%{ state | program: program, timer_ref: nil, event_sender: sender})
     else
       nil ->
         InstanceProcess.send_standard_behavior(state.instance_process, state.map_tile_id, event, sender)
@@ -158,11 +167,7 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
 
   @impl true
   def handle_info(:perform_actions, %ProgramProcess{instance_process: _instance_process, program: _program} = state) do
-    program = _run_commands(state)
-
-    timer_ref = Process.send_after(self(), :perform_actions, @timeout)
-
-    {:noreply, %{ state | program: program, timer_ref: timer_ref }}
+    _run_commands(state)
   end
 
   defp _parse_program(script) do
@@ -182,24 +187,42 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
     end
   end
 
-  defp _run_commands(%ProgramProcess{instance_process: instance_process, program: program, map_tile_id: map_tile_id}) do
-    # for now, just run in a run_with block. This can be refactored later and pushed further into the command module
-    #   where the instance is grabbed only for those commands that need to query, set, or do something with the instance
-    # probbly should have this return the program
-# TODO: refactor out the run_with block, its causign deadlocks.
-IO.puts "deadlock or somethin? #{map_tile_id} #{inspect instance_process}"
+  defp _run_commands(%ProgramProcess{} = state) do
     program = \
-    InstanceProcess.run_with(instance_process, fn instance_state ->
-IO.puts "in the run wit"
-      runner_state = %Runner{program: program, object_id: map_tile_id, state: instance_state, event_sender: program.event_sender, instance_process: instance_process}
-IO.puts "Runner"
+    InstanceProcess.run_with(state.instance_process, fn instance_state ->
+      runner_state = %Runner{program: state.program,
+                             object_id: state.map_tile_id,
+                             state: instance_state,
+                             event_sender: state.event_sender,
+                             instance_process: state.instance_process}
       %{program: program, state: instance_state} = Scripting.Runner.run(runner_state)
-                                                   |> Instances.handle_broadcasting() # any nontile_update broadcasts left
-IO.puts "runner done"
+                                                   |> _handle_broadcasting()
       {program, instance_state}
     end)
-IO.puts "wraped up with the run command? #{map_tile_id} #{inspect instance_process}"
-   program
+
+    case program.status do
+      :idle ->
+        {:noreply, %{ state | program: program }}
+
+      :dead ->
+        {:stop, :normal, %{ state | program: program }}
+
+      _alive ->
+        timer_ref = Process.send_after(self(), :perform_actions, program.wait_cycles * @timeout)
+        {:noreply, %{ state | program: program, timer_ref: timer_ref }}
+    end
   end
+
+  def _handle_broadcasting(runner_context) do
+    _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
+    %{ runner_context | program: %{ runner_context.program | responses: [] } }
+  end
+
+  defp _handle_broadcasts([], _), do: nil
+  defp _handle_broadcasts([{type, payload} | messages], player_location = %DungeonCrawl.Player.Location{}) do
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", type, payload
+    _handle_broadcasts(messages, player_location)
+  end
+  defp _handle_broadcasts([_ | messages], sender), do: _handle_broadcasts(messages, sender)
 end
 

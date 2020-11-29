@@ -118,17 +118,11 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramRegistry do
 
   @impl true
   def handle_call({:start_program, program_id, script}, _from, registry_state) do
-   # todo: dont bother starting program if there is no script
-   # cond do
-   #   is_nil(script) || script == "" -> {:reply, :ok, registry_state}
-   # end
     if program_process = registry_state.program_ids[program_id] do
-      ProgramProcess.initialize_program(program_process, registry_state.instance_process, program_id, script)
-
-      {:reply, :ok, registry_state}
-    else
-      {:reply, :ok, _start_program(%{id: program_id, script: script}, registry_state)}
+      ProgramProcess.end_program(program_process)
     end
+
+    {:reply, :ok, _start_program(%{id: program_id, script: script}, registry_state)}
   end
 
   @impl true
@@ -188,7 +182,7 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramRegistry do
   @impl true
   def handle_cast({:stop_program, program_id}, registry_state) do
     if program_process = registry_state.program_ids[program_id] do
-      GenServer.stop(program_process, :shutdown)
+      ProgramProcess.end_program(program_process)
     end
     {:noreply, registry_state}
   end
@@ -203,10 +197,12 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramRegistry do
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, registry_state) do
+  def handle_info({:DOWN, ref, :process, pid, _reason}, registry_state) do
     {program_id, refs} = Map.pop(registry_state.refs, ref)
     inverse_refs = Map.delete(registry_state.inverse_refs, program_id)
-    program_ids = Map.delete(registry_state.program_ids, program_id)
+    program_ids = if pid == registry_state.program_ids[program_id],
+                    do: Map.delete(registry_state.program_ids, program_id),
+                    else: registry_state.program_ids
     {:noreply, %{ registry_state | program_ids: program_ids, refs: refs, inverse_refs: inverse_refs }}
   end
 
