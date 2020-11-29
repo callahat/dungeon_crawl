@@ -10,31 +10,29 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             map_set_instance_id: nil,
             number: 0,
             state_values: %{},
-            program_contexts: %{},
             map_by_ids: %{},
             map_by_coords: %{},
             dirty_ids: %{},
             new_ids: %{},
             new_id_counter: 0,
             player_locations: %{},
-            program_messages: [],
-            new_pids: [],
             spawn_coordinates: [],
             passage_exits: [],
-            message_actions: %{},
+            message_actions: %{}, # todo: this will probably be moved to the program process
             adjacent_map_ids: %{},
             rerender_coords: %{},
-            count_to_idle: @count_to_idle
+            count_to_idle: @count_to_idle,
+            program_registry: nil
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
+  alias DungeonCrawl.DungeonProcesses.ProgramRegistry
+  alias DungeonCrawl.DungeonProcesses.ProgramProcess
   alias DungeonCrawl.StateValue
-  alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Direction
-  alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.Scripting.Runner
 
   require Logger
 
@@ -102,13 +100,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Returns true or false, depending on if the given tile_id responds to the event.
   """
-  def responds_to_event?(%Instances{program_contexts: program_contexts} = _state, %{id: map_tile_id}, event) do
-    with %{^map_tile_id => %{program: program}} <- program_contexts,
-         line_number when not(is_nil(line_number)) <- Program.line_for(program, event) do
-      true
+  def responds_to_event?(%Instances{program_registry: program_registry} = _state, %{id: map_tile_id}, event) do
+    if program_process = ProgramRegistry.lookup(program_registry, map_tile_id) do
+      ProgramProcess.responds_to_event?(program_process, event)
     else
-      _ ->
-        false
+      false
     end
   end
 
@@ -116,25 +112,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Send an event to a tile/program.
   Returns the updated state.
   """
-  def send_event(%Instances{program_contexts: program_contexts} = state, %{id: map_tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
-    case program_contexts do
-      %{^map_tile_id => %{program: program, object_id: object_id}} ->
-        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
-                                                                               object_id: object_id,
-                                                                               state: state,
-                                                                               event_sender: sender},
-                                                                       event)
-                                  |> handle_broadcasting()
-        if program.status == :dead do
-          %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
-        else
-          updated_program_context = %{program: program, object_id: object_id, event_sender: sender}
-          %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile_id, updated_program_context)}
-        end
+  def send_event(%Instances{program_registry: program_registry} = state, %{id: map_tile_id}, event, sender) do
+    if program_process = ProgramRegistry.lookup(program_registry, map_tile_id),
+      do:   ProgramProcess.send_event(program_process, event, sender),
+      else: InstanceProcess.send_standard_behavior(self(), map_tile_id, event, sender)
 
-      _ ->
-        state
-    end
+    state
   end
 
   @doc """
@@ -165,7 +148,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-
   @doc """
   Creates the given map tile for the player location in the parent instance state if it does not already exist.
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
@@ -173,7 +155,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
   def create_player_map_tile(%Instances{player_locations: player_locations} = state, map_tile, location) do
-    state = if state.count_to_idle < @count_to_idle, do: %{ state | count_to_idle: @count_to_idle }, else: state
+    if state.count_to_idle == 0, do: ProgramRegistry.resume_all_programs(state.program_registry)
+    state = if state.count_to_idle < @count_to_idle,
+              do: %{ state | count_to_idle: @count_to_idle },
+              else: state
 
     {top, instance_state} = Instances.create_map_tile(state, map_tile)
     {top, %{ instance_state | player_locations: Map.put(player_locations, map_tile.id, location)}}
@@ -193,7 +178,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   def create_map_tile(%Instances{} = state, map_tile) do
     map_tile = _with_parsed_state(map_tile)
     {map_tile, state} = _register_map_tile(state, map_tile)
-    {_, map_tile, state} = _parse_and_start_program(state, map_tile)
+    ProgramRegistry.start_program(state.program_registry, map_tile.id, map_tile.script)
     rerender_coords = Map.put_new(state.rerender_coords, Map.take(map_tile, [:row, :col]), true)
     {map_tile, %{ state | rerender_coords: rerender_coords} }
   end
@@ -223,33 +208,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-  defp _parse_and_start_program(state, map_tile) do
-    case Scripting.Parser.parse(map_tile.script) do
-     {:ok, program} ->
-       unless program.status == :dead do
-         {:ok, map_tile, _start_program(state, map_tile.id, %{program: program, object_id: map_tile.id, event_sender: nil})}
-       else
-         {:none, map_tile, state}
-       end
-     other ->
-       Logger.warn """
-                   Possible corrupt script for map tile instance: #{inspect map_tile}
-                   Not :ok response: #{inspect other}
-                   """
-       {:none, map_tile, state}
-    end
-  end
-
-  defp _start_program(%Instances{program_contexts: program_contexts, new_pids: new_pids} = state, map_tile_id, program_context) do
-    if Map.has_key?(program_contexts, map_tile_id) do
-      # already a running program for that tile id, or there is no map tile for that id
-      state
-    else
-      %Instances{ state | program_contexts: Map.put(program_contexts, map_tile_id, program_context),
-                          new_pids: [map_tile_id | new_pids]}
-    end
-  end
-
   @doc """
   Sets a map tile id once it has been persisted to the database. This will update the instance state
   references to the old temporary id to the new id of the map tile record.
@@ -257,39 +215,15 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   will be done and the instance state will be returned unchanged.
   """
   def set_map_tile_id(%Instances{} = state, %{id: new_id} = map_tile, old_temp_id) when is_binary(old_temp_id) and is_integer(new_id) do
+    ProgramRegistry.change_program_id(state.program_registry, old_temp_id, new_id)
+
     by_ids = Map.put(state.map_by_ids, new_id, Map.put(state.map_by_ids[old_temp_id], :id, new_id))
              |> Map.delete(old_temp_id)
     z_indexes = state.map_by_coords[{map_tile.row, map_tile.col}]
                 |> Map.put(map_tile.z_index, new_id)
     by_coords = Map.put(state.map_by_coords, {map_tile.row, map_tile.col}, z_indexes)
-    program_contexts = if state.program_contexts[old_temp_id] do
-                         Map.put(state.program_contexts, new_id, %{ state.program_contexts[old_temp_id] | object_id: new_id} )
-                         |> Map.delete(old_temp_id)
-                       else
-                         state.program_contexts
-                       end
-    program_contexts = program_contexts
-                       |> Map.to_list
-                       |> Enum.map(fn({pid, %{event_sender: event_sender, program: program} = program_context}) ->
-                            event_sender = if event_sender && Map.get(event_sender, :map_tile_id) == old_temp_id do
-                                             %{ event_sender | map_tile_id: new_id}
-                                           else
-                                             event_sender
-                                           end
-                            messages = program.messages
-                                       |> Enum.map(fn({label, sender} = message) ->
-                                            case sender do
-                                              %{map_tile_id: map_tile_id} when map_tile_id == old_temp_id ->
-                                                {label, %{sender | map_tile_id: new_id}}
-                                              _ ->
-                                                message
-                                            end
-                                          end)
-                            {pid, %{program_context | event_sender: event_sender, program: %{ program | messages: messages}}}
-                          end)
-                       |> Enum.into(%{})
 
-    %{ state | map_by_ids: by_ids, map_by_coords: by_coords, program_contexts: program_contexts }
+    %{ state | map_by_ids: by_ids, map_by_coords: by_coords }
   end
 
   # probably should never hit this, but just in case
@@ -315,7 +249,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     new_attributes = Map.delete(new_attributes, :id)
     previous_changeset = state.dirty_ids[map_tile_id] || MapTile.changeset(by_id[map_tile_id], %{})
 
-    script_changed = !!new_attributes[:script]
+    if new_attributes[:script] do
+      if program_process = ProgramRegistry.lookup(state.program_registry, map_tile_id) do
+        ProgramProcess.end_program(program_process)
+      end
+      if new_attributes[:script] != "" do
+        ProgramRegistry.start_program(state.program_registry, map_tile_id, new_attributes[:script])
+      end
+    end
 
     updated_tile = by_id[map_tile_id] |> Map.merge(new_attributes)
     updated_tile = _with_parsed_state(updated_tile)
@@ -338,31 +279,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), map_tile_id)
         {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
-        |> _update_program(script_changed)
       end
     else
       {updated_tile, %Instances{ state | map_by_ids: by_id, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
-      |> _update_program(script_changed)
     end
-  end
-
-  defp _update_program({map_tile, %Instances{} = state}, false), do: {map_tile, state}
-  defp _update_program({map_tile, %Instances{} = state}, true) do
-    {previous_program, program_contexts} = Map.pop(state.program_contexts, map_tile.id)
-    _update_program(previous_program || %{},
-                    _parse_and_start_program(%Instances{state | program_contexts: program_contexts}, map_tile))
-  end
-  defp _update_program(_previous_program, {:none, map_tile, state}) do
-    {map_tile, state}
-  end
-  defp _update_program(previous_program, {:ok, map_tile, state}) do
-    new_program = state.program_contexts[map_tile.id].program
-                  |> Map.merge(Map.take(previous_program, [:broadcasts, :responses]))
-                  |> Map.put(:status, :wait)
-
-    updated_context = %{ state.program_contexts[map_tile.id] | program: new_program }
-
-    {map_tile, %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile.id, updated_context) }}
   end
 
   @doc """
@@ -374,8 +294,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   However, in the case of a player map tile that moves from one instance to another, that map tile will still be persisted
   but will be associated with another instance, so removing it from the instance process is sufficient.
   """
-  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations, passage_exits: passage_exits} = state, %{id: map_tile_id}, mark_as_dirty \\ true) do
-    program_contexts = Map.delete(program_contexts, map_tile_id)
+  def delete_map_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations, passage_exits: passage_exits} = state, %{id: map_tile_id}, mark_as_dirty \\ true) do
+    if program_process = ProgramRegistry.lookup(state.program_registry, map_tile_id) do
+      ProgramProcess.end_program(program_process)
+    end
+
     passage_exits = Enum.reject(passage_exits, fn({id, _}) -> id == map_tile_id end)
     dirty_ids = if mark_as_dirty, do: Map.put(state.dirty_ids, map_tile_id, :deleted), else: state.dirty_ids
 
@@ -387,7 +310,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       by_id = Map.delete(by_id, map_tile_id)
       player_locations = Map.delete(player_locations, map_tile_id)
       {map_tile, %Instances{ state |
-                             program_contexts: program_contexts,
                              passage_exits: passage_exits,
                              map_by_ids: by_id,
                              map_by_coords: by_coords,
@@ -415,29 +337,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         if length(non_blocking_dirs) == 0, do: Enum.random(dirs), else: Enum.random(non_blocking_dirs)
     end
   end
-
-  @doc """
-  Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
-  """
-  def handle_broadcasting(runner_context) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.state.instance_id}")
-    _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
-    %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
-  end
-
-  defp _handle_broadcasts([ [event, payload] | messages], socket) when is_binary(socket) do
-    DungeonCrawlWeb.Endpoint.broadcast socket, event, payload
-    _handle_broadcasts(messages, socket)
-  end
-  defp _handle_broadcasts([{type, payload} | messages], player_location = %DungeonCrawl.Player.Location{}) do
-    DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", type, payload
-    _handle_broadcasts(messages, player_location)
-  end
-  # If this should be implemented, this is what broadcasting to a "program" method would look like.
-  # Could also just use an id that is assumed to be the linked map tile for the program. Since this
-  # is used to figure out what channel to send text, programs wouldnt really do anythign with it.
-#  defp _handle_broadcasts([message | messages], player_location = %DungeonCrawl.DungeonInstances.MapTile{}), do: 'implement'
-  defp _handle_broadcasts(_, _), do: nil
 
   defp _remove_coord(by_coords, %{row: row, col: col, z_index: z_index}) do
     z_indexes = case Map.fetch(by_coords, {row, col}) do

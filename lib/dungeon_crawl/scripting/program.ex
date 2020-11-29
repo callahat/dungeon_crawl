@@ -2,7 +2,15 @@ defmodule DungeonCrawl.Scripting.Program do
   @doc """
   A struct containing the representation of a program and its state.
   """
-  defstruct status: :dead, pc: 1, lc: 0, instructions: %{}, labels: %{}, locked: false, broadcasts: [], responses: [], wait_cycles: 0, messages: []
+  defstruct status: :dead,
+            pc: 1,
+            lc: 0,
+            instructions: %{},
+            labels: %{},
+            locked: false,
+            broadcasts: [],
+            responses: [],
+            wait_cycles: 5
 
   @doc """
   Returns the line number for the given active label for the program.
@@ -24,15 +32,5 @@ defmodule DungeonCrawl.Scripting.Program do
     else
       _ -> nil
     end
-  end
-
-  @doc """
-  Adds a message to the program. The program can only accept one message. If the message
-  field is already taken, no change is made.
-  """
-  def send_message(program, label, sender \\ nil) do
-    # TODO: Probably want to have the programs be their own separate processes eventually.
-    messages = Enum.reverse([{label, sender} | Enum.reverse(program.messages) ])
-    %{ program | messages: messages }
   end
 end

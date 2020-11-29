@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
   # To verify the parsed stuff feeds into the commands, might move this elsewhere
   alias DungeonCrawl.DungeonInstances.MapTile
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Runner
 
@@ -188,9 +188,14 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       # without duplicating a bunch of other stuff
       map_instance = insert_stubbed_dungeon_instance()
       map_tile_params = %MapTile{map_instance_id: map_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
-      {map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile_params)
 
-      runner_state = %Runner{object_id: map_tile.id, program: program, state: state}
+      {:ok, instance_process} = InstanceProcess.start_link([])
+
+      InstanceProcess.load_map(instance_process, [map_tile_params])
+      state = InstanceProcess.get_state(instance_process)
+      map_tile = InstanceProcess.get_tile(instance_process, map_tile_params.id)
+
+      runner_state = %Runner{object_id: map_tile.id, program: program, state: state, instance_process: instance_process}
 
       assert  program.instructions
               |> Map.to_list
@@ -241,7 +246,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
     test "a bad label" do
       script = """
                #END
-               :$blabel 
+               :$blabel
                """
       assert {:error, "Invalid label: `$blabel`", program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]]},

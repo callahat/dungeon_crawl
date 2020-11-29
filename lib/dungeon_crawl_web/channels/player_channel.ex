@@ -14,13 +14,16 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   def handle_in("refresh_dungeon", _, socket) do
     location = Player.get_location(%{id: socket.assigns.location_id})
                |> Repo.preload(:map_tile)
-    {:ok, instance_process} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
-    state = InstanceProcess.get_state(instance_process)
 
-    dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
-    DungeonCrawlWeb.Endpoint.broadcast "players:#{location.id}",
-                                       "change_dungeon",
-                                       %{dungeon_id: location.map_tile.map_instance_id, dungeon_render: dungeon_table}
+    if location do
+      {:ok, instance_process} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
+      state = InstanceProcess.get_state(instance_process)
+
+      dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{location.id}",
+                                         "change_dungeon",
+                                         %{dungeon_id: location.map_tile.map_instance_id, dungeon_render: dungeon_table}
+    end
 
     {:noreply, socket}
   end

@@ -4,27 +4,43 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   import ExUnit.CaptureLog
 
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.{ProgramRegistry, ProgramProcess}
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.Scripting.Program
 
   setup do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
     map_tile =        %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#DIE"}
     map_tile_south_1  = %MapTile{id: 997, row: 1, col: 3, z_index: 1, character: "S", state: "", script: ""}
     map_tile_south_2  = %MapTile{id: 998, row: 1, col: 3, z_index: 0, character: "X", state: "", script: ""}
 
-    {_, state} = Instances.create_map_tile(%Instances{}, map_tile)
-    {_, state} = Instances.create_map_tile(state, map_tile_south_1)
-    {_, state} = Instances.create_map_tile(state, map_tile_south_2)
+    InstanceProcess.load_map(instance_process, [map_tile, map_tile_south_1, map_tile_south_2])
 
-    %{state: state}
+    %{state: InstanceProcess.get_state(instance_process), instance_process: instance_process}
+  end
+
+  defp instance_state_fixture() do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    InstanceProcess.get_state(instance_process)
   end
 
   test "the state looks right", %{state: state} do
     assert %Instances{
-      program_contexts: %{999 => %{
-                  event_sender: nil,
-                  object_id: 999,
-                  program: %DungeonCrawl.Scripting.Program{
+      map_by_ids: %{999 => %{id: 999}, # More here, but this is good enough for a smoke test
+                    997 => %{id: 997},
+                    998 => %{id: 998}},
+      map_by_coords: %{ {1, 2} => %{0 => 999},
+                        {1, 3} => %{1 => 997, 0 => 998} },
+      program_registry: program_registry
+    } = state
+
+    assert program_process = ProgramRegistry.lookup(program_registry, 999)
+    refute ProgramRegistry.lookup(program_registry, 997)
+    assert %ProgramProcess{ program: program } = ProgramProcess.get_state(program_process)
+    assert %DungeonCrawl.Scripting.Program{
                     broadcasts: [],
                     instructions: %{
                       1 => [:halt, [""]],
@@ -42,16 +58,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                     pc: 1,
                     responses: [],
                     status: :alive,
-                    wait_cycles: 0
-                  }
-                }
-             },
-      map_by_ids: %{999 => %{id: 999}, # More here, but this is good enough for a smoke test
-                    997 => %{id: 997},
-                    998 => %{id: 998}},
-      map_by_coords: %{ {1, 2} => %{0 => 999},
-                        {1, 3} => %{1 => 997, 0 => 998} }
-    } = state
+                    wait_cycles: 5
+                  } = program
   end
 
   test "get_map_tile/2 gets the top map tile at the given coordinates", %{state: state} do
@@ -97,26 +105,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "send_event/4", %{state: state} do
+    program_process = ProgramRegistry.lookup(state.program_registry, 999)
+    %{program: program} = ProgramProcess.get_state(program_process)
+
     player_location = %Location{id: 555}
 
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
-    %Instances{ program_contexts: %{999 => %{program: program} },
-                map_by_ids: _,
-                map_by_coords: _ } = state
-
     # noop if it tile doesnt have a program
-    updated_state = Instances.send_event(state, %{id: 111}, "TOUCH", player_location)
-    %Instances{ program_contexts: %{999 => %{program: ^program} },
-                map_by_ids: _,
-                map_by_coords: _ } = updated_state
+    state = Instances.send_event(state, %{id: 111}, "TOUCH", player_location)
+    assert %{program: ^program} = ProgramProcess.get_state(program_process)
 
     # it does something
-    updated_state_2 = Instances.send_event(updated_state, %{id: 999}, "TOUCH", player_location)
-    %Instances{ program_contexts: %{999 => %{program: updated_program} },
-                map_by_ids: _,
-                map_by_coords: _ } = updated_state_2
+    state = Instances.send_event(state, %{id: 999}, "TOUCH", player_location)
+    assert %{program: updated_program} = ProgramProcess.get_state(program_process)
     refute program == updated_program
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
@@ -124,10 +127,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
             payload: %{message: "Hey"}}
 
     # prunes the program if died during the run of the label
-    updated_state_3 = Instances.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location)
-    %Instances{ program_contexts: %{} ,
-                map_by_ids: _,
-                map_by_coords: _ } = updated_state_3
+    state = Instances.send_event(state, %{id: 999}, "TERMINATE", player_location)
+    prog_ref = Process.monitor(program_process)
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
+    refute ProgramRegistry.lookup(state.program_registry, 999)
   end
 
   test "add_message_action/3" do
@@ -152,94 +155,129 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "create_player_map_tile/3 creates a player map tile and regsiters it" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    state = InstanceProcess.get_state(instance_process)
+    %{ program_registry: program_registry } = state
+
     new_map_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
     location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
 
-    {new_map_tile, state} = Instances.create_player_map_tile(%Instances{}, new_map_tile, location)
+    {new_map_tile, state} = Instances.create_player_map_tile(state, new_map_tile, location)
 
     assert %{id: 1, character: "@"} = new_map_tile
     assert %Instances{
-      program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
       map_by_coords: %{ {4, 4} => %{1 => 1} },
       player_locations: %{new_map_tile.id => location},
-      rerender_coords: %{%{col: 4, row: 4} => true}
+      rerender_coords: %{%{col: 4, row: 4} => true},
+      program_registry: program_registry
     } == state
 
     # returns the existing tile if it already exists by id, but links player location
     assert {^new_map_tile, state} = Instances.create_player_map_tile(state, Map.put(new_map_tile, :character, "O"), location)
     assert %{id: 1, character: "@"} = new_map_tile
     assert %Instances{
-      program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
       map_by_coords: %{ {4, 4} => %{1 => 1} },
       player_locations: %{new_map_tile.id => location},
-      rerender_coords: %{%{col: 4, row: 4} => true}
+      rerender_coords: %{%{col: 4, row: 4} => true},
+      program_registry: program_registry
     } == state
   end
 
   test "create_map_tile/2 creates a map tile" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    state = InstanceProcess.get_state(instance_process)
+    %{ program_registry: program_registry } = state
+
     new_map_tile = %{id: 1, row: 4, col: 4, z_index: 0, character: "M", state: "", script: ""}
 
-    {new_map_tile, state} = Instances.create_map_tile(%Instances{}, new_map_tile)
+    {new_map_tile, state} = InstanceProcess.run_with(instance_process, fn state ->
+                              {map_tile, state} = Instances.create_map_tile(state, new_map_tile)
+                              {{map_tile, state}, state}
+                            end)
 
     assert %{id: 1, character: "M"} = new_map_tile
     assert %Instances{
-      program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
       map_by_coords: %{ {4, 4} => %{0 => 1} },
-      new_pids: [],
-      rerender_coords: %{%{col: 4, row: 4} => true}
+      rerender_coords: %{%{col: 4, row: 4} => true},
+      program_registry: program_registry
     } == state
 
     # assigns a temporary id when it does not have one, which indicates this tile has not been persisted to the database yet
-    assert {new_map_tile_1, updated_state} = Instances.create_map_tile(state, Map.merge(new_map_tile, %{id: nil, row: 5}))
+    assert {new_map_tile_1, updated_state} = InstanceProcess.run_with(instance_process, fn state ->
+                                               {map_tile, state} = Instances.create_map_tile(state, Map.merge(new_map_tile, %{id: nil, row: 5}))
+                                               {{map_tile, state}, state}
+                                             end)
     assert is_binary(new_map_tile_1.id)
     assert String.starts_with?(new_map_tile_1.id, "new_")
     assert updated_state.new_ids == %{new_map_tile_1.id => 0}
 
     # returns the existing tile if it already exists by id
-    assert {^new_map_tile, ^state} = Instances.create_map_tile(state, Map.put(new_map_tile, :character, "O"))
+    assert {^new_map_tile, ^updated_state} = InstanceProcess.run_with(instance_process, fn state ->
+                                       {map_tile, state} = Instances.create_map_tile(state, Map.put(new_map_tile, :character, "O"))
+                                       {{map_tile, state}, state}
+                                     end)
     assert %{id: 1, character: "M"} = new_map_tile
 
     # Does not load a corrupt script (edge case - corrupt script shouldnt even get into the DB, and logs a warning
     map_tile_bad_script = %MapTile{row: 1, col: 4, id: 123, script: "#NOT_A_REAL_COMMAND"}
     assert capture_log(fn ->
-             assert {map_tile, updated_state} = Instances.create_map_tile(state, map_tile_bad_script)
-             assert %Instances{ program_contexts: %{},
-                                map_by_ids: %{1 => Map.put(new_map_tile, :parsed_state, %{}),
-                                              123 => Map.put(map_tile_bad_script, :parsed_state, %{})},
-                                map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}},
-                                rerender_coords: %{%{col: 4, row: 1} => true, %{col: 4, row: 4} => true} } == updated_state
+             assert {map_tile, updated_state} = InstanceProcess.run_with(instance_process, fn state ->
+                                                  {map_tile, state} = Instances.create_map_tile(state, map_tile_bad_script)
+                                                  {{map_tile, state}, state}
+                                                end)
+             assert %Instances{ map_by_ids: %{1 => Map.put(new_map_tile, :parsed_state, %{}),
+                                              123 => Map.put(map_tile_bad_script, :parsed_state, %{}),
+                                              "new_0" => Map.merge(new_map_tile, %{parsed_state: %{}, row: 5, id: "new_0"})},
+                                map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}, {5, 4} => %{0 => "new_0"}},
+                                rerender_coords: %{%{col: 4, row: 1} => true, %{col: 4, row: 4} => true, %{col: 4, row: 5} => true},
+                                new_ids: %{"new_0" => 0},
+                                new_id_counter: 1,
+                                program_registry: program_registry } == updated_state
+             :timer.sleep 15 # b/c ProgramRegistry.start program is a cast and thats where it validates the script
+             Logger.flush()
            end) =~ ~r/Possible corrupt script for map tile instance:/
 
     # If there's a program that starts, adds the map_tile_id to new_pids, so Instances._cycle_program
     # can know to save it and add it back to the map of updated program_contexts.
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
     map_tile_good_script = %MapTile{character: "U", row: 1, col: 4, id: 123, script: "#SHOOT north"}
-    {new_map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile_good_script)
+    {new_map_tile, state} = InstanceProcess.run_with(instance_process, fn state ->
+                              {map_tile, state} = Instances.create_map_tile(state, map_tile_good_script)
+                              {{map_tile, state}, state}
+                            end)
+
     assert %{id: 123, character: "U"} = new_map_tile
     assert %Instances{
-      program_contexts: %{123 => _},
       map_by_ids: %{123 => ^new_map_tile},
       map_by_coords: %{ {1, 4} => %{0 => 123} },
-      new_pids: [ 123 ],
-      rerender_coords: %{%{col: 4, row: 1} => true}
+      rerender_coords: %{%{col: 4, row: 1} => true},
+      program_registry: program_registry
     } = state
+    assert program_process = ProgramRegistry.lookup(program_registry, 123)
+    assert %ProgramProcess{ program: program } = ProgramProcess.get_state(program_process)
+    assert %Program{pc: 1,
+                    wait_cycles: 5,
+                    instructions: %{1 => [:shoot, ["north"]]},
+                    labels: %{},
+                    status: :alive
+           } = program
   end
 
-  test "set_map_tile_id/3" do
+  test "set_map_tile_id/3", %{state: state} do
     map_tile = %{id: 1000, row: 3, col: 4, z_index: 0, character: "M", state: "", script: "#END"}
-    {_map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile)
-    program_contexts = %{ 1000 => %{ program: %{state.program_contexts[1000].program |
-                                                 messages: [{"touch", %{map_tile_id: "new_0"}},
-                                                            {"touch", nil},
-                                                            {"touch", Map.merge(%Location{}, %{parsed_state: {}} )}]},
-                                     event_sender: %{map_tile_id: "new_0"} }}
-    state = %{ state | program_contexts: program_contexts }
-
     new_map_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: "blocking: true", script: "#END\n:touch\nHI"}
+
+    {_map_tile, state} = Instances.create_map_tile(state, map_tile)
     {new_map_tile, state} = Instances.create_map_tile(state, new_map_tile)
+
     assert new_map_tile.id == "new_0"
+
+    expeced_program_process_state = ProgramRegistry.lookup(state.program_registry, "new_0")
+                                    |> ProgramProcess.get_state()
 
     # noop if the new id is not and int or the old id is not a binary
     assert ^state = Instances.set_map_tile_id(state, %{id: "new_0"}, "new_0")
@@ -251,31 +289,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute updated_state.map_by_ids[1].id == new_map_tile.id
     assert is_integer(updated_state.map_by_ids[1].id)
     assert updated_state.map_by_coords[{4,4}] == %{0 => 1}
-    assert %{1 => %{object_id: 1}} = updated_state.program_contexts
-    refute updated_state.program_contexts[new_map_tile.id]
 
-    assert updated_state.program_contexts[1000].program.messages == [{"touch", %{map_tile_id: 1}},
-                                                                     {"touch", nil},
-                                                                     {"touch", Map.merge(%Location{}, %{parsed_state: {}})}]
-    assert updated_state.program_contexts[1000].event_sender == %{map_tile_id: 1}
-  end
-
-  test "set_map_tile_id/3 when new tile has no script" do
-    new_map_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: "blocking: true", script: ""}
-    {new_map_tile, state} = Instances.create_map_tile(%Instances{}, new_map_tile)
-    assert new_map_tile.id == "new_0"
-
-    # noop if the new id is not and int or the old id is not a binary
-    assert ^state = Instances.set_map_tile_id(state, %{id: "new_0"}, "new_0")
-    assert ^state = Instances.set_map_tile_id(state, %{id: 1}, 2)
-
-    # stuff gets updated
-    assert updated_state = Instances.set_map_tile_id(state, Map.put(new_map_tile, :id, 1), new_map_tile.id)
-    assert Map.delete(updated_state.map_by_ids[1], :id) == Map.delete(state.map_by_ids[new_map_tile.id], :id)
-    refute updated_state.map_by_ids[1].id == new_map_tile.id
-    assert is_integer(updated_state.map_by_ids[1].id)
-    assert updated_state.map_by_coords[{4,4}] == %{0 => 1}
-    assert %{} == updated_state.program_contexts
+    # updates the ID in the program registry
+    assert %{ expeced_program_process_state | map_tile_id: 1 } == ProgramRegistry.lookup(state.program_registry, 1)
+                                                                  |> ProgramProcess.get_state()
   end
 
   test "update_map_tile_state/3", %{state: state} do
@@ -331,9 +348,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert changeset_neg_3.changes == MapTile.changeset(%MapTile{},%{character: "M"}).changes
 
     # Adds a program
-    refute state.program_contexts[-3]
+    refute ProgramRegistry.lookup(state.program_registry, -3)
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{script: "#END\n:TOUCH\n?s"})
-    assert %{-3 => %{program: program, object_id: -3}} = state.program_contexts
+    assert program_process = ProgramRegistry.lookup(state.program_registry, -3)
+    assert %{ program: program } = ProgramProcess.get_state(program_process)
     assert %{map_by_ids: %{-3 => %MapTile{script: "#END\n:TOUCH\n?s"}}} = state
     assert %DungeonCrawl.Scripting.Program{
              broadcasts: [],
@@ -348,15 +366,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
              locked: false,
              pc: 1,
              responses: [],
-             status: :wait,
-             wait_cycles: 0
+             status: :alive,
+             wait_cycles: 5
            } = program
 
     # Adds a different program to something with one already
-    assert state.program_contexts[999]
-    assert state.program_contexts[999].program.status == :alive
+    assert previous_program_process = ProgramRegistry.lookup(state.program_registry, 999)
+    assert %{ program: program } = ProgramProcess.get_state(program_process)
+    assert Enum.member? [:alive, :idle], program.status
     assert {updated_tile, state} = Instances.update_map_tile(state, %{id: 999}, %{script: "?n"})
-    assert %{999 => %{program: program, object_id: 999}} = state.program_contexts
+    assert program_process = ProgramRegistry.lookup(state.program_registry, 999)
+    assert previous_program_process != program_process
+    assert %{ program: program } = ProgramProcess.get_state(program_process)
     assert %{map_by_ids: %{999 => %MapTile{script: "?n"}}} = state
     assert %DungeonCrawl.Scripting.Program{
              broadcasts: [],
@@ -367,91 +388,84 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
              locked: false,
              pc: 1,
              responses: [],
-             status: :wait,
-             wait_cycles: 0
+             status: :alive,
+             wait_cycles: 5
            } = program
   end
 
-  test "delete_player_map_tile/2 deletes the map tile and unregisters player location", %{state: state} do
+  test "delete_map_tile/2 deletes the map tile and unregisters any player location", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]
 
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord } = state
     state = %{ state | player_locations: %{ map_tile_id => %Location{} }}
-    assert programs[map_tile.id]
     assert by_id[map_tile.id]
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
 
     assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
     refute state.map_by_ids[map_tile_id]
     refute state.player_locations[map_tile_id]
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord,
                 dirty_ids: %{^map_tile_id => :deleted},
                 player_locations: player_locations } = state
-    refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 2} => %{} } = by_coord
     assert %{} == player_locations
   end
 
-  test "delete_player_map_tile/3 removes the map tile and unregisters player location, but does not mark for deletion", %{state: state} do
+  test "delete_map_tile/3 removes the map tile and unregisters player location, but does not mark for deletion", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]
 
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord } = state
     state = %{ state | player_locations: %{ map_tile_id => %Location{} }}
-    assert programs[map_tile.id]
     assert by_id[map_tile.id]
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
 
     assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile, false) # false parameter
     refute state.map_by_ids[map_tile_id]
     refute state.player_locations[map_tile_id]
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord,
                 dirty_ids: %{}, # the only other thing different from the above test
                 player_locations: player_locations } = state
-    refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 2} => %{} } = by_coord
     assert %{} == player_locations
   end
 
-  test "delete_map_tile/2 deletes the map tile", %{state: state} do
+  test "delete_map_tile/2 deletes the map tile and stops any program", %{state: state} do
     map_tile_id = 999
     map_tile = state.map_by_ids[map_tile_id]
     state = %{ state | passage_exits: [{map_tile_id, "tunnel_a"}] }
 
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord,
                 passage_exits: passage_exits } = state
-    assert programs[map_tile.id]
+    assert program_process = ProgramRegistry.lookup(state.program_registry, map_tile.id)
     assert by_id[map_tile.id]
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
     assert passage_exits == [{map_tile_id, "tunnel_a"}]
 
     assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
     refute state.map_by_ids[map_tile_id]
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
+    %Instances{ map_by_ids: by_id,
                 map_by_coords: by_coord,
                 dirty_ids: %{^map_tile_id => :deleted},
                 passage_exits: passage_exits } = state
-    refute programs[map_tile_id]
+    prog_ref = Process.monitor(program_process)
+    assert_receive {:DOWN, ^prog_ref, :process, ^program_process, :normal}
     refute by_id[map_tile_id]
     assert passage_exits == []
     assert %{ {1, 2} => %{} } = by_coord
   end
 
   test "direction_of_map_tile/3" do
+    state = instance_state_fixture()
+
     map_tile_nw = %MapTile{id: 990, row: 2, col: 2, z_index: 0, character: "."}
     map_tile_n  = %MapTile{id: 991, row: 2, col: 3, z_index: 0, character: "#", state: "blocking: true"}
     map_tile_ne = %MapTile{id: 992, row: 2, col: 4, z_index: 0, character: "."}
@@ -462,7 +476,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     map_tile_s  = %MapTile{id: 997, row: 4, col: 3, z_index: 0, character: "."}
     map_tile_se = %MapTile{id: 998, row: 4, col: 4, z_index: 0, character: "."}
 
-    {_, state} = Instances.create_map_tile(%Instances{}, map_tile_nw)
+    {_, state} = Instances.create_map_tile(state, map_tile_nw)
     {_, state} = Instances.create_map_tile(state, map_tile_n)
     {_, state} = Instances.create_map_tile(state, map_tile_ne)
     {_, state} = Instances.create_map_tile(state, map_tile_w)
@@ -490,11 +504,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "is_player_tile?/2" do
+    state = instance_state_fixture()
+
     player_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
     other_map_tile = %MapTile{id: 998, row: 4, col: 4, z_index: 0, character: "."}
     location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
 
-    {player_tile, state} = Instances.create_player_map_tile(%Instances{}, player_tile, location)
+    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
     {other_map_tile, state} = Instances.create_map_tile(state, other_map_tile)
 
     assert Instances.is_player_tile?(state, player_tile)
@@ -516,15 +532,23 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "subtract/4 health on a maptile" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
+    instance = insert_autogenerated_dungeon_instance()
+
     wall       = %MapTile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: ""}
     breakable  = %MapTile{id: 993, row: 1, col: 2, z_index: 0, character: "B", state: "destroyable: true"}
     damageable = %MapTile{id: 994, row: 1, col: 3, z_index: 0, character: "D", state: "health: 10"}
-    state = %Instances{instance_id: 12345}
-    {wall, state} = Instances.create_map_tile(state, wall)
-    {breakable, state} = Instances.create_map_tile(state, breakable)
-    {damageable, state} = Instances.create_map_tile(state, damageable)
 
-    dungeon_channel = "dungeons:12345"
+    InstanceProcess.set_instance_id(instance_process, instance.id)
+    InstanceProcess.load_map(instance_process, [wall, breakable, damageable])
+    state = InstanceProcess.get_state(instance_process)
+
+    #{wall, state} = Instances.create_map_tile(state, wall)
+    #{breakable, state} = Instances.create_map_tile(state, breakable)
+    #{damageable, state} = Instances.create_map_tile(state, damageable)
+
+    dungeon_channel = "dungeons:#{ instance.id }"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     assert {:noop, updated_state} = Instances.subtract(state, :health, 5, wall.id)
@@ -548,8 +572,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "subtract/4 non health on a maptile" do
+    state = instance_state_fixture()
+
     map_tile = %MapTile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: "cash: 5"}
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile)
+    {map_tile, state} = Instances.create_map_tile(state, map_tile)
 
     assert {:ok, updated_state} = Instances.subtract(state, :cash, 5, map_tile.id)
     assert Instances.get_map_tile_by_id(updated_state, map_tile).parsed_state[:cash] == 0
@@ -559,14 +585,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert state == updated_state
   end
 
-  test "subtract/4 health on a player tile" do
-    instance = insert_stubbed_dungeon_instance()
-    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: "", map_instance_id: instance.id}
-    location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
-    state = %Instances{instance_id: 123}
-    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+  test "subtract/4 health on a player tile", %{instance_process: instance_process} do
+    instance = insert_autogenerated_dungeon_instance()
 
-    dungeon_channel = "dungeons:123"
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: "", map_instance_id: instance.id}
+    location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 1}
+    {player_tile, state} = InstanceProcess.run_with(instance_process, fn state ->
+                             state = %{ state | instance_id: instance.id }
+                             {map_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+                             {{map_tile, state}, state}
+                           end)
+
+    dungeon_channel = "dungeons:#{ instance.id }"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
     player_channel = "players:444"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -595,11 +625,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
             payload: %{message: "You died!"}}
   end
 
-  test "subtract/4 non health on a player tile" do
+  test "subtract/4 non health on a player tile", %{instance_process: instance_process} do
     player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: ""}
     location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
-    state = %Instances{instance_id: 123}
-    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+    {player_tile, state} = InstanceProcess.run_with(instance_process, fn state ->
+                             {map_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+                             {{map_tile, state}, state}
+                           end)
 
     player_channel = "players:444"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)

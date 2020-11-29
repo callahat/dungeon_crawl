@@ -5,10 +5,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
 
   @user_id_hash "goodhash"
 
   setup do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: "blocking: false"},
        %MapTile{name: "Floor", character: ".", row: 2, col: 3, z_index: 0, state: "blocking: false"}])
@@ -20,15 +23,12 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:map_tile)
 
-    # Quik and dirty state init
-    state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{instance_id: instance.id}, fn(dmt, state) ->
-                 {_, state} = Instances.create_map_tile(state, dmt)
-                 state
-               end)
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+    state = InstanceProcess.get_state(instance_process)
+
     state = %{ state | spawn_coordinates: [{2,3}] }
 
-    %{state: state, player_map_tile: player_location.map_tile, player_location: player_location}
+    %{state: state, player_map_tile: player_location.map_tile, player_location: player_location, instance_process: instance_process}
   end
 
   test "current_stats/2", %{state: state, player_map_tile: player_map_tile} do
@@ -155,17 +155,21 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert placed_tile.map_instance_id == other_instance.id
   end
 
-  test "place/4 at the same level prefers different passage exit", %{state: state, player_map_tile: player_map_tile, player_location: player_location} do
+  test "place/4 at the same level prefers different passage exit",
+      %{player_map_tile: player_map_tile, player_location: player_location, instance_process: instance_process} do
     passage_tiles = [%MapTile{name: "Passage", character: "0", row: 1, col: 1, z_index: 2, state: "blocking: true", color: "red"},
                      %MapTile{name: "Passage", character: "0", row: 1, col: 6, z_index: 2, state: "blocking: true", color: "red"}]
 
-    state = Enum.reduce(passage_tiles, state, fn(dmt, state) ->
-              {_, state} = Instances.create_map_tile(state, dmt)
-              state
-            end)
-    passage_1 = Instances.get_map_tile(state, %{row: 1, col: 1})
-    passage_2 = Instances.get_map_tile(state, %{row: 1, col: 6})
-    state = %{ state | passage_exits: [{passage_1.id, "red"}, {passage_2.id, "red"}] }
+    InstanceProcess.load_map(instance_process, passage_tiles)
+    passage_1 = InstanceProcess.get_tile(instance_process, 1, 1)
+    passage_2 = InstanceProcess.get_tile(instance_process, 1, 6)
+    InstanceProcess.run_with(
+      instance_process,
+      fn state ->
+        {:ok, %{ state | instance_id: player_map_tile.map_instance_id, passage_exits: [{passage_1.id, "red"}, {passage_2.id, "red"}] } }
+      end)
+
+    state = InstanceProcess.get_state(instance_process)
 
     {placed_player_map_tile, updated_state} = Player.place(state, player_map_tile, player_location, Map.put(passage_1, :match_key, "red"))
     placed_tile = Instances.get_map_tile(updated_state, placed_player_map_tile)
@@ -234,17 +238,25 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   defp _setup_other_instance_and_state() do
+    {:ok, other_instance_process} = InstanceProcess.start_link([])
+
     tiles = [%MapTile{name: "Stairs Down", character: ">", row: 1, col: 6, z_index: 0, state: "blocking: false", color: "red"}]
     other_instance = insert_stubbed_dungeon_instance(%{height: 20, width: 20}, tiles)
     passage = Enum.at(Repo.preload(other_instance, :dungeon_map_tiles).dungeon_map_tiles, 0)
-    other_state = Repo.preload(other_instance, :dungeon_map_tiles).dungeon_map_tiles
-                  |> Enum.reduce(%Instances{}, fn(dmt, state) ->
-                       {_, state} = Instances.create_map_tile(state, dmt)
-                       state
-                     end)
-                  |> Map.merge(%{ spawn_coordinates: [{6,9}], instance_id: other_instance.id })
-                  |> Map.put(:state_values, %{height: other_instance.height, width: other_instance.width})
-                  |> Map.put(:passage_exits, [{passage.id, "red"}])
+
+    InstanceProcess.load_map(other_instance_process, Repo.preload(other_instance, :dungeon_map_tiles).dungeon_map_tiles)
+
+    other_state = \
+    InstanceProcess.run_with(
+      other_instance_process,
+      fn state ->
+        state = Map.merge(state, %{ spawn_coordinates: [{6,9}], instance_id: other_instance.id })
+                |> Map.put(:state_values, %{height: other_instance.height, width: other_instance.width})
+                |> Map.put(:passage_exits, [{passage.id, "red"}])
+
+        {state, state}
+      end)
+
     {other_instance, other_state}
   end
 end
