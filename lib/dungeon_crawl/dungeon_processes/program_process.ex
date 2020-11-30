@@ -188,17 +188,12 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
   end
 
   defp _run_commands(%ProgramProcess{} = state) do
-    program = \
-    InstanceProcess.run_with(state.instance_process, fn instance_state ->
-      runner_state = %Runner{program: state.program,
-                             object_id: state.map_tile_id,
-                             state: instance_state,
-                             event_sender: state.event_sender,
-                             instance_process: state.instance_process}
-      %{program: program, state: instance_state} = Scripting.Runner.run(runner_state)
-                                                   |> _handle_broadcasting()
-      {program, instance_state}
-    end)
+    runner_state = %Runner{program: state.program,
+                           object_id: state.map_tile_id,
+                           event_sender: state.event_sender,
+                           instance_process: state.instance_process}
+    %{program: program} = Scripting.Runner.run(runner_state)
+                          |> _handle_broadcasting()
 
     case program.status do
       :idle ->

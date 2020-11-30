@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.Scripting.Shape do
   @moduledoc """
-  The various functions relating to returning shapes (in terms of either coordinates or 
+  The various functions relating to returning shapes (in terms of either coordinates or
   map tile ids). When determining coordinates in the shape, coordinates moving out
   from the origin up to the range away are considered.
 
@@ -21,7 +21,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   @doc """
   Returns map tile ids that fall on a line from the given origin.
   """
-  def line(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ false, bypass_blocking \\ "soft") do
+  def line(%Instances{} = state, object_id, direction, range, include_origin \\ false, bypass_blocking \\ "soft") do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
     {vec_row, vec_col} = Direction.delta(direction) |> Tuple.to_list |> Enum.map(&(&1 * range)) |> List.to_tuple
 
@@ -72,7 +72,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns map tile ids that form a cone emminating from the origin out to the range,
   and spanning about 45 degrees on either side of the center line.
   """
-  def cone(%Runner{state: state, object_id: object_id}, direction, range, width, include_origin \\ false, bypass_blocking \\ "soft") do
+  def cone(%Instances{} = state, object_id, direction, range, width, include_origin \\ false, bypass_blocking \\ "soft") do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
     {d_row, d_col} = Direction.delta(direction)
     {vec_row, vec_col} =  {d_row * range, d_col * range}
@@ -93,7 +93,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns map tile ids that from a circle around the origin out to the range.
   Origin is included by default, and bypass blocking defaults to soft.
   """
-  def circle(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
+  def circle(%Instances{} = state, object_id, range, include_origin \\ true, bypass_blocking \\ "soft") do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
 
     vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}]
@@ -134,12 +134,12 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns map tile ids that are up to the range in steps from the origin. This will wrap around corners
   and blocking tiles as long as the number of steps to get to that coordinate is within the range.
   """
-  def blob(_state, _range, include_origin \\ true, bypass_blocking \\ "soft")
-  def blob(%Runner{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do
+  def blob(_state, _object_id, _range, include_origin \\ true, bypass_blocking \\ "soft")
+  def blob(%Instances{} = state, object_id, range, include_origin, bypass_blocking) when is_integer(object_id) do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
-    blob({state, origin}, range, include_origin, bypass_blocking)
+    blob(state, origin, range, include_origin, bypass_blocking)
   end
-  def blob({%Instances{} = state, %{row: row, col: col} = _origin}, range, include_origin, bypass_blocking) do
+  def blob(%Instances{} = state, %{row: row, col: col} = _origin, range, include_origin, bypass_blocking) do
     coords = if include_origin, do: [{row, col}], else: []
     _blob(state, range, bypass_blocking, coords, [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}])
   end

@@ -235,6 +235,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   values already in the state. An existing state attribute (ie, `blocking`) that is not
   included in this map will be unaffected.
   """
+  # TODO: consolidate with update_map_tile, use the logic elsewhere (ie, command) to strip out state (ie, health) vs record (ie, row/col)
+  #       and do all that in one place.
   def update_map_tile_state(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id}, state_attributes) do
     map_tile = by_id[map_tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
