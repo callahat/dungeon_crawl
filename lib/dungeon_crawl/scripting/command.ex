@@ -1202,7 +1202,7 @@ defmodule DungeonCrawl.Scripting.Command do
     object = InstanceProcess.get_tile(runner_state.instance_process, object_id)
     # this should never fail since self would be from a running process, but just in case
     program_registry = InstanceProcess.run_with(runner_state.instance_process, fn state -> {state.program_registry, state} end)
-    if program_process = ProgramRegistry.lookup(program_registry, object.id) do
+    if program_process = object && ProgramRegistry.lookup(program_registry, object.id) do
       ProgramProcess.send_event(program_process, label, %{map_tile_id: object.id, parsed_state: object.parsed_state})
     end
 

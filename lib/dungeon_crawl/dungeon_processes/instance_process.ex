@@ -5,6 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   alias DungeonCrawl.Admin
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.ProgramRegistry
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.StateValue
@@ -317,27 +318,44 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   # removed.
   @impl true
   def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
-    start_ms = :os.system_time(:millisecond)
+    # this is probably ok right
+    myself = self()
+
+Logger.info "Writing db"
 
     {new_ids, ids_to_persist} = new_ids
                                 |> Map.to_list
                                 |> Enum.map(fn({new_id, age}) -> {new_id, age + 1} end)
                                 |> Enum.split_with(fn({_, age}) -> age < 2 end)
-
     # TODO: maybe cap the number of ids to persist, put the excess back on the new_ids list
-    state = ids_to_persist
-            |> Enum.map(fn({id, _}) -> id end)
-            |> Enum.reduce(state, fn(temp_id, state) ->
-                 map_tile = Instances.get_map_tile_by_id(state, %{id: temp_id})
-                            |> Map.put(:id, nil)
-                            |> DungeonCrawl.Repo.insert!()
-                 Instances.set_map_tile_id(state, map_tile, temp_id)
-               end)
 
-    myself = self()
-
-    # save off this other stuff but don't block the GenServer, and dont care about the result
+    # do most of this asynchronously
     Task.start(fn ->
+      start_ms = :os.system_time(:millisecond)
+      Logger.info "saving off new persisted tiles"
+      start_1 = :os.system_time(:millisecond)
+      new_old_ids = ids_to_persist
+                    |> Enum.map(fn({id, _}) -> id end)
+                    |> Enum.map(fn(temp_id) ->
+                         map_tile = Instances.get_map_tile_by_id(state, %{id: temp_id})
+                                    |> Map.put(:id, nil)
+                                    |> DungeonCrawl.Repo.insert!()
+                         {map_tile, temp_id}
+                       end)
+      Logger.info "persisted #{length new_old_ids}, took #{:os.system_time(:millisecond) - start_1}ms"
+      Logger.info "setting map tile id"
+      start_1 = :os.system_time(:millisecond)
+      InstanceProcess.run_with(myself, fn state ->
+        {:ok,
+          new_old_ids
+          |> Enum.reduce(state, fn({map_tile, temp_id}, state) ->
+               Instances.set_map_tile_id(state, map_tile, temp_id)
+             end)
+        }
+      end)
+      Logger.info "set #{length new_old_ids} tile ids , took #{:os.system_time(:millisecond) - start_1}ms"
+      Logger.info "saved new tiles, took #{:os.system_time(:millisecond) - start_ms}ms"
+
       # :deleted
       # :updated
       [deletes, updates] = dirty_ids

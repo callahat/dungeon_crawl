@@ -57,7 +57,7 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramRegistry do
   to the DataBase. This keeps the registry id in sync with the DB id.
   """
   def change_program_id(server, old_program_id, new_program_id) do
-    GenServer.call(server, {:change_program_id, old_program_id, new_program_id})
+    GenServer.cast(server, {:change_program_id, old_program_id, new_program_id})
   end
 
   @doc """
@@ -141,7 +141,7 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramRegistry do
   end
 
   @impl true
-  def handle_call({:change_program_id, old_program_id, new_program_id}, _from, registry_state) do
+  def handle_cast({:change_program_id, old_program_id, new_program_id}, registry_state) do
     {program_process, program_ids} = Map.pop(registry_state.program_ids, old_program_id)
 
     if program_process do
@@ -155,9 +155,9 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramRegistry do
       program_process_state = ProgramProcess.get_state(program_process)
       ProgramProcess.set_state(program_process, %{ program_process_state | map_tile_id: new_program_id })
 
-      {:reply, :ok, %{ registry_state | program_ids: program_ids, refs: refs, inverse_refs: inverse_refs }}
+      {:noreply, %{ registry_state | program_ids: program_ids, refs: refs, inverse_refs: inverse_refs }}
     else
-      {:reply, :ok, registry_state}
+      {:noreply, registry_state}
     end
   end
 
