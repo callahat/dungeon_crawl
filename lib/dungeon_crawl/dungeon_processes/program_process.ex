@@ -142,6 +142,12 @@ defmodule DungeonCrawl.DungeonProcesses.ProgramProcess do
   end
 
   @impl true
+  def handle_cast({:send_event, {event, sender}}, %ProgramProcess{active: false} = state) do
+    # not active, ignore any messages/events
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_cast({:send_event, {event, sender}}, %ProgramProcess{program: program, timer_ref: timer_ref} = state) do
     with false <- program.locked,
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, event),

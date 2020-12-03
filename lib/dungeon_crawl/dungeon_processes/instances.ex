@@ -155,7 +155,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
   def create_player_map_tile(%Instances{player_locations: player_locations} = state, map_tile, location) do
-    if state.count_to_idle == 0, do: ProgramRegistry.resume_all_programs(state.program_registry)
+    if state.count_to_idle <= 0, do: ProgramRegistry.resume_all_programs(state.program_registry)
     state = if state.count_to_idle < @count_to_idle,
               do: %{ state | count_to_idle: @count_to_idle },
               else: state

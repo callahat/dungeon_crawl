@@ -13,7 +13,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   ## Client API
 
   @timeout 50
-  @db_update_timeout 5000
 
   @doc """
   Starts the instance process.
@@ -82,7 +81,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
-    Process.send_after(instance, :write_db, @db_update_timeout)
   end
 
   @doc """
@@ -291,11 +289,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, state}
   end
 
+  def handle_info(:perform_actions, %Instances{count_to_idle: -1} = state) do
+    Process.send_after(self(), :perform_actions, @timeout * 10)
+
+    {:noreply, %{ state | count_to_idle: -1 }}
+  end
+
   @impl true
   def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
     ProgramRegistry.pause_all_programs(state.program_registry)
 
-    {:noreply, state}
+    Process.send_after(self(), :write_db, @timeout)
+
+    Process.send_after(self(), :perform_actions, @timeout * 10)
+
+    {:noreply, %{ state | count_to_idle: -1 }}
   end
 
   def handle_info(:perform_actions, %Instances{} = state) do
@@ -312,81 +320,65 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, state}
   end
 
-  # TODO: maybe there really isn't any need to write to the DB periodically. It is expensive and not really ever
-  # read back. It might be ok to to when all players leave and the processes are being shut down AND the instance
-  # is a permanent one. Currently when everyone is out of the instance, the DB and processes for the map set are
-  # removed.
   @impl true
   def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
-    # this is probably ok right
-    myself = self()
-
-Logger.info "Writing db"
+    # Only write db when no players are there, reconcile the updates, deletes, and new tiles.
+    Logger.info "Writing db"
 
     {new_ids, ids_to_persist} = new_ids
                                 |> Map.to_list
                                 |> Enum.map(fn({new_id, age}) -> {new_id, age + 1} end)
                                 |> Enum.split_with(fn({_, age}) -> age < 2 end)
-    # TODO: maybe cap the number of ids to persist, put the excess back on the new_ids list
 
-    # do most of this asynchronously
-    Task.start(fn ->
-      start_ms = :os.system_time(:millisecond)
-      Logger.info "saving off new persisted tiles"
-      start_1 = :os.system_time(:millisecond)
-      new_old_ids = ids_to_persist
-                    |> Enum.map(fn({id, _}) -> id end)
-                    |> Enum.map(fn(temp_id) ->
-                         map_tile = Instances.get_map_tile_by_id(state, %{id: temp_id})
-                                    |> Map.put(:id, nil)
-                                    |> DungeonCrawl.Repo.insert!()
-                         {map_tile, temp_id}
-                       end)
-      Logger.info "persisted #{length new_old_ids}, took #{:os.system_time(:millisecond) - start_1}ms"
-      Logger.info "setting map tile id"
-      start_1 = :os.system_time(:millisecond)
-      InstanceProcess.run_with(myself, fn state ->
-        {:ok,
-          new_old_ids
-          |> Enum.reduce(state, fn({map_tile, temp_id}, state) ->
-               Instances.set_map_tile_id(state, map_tile, temp_id)
-             end)
-        }
-      end)
-      Logger.info "set #{length new_old_ids} tile ids , took #{:os.system_time(:millisecond) - start_1}ms"
-      Logger.info "saved new tiles, took #{:os.system_time(:millisecond) - start_ms}ms"
+    start_ms = :os.system_time(:millisecond)
+    Logger.info "saving off new persisted tiles"
+    start_1 = :os.system_time(:millisecond)
+    new_old_ids = ids_to_persist
+                  |> Enum.map(fn({id, _}) -> id end)
+                  |> Enum.map(fn(temp_id) ->
+                       map_tile = Instances.get_map_tile_by_id(state, %{id: temp_id})
+                                  |> Map.put(:id, nil)
+                                  |> DungeonCrawl.Repo.insert!()
+                       {map_tile, temp_id}
+                     end)
+    Logger.info "persisted #{length new_old_ids}, took #{:os.system_time(:millisecond) - start_1}ms"
+    Logger.info "setting map tile id"
+    start_1 = :os.system_time(:millisecond)
 
-      # :deleted
-      # :updated
-      [deletes, updates] = dirty_ids
-                           |> Map.to_list
-                           |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
-                           |> Enum.split_with(fn({_, event}) -> event == :deleted end)
-                           |> Tuple.to_list()
-                           |> Enum.map(fn(items) ->
-                                Enum.map(items, fn({id,_}) -> id end)
-                              end)
+    state = Enum.reduce(new_old_ids, state, fn({map_tile, temp_id}, state) ->
+              Instances.set_map_tile_id(state, map_tile, temp_id)
+            end)
+    Logger.info "set #{length new_old_ids} tile ids , took #{:os.system_time(:millisecond) - start_1}ms"
+    Logger.info "saved new tiles, took #{:os.system_time(:millisecond) - start_ms}ms"
 
-      updates = updates -- deletes
+    # :deleted
+    # :updated
+    [deletes, updates] = dirty_ids
+                         |> Map.to_list
+                         |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
+                         |> Enum.split_with(fn({_, event}) -> event == :deleted end)
+                         |> Tuple.to_list()
+                         |> Enum.map(fn(items) ->
+                              Enum.map(items, fn({id,_}) -> id end)
+                            end)
 
-      if deletes != [] do
-        deletes |> DungeonInstances.delete_map_tiles()
-      end
+    updates = updates -- deletes
 
-      if updates != [] do
-        updates
-        |> Enum.map(fn(updated_id) ->
-             dirty_ids[updated_id]
-           end)
-        |> DungeonInstances.update_map_tiles()
-      end
+    if deletes != [] do
+      deletes |> DungeonInstances.delete_map_tiles()
+    end
 
-      Process.send_after(myself, :write_db, @db_update_timeout)
+    if updates != [] do
+      updates
+      |> Enum.map(fn(updated_id) ->
+           dirty_ids[updated_id]
+         end)
+      |> DungeonInstances.update_map_tiles()
+    end
 
-      if :os.system_time(:millisecond) - start_ms > 200 do
-        Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
-      end
-    end)
+    if :os.system_time(:millisecond) - start_ms > 200 do
+      Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
+    end
 
     {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
