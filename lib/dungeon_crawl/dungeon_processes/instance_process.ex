@@ -14,7 +14,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   ## Client API
 
   @timeout 50
-  @db_update_timeout 5000
 
   @doc """
   Starts the instance process.
@@ -83,7 +82,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
-    Process.send_after(instance, :write_db, @db_update_timeout)
   end
 
   @doc """
@@ -278,7 +276,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
-    # No player is here, so don't cycle programs and wait longer til the next cycle
+    # No player is here, so don't cycle programs and wait longer til the next cycle, and save off any changes/new tiles
+    send(self(), :write_db)
+
     Process.send_after(self(), :perform_actions, @timeout * 10)
 
     {:noreply, state}
@@ -322,8 +322,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                  Instances.set_map_tile_id(state, map_tile, temp_id)
                end)
 
-    myself = self()
-
     # save off this other stuff but don't block the GenServer, and dont care about the result
     Task.start(fn ->
       # :deleted
@@ -350,8 +348,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
            end)
         |> DungeonInstances.update_map_tiles()
       end
-
-      Process.send_after(myself, :write_db, @db_update_timeout)
 
       if :os.system_time(:millisecond) - start_ms > 200 do
         Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
