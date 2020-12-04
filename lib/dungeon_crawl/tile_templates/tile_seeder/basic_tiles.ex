@@ -79,6 +79,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
         name: "Bullet",
         description: "Its a bullet.",
         state: "blocking: false, wait_cycles: 1, not_pushing: true, not_squishing: true, damage: 5, flying: true",
+        active: true,
         script: """
                 :MAIN
                 #WALK @facing

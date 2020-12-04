@@ -616,4 +616,23 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert {:not_enough, updated_state} = Instances.subtract(state, :cash, 500, player_tile.id)
     assert state == updated_state
   end
+
+  test "get_tile_template/2", %{state: state} do
+    assert {nil, ^state, :not_found} = Instances.get_tile_template("fake_slug", state)
+
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
+    # looks up from the database and caches it
+    assert {bullet, updated_state, :created} = Instances.get_tile_template("bullet", state)
+    assert bullet.name == "Bullet"
+    assert updated_state == %{ state | tile_template_slug_cache: updated_state.tile_template_slug_cache}
+    assert updated_state.tile_template_slug_cache["bullet"] == bullet
+
+    # finds it in the cache and returns it
+    assert {^bullet, ^updated_state, :exists} = Instances.get_tile_template("bullet", updated_state)
+
+    # an id is given instead
+    assert {nil, ^updated_state, :not_found} = Instances.get_tile_template(bullet.id, updated_state)
+  end
 end
+

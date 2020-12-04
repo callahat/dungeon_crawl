@@ -115,7 +115,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
     end
 
     test "get_map_tile/3 populated MapTile struct" do
-      map_tile = map_tile_fixture()
+      map_tile = Map.delete(map_tile_fixture(), :tile_template_id)
       assert ^map_tile = DungeonInstances.get_map_tile(map_tile.map_instance_id, map_tile.row, map_tile.col)
     end
 
@@ -162,7 +162,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
   # Utility methods
   defp _map_tile_details(dungeon) do
     Repo.preload(dungeon, :dungeon_map_tiles).dungeon_map_tiles
-    |> Enum.map(fn(mt) -> Elixir.Map.take(mt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script]) end)
+    |> Enum.map(fn(mt) -> Elixir.Map.take(mt, [:row, :col, :z_index, :character, :color, :background_color, :state, :script]) end)
     |> Enum.sort
   end
 end

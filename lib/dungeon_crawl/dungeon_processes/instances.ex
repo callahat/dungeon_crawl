@@ -24,7 +24,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             message_actions: %{},
             adjacent_map_ids: %{},
             rerender_coords: %{},
-            count_to_idle: @count_to_idle
+            count_to_idle: @count_to_idle,
+            tile_template_slug_cache: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -576,5 +577,24 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       {:ok, state}
     end
   end
+
+  @doc """
+  Looks up a tile template from the cache, falling back to getting it from the database and saving for later.
+  Returns a three part tuple, the first being the tile template if found, the state, and an atom indicating if it
+  exists in cache, was created in the cache, or not_found.
+  """
+  def get_tile_template(slug, %Instances{tile_template_slug_cache: cache} = state) when is_binary(slug) do
+    if tile_template = cache[slug] do
+      {tile_template, state, :exists}
+    else
+      if tile_template = DungeonCrawl.TileTemplates.get_tile_template_by_slug(slug) do
+        {tile_template, %{ state | tile_template_slug_cache: Map.put(cache, slug, tile_template) }, :created}
+      else
+        {nil, state, :not_found}
+      end
+    end
+  end
+
+  def get_tile_template(_slug, state), do: {nil, state, :not_found}
 end
 

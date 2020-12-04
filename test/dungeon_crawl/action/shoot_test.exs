@@ -7,6 +7,8 @@ defmodule DungeonCrawl.Action.ShootTest do
   alias DungeonCrawl.Player.Location
 
   setup config do
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{character: ".", row: 1, col: 2, z_index: 0},
        %MapTile{character: ".", row: 2, col: 2, z_index: 0},
@@ -15,7 +17,7 @@ defmodule DungeonCrawl.Action.ShootTest do
 
     # Quik and dirty state init
     state = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
-            |> Enum.reduce(%Instances{}, fn(dmt, state) -> 
+            |> Enum.reduce(%Instances{}, fn(dmt, state) ->
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)

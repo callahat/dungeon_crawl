@@ -43,14 +43,12 @@ defmodule DungeonCrawlWeb.SharedView do
   defp _dungeon_table(dungeon_map_tiles, height, width) do
     dungeon_map_tiles
     |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
-    |> DungeonCrawl.Repo.preload(:tile_template)
     |> Enum.reduce(%{}, fn(dmt,acc) -> if Map.has_key?(acc, {dmt.row, dmt.col}), do: acc, else: Map.put(acc, {dmt.row, dmt.col}, dmt) end)
     |> rows(height, width, &cells/3)
   end
 # TODO: Probably move the editor stuff into the dungeon_view, since it will only be used for dungeon editing
   defp _editor_dungeon_table(dungeon_map_tiles, height, width) do
     dungeon_map_tiles
-    |> DungeonCrawl.Repo.preload(:tile_template)
     |> Enum.reduce(%{}, fn(dmt,acc) -> case Map.get(acc, {dmt.row, dmt.col}) do
                                          nil ->   Map.put(acc, {dmt.row, dmt.col}, %{dmt.z_index => dmt})
                                          tiles -> Map.put(acc, {dmt.row, dmt.col}, Map.put(tiles, dmt.z_index, dmt))

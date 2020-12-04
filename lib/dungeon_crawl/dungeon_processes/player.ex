@@ -98,7 +98,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
 #    grave_tile_template = DungeonCrawl.TileTemplates.TileSeeder.grave()
 #    grave = Map.take(player_tile, [:map_instance_id, :row, :col])
-#             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: last_player_z_index})
+#             |> Map.merge(%{z_index: last_player_z_index})
 #             |> Map.merge(Map.take(grave_tile_template, [:character, :color, :background_color, :state, :script]))
 #             |> Map.put(:script, script)
 #             |> DungeonCrawl.DungeonInstances.create_map_tile!()
@@ -153,7 +153,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
     tile_template = apply(DungeonCrawl.TileTemplates.TileSeeder, tile_template, [])
     tile = Map.take(player_tile, [:map_instance_id, :row, :col])
-           |> Map.merge(%{tile_template_id: tile_template.id, z_index: z_index})
+           |> Map.merge(%{z_index: z_index})
            |> Map.merge(Map.take(tile_template, [:character, :color, :background_color, :state, :script]))
            |> Map.put(:script, script_fn.(items_stolen))
            |> DungeonCrawl.DungeonInstances.create_map_tile!()

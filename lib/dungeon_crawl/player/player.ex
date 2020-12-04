@@ -76,7 +76,7 @@ defmodule DungeonCrawl.Player do
 
     Map.take(spawn_location, [:row, :col])
     |> Map.merge(%{map_instance_id: entrance.id})
-    |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: z_index})
+    |> Map.merge(%{z_index: z_index})
     |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
     |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
@@ -100,8 +100,8 @@ defmodule DungeonCrawl.Player do
   end
 
   defp _random_floor(entrance) do
-    Repo.preload(entrance, [dungeon_map_tiles: :tile_template]).dungeon_map_tiles
-    |> Enum.filter(fn(t) -> t.tile_template && t.tile_template.character == "." end)
+    Repo.preload(entrance, [:dungeon_map_tiles]).dungeon_map_tiles
+    |> Enum.filter(fn(t) -> t.name == "Floor" && t.character == "." end)
     |> Enum.shuffle
     |> Enum.at(0)
   end

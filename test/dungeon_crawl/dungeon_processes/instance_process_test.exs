@@ -13,11 +13,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
   # which also has its own set of similar tests.
 
   setup do
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
     {:ok, instance_process} = InstanceProcess.start_link([])
-    tt = insert_tile_template()
     map_instance = insert_stubbed_dungeon_instance(
                      %{},
-                     [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE", tile_template_id: tt.id}])
+                     [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE"}])
     map_tile = DungeonCrawl.Repo.get_by(MapTile, %{map_instance_id: map_instance.id})
 
     InstanceProcess.set_instance_id(instance_process, map_instance.id)
@@ -151,14 +152,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
     dungeon_channel = "dungeons:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
-    tt = insert_tile_template()
-
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
         %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "#TERMINATE"}
       ]
-      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
 
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)

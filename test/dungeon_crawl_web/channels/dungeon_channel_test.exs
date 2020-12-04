@@ -13,6 +13,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
   @player_col 1
 
   setup config do
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
     message_tile = TileTemplates.create_tile_template!(
                      Map.merge(%{name: "message", description: "test", script: "#END\n:TOUCH\nJust a tile\nwith line o text"},
                                %{active: true, public: true}))
@@ -417,7 +419,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
         event: "message",
         payload: %{message: "Cannot open that"}}
     refute_broadcast "tile_changes", _
-    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["."].id
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).character == basic_tiles["."].character
 
     push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
 
@@ -427,7 +429,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
         payload: %{message: "Cannot close that"}}
 
     refute_broadcast "tile_changes", _
-    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["."].id
+    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).character == basic_tiles["."].character
   end
 
   @tag up_tile: "+", health: 0

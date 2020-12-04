@@ -1004,7 +1004,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # PUT with bad shape does nothing
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "banana", include_origin: false}]
     updated_runner_state = Command.put(runner_state, params)
-    assert updated_runner_state == runner_state
+    assert updated_runner_state == %{ runner_state |
+             state: %{ runner_state.state | tile_template_slug_cache: updated_runner_state.state.tile_template_slug_cache }}
+
+    state = %{ runner_state.state  | tile_template_slug_cache: updated_runner_state.state.tile_template_slug_cache }
+    runner_state = %{ runner_state | state: state }
 
     # PUT with varialbes that resolve to invalid values does nothing
     params = [%{slug: squeaky_door.slug, color: {:state_variable, :character}, direction: "south"}]
@@ -1060,7 +1064,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     params = [%{slug: squeaky_door.slug, row: 33, col: 33}]
 
     %Runner{state: updated_state} = Command.put(%Runner{program: program, object_id: map_tile.id, state: state}, params)
-    assert updated_state == state
+    assert updated_state == %{ state | tile_template_slug_cache: updated_state.tile_template_slug_cache }
   end
 
   test "RANDOM" do
@@ -1481,6 +1485,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "SHOOT" do
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
     instance = insert_stubbed_dungeon_instance(%{},
       [%MapTile{character: ".", row: 1, col: 2, z_index: 0},
        %MapTile{character: ".", row: 2, col: 2, z_index: 0},

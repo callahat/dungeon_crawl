@@ -104,7 +104,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid), %{})
   end
   def become(%Runner{} = runner_state, [params]) do
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
     new_attrs = if slug_tile do
                   Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
                   |> Map.put(:tile_template_id, slug_tile.id)
@@ -148,6 +148,13 @@ defmodule DungeonCrawl.Scripting.Command do
 
       false ->
         runner_state
+    end
+  end
+
+  defp _get_tile_template(%{ state: state } = runner_state, slug) do
+    case Instances.get_tile_template(slug, state) do
+      {tile_template, state, :created} -> {tile_template, %{ runner_state | state: state }}
+      {tile_template, _state, _} -> {tile_template, runner_state}
     end
   end
 
@@ -852,7 +859,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   def put(%Runner{} = runner_state, [%{slug: _slug} = params]) do
     params = resolve_variable_map(runner_state, params)
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
 
     if slug_tile do
       attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
