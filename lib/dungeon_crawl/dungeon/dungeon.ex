@@ -216,7 +216,7 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _dungeon_copy_changeset(map, map_set_id) do
-    attrs = Elixir.Map.take(map, [:name, :width, :height, :number, :entrance, :state])
+    attrs = Elixir.Map.take(map, [:name, :width, :height, :number, :entrance, :state, :number_north, :number_south, :number_east, :number_west])
     Map.changeset(%Map{}, Elixir.Map.put(attrs, :map_set_id, map_set_id))
   end
 
