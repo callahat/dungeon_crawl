@@ -100,22 +100,15 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         background_color: "red",
         public: true,
         active: true,
+        animate_random: true,
+        animate_period: 10,
+        animate_characters: "▒, ░, ░",
+        animate_background_colors: "red, red, darkorange, orange",
         script: """
-                #random offset, 1-4
-                @wait_cycles = @offset
-                /i
-                #cycle 20
-                :main
-                #random char, ▒, ░, ░
-                #random bc, red, red, darkorange, orange
-                #become character: @char, background_color: @bc
-                /i
-                #send main
                 #end
                 :touch
-                #if ! ?sender@player, main
+                #if ?sender@player
                 That lava looks hot, better not touch it.
-                #send main
                 """
     })
   end

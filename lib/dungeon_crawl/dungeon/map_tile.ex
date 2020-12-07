@@ -19,6 +19,12 @@ defmodule DungeonCrawl.Dungeon.MapTile do
     field :state, :string
     field :script, :string, default: ""
 
+    field :animate_random, :boolean
+    field :animate_colors, :string
+    field :animate_background_colors, :string
+    field :animate_characters, :string
+    field :animate_period, :integer
+
     belongs_to :dungeon, DungeonCrawl.Dungeon.Map
     belongs_to :tile_template, DungeonCrawl.TileTemplates.TileTemplate
   end
@@ -26,9 +32,25 @@ defmodule DungeonCrawl.Dungeon.MapTile do
   @doc false
   def changeset(map_tile, attrs) do
     map_tile
-    |> cast(attrs, [:row, :col, :dungeon_id, :tile_template_id, :z_index, :character, :color, :background_color, :state, :script, :name])
+    |> cast(attrs, [:row,
+                    :col,
+                    :dungeon_id,
+                    :tile_template_id,
+                    :z_index,
+                    :character,
+                    :color,
+                    :background_color,
+                    :state,
+                    :script,
+                    :name,
+                    :animate_random,
+                    :animate_colors,
+                    :animate_background_colors,
+                    :animate_characters,
+                    :animate_period])
     |> validate_required([:row, :col, :dungeon_id, :z_index])
     |> validate_length(:name, max: 32)
+    |> TileTemplate.validate_animation_fields
     |> TileTemplate.validate_renderables
     |> TileTemplate.validate_state_values
   end

@@ -26,6 +26,11 @@
                   Script
                 </a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" id="animation-tab" data-toggle="tab" href="#animation" role="tab" aria-controls="animation" aria-selected="false">
+                  Animation
+                </a>
+             </li>
             </ul>
           </div>
         </div>
@@ -91,6 +96,52 @@
               </div>
             </div>
           </div>
+
+
+          <div class="tab-pane" id="animation" role="tabpanel" aria-labelledby="animation-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <%= label :tile_template, :animate_period, class: "control-label" %>
+                  <%= text_input :tile_template, :animate_period, class: "form-control", placeholder: "1 or more (per 100ms)" %>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <%= label :tile_template, :animate_random, class: "control-label" %><br/>
+                  <%= checkbox :tile_template, :animate_random %>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <%= label :tile_template, :animate_characters, class: "control-label" %>
+                  <%= text_input :tile_template, :animate_characters, class: "form-control" %>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <%= label :tile_template, :animate_colors, class: "control-label" %>
+                  <%= text_input :tile_template, :animate_colors, class: "form-control" %>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <%= label :tile_template, :animate_background_colors, class: "control-label" %>
+                  <%= text_input :tile_template, :animate_background_colors, class: "form-control" %>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
       <div class="modal-footer">

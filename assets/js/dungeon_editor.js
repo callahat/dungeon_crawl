@@ -167,7 +167,12 @@ let DungeonEditor = {
             tile_name: (document.getElementById("tile_template_name").value || ""),
             state: (document.getElementById("tile_template_state").value || ""),
             script: (document.getElementById("tile_template_script").value || ""),
-            name: (document.getElementById("tile_template_name").value || "")
+            name: (document.getElementById("tile_template_name").value || ""),
+            animate_random: (document.getElementById("tile_template_animate_random").checked),
+            animate_period: (document.getElementById("tile_template_animate_period").value || ""),
+            animate_characters: (document.getElementById("tile_template_animate_characters").value || ""),
+            animate_colors: (document.getElementById("tile_template_animate_colors").value || ""),
+            animate_background_colors: (document.getElementById("tile_template_animate_background_colors").value || ""),
           },
           map_location_td = document.getElementById(map_tile_attrs.row + "_" + map_tile_attrs.col),
           map_location = this.findOrCreateActiveTileDiv(map_location_td),
@@ -210,6 +215,11 @@ let DungeonEditor = {
                                                 selectedTileCharacter: map_tile_attrs.character,
                                                 selectedTileState: map_tile_attrs.state,
                                                 selectedTileScript: map_tile_attrs.script,
+                                                selectedTileAnimateRandom: map_tile_attrs.animate_random,
+                                                selectedTileAnimatePeriod: map_tile_attrs.animate_period,
+                                                selectedTileAnimateCharacters: map_tile_attrs.animate_characters,
+                                                selectedTileAnimateColors: map_tile_attrs.animate_colors,
+                                                selectedTileAnimateBackgroundColors: map_tile_attrs.animate_background_colors,
                                                 findOrCreateActiveTileDiv: findOrCreateActiveTileDivFunction
             })
 
@@ -266,6 +276,11 @@ let DungeonEditor = {
     document.getElementById("tile_template_background_color").classList.remove("error")
     document.getElementById("tile_template_state").classList.remove("error")
     document.getElementById("tile_template_script").classList.remove("error")
+    document.getElementById("tile_template_animate_random").classList.remove("error")
+    document.getElementById("tile_template_animate_period").classList.remove("error")
+    document.getElementById("tile_template_animate_characters").classList.remove("error")
+    document.getElementById("tile_template_animate_colors").classList.remove("error")
+    document.getElementById("tile_template_animate_background_colors").classList.remove("error")
   },
   submitForm(event, context){
     document.getElementById("map_tile_changes").value = JSON.stringify(context.getTileFormData("changed-map-tile"))
@@ -288,6 +303,11 @@ let DungeonEditor = {
       let state = tile.getAttribute("data-state")
       let script = tile.getAttribute("data-script")
       let name = tile.getAttribute("data-name")
+      let animate_random = tile.getAttribute("data-random")
+      let animate_period = tile.getAttribute("data-period")
+      let animate_characters = tile.getAttribute("data-characters")
+      let animate_colors = tile.getAttribute("data-colors")
+      let animate_background_colors = tile.getAttribute("data-background-colors")
 
       map_tile_data.push({row: row,
                           col: col,
@@ -298,7 +318,12 @@ let DungeonEditor = {
                           character: character,
                           state: state,
                           script: script,
-                          name: name })
+                          name: name,
+                          animate_random: animate_random,
+                          animate_period: animate_period,
+                          animate_characters: animate_characters,
+                          animate_colors: animate_colors,
+                          animate_background_colors: animate_background_colors})
     }
 
     return(map_tile_data)
@@ -324,7 +349,7 @@ let DungeonEditor = {
 
     this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
-    this.selectedTileHtml = tag.children[0]
+    this.selectedTileHtml = tag.children[0] || target
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
@@ -332,6 +357,11 @@ let DungeonEditor = {
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
     this.selectedTileScript = tag.getAttribute("data-script")
+    this.selectedTileAnimateRandom = tag.getAttribute("data-animate-random")
+    this.selectedTileAnimatePeriod = tag.getAttribute("data-animate-period")
+    this.selectedTileAnimateCharacters = tag.getAttribute("data-animate-characters")
+    this.selectedTileAnimateColors = tag.getAttribute("data-animate-colors")
+    this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-animate-background-colors")
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
     }
@@ -449,6 +479,12 @@ let DungeonEditor = {
       document.getElementById("tile_template_state").value = map_location.getAttribute("data-state")
       document.getElementById("tile_template_script").value = map_location.getAttribute("data-script")
 
+      document.getElementById("tile_template_animate_random").checked = map_location.getAttribute("data-random") == "true"
+      document.getElementById("tile_template_animate_period").value = map_location.getAttribute("data-period")
+      document.getElementById("tile_template_animate_characters").value = map_location.getAttribute("data-characters")
+      document.getElementById("tile_template_animate_colors").value = map_location.getAttribute("data-colors")
+      document.getElementById("tile_template_animate_background_colors").value = map_location.getAttribute("data-background-colors")
+
       document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
 
       $('#tileEditModal').modal({show: true})
@@ -513,7 +549,7 @@ let DungeonEditor = {
     let old_tile = div.children[0]
 
     div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
-    div.removeChild(old_tile)
+    if(old_tile){ div.removeChild(old_tile) } else { div.innerHTML = "" }
     div.setAttribute("data-tile-template-id", context.selectedTileId)
     div.setAttribute("data-color", context.selectedTileColor)
     div.setAttribute("data-background-color", context.selectedTileBackgroundColor)
@@ -526,6 +562,12 @@ let DungeonEditor = {
     div.setAttribute("data-state", context.selectedTileState)
     div.setAttribute("data-script", context.selectedTileScript)
 
+    div.setAttribute("data-random", context.selectedTileAnimateRandom)
+    div.setAttribute("data-period", context.selectedTileAnimatePeriod)
+    div.setAttribute("data-characters", context.selectedTileAnimateCharacters)
+    div.setAttribute("data-colors", context.selectedTileAnimateColors)
+    div.setAttribute("data-background-colors", context.selectedTileAnimateBackgroundColors)
+
     if(div.classList.contains("placeholder")  || div.classList.contains("blank") || div.classList.contains("new-map-tile")){
       if(document.getElementById("z_index_current").value > context.zIndexUpperBound) {
         context.zIndexUpperBound = document.getElementById("z_index_current").value
@@ -535,6 +577,21 @@ let DungeonEditor = {
       div.setAttribute("class", "new-map-tile")
     } else {
       div.setAttribute("class", "changed-map-tile")
+    }
+
+    if(context.selectedTileAnimateCharacters != "" ||
+       context.selectedTileAnimateColors != "" ||
+       context.selectedTileAnimateBackgroundColors != ""){
+      div.classList.add("animate")
+      if(context.selectedTileAnimateRandom == "true"){
+        div.classList.add("random")
+      } else {
+        div.classList.remove("random")
+      }
+      window.TileAnimation.renderTile(window.TileAnimation, div)
+    } else {
+      div.classList.remove("animate")
+      div.classList.remove("random")
     }
   },
   getMapLocation(event){
@@ -751,6 +808,11 @@ let DungeonEditor = {
   selectedTileCharacter: null,
   selectedTileState: null,
   selectedTileScript: null,
+  selectedTileAnimateRandom: null,
+  selectedTileAnimatePeriod: null,
+  selectedTileAnimateCharacters: null,
+  selectedTileAnimateColors: null,
+  selectedTileAnimateBackgroundColors: null,
   painting: false,
   painted: false,
   lastDraggedCoord: null,

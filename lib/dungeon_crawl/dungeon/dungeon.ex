@@ -226,7 +226,8 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   defp _new_tile_copy(dmt, dungeon_id) do
-    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script, :name])
+    Elixir.Map.take(dmt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script, :name,
+                          :animate_random, :animate_period, :animate_characters, :animate_colors, :animate_background_colors])
     |> Elixir.Map.put(:dungeon_id, dungeon_id)
   end
 

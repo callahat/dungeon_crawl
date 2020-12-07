@@ -50,7 +50,12 @@ CREATE TABLE public.dungeon_map_tiles (
     background_color character varying(255),
     state character varying(255),
     script character varying(2048),
-    name character varying(32)
+    name character varying(32),
+    animate_random boolean,
+    animate_colors character varying(255),
+    animate_background_colors character varying(255),
+    animate_characters character varying(32),
+    animate_period integer
 );
 
 
@@ -248,7 +253,12 @@ CREATE TABLE public.map_tile_instances (
     background_color character varying(255),
     state character varying(255),
     script character varying(2048),
-    name character varying(32)
+    name character varying(32),
+    animate_random boolean,
+    animate_colors character varying(255),
+    animate_background_colors character varying(255),
+    animate_characters character varying(32),
+    animate_period integer
 );
 
 
@@ -404,7 +414,12 @@ CREATE TABLE public.tile_templates (
     previous_version_id bigint,
     state character varying(255),
     script character varying(2048),
-    slug character varying(255)
+    slug character varying(255),
+    animate_random boolean,
+    animate_colors character varying(255),
+    animate_background_colors character varying(255),
+    animate_characters character varying(32),
+    animate_period integer
 );
 
 
@@ -891,5 +906,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414), (20201117224347), (20201204023727);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414), (20201117224347), (20201204023727), (20201205171203);
 

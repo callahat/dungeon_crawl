@@ -141,7 +141,8 @@ defmodule DungeonCrawl.DungeonInstances do
     Repo.preload(map, :dungeon_map_tiles).dungeon_map_tiles
     |> Enum.map(fn(mt) ->
          Elixir.Map.merge(%{map_instance_id: map_instance_id},
-                            Elixir.Map.take(mt, [:row, :col, :z_index, :character, :color, :background_color, :state, :script, :name])) end)
+                            Elixir.Map.take(mt, [:row, :col, :z_index, :character, :color, :background_color, :state, :script, :name,
+                               :animate_random, :animate_period, :animate_characters, :animate_colors, :animate_background_colors])) end)
   end
 
   @doc """

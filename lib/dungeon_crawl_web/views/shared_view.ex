@@ -96,7 +96,7 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp _lower_editor_cells([]), do: ""
   defp _lower_editor_cells([ cell | cells ]) do
-    "<div class='hidden' data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
+    "<div class='hidden#{animate_class(cell)}' data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
     <> _lower_editor_cells(cells)
   end
 
@@ -111,7 +111,24 @@ defmodule DungeonCrawlWeb.SharedView do
     "data-character='#{Phoenix.HTML.Safe.to_iodata mt.character}' " <>
     "data-state='#{Phoenix.HTML.Safe.to_iodata mt.state}' " <>
     "data-script='#{Phoenix.HTML.Safe.to_iodata mt.script}' " <>
-    "data-name='#{Phoenix.HTML.Safe.to_iodata mt.name}'"
+    "data-name='#{Phoenix.HTML.Safe.to_iodata mt.name}' " <>
+    animate_attributes(mt)
+  end
+
+  defp animate_attributes(nil), do: ""
+  defp animate_attributes(mt) do
+    "data-random='#{mt.animate_random}' " <>
+    "data-period='#{mt.animate_period}' " <>
+    "data-characters='#{mt.animate_characters}' " <>
+    "data-colors='#{mt.animate_colors}' " <>
+    "data-background-colors='#{mt.animate_background_colors}'"
+  end
+
+  defp animate_class(nil), do: nil
+  defp animate_class(mt) do
+    if to_string(mt.animate_colors) != "" || to_string(mt.animate_characters) != "" || to_string(mt.animate_background_colors) != "" do
+      " animate" <> if(mt.animate_random, do: " random", else: "")
+    end
   end
 
   def tile_and_style(nil, :safe), do: {:safe, "<div> </div>"}
@@ -121,16 +138,22 @@ defmodule DungeonCrawlWeb.SharedView do
   def tile_and_style(tile), do: _tile_and_style(tile)
 
   defp _tile_and_style(%{color: nil, background_color: nil} = map_tile) do
-    "<div>#{map_tile.character}</div>"
+    "<div#{ _tile_style_animate(map_tile)}>#{map_tile.character}</div>"
   end
   defp _tile_and_style(%{color: nil} = map_tile) do
-    "<div style='background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
+    "<div#{ _tile_style_animate(map_tile)} style='background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
   end
   defp _tile_and_style(%{background_color: nil} = map_tile) do
-    "<div style='color: #{map_tile.color}'>#{map_tile.character}</div>"
+    "<div#{ _tile_style_animate(map_tile)} style='color: #{map_tile.color}'>#{map_tile.character}</div>"
   end
   defp _tile_and_style(map_tile) do
-    "<div style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
+    "<div#{ _tile_style_animate(map_tile)} style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
+  end
+
+  defp _tile_style_animate(map_tile) do
+    if ac = animate_class(map_tile) do
+     " class='#{ac}' #{animate_attributes(map_tile)}"
+    end
   end
 
 # Use this to generate, then drop the markup into the template

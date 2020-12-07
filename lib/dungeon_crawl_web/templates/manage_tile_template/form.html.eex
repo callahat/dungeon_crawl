@@ -16,6 +16,11 @@
         Script
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" id="animation-tab" data-toggle="tab" href="#animation" role="tab" aria-controls="animation" aria-selected="false">
+        Animation
+      </a>
+    </li>
   </ul>
 
   <div class="tab-content" id="tool_tab_content">
@@ -129,9 +134,59 @@
         </div>
       </div>
     </div>
+
+    <div class="tab-pane" id="animation" role="tabpanel" aria-labelledby="animation-tab">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <%= label f, :animate_period, class: "control-label" %>
+            <%= text_input f, :animate_period, class: "form-control", placeholder: "1 or more (per 100ms)" %>
+            <%= error_tag f, :animate_period %>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <%= label f, :animate_random, class: "control-label" %><br/>
+            <%= checkbox f, :animate_random %>
+            <%= error_tag f, :animate_random %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :animate_characters, class: "control-label" %>
+            <%= text_input f, :animate_characters, class: "form-control" %>
+            <%= error_tag f, :animate_characters %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :animate_colors, class: "control-label" %>
+            <%= text_input f, :animate_colors, class: "form-control" %>
+            <%= error_tag f, :animate_colors %>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="form-group">
+            <%= label f, :animate_background_colors, class: "control-label" %>
+            <%= text_input f, :animate_background_colors, class: "form-control" %>
+            <%= error_tag f, :animate_background_colors %>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="form-group">
     <%= submit "Submit", class: "btn btn-primary" %>
   </div>
 <% end %>
+
