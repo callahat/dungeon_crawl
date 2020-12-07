@@ -205,7 +205,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
-      instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
+      instance_state = if player_tile, do: Instances.remove_message_actions(instance_state, player_tile.id),
+                                       else: instance_state
 
       with true <- _player_alive(player_tile),
            target_tile when not is_nil(target_tile) <- Instances.get_map_tile(instance_state, player_tile, direction) do
