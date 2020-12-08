@@ -357,11 +357,11 @@ let DungeonEditor = {
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
     this.selectedTileScript = tag.getAttribute("data-script")
-    this.selectedTileAnimateRandom = tag.getAttribute("data-animate-random")
-    this.selectedTileAnimatePeriod = tag.getAttribute("data-animate-period")
-    this.selectedTileAnimateCharacters = tag.getAttribute("data-animate-characters")
-    this.selectedTileAnimateColors = tag.getAttribute("data-animate-colors")
-    this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-animate-background-colors")
+    this.selectedTileAnimateRandom = tag.getAttribute("data-random")
+    this.selectedTileAnimatePeriod = tag.getAttribute("data-period")
+    this.selectedTileAnimateCharacters = tag.getAttribute("data-characters")
+    this.selectedTileAnimateColors = tag.getAttribute("data-colors")
+    this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-background-colors")
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
     }
