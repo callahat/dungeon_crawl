@@ -71,13 +71,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
              color: "black",
              public: true,
              active: true,
-             script: """
-                     :MAIN
-                     /i
-                     #SEQUENCE char, #{ sequence }
-                     #BECOME character: @char
-                     #SEND main
-                     """
+             animate_period: 2,
+             animate_characters: sequence,
+             script: ""
          })
       end)
   end
