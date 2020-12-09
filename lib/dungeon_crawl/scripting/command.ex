@@ -100,17 +100,12 @@ defmodule DungeonCrawl.Scripting.Command do
   def become(%Runner{} = runner_state, [{:ttid, ttid}]) do
     tile_template = TileTemplates.get_tile_template!(ttid)
     Logger.warn "DEPRECATION - BECOME command used `TTID:#{ttid}`, replace this with `slug: #{tile_template.slug}`"
-    new_attrs = Map.take(tile_template, [:character, :color, :background_color, :state, :script])
-    _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid), %{})
+    new_attrs = TileTemplates.copy_fields(tile_template)
+    _become(runner_state, new_attrs, %{})
   end
   def become(%Runner{} = runner_state, [params]) do
     {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
-    new_attrs = if slug_tile do
-                  Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
-                  |> Map.put(:tile_template_id, slug_tile.id)
-                else
-                  %{}
-                end
+    new_attrs = TileTemplates.copy_fields(slug_tile)
                 |> Map.merge(Map.take(params, [:character, :color, :background_color]))
     new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:slug]))
     _become(runner_state, new_attrs, new_state_attrs)
@@ -847,7 +842,7 @@ defmodule DungeonCrawl.Scripting.Command do
     clone_base_tile = Instances.get_map_tile_by_id(state, %{id: clone_tile})
 
     if clone_base_tile do
-      attributes = Map.take(clone_base_tile, [:character, :color, :background_color, :state, :script, :name, :tile_template_id])
+      attributes = TileTemplates.copy_fields(clone_base_tile)
                    |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
       new_state_attrs = resolve_variable_map(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape, :clone] )))
@@ -862,8 +857,7 @@ defmodule DungeonCrawl.Scripting.Command do
     {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
 
     if slug_tile do
-      attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
-                   |> Map.put(:tile_template_id, slug_tile.id)
+      attributes = TileTemplates.copy_fields(slug_tile)
                    |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
       new_state_attrs = resolve_variable_map(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape] )))

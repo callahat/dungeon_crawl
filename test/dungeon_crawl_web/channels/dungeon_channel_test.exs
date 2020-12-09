@@ -391,7 +391,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
 
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>'</div>"}]}
-    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["'"].id
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).character == basic_tiles["'"].character
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).script == basic_tiles["'"].script
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).state == basic_tiles["'"].state
@@ -399,7 +398,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
     push socket, "use_door", %{"direction" => "up", "action" => "CLOSE"}
 
     assert_broadcast "tile_changes", %{tiles: [%{row: _, col: _, rendering: "<div>+</div>"}]}
-    assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).tile_template_id == basic_tiles["+"].id
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).character == basic_tiles["+"].character
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).script == basic_tiles["+"].script
     assert InstanceProcess.get_tile(instance, north_tile.row, north_tile.col).state == basic_tiles["+"].state

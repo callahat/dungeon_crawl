@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Player do
 
   alias DungeonCrawl.Account
   alias DungeonCrawl.Player.Location
+  alias DungeonCrawl.TileTemplates
 
   @doc """
   Gets a single location.
@@ -77,7 +78,7 @@ defmodule DungeonCrawl.Player do
     Map.take(spawn_location, [:row, :col])
     |> Map.merge(%{map_instance_id: entrance.id})
     |> Map.merge(%{z_index: z_index})
-    |> Map.merge(Map.take(player_tile_template, [:character, :color, :background_color, :state]))
+    |> Map.merge(TileTemplates.copy_fields(player_tile_template))
     |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end

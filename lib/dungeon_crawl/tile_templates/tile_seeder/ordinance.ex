@@ -98,6 +98,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Its going to get you.",
         public: true,
         active: true,
+        animate_period: 1,
+        animate_characters: "|, \\, -, /",
+        animate_colors: "red, green, darkorange, blue, purple",
         state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true, flying: true",
         script: """
                 #target_player random
@@ -117,9 +120,6 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 #if ?sender@player, shoot
                 /i
                 :spinning
-                #sequence colour, red, green, darkorange, blue, purple
-                #sequence char, |, \\, -, /
-                #become character: @char, color: @colour
                 @range -= 1
                 #if @range > 0, top
                 #die
