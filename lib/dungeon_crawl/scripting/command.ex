@@ -88,30 +88,24 @@ defmodule DungeonCrawl.Scripting.Command do
   Reference variables can be used instead of literals; however if they resolve to invalid values, then
   this command will do nothing.
 
-  Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
-  occurred.
+  Changes will be persisted to the database, and the coordinates will be marked for rerendering.
 
   ## Examples
 
     iex> Command.become(%Runner{}, [%{character: $}])
-    %Runner{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>$</div>"}]}] ]},
+    %Runner{program: %{program |
             object_id: object_id,
             state: updated_state }
   """
   def become(%Runner{} = runner_state, [{:ttid, ttid}]) do
     tile_template = TileTemplates.get_tile_template!(ttid)
     Logger.warn "DEPRECATION - BECOME command used `TTID:#{ttid}`, replace this with `slug: #{tile_template.slug}`"
-    new_attrs = Map.take(tile_template, [:character, :color, :background_color, :state, :script])
-    _become(runner_state, Map.put(new_attrs, :tile_template_id, ttid), %{})
+    new_attrs = TileTemplates.copy_fields(tile_template)
+    _become(runner_state, new_attrs, %{})
   end
   def become(%Runner{} = runner_state, [params]) do
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
-    new_attrs = if slug_tile do
-                  Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
-                  |> Map.put(:tile_template_id, slug_tile.id)
-                else
-                  %{}
-                end
+    {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
+    new_attrs = TileTemplates.copy_fields(slug_tile)
                 |> Map.merge(Map.take(params, [:character, :color, :background_color]))
     new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:slug]))
     _become(runner_state, new_attrs, new_state_attrs)
@@ -133,11 +127,6 @@ defmodule DungeonCrawl.Scripting.Command do
                           object,
                           new_state_attrs)
 
-        message = ["tile_changes",
-                   %{tiles: [
-                       Map.put(Map.take(object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(object))
-                   ]}]
-
         current_program = cond do
                             is_nil(Map.get(state.program_contexts, object.id)) ->
                               %{ program | status: :dead }
@@ -149,11 +138,18 @@ defmodule DungeonCrawl.Scripting.Command do
                           end
 
         %{ runner_state |
-             program: %{current_program | broadcasts: [message | program.broadcasts], responses: program.responses },
+             program: %{current_program | responses: program.responses },
              state: state }
 
       false ->
         runner_state
+    end
+  end
+
+  defp _get_tile_template(%{ state: state } = runner_state, slug) do
+    case Instances.get_tile_template(slug, state) do
+      {tile_template, state, :created} -> {tile_template, %{ runner_state | state: state }}
+      {tile_template, _state, _} -> {tile_template, runner_state}
     end
   end
 
@@ -334,16 +330,10 @@ defmodule DungeonCrawl.Scripting.Command do
             state: %Instances{ map_by_ids: %{ ... } } }
   """
   def die(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
-    {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: object_id})
-    top_tile = Instances.get_map_tile(updated_state, deleted_object)
-
-    message = ["tile_changes",
-               %{tiles: [
-                   Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-               ]}]
+    {_deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: object_id})
 
     %Runner{runner_state |
-            program: %{program | status: :dead, pc: -1, broadcasts: [message | program.broadcasts]},
+            program: %{program | status: :dead, pc: -1},
             state: updated_state}
   end
 
@@ -657,23 +647,13 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: program, state: state} = runner_state
 
     case move_func.(object, destination, state) do
-      {:ok, tile_changes, new_state} ->
-
-        message = ["tile_changes",
-                   %{tiles: tile_changes
-                            |> Map.to_list
-                            |> Enum.map(fn({_coords, tile}) ->
-                              Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                            end)}]
-
+      {:ok, _tile_changes, new_state} ->
         updated_runner_state = %Runner{ runner_state |
                                         program: %{program | pc: next_actions.pc,
                                                              lc: next_actions.lc,
-                                                             broadcasts: [message | program.broadcasts],
                                                              status: :wait,
                                                              wait_cycles: object.parsed_state[:wait_cycles] || 5 },
                                         state: new_state}
-
         change_state(updated_runner_state, [:facing, "=", direction])
 
       {:invalid} ->
@@ -805,7 +785,7 @@ defmodule DungeonCrawl.Scripting.Command do
     _push(runner_state, object, direction, {row_d, col_d}, range)
   end
 
-  defp _push(%Runner{state: state, program: program} = runner_state, object, direction, {row_d, col_d}, range) when range >= 0 do
+  defp _push(%Runner{state: state} = runner_state, object, direction, {row_d, col_d}, range) when range >= 0 do
     case Instances.get_map_tiles(state, %{row: object.row + row_d * range, col: object.col + col_d * range}) do
       nil ->
         _push(runner_state, object, direction, {row_d, col_d}, range - 1)
@@ -815,18 +795,8 @@ defmodule DungeonCrawl.Scripting.Command do
           case pushee.parsed_state[:pushable] &&
                pushee.id != object.id &&
                Move.go(pushee, Instances.get_map_tile(state, pushee, direction), state) do
-            {:ok, tile_changes, new_state} ->
-
-              message = ["tile_changes",
-                         %{tiles: tile_changes
-                                  |> Map.to_list
-                                  |> Enum.map(fn({_coords, tile}) ->
-                                    Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                                  end)}]
-
-              %Runner{ runner_state |
-                       program: %{program | broadcasts: [message | program.broadcasts] },
-                       state: new_state}
+            {:ok, _tile_changes, new_state} ->
+              %Runner{ runner_state | state: new_state}
 
             _ ->
               runner_state
@@ -855,13 +825,12 @@ defmodule DungeonCrawl.Scripting.Command do
   Reference variables can be used instead of literals; however if they resolve to invalid values, then
   this command will do nothing.
 
-  Changes will be persisted to the database, and a message added to the broadcasts list for the tile_changes that
-  occurred.
+  Changes will be persisted to the database, and that coordinate will be marked for rerendering.
 
   ## Examples
 
     iex> Command.put(%Runner{}, [%{slug: "banana", direction: "north"}])
-    %Runner{program: %{program | broadcasts: [ ["tile_changes", %{tiles: [%{row: 1, col: 1, rendering: "<div>J</div>"}]}] ]},
+    %Runner{program: %{program |
             object_id: object_id,
             state: updated_state }
     iex> Command.put(%Runner{}, [%{clone:  {:state_variable, :clone_id}, direction:  {:state_variable, :facing}}])
@@ -873,7 +842,7 @@ defmodule DungeonCrawl.Scripting.Command do
     clone_base_tile = Instances.get_map_tile_by_id(state, %{id: clone_tile})
 
     if clone_base_tile do
-      attributes = Map.take(clone_base_tile, [:character, :color, :background_color, :state, :script, :name, :tile_template_id])
+      attributes = TileTemplates.copy_fields(clone_base_tile)
                    |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
       new_state_attrs = resolve_variable_map(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape, :clone] )))
@@ -885,11 +854,10 @@ defmodule DungeonCrawl.Scripting.Command do
 
   def put(%Runner{} = runner_state, [%{slug: _slug} = params]) do
     params = resolve_variable_map(runner_state, params)
-    slug_tile = TileTemplates.get_tile_template_by_slug(params[:slug])
+    {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
 
     if slug_tile do
-      attributes = Map.take(slug_tile, [:character, :color, :background_color, :state, :script, :name])
-                   |> Map.put(:tile_template_id, slug_tile.id)
+      attributes = TileTemplates.copy_fields(slug_tile)
                    |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
       new_state_attrs = resolve_variable_map(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape] )))
@@ -951,24 +919,15 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _put_map_tile(%Runner{state: state, program: program} = runner_state, map_tile_attrs, new_state_attrs) do
+  defp _put_map_tile(%Runner{state: state} = runner_state, map_tile_attrs, new_state_attrs) do
     z_index = if target_tile = Instances.get_map_tile(state, map_tile_attrs), do: target_tile.z_index + 1, else: 0
     map_tile_attrs = Map.put(map_tile_attrs, :z_index, z_index)
 
     case DungeonCrawl.DungeonInstances.new_map_tile(map_tile_attrs) do
       {:ok, new_tile} -> # all that other stuff below
         {new_tile, state} = Instances.create_map_tile(state, new_tile)
-
-        {new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
-
-        message = ["tile_changes",
-                   %{tiles: [
-                       Map.put(Map.take(new_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(new_tile))
-                   ]}]
-
-        %{ runner_state |
-             program: %{program | broadcasts: [message | program.broadcasts] },
-             state: state }
+        {_new_tile, state} = Instances.update_map_tile_state(state, new_tile, new_state_attrs)
+        %{ runner_state | state: state }
 
       {:error, _} ->
         runner_state
@@ -981,15 +940,6 @@ defmodule DungeonCrawl.Scripting.Command do
          loc_attrs = %{row: row, col: col, map_instance_id: object.map_instance_id}
          _put_map_tile(runner_state, Map.merge(attributes, loc_attrs), new_state_attrs)
        end)
-    |> _condense_tile_change_messages()
-  end
-
-  defp _condense_tile_change_messages(%Runner{program: program} = runner_state) do
-    {tile_changes, others} = Enum.split_with(program.broadcasts, fn([ type, _]) -> type == "tile_changes"  end)
-    tile_changes = %{tiles: Enum.reduce(tile_changes, [], fn([_, map], arr) ->  map.tiles ++ arr end)}
-
-    program = %{ program | broadcasts: [ ["tile_changes", tile_changes] | others ] }
-    %{ runner_state | program: program }
   end
 
   @doc """
@@ -1143,20 +1093,14 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _remove_via_ids(runner_state, []), do: runner_state
-  defp _remove_via_ids(%Runner{program: program, state: state} = runner_state, [id | ids]) do
+  defp _remove_via_ids(%Runner{state: state} = runner_state, [id | ids]) do
     if Instances.is_player_tile?(state, %{id: id}) do
       _remove_via_ids(runner_state, ids)
     else
-      {deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: id})
-      top_tile = Instances.get_map_tile(updated_state, deleted_object)
-
-      message = ["tile_changes",
-                 %{tiles: [
-                     Map.put(Map.take(deleted_object, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-                 ]}]
+      {_deleted_object, updated_state} = Instances.delete_map_tile(state, %{id: id})
 
       _remove_via_ids(
-        %{ runner_state | state: updated_state, program: %{ program | broadcasts: [message | program.broadcasts] } },
+        %{ runner_state | state: updated_state },
         ids
       )
     end
@@ -1323,21 +1267,15 @@ defmodule DungeonCrawl.Scripting.Command do
 
     {runner_state, _, tile_changes} = _shifting(runner_state, shiftables, %{})
 
-    message = if tile_changes == %{} do
-                nil
-              else
-                ["tile_changes",
-                 %{tiles: tile_changes
-                          |> Map.to_list
-                          |> Enum.map(fn({_coords, tile}) ->
-                            Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                          end)}]
-              end
-    broadcasts = if message, do: [message | program.broadcasts], else: program.broadcasts
+    # TODO: see if Move.go needs the {row, col} return anymore, or if it can be swapped with %{row: _, col: _}
+    rerender_coords = tile_changes
+                      |> Map.to_list
+                      |> Enum.map(fn { {row, col}, _tile } -> %{row: row, col: col} end)
+                      |> Enum.reduce(state.rerender_coords, fn coords, rerender_coords -> Map.put(rerender_coords, coords, true) end)
 
     %Runner{ runner_state |
+             state: %{ runner_state.state | rerender_coords: rerender_coords },
              program: %{program |
-                        broadcasts: broadcasts,
                         status: :wait,
                         wait_cycles: object.parsed_state[:wait_cycles] || 5 } }
   end

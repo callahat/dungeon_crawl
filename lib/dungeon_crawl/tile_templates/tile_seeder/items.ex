@@ -127,12 +127,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         state: "pushable: true, wait_cycles: 2",
         public: true,
         active: true,
+        animate_random: true,
+        animate_period: 1,
+        animate_colors: "red, orange, yellow,cyan, magenta, blue, white, green, purple, darkcyan, darkred",
         script: """
                 :main
-                #random c, red, orange, yellow,cyan, magenta, blue, white, green, purple, darkcyan, darkred
-                #become color: @c
-                /i
-                #send main
                 #end
                 :touch
                 #if ! ?sender@player, main

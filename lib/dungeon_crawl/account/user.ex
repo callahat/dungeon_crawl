@@ -2,8 +2,6 @@ defmodule DungeonCrawl.Account.User do
   use Ecto.Schema
   import Ecto.Changeset
 
-
-
   schema "users" do
     field :name, :string
     field :username, :string
@@ -11,7 +9,7 @@ defmodule DungeonCrawl.Account.User do
     field :password_hash, :string
     field :user_id_hash, :string
     field :is_admin, :boolean, default: false
-    has_many :dungeons, DungeonCrawl.Dungeon.Map
+    has_many :map_sets, DungeonCrawl.Dungeon.MapSet
 
     timestamps()
   end

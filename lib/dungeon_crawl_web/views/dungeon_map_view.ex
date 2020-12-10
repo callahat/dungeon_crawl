@@ -36,7 +36,13 @@ defmodule DungeonCrawlWeb.DungeonMapView do
                 data-slug="#{ Phoenix.HTML.Safe.to_iodata tile_template.slug }"
                 data-character="#{ Phoenix.HTML.Safe.to_iodata tile_template.character }"
                 data-state="#{ Phoenix.HTML.Safe.to_iodata tile_template.state }"
-                data-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }">#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
+                data-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }"
+                data-random="#{ tile_template.animate_random }"
+                data-period="#{ tile_template.animate_period }"
+                data-characters="#{ tile_template.animate_characters }"
+                data-colors="#{ tile_template.animate_colors }"
+                data-background-colors="#{ tile_template.animate_background_colors }"
+             >#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
          """
        end)
     |> Enum.join("\n")

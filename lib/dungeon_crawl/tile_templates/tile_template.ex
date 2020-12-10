@@ -20,6 +20,11 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :script, :string, default: ""
     field :state, :string
     field :version, :integer, default: 1
+    field :animate_random, :boolean
+    field :animate_colors, :string
+    field :animate_background_colors, :string
+    field :animate_characters, :string
+    field :animate_period, :integer
     has_many :map_tiles, DungeonCrawl.Dungeon.MapTile
     belongs_to :previous_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id
     belongs_to :user, DungeonCrawl.Account.User
@@ -30,8 +35,26 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   @doc false
   def changeset(tile_template, attrs) do
     tile_template
-    |> cast(attrs, [:name, :character, :description, :color, :background_color, :script,:version,:active,:public,:previous_version_id,:deleted_at,:user_id,:state])
+    |> cast(attrs, [:name,
+                    :character,
+                    :description,
+                    :color,
+                    :background_color,
+                    :script,
+                    :version,
+                    :active,
+                    :public,
+                    :previous_version_id,
+                    :deleted_at,
+                    :user_id,
+                    :state,
+                    :animate_random,
+                    :animate_colors,
+                    :animate_background_colors,
+                    :animate_characters,
+                    :animate_period])
     |> validate_required([:name, :description])
+    |> validate_animation_fields
     |> validate_renderables
     |> validate_script(tile_template) # seems like an clumsy way to get a user just to validate a TTID in a script
     |> validate_state_values
@@ -49,6 +72,15 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   def validate_script(changeset, tile_template) do
     script = get_field(changeset, :script)
     _validate_script(changeset, script, tile_template)
+  end
+
+  @doc false
+  def validate_animation_fields(changeset) do
+    changeset
+    |> validate_length(:animate_colors, max: 255)
+    |> validate_length(:animate_background_colors, max: 255)
+    |> validate_length(:animate_characters, max: 255)
+    |> validate_number(:animate_period, greater_than: 0)
   end
 
   defp _validate_script(changeset, nil, _), do: changeset

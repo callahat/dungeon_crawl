@@ -95,23 +95,20 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
       %{character: "░",
         name: "Lava",
         description: "Its molten rock",
-        state: "blocking: true, low: true, soft: true, wait_cycles: 20",
+        state: "blocking: true, low: true, soft: true",
         color: "black",
         background_color: "red",
         public: true,
         active: true,
+        animate_random: true,
+        animate_period: 10,
+        animate_characters: "▒, ░, ░",
+        animate_background_colors: "red, red, darkorange, orange",
         script: """
-                :main
-                #random char, ▒, ░, ░
-                #random bc, red, red, darkorange, orange
-                #become character: @char, background_color: @bc
-                /i
-                #send main
                 #end
                 :touch
-                #if ! ?sender@player, main
+                #if ?sender@player
                 That lava looks hot, better not touch it.
-                #send main
                 """
     })
   end

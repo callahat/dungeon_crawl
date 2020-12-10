@@ -4,7 +4,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "#F00", background_color: "black", script: nil}
-  @invalid_attrs %{name: "", character: "BIG", script: "#NOCOMMAND", state: "badstate", color: "#mm", background_color: "#mm"}
+  @invalid_attrs %{name: "", character: "BIG", script: "#NOCOMMAND", state: "badstate", color: "#mm", background_color: "#mm", animate_period: 0}
 
   test "changeset with valid attributes" do
     changeset = TileTemplate.changeset(%TileTemplate{}, @valid_attrs)
@@ -26,6 +26,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
     assert errs[:background_color] == ["has invalid format"]
     assert errs[:name] == ["can't be blank"]
     assert errs[:description] == ["can't be blank"]
+    assert errs[:animate_period] == ["must be greater than 0"]
 
     changeset = TileTemplate.changeset(%TileTemplate{}, Map.put(@invalid_attrs, :character, nil))
     refute changeset.valid?

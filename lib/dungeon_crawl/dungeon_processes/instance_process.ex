@@ -3,6 +3,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   require Logger
 
+  alias DungeonCrawl.Admin
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
@@ -13,7 +14,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   ## Client API
 
   @timeout 50
-  @db_update_timeout 5000
 
   @doc """
   Starts the instance process.
@@ -82,7 +82,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
-    Process.send_after(instance, :write_db, @db_update_timeout)
   end
 
   @doc """
@@ -276,42 +275,37 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
+  def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
+    # No player is here, so don't cycle programs and wait longer til the next cycle, and save off any changes/new tiles
+    send(self(), :write_db)
+
+    Process.send_after(self(), :perform_actions, @timeout * 10)
+
+    {:noreply, state}
+  end
+
   def handle_info(:perform_actions, %Instances{} = state) do
-    # start_ms = :os.system_time(:millisecond)
+    start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
-    # Logger.info "_cycle_programs took #{(:os.system_time(:millisecond) - start_ms)} ms"
+            |> _rerender_tiles()
+            |> _check_for_players()
+    elapsed_ms = :os.system_time(:millisecond) - start_ms
+    if elapsed_ms > @timeout do
+      Logger.warn "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+    end
 
     Process.send_after(self(), :perform_actions, @timeout)
 
     {:noreply, state}
   end
 
+  # TODO: maybe there really isn't any need to write to the DB periodically. It is expensive and not really ever
+  # read back. It might be ok to to when all players leave and the processes are being shut down AND the instance
+  # is a permanent one. Currently when everyone is out of the instance, the DB and processes for the map set are
+  # removed.
   @impl true
   def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
-    # :deleted
-    # :updated
-    [deletes, updates] = dirty_ids
-                         |> Map.to_list
-                         |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
-                         |> Enum.split_with(fn({_, event}) -> event == :deleted end)
-                         |> Tuple.to_list()
-                         |> Enum.map(fn(items) ->
-                              Enum.map(items, fn({id,_}) -> id end)
-                            end)
-
-    updates = updates -- deletes
-
-    if deletes != [] do
-      deletes |> DungeonInstances.delete_map_tiles()
-    end
-
-    if updates != [] do
-      updates
-      |> Enum.map(fn(updated_id) ->
-           dirty_ids[updated_id]
-         end)
-      |> DungeonInstances.update_map_tiles()
-    end
+    start_ms = :os.system_time(:millisecond)
 
     {new_ids, ids_to_persist} = new_ids
                                 |> Map.to_list
@@ -319,8 +313,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                                 |> Enum.split_with(fn({_, age}) -> age < 2 end)
 
     # TODO: maybe cap the number of ids to persist, put the excess back on the new_ids list
-
-    # TODO: persist those old id's. create the DB record (after nilling the id), then update the ID the instance knows about
     state = ids_to_persist
             |> Enum.map(fn({id, _}) -> id end)
             |> Enum.reduce(state, fn(temp_id, state) ->
@@ -330,7 +322,37 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                  Instances.set_map_tile_id(state, map_tile, temp_id)
                end)
 
-    Process.send_after(self(), :write_db, @db_update_timeout)
+    # save off this other stuff but don't block the GenServer, and dont care about the result
+    Task.start(fn ->
+      # :deleted
+      # :updated
+      [deletes, updates] = dirty_ids
+                           |> Map.to_list
+                           |> Enum.filter(fn({id, _}) -> is_integer(id) end) # filter out new_x tiles - these dont yet exist in the db
+                           |> Enum.split_with(fn({_, event}) -> event == :deleted end)
+                           |> Tuple.to_list()
+                           |> Enum.map(fn(items) ->
+                                Enum.map(items, fn({id,_}) -> id end)
+                              end)
+
+      updates = updates -- deletes
+
+      if deletes != [] do
+        deletes |> DungeonInstances.delete_map_tiles()
+      end
+
+      if updates != [] do
+        updates
+        |> Enum.map(fn(updated_id) ->
+             dirty_ids[updated_id]
+           end)
+        |> DungeonInstances.update_map_tiles()
+      end
+
+      if :os.system_time(:millisecond) - start_ms > 200 do
+        Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
+      end
+    end)
 
     {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
@@ -341,7 +363,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
   defp _cycle_programs(%Instances{} = state) do
     {program_contexts, state} = state.program_contexts
-                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end) # TODO: cycle through program_context ids, and look up the context when needed.
+                                |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
                                 |> _cycle_programs(state)
     # Merge the existing program_contexts with whatever new programs were spawned
     program_contexts = Map.new(program_contexts, fn [k,v] -> {k,v} end)
@@ -354,13 +376,49 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _cycle_programs([[pid, program_context] | program_contexts], state) do
     runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object_id: program_context.object_id, state: state})
                               |> Map.put(:event_sender, program_context.event_sender) # This might not be needed
-                              |> Instances.handle_broadcasting(state)
+                              |> Instances.handle_broadcasting() # any nontile_update broadcasts left
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
     if runner_state.program.status == :dead do
       { other_program_contexts, updated_state}
     else
       {[ [pid, Map.take(runner_state, [:program, :object_id, :event_sender])] | other_program_contexts ], updated_state}
+    end
+  end
+
+  defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
+  defp _rerender_tiles(state) do
+    if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
+      dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+                                         "full_render",
+                                         %{dungeon_render: dungeon_table}
+    else
+      tile_changes = \
+      state.rerender_coords
+      |> Map.keys
+      |> Enum.map(fn coord ->
+           tile = Instances.get_map_tile(state, coord)
+           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+         end)
+      payload = %{tiles: tile_changes}
+
+      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.instance_id}", "tile_changes", payload)
+    end
+
+    %{ state | rerender_coords: %{} }
+  end
+
+  defp _check_for_players(state) do
+    if state.player_locations != %{}, do:   state,
+                                      else: %{ state | count_to_idle: state.count_to_idle - 1 }
+  end
+
+  defp _full_rerender_threshold() do
+    if threshold = Application.get_env(:dungeon_crawl, :full_rerender_threshold) do
+      threshold
+    else
+      Application.put_env :dungeon_crawl, :full_rerender_threshold, Admin.get_setting().full_rerender_threshold || 50
     end
   end
 

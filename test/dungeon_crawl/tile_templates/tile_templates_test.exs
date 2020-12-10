@@ -253,5 +253,20 @@ defmodule DungeonCrawl.TileTemplatesTest do
       tile_template = tile_template_fixture()
       assert %Ecto.Changeset{} = TileTemplates.change_tile_template(tile_template)
     end
+
+    test  "copy_fields/1" do
+      tile_template = tile_template_fixture()
+      assert %{animate_background_colors: nil,
+               animate_characters: nil,
+               animate_colors: nil,
+               animate_period: nil,
+               animate_random: nil,
+               background_color: "black",
+               character: "X",
+               color: "red",
+               name: "A Big X",
+               script: "",
+               state: "blocking: true"} == TileTemplates.copy_fields(tile_template)
+    end
   end
 end

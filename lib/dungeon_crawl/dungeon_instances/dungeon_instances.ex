@@ -120,8 +120,7 @@ defmodule DungeonCrawl.DungeonInstances do
 
   """
   def create_map(%Dungeon.Map{} = map, msi_id) do
-    dungeon_attrs = Elixir.Map.merge(Elixir.Map.take(map, [:entrance, :number, :name, :width, :height, :state,
-                                                           :number_north, :number_south, :number_east, :number_west]),
+    dungeon_attrs = Elixir.Map.merge(Dungeon.copy_map_fields(map),
                                      %{map_set_instance_id: msi_id, map_id: map.id})
     Multi.new()
     |> Multi.insert(:dungeon, Map.changeset(%Map{}, dungeon_attrs))
@@ -140,8 +139,9 @@ defmodule DungeonCrawl.DungeonInstances do
   defp _map_tile_instances(map_instance_id, %Dungeon.Map{} = map) do
     Repo.preload(map, :dungeon_map_tiles).dungeon_map_tiles
     |> Enum.map(fn(mt) ->
-         Elixir.Map.merge(%{map_instance_id: map_instance_id},
-                            Elixir.Map.take(mt, [:row, :col, :z_index, :tile_template_id, :character, :color, :background_color, :state, :script, :name])) end)
+         Elixir.Map.merge(Dungeon.copy_map_tile_fields(mt), %{map_instance_id: map_instance_id})
+         |> Elixir.Map.delete(:tile_template_id)
+       end)
   end
 
   @doc """

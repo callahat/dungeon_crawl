@@ -30,6 +30,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
     end
 
     test "script with everything" do
+      DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
       tile_template = insert_tile_template()
       script = """
                #END
@@ -241,7 +243,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
     test "a bad label" do
       script = """
                #END
-               :$blabel 
+               :$blabel
                """
       assert {:error, "Invalid label: `$blabel`", program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]]},

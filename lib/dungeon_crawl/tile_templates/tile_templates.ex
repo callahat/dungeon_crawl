@@ -8,6 +8,18 @@ defmodule DungeonCrawl.TileTemplates do
 
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  @copiable_fields [:character,
+                    :color,
+                    :background_color,
+                    :state,
+                    :script,
+                    :name,
+                    :animate_random,
+                    :animate_period,
+                    :animate_characters,
+                    :animate_colors,
+                    :animate_background_colors]
+
   @doc """
   Returns the list of tile_templates.
 
@@ -334,5 +346,13 @@ defmodule DungeonCrawl.TileTemplates do
   """
   def change_tile_template(%TileTemplate{} = tile_template, changes \\ %{}) do
     TileTemplate.changeset(tile_template, changes)
+  end
+
+  @doc """
+  Returns a copy of the fields from the given tile template as a map.
+  """
+  def copy_fields(nil), do: %{}
+  def copy_fields(tile_template) do
+    Map.take(tile_template, @copiable_fields)
   end
 end

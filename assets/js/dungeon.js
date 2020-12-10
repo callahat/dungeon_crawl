@@ -29,10 +29,18 @@ let Dungeon = {
     this.dungeonChannel   = socket.channel("dungeons:" + dungeonId)
 
     this.dungeonChannel.on("tile_changes", (resp) => {
-      let location;
+      let location, tdEl;
       for(let tile of resp.tiles){
-        document.getElementById(tile.row + "_" + tile.col).innerHTML = tile.rendering
+        tdEl = document.getElementById(tile.row + "_" + tile.col)
+        tdEl.innerHTML = tile.rendering
+        if(tdEl.children[0].classList.contains("animate")){
+          window.TileAnimation.renderTile(window.TileAnimation, tdEl.children[0])
+        }
       }
+    })
+
+    this.dungeonChannel.on("full_render", (msg) => {
+      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
     })
     // These could be used to announce something, but the tile updating has been consolidated
     //dungeonChannel.on("player_left", (resp) => {

@@ -13,15 +13,17 @@ defmodule DungeonCrawl.InstanceProcessTest do
   # which also has its own set of similar tests.
 
   setup do
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
     {:ok, instance_process} = InstanceProcess.start_link([])
-    tt = insert_tile_template()
     map_instance = insert_stubbed_dungeon_instance(
                      %{},
-                     [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE", tile_template_id: tt.id}])
+                     [%MapTile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE"}])
     map_tile = DungeonCrawl.Repo.get_by(MapTile, %{map_instance_id: map_instance.id})
 
     InstanceProcess.set_instance_id(instance_process, map_instance.id)
     InstanceProcess.load_map(instance_process, [map_tile])
+    InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
 
     %{instance_process: instance_process, map_tile_id: map_tile.id, map_instance: map_instance}
   end
@@ -150,14 +152,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
     dungeon_channel = "dungeons:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
-    tt = insert_tile_template()
-
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
         %{character: "O", row: 1, col: 3, z_index: 0, script: "#BECOME character: M\n#BECOME color: white\n#SEND touch, all"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "#TERMINATE"}
       ]
-      |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
 
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
@@ -187,15 +187,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 2, rendering: "<div style='color: red'>O</div>"}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>M</div>"}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div style='color: white'>M</div>"}]}}
+            payload: %{tiles: [%{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
+                               %{col: 3, rendering: "<div style='color: white'>M</div>", row: 1}]}}
     # These were either idle or had no script
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
@@ -463,13 +456,13 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "delete_tile/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
-    %Instances{ program_contexts: programs, 
+    %Instances{ program_contexts: programs,
                 map_by_ids: by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert programs[map_tile_id]
     assert by_id[map_tile_id]
     assert %{ {1, 1} => %{ 0 => ^map_tile_id} } = by_coord
-    
+
     assert :ok = InstanceProcess.delete_tile(instance_process, map_tile_id)
     refute InstanceProcess.get_tile(instance_process, map_tile_id)
     %Instances{ program_contexts: programs,
@@ -486,7 +479,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
                      Instances.create_map_tile(state, new_tile)
                    end)
     assert return_value == Map.put(new_tile, :parsed_state, %{})
-    %Instances{ program_contexts: _programs, 
+    %Instances{ program_contexts: _programs,
                 map_by_ids: _by_id,
                 map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
     assert %{ {1, 1} => %{ 0 => ^map_tile_id, 1 => 999} } = by_coord

@@ -113,7 +113,12 @@ defmodule DungeonCrawlWeb.DungeonMapController do
                                              background_color: tu["background_color"] || tt.background_color,
                                              state: tu["state"] || tt.state,
                                              script: tu["script"] || tt.script,
-                                             name: tu["name"] || tt.name
+                                             name: tu["name"] || tt.name,
+                                             animate_random: tu["animate_random"],
+                                             animate_period: tu["animate_period"],
+                                             animate_characters: tu["animate_characters"],
+                                             animate_colors: tu["animate_colors"],
+                                             animate_background_colors: tu["animate_background_colors"]
                                             })
            end)
 
@@ -142,7 +147,12 @@ defmodule DungeonCrawlWeb.DungeonMapController do
                                         background_color: ta["background_color"] || tt.background_color,
                                         state: ta["state"] || tt.state,
                                         script: ta["script"] || tt.script,
-                                        name: ta["name"] || tt.name
+                                        name: ta["name"] || tt.name,
+                                        animate_random: ta["animate_random"],
+                                        animate_period: ta["animate_period"],
+                                        animate_characters: ta["animate_characters"],
+                                        animate_colors: ta["animate_colors"],
+                                        animate_background_colors: ta["animate_background_colors"]
                                       })
            end)
 

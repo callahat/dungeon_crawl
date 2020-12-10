@@ -3,6 +3,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
+  alias DungeonCrawl.TileTemplates
 
   @doc """
   Returns the current stats (health, gems, cash, and ammo) for the player.
@@ -95,14 +96,6 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                             """
                 end
 
-    # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
-#    grave_tile_template = DungeonCrawl.TileTemplates.TileSeeder.grave()
-#    grave = Map.take(player_tile, [:map_instance_id, :row, :col])
-#             |> Map.merge(%{tile_template_id: grave_tile_template.id, z_index: last_player_z_index})
-#             |> Map.merge(Map.take(grave_tile_template, [:character, :color, :background_color, :state, :script]))
-#             |> Map.put(:script, script)
-#             |> DungeonCrawl.DungeonInstances.create_map_tile!()
-#    Instances.create_map_tile(state, grave)
     _spawn_loot_tile(state, :grave, script_fn, original_player_tile_state, player_tile, last_player_z_index)
   end
 
@@ -153,8 +146,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
     tile_template = apply(DungeonCrawl.TileTemplates.TileSeeder, tile_template, [])
     tile = Map.take(player_tile, [:map_instance_id, :row, :col])
-           |> Map.merge(%{tile_template_id: tile_template.id, z_index: z_index})
-           |> Map.merge(Map.take(tile_template, [:character, :color, :background_color, :state, :script]))
+           |> Map.merge(%{z_index: z_index})
+           |> Map.merge(TileTemplates.copy_fields(tile_template))
            |> Map.put(:script, script_fn.(items_stolen))
            |> DungeonCrawl.DungeonInstances.create_map_tile!()
     Instances.create_map_tile(state, tile)

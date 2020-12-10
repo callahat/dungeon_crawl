@@ -26,6 +26,9 @@ let Player = {
     playerChannel.join()
       .receive("ok", (resp) => {
         dungeonJs.renderMessage("Entered the dungeon")
+
+        playerChannel.push("refresh_dungeon", {})
+                     .receive("error", e => console.log(e))
       })
       .receive("error", resp => console.log("join failed", resp))
 

@@ -119,7 +119,12 @@ defmodule DungeonCrawlWeb.TestHelpers do
                            background_color: Map.get(t, :background_color),
                            state: Map.get(t, :state),
                            script: Map.get(t, :script),
-                           name: Map.get(t, :name)
+                           name: Map.get(t, :name),
+                           animate_random: Map.get(t, :animate_random),
+                           animate_period: Map.get(t, :animate_period),
+                           animate_characters: Map.get(t, :animate_characters),
+                           animate_colors: Map.get(t, :animate_colors),
+                           animate_background_colors: Map.get(t, :animate_background_colors)
                           } end)
   end
 

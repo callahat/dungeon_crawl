@@ -162,7 +162,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
       map_by_coords: %{ {4, 4} => %{1 => 1} },
-      player_locations: %{new_map_tile.id => location}
+      player_locations: %{new_map_tile.id => location},
+      rerender_coords: %{%{col: 4, row: 4} => true}
     } == state
 
     # returns the existing tile if it already exists by id, but links player location
@@ -172,7 +173,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
       map_by_coords: %{ {4, 4} => %{1 => 1} },
-      player_locations: %{new_map_tile.id => location}
+      player_locations: %{new_map_tile.id => location},
+      rerender_coords: %{%{col: 4, row: 4} => true}
     } == state
   end
 
@@ -186,7 +188,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       program_contexts: %{},
       map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
       map_by_coords: %{ {4, 4} => %{0 => 1} },
-      new_pids: []
+      new_pids: [],
+      rerender_coords: %{%{col: 4, row: 4} => true}
     } == state
 
     # assigns a temporary id when it does not have one, which indicates this tile has not been persisted to the database yet
@@ -206,7 +209,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
              assert %Instances{ program_contexts: %{},
                                 map_by_ids: %{1 => Map.put(new_map_tile, :parsed_state, %{}),
                                               123 => Map.put(map_tile_bad_script, :parsed_state, %{})},
-                                map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}} } == updated_state
+                                map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}},
+                                rerender_coords: %{%{col: 4, row: 1} => true, %{col: 4, row: 4} => true} } == updated_state
            end) =~ ~r/Possible corrupt script for map tile instance:/
 
     # If there's a program that starts, adds the map_tile_id to new_pids, so Instances._cycle_program
@@ -218,7 +222,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
       program_contexts: %{123 => _},
       map_by_ids: %{123 => ^new_map_tile},
       map_by_coords: %{ {1, 4} => %{0 => 123} },
-      new_pids: [ 123 ]
+      new_pids: [ 123 ],
+      rerender_coords: %{%{col: 4, row: 1} => true}
     } = state
   end
 
@@ -611,4 +616,23 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert {:not_enough, updated_state} = Instances.subtract(state, :cash, 500, player_tile.id)
     assert state == updated_state
   end
+
+  test "get_tile_template/2", %{state: state} do
+    assert {nil, ^state, :not_found} = Instances.get_tile_template("fake_slug", state)
+
+    DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
+
+    # looks up from the database and caches it
+    assert {bullet, updated_state, :created} = Instances.get_tile_template("bullet", state)
+    assert bullet.name == "Bullet"
+    assert updated_state == %{ state | tile_template_slug_cache: updated_state.tile_template_slug_cache}
+    assert updated_state.tile_template_slug_cache["bullet"] == bullet
+
+    # finds it in the cache and returns it
+    assert {^bullet, ^updated_state, :exists} = Instances.get_tile_template("bullet", updated_state)
+
+    # an id is given instead
+    assert {nil, ^updated_state, :not_found} = Instances.get_tile_template(bullet.id, updated_state)
+  end
 end
+
