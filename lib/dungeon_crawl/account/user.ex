@@ -2,6 +2,8 @@ defmodule DungeonCrawl.Account.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias DungeonCrawl.TileTemplates.TileTemplate
+
   schema "users" do
     field :name, :string
     field :username, :string
@@ -9,6 +11,10 @@ defmodule DungeonCrawl.Account.User do
     field :password_hash, :string
     field :user_id_hash, :string
     field :is_admin, :boolean, default: false
+
+    field :background_color, :string, default: "whitesmoke"
+    field :color, :string, default: "black"
+
     has_many :map_sets, DungeonCrawl.Dungeon.MapSet
 
     timestamps()
@@ -17,11 +23,13 @@ defmodule DungeonCrawl.Account.User do
   @doc false
   def changeset(struct, params \\ %{}) do
     struct
-    |> cast(params, [:name, :username, :password])
+    |> cast(params, [:name, :username, :password, :background_color, :color])
     |> validate_required([:name, :username], message: "should be at least 1 character")
     |> validate_length(:username, min: 1, max: 20)
     |> validate_length(:password, min: 6, max: 100)
     |> unique_constraint(:username)
+    |> TileTemplate.validate_colors()
+    |> validate_colors_are_different()
     |> put_pass_hash()
   end
 
@@ -64,5 +72,23 @@ defmodule DungeonCrawl.Account.User do
       _ ->
         changeset
     end
+  end
+
+  @doc false
+  def validate_colors_are_different(changeset) do
+    if colors_match?(changeset.data, changeset.changes) do
+      changeset
+      |> add_error(:color, "Color and Background Color must be different")
+      |> add_error(:background_color, "Color and Background Color must be different")
+    else
+      changeset
+    end
+  end
+
+  def colors_match?(map_1, map_2 \\ %{}) do
+    %{color: color, background_color: background_color} = \
+      Map.take(map_1, [:color, :background_color])
+      |> Map.merge(Map.take(map_2, [:color, :background_color]))
+    color == background_color
   end
 end

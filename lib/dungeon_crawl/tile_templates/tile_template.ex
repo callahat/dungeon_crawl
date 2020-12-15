@@ -61,10 +61,16 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_renderables(changeset) do
+  def validate_colors(changeset) do
     changeset
     |> validate_format(:color, @color_match)
     |> validate_format(:background_color, @color_match)
+  end
+
+  @doc false
+  def validate_renderables(changeset) do
+    changeset
+    |> validate_colors()
     |> validate_length(:character, min: 1, max: 1)
   end
 

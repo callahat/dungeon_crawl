@@ -5,6 +5,7 @@ defmodule DungeonCrawlWeb.UserController do
 
   alias DungeonCrawl.Account
   alias DungeonCrawl.Account.User
+  alias DungeonCrawl.TileTemplates.TileTemplate
 
   def new(conn, _params) do
     changeset = Account.change_user_registration(%User{})
@@ -28,7 +29,8 @@ defmodule DungeonCrawlWeb.UserController do
 
   def show(conn, _) do
     user = Account.get_user!(conn.assigns.current_user.id)
-    render(conn, "show.html", user: user)
+    avatar = %TileTemplate{character: "@", color: user.color, background_color: user.background_color}
+    render(conn, "show.html", user: user, avatar: avatar)
   end
 
   def edit(conn, _) do
