@@ -1,0 +1,49 @@
+<h2>Customize Avatar</h2>
+
+<%= form_for @conn, @action_path, fn f -> %>
+  <%= if @conn.assigns[:error] do %>
+    <div class="alert alert-danger">
+      <span><%= @conn.assigns[:error] %></span>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= label f, :name, class: "control-label" %>
+    <%= text_input :user, :name, class: "form-control", value: @user["name"] %>
+  </div>
+
+  <div class="form-group">
+    <%= hidden_input f, :character, value: "@" %>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="form-group">
+        <%= label :user, :color, class: "control-label" %>
+        <%= text_input :user, :color, class: "form-control", value: @user["color"] %>
+      </div>
+
+      <div class="form-group">
+        <%= label :user, :background_color, class: "control-label" %>
+        <%= text_input :user, :background_color, class: "form-control", value: @user["background_color"] %>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="row">
+        <b>Avatar</b>
+      </div>
+      <div class="row">
+        <div class="col-md-1">
+          <pre id="avatar_preview" class="tile_template_preview embiggen_most">@</pre>
+        </div>
+        <div class="col-md-1">
+          <pre id="avatar_preview_small" class="tile_template_preview">@</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <%= submit "Submit", class: "btn btn-primary" %>
+  </div>
+<% end %>

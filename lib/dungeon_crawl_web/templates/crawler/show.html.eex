@@ -70,9 +70,9 @@
                   <span class="pull-right">
                     <%= if can_start_new_instance(map_set.id) do %>
                       Join New Instance:
-                      <%= link "Private", to: Routes.crawler_path(@conn, :join, map_set_id: map_set.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-warning btn-sm" %>
+                      <%= link "Private", to: Routes.crawler_path(@conn, :avatar, map_set_id: map_set.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-warning btn-sm" %>
 
-                      <%= link "Public", to: Routes.crawler_path(@conn, :join, map_set_id: map_set.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                      <%= link "Public", to: Routes.crawler_path(@conn, :avatar, map_set_id: map_set.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
                     <% end %>
                   </span>
                 </td>
