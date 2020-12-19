@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.DungeonProcesses.{InstanceRegistry, InstanceProcess}
+  alias DungeonCrawlWeb.Crawler
 
   def join("players:" <> location_id, _payload, socket) do
     # TODO: verify the player joining the channel is the player
@@ -27,5 +28,14 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   def handle_in("ping", payload, socket) do
     {:reply, {:ok, payload}, socket}
+  end
+
+  def terminate(reason, socket) do
+    location = Player.get_location(%{id: socket.assigns.location_id})
+    if location do
+      Crawler.leave_and_broadcast(location)
+    end
+
+    :ok
   end
 end

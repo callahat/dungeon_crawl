@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.PlayerChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
+  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.Player
   alias DungeonCrawlWeb.PlayerChannel
 
   setup do
@@ -25,5 +27,12 @@ defmodule DungeonCrawl.PlayerChannelTest do
   test "ping replies with status ok", %{socket: socket} do
     ref = push socket, "ping", %{"hello" => "there"}
     assert_reply ref, :ok, %{"hello" => "there"}
+  end
+
+  test "terminate", %{socket: socket, location: location} do
+    map_instance_id = DungeonCrawl.Repo.preload(location, :map_tile).map_tile.map_instance_id
+    PlayerChannel.terminate({:shutdown, :closed}, socket)
+    refute Player.get_location(location.user_id_hash)
+    refute Map.has_key?(InstanceRegistry.list(DungeonInstanceRegistry), map_instance_id)
   end
 end

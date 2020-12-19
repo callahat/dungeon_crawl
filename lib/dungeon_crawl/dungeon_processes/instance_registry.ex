@@ -69,6 +69,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     GenServer.cast(server, {:remove, instance_id})
   end
 
+  @doc """
+  List the instance ids and the instance processes they are associated with.
+  Gives some insight into what instance processes are running.
+  """
+  def list(server) do
+    GenServer.call(server, {:list})
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -99,6 +107,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     else
       {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
     end
+  end
+
+  @impl true
+  def handle_call({:list}, _from, {instance_ids, _} = state) do
+    {:reply, instance_ids, state}
   end
 
   @impl true

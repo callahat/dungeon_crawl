@@ -142,4 +142,14 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     GenServer.stop(instance_process, :shutdown)
     assert :error = InstanceRegistry.lookup(instance_registry, instance.id)
   end
+
+  test "list", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_dungeon_instance()
+    instance_id = instance.id
+    InstanceRegistry.create(instance_registry, instance.id)
+
+    assert instance_ids = InstanceRegistry.list(instance_registry)
+    assert %{^instance_id => _pid} = instance_ids
+    assert length(Map.keys(instance_ids)) == 1
+  end
 end
