@@ -18,6 +18,12 @@ defmodule DungeonCrawl.PlayerChannelTest do
     {:ok, socket: socket, location: player_location}
   end
 
+  test "with a bad location" do
+    assert {:error, %{message: "Not found", reload: true}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "user_id_hash"})
+      |> subscribe_and_join(PlayerChannel, "players:12345")
+  end
+
   test "refresh_dungeon triggers the change_dungeon message to rerender the current map", %{socket: socket, location: location} do
     instance_id = location.map_tile.map_instance_id
     push socket, "refresh_dungeon", %{}
