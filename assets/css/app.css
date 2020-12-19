@@ -125,6 +125,10 @@ input#tile_template_character {
   height: 21em;
 }
 
+.form-group .help-block {
+  color: darkred;
+}
+
 .edge {
   background-color: lightgray !important;
 }

@@ -18,7 +18,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_passcode when action in [:invite, :validate_invite]
   plug :validate_active_or_owner when action in [:avatar, :validate_avatar]
   plug :validate_autogen_solo_enabled when action in [:create]
-  plug :validate_instance_limit when action in [:avatar, :validate_avatar]
+  plug :validate_instance_limit when action in [:invite, :avatar, :validate_avatar]
 
   @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
@@ -65,7 +65,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
       action_path = action_path(conn, params)
       conn
       |> assign(:query_params, params)
-      |> assign(:error, "Color and Background Color must be different")
+      |> put_flash(:error, "Color and Background Color must be different")
       |> render("avatar.html", user: user, action_path: action_path)
     else
       conn
@@ -103,7 +103,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     avatar(conn, params)
   end
 
-  def validate_invite(conn, %{"user" => user} = params) do
+  def validate_invite(conn, %{"user" => _user} = params) do
     validate_avatar(conn, params)
   end
 

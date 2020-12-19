@@ -1,12 +1,6 @@
 <h2>Customize Avatar</h2>
 
 <%= form_for @conn, @action_path, fn f -> %>
-  <%= if @conn.assigns[:error] do %>
-    <div class="alert alert-danger">
-      <span><%= @conn.assigns[:error] %></span>
-    </div>
-  <% end %>
-
   <div class="form-group">
     <%= label f, :name, class: "control-label" %>
     <%= text_input :user, :name, class: "form-control", value: @user["name"] %>
