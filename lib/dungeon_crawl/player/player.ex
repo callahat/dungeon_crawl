@@ -60,13 +60,13 @@ defmodule DungeonCrawl.Player do
       iex> create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.Map{})
       {:ok, %Location{}}
   """
-  def create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash) do
-    map_tile = _create_map_tile_for_location(msi, user_id_hash)
+  def create_location_on_spawnable_space(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash, user_avatar) do
+    map_tile = _create_map_tile_for_location(msi, user_id_hash, user_avatar)
 
     create_location(%{map_tile_instance_id: map_tile.id, user_id_hash: user_id_hash})
   end
 
-  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash) do
+  defp _create_map_tile_for_location(%DungeonCrawl.DungeonInstances.MapSet{} = msi, user_id_hash, user_avatar) do
     instance_maps = Repo.preload(msi, maps: [dungeon: :spawn_locations]).maps
     entrance = _entrance(instance_maps) || _random_entrance(instance_maps)
     spawn_location = _spawn_location(entrance) || _random_floor(entrance)
@@ -79,6 +79,7 @@ defmodule DungeonCrawl.Player do
     |> Map.merge(%{map_instance_id: entrance.id})
     |> Map.merge(%{z_index: z_index})
     |> Map.merge(TileTemplates.copy_fields(player_tile_template))
+    |> Map.merge(%{name: user_avatar["name"], color: user_avatar["color"], background_color: user_avatar["background_color"]})
     |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end
@@ -102,7 +103,7 @@ defmodule DungeonCrawl.Player do
 
   defp _random_floor(entrance) do
     Repo.preload(entrance, [:dungeon_map_tiles]).dungeon_map_tiles
-    |> Enum.filter(fn(t) -> t.name == "Floor" && t.character == "." end)
+    |> Enum.filter(fn(t) -> t.name == "Floor" || t.character == "." end)
     |> Enum.shuffle
     |> Enum.at(0)
   end

@@ -17,27 +17,27 @@ defmodule DungeonCrawlWeb.Crawler do
 
   ## Examples
 
-      iex> join_and_broadcast(dungeon, "imahash")
+      iex> join_and_broadcast(dungeon, "imahash", %{color: "red"})
       %Player.Location{}
 
-      iex> join_and_broadcast(instance, "imahash")
+      iex> join_and_broadcast(instance, "imahash", %{color: "red"})
       %Player.Location{}
   """
-  def join_and_broadcast(%DungeonInstances.MapSet{} = where, user_id_hash) do
-    {:ok, location} = Player.create_location_on_spawnable_space(where, user_id_hash)
+  def join_and_broadcast(%DungeonInstances.MapSet{} = where, user_id_hash, user_avatar, _) do
+    {:ok, location} = Player.create_location_on_spawnable_space(where, user_id_hash, user_avatar)
      _broadcast_join_event(location)
 
      location
   end
 
-  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash, is_private) do
+  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash, user_avatar, is_private) do
     {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where, is_private)
 
     # ensure all map instances are running
     Repo.preload(map_set_instance, :maps).maps
     |> Enum.each(fn(map_instance) -> InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, map_instance.id) end)
 
-    join_and_broadcast(map_set_instance, user_id_hash)
+    join_and_broadcast(map_set_instance, user_id_hash, user_avatar, is_private)
   end
 
   defp _broadcast_join_event(location) do

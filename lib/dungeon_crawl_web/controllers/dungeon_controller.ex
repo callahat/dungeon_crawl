@@ -6,7 +6,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Dungeon.MapSet
   alias DungeonCrawl.Player
 
-  import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 3, leave_and_broadcast: 1]
+  import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
@@ -129,7 +129,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     else
      if conn.assigns.player_location, do: leave_and_broadcast(conn.assigns.player_location)
 
-      join_and_broadcast(conn.assigns.map_set, conn.assigns[:user_id_hash], true)
+      join_and_broadcast(conn.assigns.map_set, conn.assigns[:user_id_hash], %{}, true)
 
       conn
       |> redirect(to: Routes.crawler_path(conn, :show))

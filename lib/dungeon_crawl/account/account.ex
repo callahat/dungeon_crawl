@@ -70,6 +70,19 @@ defmodule DungeonCrawl.Account do
   def get_by_username!(username, repo \\ Repo), do: repo.get_by!(User, username: username)
 
   @doc """
+  Gets a single user by their user_id_hash, if it exists.
+
+  ## Examples
+
+      iex> get_by_username("RealFakeUser")
+      nil
+
+      iex> get_by_username!("Doc")
+      %User{}
+  """
+  def get_by_user_id_hash(user_id_hash, repo \\ Repo),  do: repo.get_by(User, user_id_hash: user_id_hash)
+
+  @doc """
   Returns the displayable name for the given user. When no name exists, "AnonPlayer" is returned.
 
   ## Examples

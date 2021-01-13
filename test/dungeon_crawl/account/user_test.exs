@@ -73,4 +73,22 @@ defmodule DungeonCrawl.Account.UserTest do
     assert %{user_id_hash: hash} = changeset.changes
     assert String.length(hash) > 10
   end
+
+  test "colors_match?/2" do
+    assert User.colors_match?(%User{color: "red", background_color: "red"})
+    assert User.colors_match?(%User{background_color: "black"})
+    assert User.colors_match?(%User{background_color: "green"}, %{color: "green"})
+    refute User.colors_match?(%User{color: "red", background_color: "white"})
+    refute User.colors_match?(%User{background_color: "gray"})
+    refute User.colors_match?(%User{background_color: "green"}, %{color: "orange"})
+  end
+
+  test "color validation" do
+    changeset = User.changeset(%User{color: "red"}, Map.merge(@valid_attrs, %{background_color: "red"}))
+    refute changeset.valid?
+    assert [
+              background_color: {"Color and Background Color must be different", []},
+              color: {"Color and Background Color must be different", []}
+            ] = changeset.errors
+  end
 end

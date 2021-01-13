@@ -30,7 +30,10 @@ let Player = {
         playerChannel.push("refresh_dungeon", {})
                      .receive("error", e => console.log(e))
       })
-      .receive("error", resp => console.log("join failed", resp))
+      .receive("error", function(resp){
+         console.log("join failed", resp)
+         if(resp.reload){ window.location.reload() }
+      })
 
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()

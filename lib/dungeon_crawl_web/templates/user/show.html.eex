@@ -12,6 +12,11 @@
     <%= @user.username %>
   </li>
 
+  <li>
+    <strong>Avatar:</strong>
+    <pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(@avatar, :safe) %></pre>
+  </li>
+
 </ul>
 
 <%= link "Edit", to: Routes.user_path(@conn, :edit) %> |

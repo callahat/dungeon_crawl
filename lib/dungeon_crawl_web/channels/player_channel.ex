@@ -4,11 +4,17 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.DungeonProcesses.{InstanceRegistry, InstanceProcess}
+  alias DungeonCrawlWeb.Crawler
 
   def join("players:" <> location_id, _payload, socket) do
     # TODO: verify the player joining the channel is the player
-
-    {:ok, %{location_id: location_id}, assign(socket, :location_id, location_id)}
+    location = Player.get_location(%{id: location_id})
+               |> Repo.preload(:map_tile)
+    if location && location.map_tile do
+      {:ok, %{location_id: location_id}, assign(socket, :location_id, location_id)}
+    else
+      {:error, %{message: "Not found", reload: true}}
+    end
   end
 
   def handle_in("refresh_dungeon", _, socket) do
@@ -27,5 +33,13 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   def handle_in("ping", payload, socket) do
     {:reply, {:ok, payload}, socket}
+  end
+
+  def terminate(_reason, socket) do
+    if location = Player.get_location(%{id: socket.assigns.location_id}) do
+      Crawler.leave_and_broadcast(location)
+    end
+
+    :ok
   end
 end

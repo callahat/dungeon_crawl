@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.PlayerChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
+  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.Player
   alias DungeonCrawlWeb.PlayerChannel
 
   setup do
@@ -16,6 +18,12 @@ defmodule DungeonCrawl.PlayerChannelTest do
     {:ok, socket: socket, location: player_location}
   end
 
+  test "with a bad location" do
+    assert {:error, %{message: "Not found", reload: true}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "user_id_hash"})
+      |> subscribe_and_join(PlayerChannel, "players:12345")
+  end
+
   test "refresh_dungeon triggers the change_dungeon message to rerender the current map", %{socket: socket, location: location} do
     instance_id = location.map_tile.map_instance_id
     push socket, "refresh_dungeon", %{}
@@ -25,5 +33,12 @@ defmodule DungeonCrawl.PlayerChannelTest do
   test "ping replies with status ok", %{socket: socket} do
     ref = push socket, "ping", %{"hello" => "there"}
     assert_reply ref, :ok, %{"hello" => "there"}
+  end
+
+  test "terminate", %{socket: socket, location: location} do
+    map_instance_id = DungeonCrawl.Repo.preload(location, :map_tile).map_tile.map_instance_id
+    PlayerChannel.terminate({:shutdown, :closed}, socket)
+    refute Player.get_location(location.user_id_hash)
+    refute Map.has_key?(InstanceRegistry.list(DungeonInstanceRegistry), map_instance_id)
   end
 end
