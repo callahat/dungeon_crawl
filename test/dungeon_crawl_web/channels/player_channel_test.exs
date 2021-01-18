@@ -1,8 +1,6 @@
 defmodule DungeonCrawl.PlayerChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
-  alias DungeonCrawl.Player
   alias DungeonCrawlWeb.PlayerChannel
 
   setup do
