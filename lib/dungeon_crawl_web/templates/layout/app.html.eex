@@ -32,6 +32,7 @@
             <%= if @current_user.is_admin do %>
             <li class="nav-item"><%= link "Users", to: Routes.manage_user_path(@conn, :index), class: "nav-link" %></li>
             <li class="nav-item"><%= link "Dungeons", to: Routes.manage_dungeon_path(@conn, :index), class: "nav-link" %></li>
+            <li class="nav-item"><%= link "Instances", to: Routes.manage_map_set_instance_path(@conn, :index), class: "nav-link" %></li>
             <li class="nav-item"><%= link "Settings", to: Routes.setting_path(@conn, :edit), class: "nav-link" %></li>
             <% end %>
             <li class="nav-item"><%= link "Log out", to: Routes.session_path(@conn, :delete, @current_user), method: "delete", class: "nav-link" %></li>

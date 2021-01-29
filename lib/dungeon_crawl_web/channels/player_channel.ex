@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry, InstanceProcess}
+  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry, InstanceProcess, MapSets}
 
   def join("players:" <> location_id, _payload, socket) do
     # TODO: verify the player joining the channel is the player
@@ -18,8 +18,9 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   def handle_in("refresh_dungeon", _, socket) do
     location = Player.get_location(%{id: socket.assigns.location_id})
-               |> Repo.preload(:map_tile)
-    {:ok, instance_process} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, location.map_tile.map_instance_id)
+               |> Repo.preload(map_tile: :dungeon)
+    {:ok, instance_registry} = MapSets.instance_registry(location.map_tile.dungeon.map_set_instance_id)
+    {:ok, instance_process} = InstanceRegistry.lookup_or_create(instance_registry, location.map_tile.map_instance_id)
     state = InstanceProcess.get_state(instance_process)
 
     dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])

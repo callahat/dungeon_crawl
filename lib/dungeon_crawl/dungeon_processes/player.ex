@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess, MapSets}
   alias DungeonCrawl.TileTemplates
 
   @doc """
@@ -24,9 +24,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   def current_stats(user_id_hash) do
     with player_location when not is_nil(player_location) <- Player.get_location(user_id_hash),
-         player_location <- DungeonCrawl.Repo.preload(player_location, :map_tile),
-         {:ok, instance_state} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, player_location.map_tile.map_instance_id),
-         player_tile when not is_nil(player_tile) <- InstanceProcess.get_tile(instance_state, player_location.map_tile_instance_id) do
+         player_location <- DungeonCrawl.Repo.preload(player_location, [map_tile: :dungeon]),
+         player_map_instance <- player_location.map_tile.dungeon,
+         {:ok, instance_process} <- MapSets.instance_process(player_map_instance.map_set_instance_id, player_map_instance.id),
+         player_tile when not is_nil(player_tile) <- InstanceProcess.get_tile(instance_process, player_location.map_tile_instance_id) do
       _current_stats(player_tile)
     else
       _ ->

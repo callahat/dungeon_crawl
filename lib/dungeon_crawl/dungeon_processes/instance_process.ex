@@ -390,7 +390,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _rerender_tiles(state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
       dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
                                          "full_render",
                                          %{dungeon_render: dungeon_table}
     else
@@ -403,7 +403,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
          end)
       payload = %{tiles: tile_changes}
 
-      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.instance_id}", "tile_changes", payload)
+      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload)
     end
 
     %{ state | rerender_coords: %{} }
@@ -480,7 +480,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       payload = %{tiles: [
                    Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                   ]}
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
     end
 
     _standard_behaviors(messages, state)

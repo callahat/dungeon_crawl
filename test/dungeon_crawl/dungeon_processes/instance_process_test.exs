@@ -22,6 +22,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     map_tile = DungeonCrawl.Repo.get_by(MapTile, %{map_instance_id: map_instance.id})
 
     InstanceProcess.set_instance_id(instance_process, map_instance.id)
+    InstanceProcess.set_map_set_instance_id(instance_process, map_instance.map_set_instance_id)
     InstanceProcess.load_map(instance_process, [map_tile])
     InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
 
@@ -149,7 +150,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "perform_actions", %{instance_process: instance_process, map_instance: map_instance} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     map_tiles = [
@@ -198,7 +199,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   test "perform_actions adds messages to programs", %{instance_process: instance_process,
                                                       map_instance: map_instance,
                                                       map_tile_id: map_tile_id} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     tt = insert_tile_template()
@@ -233,7 +234,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
                                                                                map_instance: map_instance} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     map_tiles = [
@@ -315,7 +316,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   test "perform_actions handles behavior 'destroyable'", %{instance_process: instance_process,
                                                            map_instance: map_instance,
                                                            map_tile_id: map_tile_id} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     tt = insert_tile_template()

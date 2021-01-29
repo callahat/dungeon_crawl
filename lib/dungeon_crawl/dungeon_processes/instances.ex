@@ -420,8 +420,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
-  def handle_broadcasting(runner_context) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{runner_context.state.instance_id}")
+  def handle_broadcasting(%{state: state} = runner_context) do
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{state.map_set_instance_id}:#{state.instance_id}")
     _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end
@@ -517,7 +517,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
         top_tile = Instances.get_map_tile(state, loser_coords)
         payload = %{tiles: [ Map.put(loser_coords, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile)) ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
 
         {:ok, state}
       else
@@ -554,7 +554,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         # TODO: maybe defer broadcasting til in the 50ms instance program cycle, and then consolidate outgoing messages.
         # but this might be ok to do individually, as state updates will happen significantly less often than other
         # tile animations/movements
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
         {:ok, state}

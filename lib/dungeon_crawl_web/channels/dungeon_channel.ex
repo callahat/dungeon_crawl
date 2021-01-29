@@ -7,6 +7,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
+  alias DungeonCrawl.DungeonProcesses.MapSets
 
   alias DungeonCrawl.Scripting.Direction
 
@@ -14,13 +15,18 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
   # and evesdrop on broadcasts?
-  def join("dungeons:" <> instance_id, _payload, socket) do
-    instance_id = String.to_integer(instance_id)
+  def join("dungeons:" <> map_set_instance_id_and_instance_id, _payload, socket) do
+    [map_set_instance_id, instance_id] = map_set_instance_id_and_instance_id
+                                         |> String.split(":")
+                                         |> Enum.map(&String.to_integer(&1))
+
+    {:ok, instance_registry} = MapSets.instance_registry(map_set_instance_id)
 
     # make sure the instance is up and running
-    InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, instance_id)
+    InstanceRegistry.lookup_or_create(instance_registry, instance_id)
 
     socket = assign(socket, :instance_id, instance_id)
+             |> assign(:instance_registry, instance_registry)
              |> assign(:last_action_at, 0)
     {:ok, %{instance_id: instance_id}, socket}
   end
@@ -48,7 +54,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                 _ -> tile_id
               end
 
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       with target_tile when not is_nil(target_tile) <- Instances.get_map_tile_by_id(instance_state, %{id: tile_id}),
            {player_location, player_tile} when not is_nil(player_location) <-
@@ -72,7 +78,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   def handle_in("respawn", %{}, socket) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
@@ -83,7 +89,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         payload = %{tiles: [
                      Map.put(Map.take(player_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(player_tile))
                     ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{instance_state.instance_id}", "tile_changes", payload
+        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{instance_state.map_set_instance_id}:#{instance_state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(instance_state, player_tile)}
 
@@ -97,7 +103,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   def handle_in("shoot", %{"direction" => direction}, socket) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     socket = \
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
@@ -131,7 +137,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   def handle_in("speak", %{"words" => words}, socket) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     instance_state = InstanceProcess.get_state(instance)
     {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
@@ -164,7 +170,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     direction = Direction.normalize_orthogonal(direction)
     _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
 
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
@@ -176,6 +183,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
           {:ok, instance_state}
 
         adjacent_map_id ->
+
           Travel.passage(player_location, %{adjacent_map_id: adjacent_map_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
 
         destination ->
@@ -202,7 +210,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
-    {:ok, instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, socket.assigns.instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = if player_tile, do: Instances.remove_message_actions(instance_state, player_tile.id),

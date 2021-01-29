@@ -2,6 +2,7 @@ let Dungeon = {
   init(socket, element){ if(!element){ return }
     let dungeonId = element.getAttribute("data-instance-id")
     let readonly = element.getAttribute("data-readonly") == "true"
+    this.mapSetId = element.getAttribute("data-map-set-id")
     socket.connect()
 
     if(!readonly){
@@ -26,7 +27,7 @@ let Dungeon = {
   handleDungeonChange: null,
   tuneInToChannel(socket, dungeonId) {
 
-    this.dungeonChannel   = socket.channel("dungeons:" + dungeonId)
+    this.dungeonChannel   = socket.channel("dungeons:" + this.mapSetId + ":" + dungeonId)
 
     this.dungeonChannel.on("tile_changes", (resp) => {
       let location, tdEl;
@@ -230,6 +231,7 @@ let Dungeon = {
   },
   dungeonChannel: null,
   lastMessage: null,
+  mapSetId: null,
   typing: false
 }
 

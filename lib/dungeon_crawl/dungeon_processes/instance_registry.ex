@@ -17,6 +17,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
   end
+  def start_link(msi_pid, opts) do
+    GenServer.start_link(__MODULE__, msi_pid, opts)
+  end
 
   @doc """
   Looks up the instance pid for `instance_id` stored in `server`.
@@ -36,7 +39,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     case GenServer.call(server, {:lookup, instance_id}) do
       :error ->
         create(server, instance_id)
-        GenServer.call(server, {:lookup, instance_id})
+        lookup(server, instance_id)
 
       {:ok, pid} ->
         {:ok, pid}
@@ -46,8 +49,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   @doc """
   Ensures there is a instance associated with the given `instance_id` in `server`.
   """
-  def create(server, instance_id) do
-    GenServer.cast(server, {:create, instance_id})
+  def create(server, instance_id) when is_integer(instance_id) do
+    with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
+      GenServer.call(server, {:create, dungeon_instance})
+    else
+      _error ->
+        Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
+        nil
+    end
+  end
+
+  def create(server, dungeon_instance) do
+    GenServer.call(server, {:create, dungeon_instance})
   end
 
   @doc """
@@ -79,75 +92,77 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
 
   ## Defining GenServer Callbacks
 
+  # todo: this one goes away
   @impl true
   def init(:ok) do
     instance_ids = %{}
     refs = %{}
-    {:ok, {instance_ids, refs}}
+    {:ok, {instance_ids, refs, nil}}
+  end
+
+  @impl true
+  def init(map_set_process) do
+    instance_ids = %{}
+    refs = %{}
+    {:ok, {instance_ids, refs, map_set_process}}
   end
 
   @impl true
   def handle_call({:lookup, instance_id}, _from, state) do
-    {instance_ids, _} = state
+    {instance_ids, _, _} = state
     {:reply, Map.fetch(instance_ids, instance_id), state}
   end
 
   # These first two are really to make test setup more convenient
   @impl true
-  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs}) do
+  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs, map_set_process}) do
     instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
     dungeon_map_tiles = Enum.map(dungeon_map_tiles, fn(dmt) -> Map.put(dmt, :map_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
+    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process})}
   end
 
   @impl true
-  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs}) do
+  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs, map_set_process}) do
     if Map.has_key?(instance_ids, instance_id) do
-      {:noreply, {instance_ids, refs}}
+      {:noreply, {instance_ids, refs, map_set_process}}
     else
-      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
+      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process})}
     end
   end
 
   @impl true
-  def handle_call({:list}, _from, {instance_ids, _} = state) do
+  def handle_call({:create, dungeon_instance}, _from, {instance_ids, refs, map_set_process}) do
+    if Map.has_key?(instance_ids, dungeon_instance.id) do
+      {:noreply, {instance_ids, refs, map_set_process}}
+    else
+      {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
+      state_values = Map.merge(state_values, %{rows: dungeon_instance.height, cols: dungeon_instance.width})
+      msiid = dungeon_instance.map_set_instance_id
+      number = dungeon_instance.number
+      dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
+      spawn_locations = Repo.preload(dungeon_instance, :spawn_locations).spawn_locations
+      spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
+      adjacent = DungeonInstances.get_adjacent_maps(dungeon_instance)
+      {:reply, :ok, _create_instance(dungeon_instance.id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process})}
+    end
+  end
+
+  @impl true
+  def handle_call({:list}, _from, {instance_ids, _, _} = state) do
     {:reply, instance_ids, state}
   end
 
   @impl true
-  def handle_cast({:create, instance_id}, {instance_ids, refs}) do
-    if Map.has_key?(instance_ids, instance_id) do
-      {:noreply, {instance_ids, refs}}
-    else
-      with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
-        {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
-        state_values = Map.merge(state_values, %{rows: dungeon_instance.height, cols: dungeon_instance.width})
-        msiid = dungeon_instance.map_set_instance_id
-        number = dungeon_instance.number
-        dungeon_map_tiles = Repo.preload(dungeon_instance, :dungeon_map_tiles).dungeon_map_tiles
-        spawn_locations = Repo.preload(dungeon_instance, :spawn_locations).spawn_locations
-        spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
-        adjacent = DungeonInstances.get_adjacent_maps(dungeon_instance)
-        {:noreply, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs})}
-      else
-        _error ->
-          Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
-          {:noreply, {instance_ids, refs}}
-      end
-    end
-  end
-
-  @impl true
-  def handle_cast({:remove, instance_id}, {instance_ids, refs}) do
+  def handle_cast({:remove, instance_id}, {instance_ids, refs, map_set_process}) do
     if Map.has_key?(instance_ids, instance_id), do: GenServer.stop(Map.fetch!(instance_ids, instance_id), :shutdown)
-    {:noreply, {instance_ids, refs}}
+    {:noreply, {instance_ids, refs, map_set_process}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {instance_ids, refs}) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, {instance_ids, refs, map_set_process}) do
     {instance_id, refs} = Map.pop(refs, ref)
     instance_ids = Map.delete(instance_ids, instance_id)
-    {:noreply, {instance_ids, refs}}
+    {:noreply, {instance_ids, refs, map_set_process}}
   end
 
   @impl true
@@ -155,7 +170,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {:noreply, state}
   end
 
-  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs}) do
+  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process}) do
     {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
     InstanceProcess.set_instance_id(instance_process, instance_id)
     InstanceProcess.set_map_set_instance_id(instance_process, msiid)
@@ -173,7 +188,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)
     instance_ids = Map.put(instance_ids, instance_id, instance_process)
-    {instance_ids, refs}
+    {instance_ids, refs, map_set_process}
   end
 
   defp _link_player_locations(instance_process, instance_id) do
