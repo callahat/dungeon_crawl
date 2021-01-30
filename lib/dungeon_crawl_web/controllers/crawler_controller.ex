@@ -225,7 +225,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
                     true -> :map_set
                   end
 
-    {msi_id, o} = join_and_broadcast(conn.assigns[join_target], conn.assigns[:user_id_hash], conn.assigns[:user], !!params["is_private"])
+    {msi_id, _} = join_and_broadcast(conn.assigns[join_target], conn.assigns[:user_id_hash], conn.assigns[:user], !!params["is_private"])
     conn
     |> Plug.Conn.put_session(:map_set_instance_id, msi_id)
     |> redirect(to: Routes.crawler_path(conn, :show))

@@ -14,9 +14,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   @doc """
   Starts the registry.
   """
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, :ok, opts)
-  end
   def start_link(msi_pid, opts) do
     GenServer.start_link(__MODULE__, msi_pid, opts)
   end
@@ -51,7 +48,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   """
   def create(server, instance_id) when is_integer(instance_id) do
     with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_map(instance_id) do
-      GenServer.call(server, {:create, dungeon_instance})
+      create(server, dungeon_instance)
     else
       _error ->
         Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
@@ -91,14 +88,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   end
 
   ## Defining GenServer Callbacks
-
-  # todo: this one goes away
-  @impl true
-  def init(:ok) do
-    instance_ids = %{}
-    refs = %{}
-    {:ok, {instance_ids, refs, nil}}
-  end
 
   @impl true
   def init(map_set_process) do

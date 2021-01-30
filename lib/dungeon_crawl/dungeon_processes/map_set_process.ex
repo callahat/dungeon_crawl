@@ -78,7 +78,7 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
 
   @impl true
   def init(:ok) do
-    {:ok, instance_registry} = InstanceRegistry.start_link([])
+    {:ok, instance_registry} = InstanceRegistry.start_link(self(), [])
 # might need this
 #    InstanceRegistry.link_map_set(program_registry, self())
     {:ok, %MapSetProcess{instance_registry: instance_registry}}

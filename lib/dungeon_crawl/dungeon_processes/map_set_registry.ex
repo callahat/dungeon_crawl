@@ -3,9 +3,8 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
 
   require Logger
 
-  alias DungeonCrawl.DungeonProcesses.{Instances,InstanceProcess,MapSetProcess,Supervisor}
+  alias DungeonCrawl.DungeonProcesses.{MapSetProcess}
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
 
@@ -48,19 +47,6 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
   """
   def create(server, map_set_id) do
     GenServer.cast(server, {:create, map_set_id})
-  end
-
-  # TODO: update this to create test map set processes more convenient similar to the instance registry create convenience function
-  @doc """
-  A convenience method for setting up state when testing.
-  Ensures there is a instance associated with the given `instance_id` in `server`,
-  and populates it with the array of dungeon_map_tiles.
-  Does not create the instance if there's already one with that `instance_id`.
-  If instance_id is nil, an available one will be assigned, and injected into
-  all the `dungeon_map_tiles`. Returns the `instance_id`.
-  """
-  def create(server, map_set_id, instances) do
-    GenServer.call(server, {:create, map_set_id, instances})
   end
 
   @doc """

@@ -50,6 +50,15 @@ defmodule DungeonCrawl.MapSetProcessTest do
                           entrances: []} = MapSetProcess.get_state(map_set_process)
   end
 
+  test "load_instance with an id", %{map_set_process: map_set_process, map_set_instance: map_set_instance} do
+    [map_instance] = Repo.preload(map_set_instance, :maps).maps
+    map_instance_id = map_instance.id
+    assert :ok = MapSetProcess.load_instance(map_set_process, map_instance.id)
+    assert %{^map_instance_id => _} = MapSetProcess.get_instance_registry(map_set_process)
+                                      |> InstanceRegistry.list()
+    assert %MapSetProcess{entrances: []} = MapSetProcess.get_state(map_set_process)
+  end
+
   test "load_instance", %{map_set_process: map_set_process, map_set_instance: map_set_instance} do
     [map_instance] = Repo.preload(map_set_instance, :maps).maps
     map_instance_id = map_instance.id

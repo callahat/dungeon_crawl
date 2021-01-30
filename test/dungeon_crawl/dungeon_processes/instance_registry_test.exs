@@ -5,7 +5,10 @@ defmodule DungeonCrawl.InstanceRegistryTest do
   alias DungeonCrawl.Scripting.Program
 
   setup do
-    instance_registry = start_supervised!(InstanceRegistry)
+    instance_registry = start_supervised!(%{
+      id: TestInstanceRegistry,
+      start: {InstanceRegistry, :start_link, [nil, []]}
+    })
     %{instance_registry: instance_registry}
   end
 

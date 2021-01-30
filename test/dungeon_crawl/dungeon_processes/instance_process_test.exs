@@ -53,6 +53,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ number: ^number } = InstanceProcess.get_state(instance_process)
   end
 
+  test "set_adjacent_map_id" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    InstanceProcess.set_adjacent_map_id(instance_process, 1, "north")
+    assert %{ adjacent_map_ids: %{"north" => 1} } = InstanceProcess.get_state(instance_process)
+  end
+
   test "set_state_values" do
     {:ok, instance_process} = InstanceProcess.start_link([])
     InstanceProcess.set_state_values(instance_process, %{flag: false})
