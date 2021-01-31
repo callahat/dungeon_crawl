@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
   alias DungeonCrawl.DungeonProcesses.MapSets
+  alias DungeonCrawl.Scripting.Shape
 
   alias DungeonCrawl.Scripting.Direction
 
@@ -253,8 +254,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   defp _send_message_to_other_players_in_range(player_tile, player_location, safe_msg, instance_state) do
     # this might be too expensive to use
-    clear_coords = DungeonCrawl.Scripting.Shape.blob({instance_state, player_tile}, 10, false)
-    audiable_coords = DungeonCrawl.Scripting.Shape.blob({instance_state, player_tile}, 15, false) -- clear_coords
+    clear_coords = Shape.blob({instance_state, player_tile}, 10, false)
+    audiable_coords = Shape.blob({instance_state, player_tile}, 15, false) -- clear_coords
 
     hearing_groups = \
     instance_state.player_locations
