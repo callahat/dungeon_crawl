@@ -155,4 +155,28 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert %{^instance_id => _pid} = instance_ids
     assert length(Map.keys(instance_ids)) == 1
   end
+
+  describe "player_location_ids" do
+    test "no players", %{instance_registry: instance_registry} do
+      assert [] == InstanceRegistry.player_location_ids(instance_registry)
+    end
+
+    test "players", %{instance_registry: instance_registry} do
+      map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [[%{character: ".", row: 1, col: 1, z_index: 0}],
+                                                                    [%{character: ".", row: 1, col: 1, z_index: 0}]])
+
+      [map_1, map_2] = DungeonCrawl.Repo.preload(map_set_instance, :maps).maps
+
+      p1 = insert_player_location(%{map_instance_id: map_1.id})
+      p2 = insert_player_location(%{map_instance_id: map_1.id})
+      p3 = insert_player_location(%{map_instance_id: map_2.id})
+
+      InstanceRegistry.create(instance_registry, map_1)
+      InstanceRegistry.create(instance_registry, map_2)
+
+      assert [{p1.id, p1.map_tile_instance_id},
+              {p2.id, p2.map_tile_instance_id},
+              {p3.id, p3.map_tile_instance_id}] == InstanceRegistry.player_location_ids(instance_registry)
+    end
+  end
 end

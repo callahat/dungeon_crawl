@@ -87,6 +87,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     GenServer.call(server, {:list})
   end
 
+  @doc """
+  Returns an enum of tuples containing the location_id and map_tile_instance_id for all the players in the map set instance
+  """
+  def player_location_ids(server) do
+    GenServer.call(server, {:player_location_ids})
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -139,6 +146,24 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   @impl true
   def handle_call({:list}, _from, {instance_ids, _, _} = state) do
     {:reply, instance_ids, state}
+  end
+
+  @impl true
+  def handle_call({:player_location_ids}, _from, {instance_ids, _, _} = state) do
+    player_location_ids = \
+    instance_ids
+    |> Enum.flat_map(fn({_instance_id, instance_process}) ->
+         InstanceProcess.run_with(instance_process, fn(state) ->
+           player_locations = \
+           state.player_locations
+           |> Enum.map(fn({player_map_tile_id, location}) ->
+                {location.id, player_map_tile_id}
+              end)
+
+           {player_locations, state}
+         end)
+       end)
+    {:reply, player_location_ids, state}
   end
 
   @impl true
