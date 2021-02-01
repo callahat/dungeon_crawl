@@ -98,6 +98,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
 
   @impl true
   def init(map_set_process) do
+    Process.flag(:trap_exit, true)
     instance_ids = %{}
     refs = %{}
     {:ok, {instance_ids, refs, map_set_process}}
@@ -129,7 +130,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   @impl true
   def handle_call({:create, dungeon_instance}, _from, {instance_ids, refs, map_set_process}) do
     if Map.has_key?(instance_ids, dungeon_instance.id) do
-      {:noreply, {instance_ids, refs, map_set_process}}
+      {:reply, :ok, {instance_ids, refs, map_set_process}}
     else
       {:ok, state_values} = StateValue.Parser.parse(dungeon_instance.state)
       state_values = Map.merge(state_values, %{rows: dungeon_instance.height, cols: dungeon_instance.width})
@@ -237,5 +238,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   defp _spawn_coordinates(_dungeon_map_tiles, spawn_locations) do
     spawn_locations
     |> Enum.map(fn(spawn_location) -> {spawn_location.row, spawn_location.col} end)
+  end
+
+  @impl true
+  def terminate(_reason, {instance_ids, _refs, _map_set_process}) do
+    instance_ids
+    |> Enum.map(fn({instance_id, _}) -> GenServer.stop(Map.fetch!(instance_ids, instance_id), :shutdown) end)
+
+    :normal
   end
 end

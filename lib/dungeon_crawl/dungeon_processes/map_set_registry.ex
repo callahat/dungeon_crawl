@@ -119,6 +119,7 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
 
     MapSetProcess.set_map_set_instance(map_set_process, map_set_instance)
     MapSetProcess.set_state_values(map_set_process, state_values)
+    MapSetProcess.start_scheduler(map_set_process)
 
     Repo.preload(map_set_instance, :maps).maps
     |> Enum.each(fn map ->

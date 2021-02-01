@@ -359,6 +359,35 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
   end
 
+  test "check_on_inactive_players", %{instance_process: instance_process, map_instance: map_instance} do
+    player_tile = DungeonInstances.create_map_tile!(
+                    %{character: "@",
+                      row: 1,
+                      col: 3,
+                      z_index: 0,
+                      script: "",
+                      state: "health: 10",
+                      name: "player",
+                      map_instance_id: map_instance.id})
+
+    player_location = %Location{id: 555, map_tile_instance_id: player_tile.id}
+
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      Map.put(state, :inactive_players, %{player_tile.id => 5, 12345 => 0})
+      |> Instances.create_player_map_tile(player_tile, player_location)
+    end)
+
+   # :ok = InstanceProcess.load_map(instance_process, [player_tile])
+
+    :ok = Process.send(instance_process, :check_on_inactive_players, [])
+
+    %Instances{ inactive_players: inactive_players,
+                player_locations: player_locations } = InstanceProcess.get_state(instance_process)
+
+    assert %{12345 => 1} == inactive_players
+    assert player_locations == %{} # petrified and removed; this function tested elsewhere
+  end
+
   test "write_db", %{instance_process: instance_process, map_instance: map_instance} do
     tt = insert_tile_template()
 

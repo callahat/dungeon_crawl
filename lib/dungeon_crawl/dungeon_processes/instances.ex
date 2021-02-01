@@ -25,7 +25,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             adjacent_map_ids: %{},
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
-            tile_template_slug_cache: %{}
+            tile_template_slug_cache: %{},
+            inactive_players: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile

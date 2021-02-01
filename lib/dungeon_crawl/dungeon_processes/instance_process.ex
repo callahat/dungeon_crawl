@@ -7,6 +7,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -14,6 +15,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   ## Client API
 
   @timeout 50
+  @inactive_player_timeout 60_000
 
   @doc """
   Starts the instance process.
@@ -82,6 +84,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
+    Process.send_after(instance, :check_on_inactive_players, @inactive_player_timeout)
   end
 
   @doc """
@@ -284,6 +287,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, state}
   end
 
+  @impl true
   def handle_info(:perform_actions, %Instances{} = state) do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
@@ -297,6 +301,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     Process.send_after(self(), :perform_actions, @timeout)
 
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:check_on_inactive_players, %Instances{inactive_players: inactive_players} = state) do
+    {stone, inactive_players} = inactive_players
+                                |> Map.to_list()
+                                |> Enum.map(fn {map_tile_id, count} -> {map_tile_id, count + 1} end)
+                                |> Enum.split_with(fn {_, count} -> count > 5 end)
+
+    inactive_players = Enum.into(inactive_players, %{})
+    stone = Keyword.keys(stone)
+
+    Process.send_after(self(), :check_on_inactive_players, @inactive_player_timeout)
+
+    _petrify_old_inactive_players(stone, %{ state | inactive_players: inactive_players})
   end
 
   # TODO: maybe there really isn't any need to write to the DB periodically. It is expensive and not really ever
@@ -437,6 +456,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     else
       _message_programs(messages, program_contexts)
     end
+  end
+
+  defp _petrify_old_inactive_players([], state), do: {:noreply, state}
+  defp _petrify_old_inactive_players([map_tile_id | to_stone], state) do
+    {_statue, state} = PlayerInstance.petrify(state, %{id: map_tile_id})
+
+    _petrify_old_inactive_players(to_stone, state)
   end
 
   defp _standard_behaviors([], state), do: state

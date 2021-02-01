@@ -2,7 +2,6 @@ defmodule DungeonCrawlWeb.Crawler do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.MapSets
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
@@ -79,29 +78,9 @@ defmodule DungeonCrawlWeb.Crawler do
 
       deleted_location = Player.delete_location!(location)
 
-      _broadcast_leave_event(instance_state, deleted_instance_location)
-
       {deleted_location, instance_state}
     end)
 
-    {:ok, instance_registry} = MapSets.instance_registry(msi.id)
-    # should be preloaded with the player that left (plus any others)
-    if length(msi.locations) == 1 && instance_registry do # only the player was in this map set instance so delete
-      Enum.each(msi.maps, fn(map) -> InstanceRegistry.remove(instance_registry, map.id) end)
-    end
-
     deleted_location
-  end
-
-  defp _broadcast_leave_event(instance_state, map_tile) do
-    top = Instances.get_map_tile(instance_state, map_tile)
-    tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
-#    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{instance_state.map_set_instance_id}:#{map_tile.map_instance_id}",
-#                                    "player_left",
-#                                    %{row: map_tile.row, col: map_tile.col, tile: tile})
-    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{instance_state.map_set_instance_id}:#{map_tile.map_instance_id}",
-                                    "tile_changes",
-                                    %{ tiles: [%{row: map_tile.row, col: map_tile.col, rendering: tile}] })
-
   end
 end

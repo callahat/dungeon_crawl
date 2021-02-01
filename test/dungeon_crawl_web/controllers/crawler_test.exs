@@ -66,8 +66,8 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert %Player.Location{} = location = Repo.preload(Crawler.leave_and_broadcast(location), :map_tile)
 
     rendering = "<div style='color: gray;background-color: linen'>Д</div>"
-    assert_broadcast "tile_changes", payload
-    assert %{tiles: [%{row: location.map_tile.row, col: location.map_tile.col, rendering: rendering}]} == payload
+    assert_broadcast "full_render", payload
+    assert String.contains?(payload.dungeon_render, rendering)
 
     # It unregisters the player location
     {:ok, instance} = MapSets.instance_process(msi.id, map_instance.id)

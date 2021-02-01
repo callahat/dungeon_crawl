@@ -3,12 +3,14 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
 
   defstruct map_set_instance: nil,
             state_values: %{},
-            instance_registry: nil,
+            instance_registry: %{},
             entrances: []
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.MapSetProcess
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+
+  @timeout 60_000
 
   ## Client API
 
@@ -74,6 +76,14 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
     GenServer.call(server, {:load_instance, map_instance})
   end
 
+  @doc """
+  Starts the scheduler which checks for players periodically. If there are none, terminates the
+  process and handles the database tables appropriately (ie, deletes them)
+  """
+  def start_scheduler(server, timeout \\ @timeout) do
+    Process.send_after(server, :check_for_players, timeout)
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -123,6 +133,20 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
       {:reply, :ok, %{ state | entrances: [ map_instance.id | state.entrances ] }}
     else
       {:reply, :ok, state}
+    end
+  end
+
+  @impl true
+  def handle_info(:check_for_players, state) do
+    if Enum.count(InstanceRegistry.player_location_ids(state.instance_registry)) > 0 do
+      Process.send_after(self(), :check_for_players, @timeout)
+
+      {:noreply, state}
+    else
+      # for now, delete the backing db and stop the processes. Maybe later have map set instances be configurable
+      # to stick around when empty (but idle the processes)
+      DungeonInstances.delete_map_set(state.map_set_instance)
+      {:stop, :normal, state}
     end
   end
 end

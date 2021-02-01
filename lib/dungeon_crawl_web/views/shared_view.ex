@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess, MapSets}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
 

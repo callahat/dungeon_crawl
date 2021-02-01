@@ -24,7 +24,18 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, instance_registry} = MapSets.instance_registry(map_set_instance_id)
 
     # make sure the instance is up and running
-    InstanceRegistry.lookup_or_create(instance_registry, instance_id)
+    {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, instance_id)
+
+    # remove the player from the inactive map
+    InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
+      {_, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+
+      if player_tile do
+        {:ok, %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }}
+      else
+        {:ok, instance_state}
+      end
+    end)
 
     socket = assign(socket, :instance_id, instance_id)
              |> assign(:instance_registry, instance_registry)
@@ -32,8 +43,15 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, %{instance_id: instance_id}, socket}
   end
 
-  def handle_in("ping", payload, socket) do
-    {:reply, {:ok, payload}, socket}
+  def terminate(_reason, socket) do
+    # add the player to the inactive map
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
+      {_, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {:ok, %{ instance_state | inactive_players: Map.put(inactive_players, player_tile.id, 0) }}
+    end)
+
+    :ok
   end
 
   # It is also common to receive messages from the client and
@@ -208,6 +226,31 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     end)
 
     {:reply, :ok, socket}
+  end
+
+  # todo: is sending a TOUCH message to all tiles (and not just the top one) a good idea?
+  defp _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, _unhandled_event_message, socket) do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      instance_state = if player_tile, do: Instances.remove_message_actions(instance_state, player_tile.id),
+                                       else: instance_state
+
+      with true <- _player_alive(player_tile),
+           target_tiles when target_tiles != [] <- Instances.get_map_tiles(instance_state, player_tile, direction) do
+
+        toucher = Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state]))
+        instance_state = target_tiles
+                         |> Enum.reduce(instance_state, fn(target_tile, instance_state) ->
+                               Instances.send_event(instance_state, target_tile, "TOUCH", toucher)
+                             end)
+
+        {:ok, instance_state}
+      else
+        _ -> {:ok, instance_state}
+      end
+    end)
+    {:noreply, socket}
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do

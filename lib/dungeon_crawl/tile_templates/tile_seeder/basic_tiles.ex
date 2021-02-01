@@ -11,7 +11,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
     floor = create_with_defaults!("floor", %{character: ".", name: "Floor", description: "Just a dusty floor", state: "blocking: false"})
     wall  = create_with_defaults!("wall", %{character: "#", name: "Wall",  description: "A Rough wall", state: "blocking: true"})
     rock  = rock_tile()
-    statue= create_with_defaults!("statue", %{character: "@", name: "Statue",  description: "It looks oddly familiar", state: "blocking: true"})
+    statue= statue_tile()
 
     open_door    = create_with_defaults!("open_door", %{character: "'", name: "Open Door", description: "An open door", state: "blocking: false, open: true", script: ""})
     closed_door  = create_with_defaults!("closed_door", %{character: "+", name: "Closed Door", description: "A closed door", state: "blocking: true, open: false", script: ""})
@@ -30,6 +30,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
   """
   def rock_tile() do
     create_with_defaults!("rock", %{character: " ", name: "Rock",  description: "Impassible stone", state: "blocking: true"})
+  end
+
+  @doc """
+  Seeds the DB with the basic statue tile, returning that record.
+  """
+  def statue_tile() do
+    create_with_defaults!("statue", %{character: "@", name: "Statue",  description: "It looks oddly familiar", state: "blocking: true"})
   end
 
   @doc """
@@ -132,6 +139,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
     quote do
       def basic_tiles(), do: unquote(__MODULE__).basic_tiles()
       def rock_tile(), do: unquote(__MODULE__).rock_tile()
+      def statue_tile(), do: unquote(__MODULE__).statue_tile()
       def solo_door(), do: unquote(__MODULE__).solo_door()
       def bullet_tile(), do: unquote(__MODULE__).bullet_tile()
       def player_character_tile(), do: unquote(__MODULE__).player_character_tile()

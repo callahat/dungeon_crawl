@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.MapSetProcessTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.MapSetProcess
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -10,7 +11,7 @@ defmodule DungeonCrawl.MapSetProcessTest do
   # which also has its own set of similar tests.
 
   setup do
-    {:ok, map_set_process} = MapSetProcess.start_link([])
+    map_set_process = start_supervised!(MapSetProcess)
 
     map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [[%MapTile{character: "O", row: 1, col: 1, z_index: 0}]])
 
@@ -73,5 +74,16 @@ defmodule DungeonCrawl.MapSetProcessTest do
     map_instance_id = map_instance.id
     assert :ok = MapSetProcess.load_instance(map_set_process, %{ map_instance | entrance: true })
     assert %MapSetProcess{entrances: [^map_instance_id]} = MapSetProcess.get_state(map_set_process)
+  end
+
+  describe "check_for_players" do
+    test "no players, process dies", %{map_set_process: map_set_process, map_set_instance: map_set_instance} do
+      MapSetProcess.set_map_set_instance(map_set_process, map_set_instance)
+      assert Process.alive?(map_set_process)
+      MapSetProcess.start_scheduler(map_set_process, 0) # check for players immediately
+      :timer.sleep 50
+      refute DungeonInstances.get_map_set(map_set_instance.id)
+      refute Process.alive?(map_set_process)
+    end
   end
 end

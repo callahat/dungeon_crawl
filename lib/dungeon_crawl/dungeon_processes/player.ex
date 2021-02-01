@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceRegistry, InstanceProcess, MapSets}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
   alias DungeonCrawl.TileTemplates
 
   @doc """
@@ -150,6 +150,28 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
            |> Map.merge(%{z_index: z_index})
            |> Map.merge(TileTemplates.copy_fields(tile_template))
            |> Map.put(:script, script_fn.(items_stolen))
+           |> DungeonCrawl.DungeonInstances.create_map_tile!()
+    Instances.create_map_tile(state, tile)
+  end
+
+  @doc """
+  Turns a player tile into a statue. This also removes the player location effectively kicking them from
+  the dungeon. It can be used when a player has "idled out" meaning they closed the window or just stopped
+  playing without actually leaving the dungeon.
+  """
+  def petrify(%Instances{} = state, player_tile) do
+    location = Instances.get_player_location(state, %{id: player_tile.id})
+
+    {junk_pile, state} = drop_all_items(state, player_tile)
+    {_, state} = Instances.delete_map_tile(state, player_tile)
+    Player.delete_location!(location)
+
+    # spawn statue
+    z_index_plus_one = Enum.at(Instances.get_map_tiles(state, junk_pile), 0).z_index + 1
+    tile_template = DungeonCrawl.TileTemplates.TileSeeder.statue_tile()
+    tile = Map.take(junk_pile, [:map_instance_id, :row, :col])
+           |> Map.merge(%{z_index: z_index_plus_one})
+           |> Map.merge(TileTemplates.copy_fields(tile_template))
            |> DungeonCrawl.DungeonInstances.create_map_tile!()
     Instances.create_map_tile(state, tile)
   end

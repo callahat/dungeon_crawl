@@ -60,11 +60,6 @@ defmodule DungeonCrawl.DungeonChannelTest do
     %{map_instance_id: player_location.map_tile.map_instance_id, row: player_location.map_tile.row-1, col: player_location.map_tile.col}
   end
 
-  test "ping replies with status ok", %{socket: socket} do
-    ref = push socket, "ping", %{"hello" => "there"}
-    assert_reply ref, :ok, %{"hello" => "there"}
-  end
-
   test "shout broadcasts to dungeon:lobby", %{socket: socket} do
     push socket, "shout", %{"hello" => "all"}
     assert_broadcast "shout", %{"hello" => "all"}
@@ -465,5 +460,15 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_broadcast "tile_changes", %{tiles: [%{col: _, row: _, rendering: "<div>@</div>"}]}
     assert_broadcast "stat_update", %{stats: %{health: 100}}
     assert_broadcast "message", %{message: "You live again, after 1 death"}
+  end
+
+  test "terminate/2", %{socket: socket, player_location: player_location, instance: instance} do
+    Process.unlink(socket.channel_pid) # Keep the close from raising the error in this test
+    :ok = close(socket)
+
+    InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
+      assert inactive_players[player_location.map_tile_instance_id]
+      {:ok, instance_state}
+    end)
   end
 end

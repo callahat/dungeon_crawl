@@ -179,4 +179,27 @@ defmodule DungeonCrawl.InstanceRegistryTest do
               {p3.id, p3.map_tile_instance_id}] == InstanceRegistry.player_location_ids(instance_registry)
     end
   end
+
+  test "when terminated", %{instance_registry: instance_registry} do
+      map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [[], []])
+
+      [map_1, map_2] = DungeonCrawl.Repo.preload(map_set_instance, :maps).maps
+
+      InstanceRegistry.create(instance_registry, map_1)
+      InstanceRegistry.create(instance_registry, map_2)
+
+      {:ok, instance_process_1} = InstanceRegistry.lookup(instance_registry, map_1.id)
+      {:ok, instance_process_2} = InstanceRegistry.lookup(instance_registry, map_2.id)
+
+      assert Process.alive?(instance_registry)
+      assert Process.alive?(instance_process_1)
+      assert Process.alive?(instance_process_2)
+
+      GenServer.stop(instance_registry, :shutdown)
+      :timer.sleep 50
+
+      refute Process.alive?(instance_registry)
+      refute Process.alive?(instance_process_1)
+      refute Process.alive?(instance_process_2)
+  end
 end
