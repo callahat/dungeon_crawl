@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
   use GenServer, restart: :temporary
 
+  require Logger
+
   defstruct map_set_instance: nil,
             state_values: %{},
             instance_registry: %{},
@@ -145,6 +147,7 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
     else
       # for now, delete the backing db and stop the processes. Maybe later have map set instances be configurable
       # to stick around when empty (but idle the processes)
+      Logger.info "Map Set Process ##{state.map_set_instance.id} terminating after a period of time with no players"
       DungeonInstances.delete_map_set(state.map_set_instance)
       {:stop, :normal, state}
     end

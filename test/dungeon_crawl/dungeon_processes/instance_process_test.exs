@@ -369,23 +369,41 @@ defmodule DungeonCrawl.InstanceProcessTest do
                       state: "health: 10",
                       name: "player",
                       map_instance_id: map_instance.id})
+    other_player_tile = DungeonInstances.create_map_tile!(
+                          %{row: 1,
+                            col: 3,
+                            map_instance_id: map_instance.id})
 
-    player_location = %Location{id: 555, map_tile_instance_id: player_tile.id}
+    player_location = %Location{id: player_tile.id, map_tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
+    other_player_location = %Location{id: other_player_tile.id, map_tile_instance_id: other_player_tile.id, user_id_hash: "otherhash"}
 
     InstanceProcess.run_with(instance_process, fn(state) ->
-      Map.put(state, :inactive_players, %{player_tile.id => 5, 12345 => 0})
-      |> Instances.create_player_map_tile(player_tile, player_location)
+      {_, state} = Map.put(state, :inactive_players, %{player_tile.id => 5, other_player_tile.id => 0})
+                   |> Instances.create_player_map_tile(player_tile, player_location)
+      Instances.create_player_map_tile(state, other_player_tile, other_player_location)
     end)
 
-   # :ok = InstanceProcess.load_map(instance_process, [player_tile])
+    # old player is petrified
+    :ok = Process.send(instance_process, :check_on_inactive_players, [])
+
+    %Instances{ inactive_players: inactive_players,
+                player_locations: player_locations } = InstanceProcess.get_state(instance_process)
+
+    assert %{other_player_tile.id => 1} == inactive_players
+    assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
+
+    # doesn't break when running on a player that isnt' there anymore
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {:ok, Map.put(state, :inactive_players, %{player_tile.id => 5, other_player_tile.id => 0})}
+    end)
 
     :ok = Process.send(instance_process, :check_on_inactive_players, [])
 
     %Instances{ inactive_players: inactive_players,
                 player_locations: player_locations } = InstanceProcess.get_state(instance_process)
 
-    assert %{12345 => 1} == inactive_players
-    assert player_locations == %{} # petrified and removed; this function tested elsewhere
+    assert %{other_player_tile.id => 1} == inactive_players
+    assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
   end
 
   test "write_db", %{instance_process: instance_process, map_instance: map_instance} do

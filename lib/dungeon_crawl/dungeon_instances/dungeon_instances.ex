@@ -187,6 +187,13 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Returns a single map_tile_instance based on the given id.
+  """
+  def get_map_tile_by_id(map_tile_id) do
+    Repo.get(MapTile, map_tile_id)
+  end
+
+  @doc """
   Returns a tuple containing a status atom and either the new map tile that has not been persisted to the database
   (when the attrs are valid), OR returns the invalid changeset.
   This function will be used for Instance processes when a tile is created but will either be saved to the database

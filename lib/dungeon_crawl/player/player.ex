@@ -162,14 +162,14 @@ defmodule DungeonCrawl.Player do
              where: m.id == ^dungeon_id,
              left_join: mi in assoc(m, :map_instances),
              left_join: mt in assoc(mi, :dungeon_map_tiles),
-             left_join: pmt in assoc(mt, :player_locations),
+             left_join: pmt in assoc(mt, :player_location),
              select: count(pmt.id))
   end
   def players_in_dungeon(%DungeonCrawl.DungeonInstances.Map{id: instance_id}) do
     Repo.one(from m in DungeonCrawl.DungeonInstances.Map,
              where: m.id == ^instance_id,
              left_join: mt in assoc(m, :dungeon_map_tiles),
-             left_join: pmt in assoc(mt, :player_locations),
+             left_join: pmt in assoc(mt, :player_location),
              select: count(pmt.id))
   end
 
@@ -183,7 +183,7 @@ defmodule DungeonCrawl.Player do
   def players_in_instance(%DungeonCrawl.DungeonInstances.Map{id: instance_id}) do
     Repo.all(from m in DungeonCrawl.DungeonInstances.Map,
              left_join: mt in assoc(m, :dungeon_map_tiles),
-             left_join: pmt in assoc(mt, :player_locations),
+             left_join: pmt in assoc(mt, :player_location),
              where: m.id == ^instance_id and pmt.map_tile_instance_id == mt.id,
              select: pmt)
   end

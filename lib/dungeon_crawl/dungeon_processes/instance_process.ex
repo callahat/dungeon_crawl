@@ -4,6 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   require Logger
 
   alias DungeonCrawl.Admin
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
@@ -460,9 +461,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _petrify_old_inactive_players([], state), do: {:noreply, state}
   defp _petrify_old_inactive_players([map_tile_id | to_stone], state) do
-    {_statue, state} = PlayerInstance.petrify(state, %{id: map_tile_id})
-
-    _petrify_old_inactive_players(to_stone, state)
+    if player_location = Instances.get_player_location(state, %{id: map_tile_id}) do
+      player_name = Account.get_name(player_location.user_id_hash)
+      Logger.info "Player #{player_name} has idled out and become a statue in MSI #{state.map_set_instance_id}"
+      {_statue, state} = PlayerInstance.petrify(state, %{id: map_tile_id})
+      _petrify_old_inactive_players(to_stone, state)
+    else
+       Logger.info "Player ID #{map_tile_id} has idled out but they were not found in MSI #{state.map_set_instance_id}"
+      _petrify_old_inactive_players(to_stone, state)
+    end
   end
 
   defp _standard_behaviors([], state), do: state

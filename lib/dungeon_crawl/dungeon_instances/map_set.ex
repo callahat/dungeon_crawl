@@ -13,7 +13,7 @@ defmodule DungeonCrawl.DungeonInstances.MapSet do
 
     belongs_to :map_set, DungeonCrawl.Dungeon.MapSet
     has_many :maps, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_set_instance_id, on_delete: :delete_all
-    has_many :locations, through: [:maps, :dungeon_map_tiles, :player_locations], on_delete: :delete_all
+    has_many :locations, through: [:maps, :dungeon_map_tiles, :player_location], on_delete: :delete_all
 
     timestamps()
   end
