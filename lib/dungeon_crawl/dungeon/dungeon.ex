@@ -93,7 +93,7 @@ defmodule DungeonCrawl.Dungeon do
              left_join: msi in assoc(ms, :map_set_instances),
              left_join: mi in assoc(msi, :maps),
              left_join: mt in assoc(mi, :dungeon_map_tiles),
-             left_join: pmt in assoc(mt, :player_locations),
+             left_join: pmt in assoc(mt, :player_location),
              preload: [:user, :locations, map_set_instances: {msi, locations: pmt}],
              select: %{map_set_id: ms.id, map_set: ms},
              order_by: [ms.name, pmt.id])
@@ -116,7 +116,7 @@ defmodule DungeonCrawl.Dungeon do
              left_join: msi in assoc(ms, :map_set_instances),
              left_join: mi in assoc(msi, :maps),
              left_join: mt in assoc(mi, :dungeon_map_tiles),
-             left_join: pmt in assoc(mt, :player_locations),
+             left_join: pmt in assoc(mt, :player_location),
              preload: [:user, :locations, map_set_instances: {msi, locations: pmt}],
              select: %{map_set_id: ms.id, map_set: ms},
              order_by: [ms.name, pmt.id])
@@ -444,7 +444,7 @@ defmodule DungeonCrawl.Dungeon do
              where: m.map_set_id == ^map_set.id,
              left_join: mi in assoc(m, :map_instances),
              left_join: mt in assoc(mi, :dungeon_map_tiles),
-             left_join: pmt in assoc(mt, :player_locations),
+             left_join: pmt in assoc(mt, :player_location),
              preload: [locations: {m, locations: pmt}],
              select: %{dungeon_id: m.id, dungeon: m},
              order_by: [m.number, pmt.id])

@@ -519,12 +519,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     wall       = %MapTile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: ""}
     breakable  = %MapTile{id: 993, row: 1, col: 2, z_index: 0, character: "B", state: "destroyable: true"}
     damageable = %MapTile{id: 994, row: 1, col: 3, z_index: 0, character: "D", state: "health: 10"}
-    state = %Instances{instance_id: 12345}
+    state = %Instances{map_set_instance_id: 14, instance_id: 12345}
     {wall, state} = Instances.create_map_tile(state, wall)
     {breakable, state} = Instances.create_map_tile(state, breakable)
     {damageable, state} = Instances.create_map_tile(state, damageable)
 
-    dungeon_channel = "dungeons:12345"
+    dungeon_channel = "dungeons:14:12345"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     assert {:noop, updated_state} = Instances.subtract(state, :health, 5, wall.id)
@@ -563,10 +563,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     instance = insert_stubbed_dungeon_instance()
     player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: "", map_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
-    state = %Instances{instance_id: 123}
+    state = %Instances{map_set_instance_id: 14, instance_id: 123}
     {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
 
-    dungeon_channel = "dungeons:123"
+    dungeon_channel = "dungeons:14:123"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
     player_channel = "players:444"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)

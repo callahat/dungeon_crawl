@@ -207,6 +207,29 @@ let DungeonEditor = {
             tileHtml.style["color"] = map_tile_attrs.color
             tileHtml.style["background-color"] = map_tile_attrs.background_color
 
+            if(map_tile_attrs.animate_characters != "" ||
+               map_tile_attrs.animate_colors != "" ||
+               map_tile_attrs.animate_background_colors != ""){
+
+              tileHtml.setAttribute("data-random", map_tile_attrs.animate_random)
+              tileHtml.setAttribute("data-period", map_tile_attrs.animate_period)
+              tileHtml.setAttribute("data-characters", map_tile_attrs.animate_characters)
+              tileHtml.setAttribute("data-colors", map_tile_attrs.animate_colors)
+              tileHtml.setAttribute("data-background-colors", map_tile_attrs.animate_background_colors)
+
+              tileHtml.classList.add("animate")
+              if(map_tile_attrs.animate_random == "true"){
+                tileHtml.classList.add("random")
+              } else {
+                tileHtml.classList.remove("random")
+              }
+              //window.TileAnimation.renderTile(window.TileAnimation, div)
+            } else {
+              tileHtml.classList.remove("animate")
+              tileHtml.classList.remove("random")
+            }
+
+
             paintTileFunction(map_location_td, {selectedTileId: "",
                                                 selectedTileHtml: tileHtml,
                                                 selectedTileColor: map_tile_attrs.color,
@@ -577,21 +600,6 @@ let DungeonEditor = {
       div.setAttribute("class", "new-map-tile")
     } else {
       div.setAttribute("class", "changed-map-tile")
-    }
-
-    if(context.selectedTileAnimateCharacters != "" ||
-       context.selectedTileAnimateColors != "" ||
-       context.selectedTileAnimateBackgroundColors != ""){
-      div.classList.add("animate")
-      if(context.selectedTileAnimateRandom == "true"){
-        div.classList.add("random")
-      } else {
-        div.classList.remove("random")
-      }
-      window.TileAnimation.renderTile(window.TileAnimation, div)
-    } else {
-      div.classList.remove("animate")
-      div.classList.remove("random")
     }
   },
   getMapLocation(event){

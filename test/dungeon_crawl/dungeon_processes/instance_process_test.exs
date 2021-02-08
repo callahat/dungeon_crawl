@@ -22,6 +22,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     map_tile = DungeonCrawl.Repo.get_by(MapTile, %{map_instance_id: map_instance.id})
 
     InstanceProcess.set_instance_id(instance_process, map_instance.id)
+    InstanceProcess.set_map_set_instance_id(instance_process, map_instance.map_set_instance_id)
     InstanceProcess.load_map(instance_process, [map_tile])
     InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
 
@@ -50,6 +51,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
     number = map_instance.number
     InstanceProcess.set_level_number(instance_process, number)
     assert %{ number: ^number } = InstanceProcess.get_state(instance_process)
+  end
+
+  test "set_adjacent_map_id" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    InstanceProcess.set_adjacent_map_id(instance_process, 1, "north")
+    assert %{ adjacent_map_ids: %{"north" => 1} } = InstanceProcess.get_state(instance_process)
   end
 
   test "set_state_values" do
@@ -149,7 +156,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "perform_actions", %{instance_process: instance_process, map_instance: map_instance} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     map_tiles = [
@@ -198,7 +205,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   test "perform_actions adds messages to programs", %{instance_process: instance_process,
                                                       map_instance: map_instance,
                                                       map_tile_id: map_tile_id} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     tt = insert_tile_template()
@@ -233,7 +240,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
                                                                                map_instance: map_instance} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     map_tiles = [
@@ -315,7 +322,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   test "perform_actions handles behavior 'destroyable'", %{instance_process: instance_process,
                                                            map_instance: map_instance,
                                                            map_tile_id: map_tile_id} do
-    dungeon_channel = "dungeons:#{map_instance.id}"
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     tt = insert_tile_template()
@@ -350,6 +357,53 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert [ ^shooter_map_tile_id ] = Map.keys(program_contexts)
     assert [ ^shooter_map_tile_id ] = Map.keys(map_by_ids)
     assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
+  end
+
+  test "check_on_inactive_players", %{instance_process: instance_process, map_instance: map_instance} do
+    player_tile = DungeonInstances.create_map_tile!(
+                    %{character: "@",
+                      row: 1,
+                      col: 3,
+                      z_index: 0,
+                      script: "",
+                      state: "health: 10",
+                      name: "player",
+                      map_instance_id: map_instance.id})
+    other_player_tile = DungeonInstances.create_map_tile!(
+                          %{row: 1,
+                            col: 3,
+                            map_instance_id: map_instance.id})
+
+    player_location = %Location{id: player_tile.id, map_tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
+    other_player_location = %Location{id: other_player_tile.id, map_tile_instance_id: other_player_tile.id, user_id_hash: "otherhash"}
+
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Map.put(state, :inactive_players, %{player_tile.id => 5, other_player_tile.id => 0})
+                   |> Instances.create_player_map_tile(player_tile, player_location)
+      Instances.create_player_map_tile(state, other_player_tile, other_player_location)
+    end)
+
+    # old player is petrified
+    :ok = Process.send(instance_process, :check_on_inactive_players, [])
+
+    %Instances{ inactive_players: inactive_players,
+                player_locations: player_locations } = InstanceProcess.get_state(instance_process)
+
+    assert %{other_player_tile.id => 1} == inactive_players
+    assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
+
+    # doesn't break when running on a player that isnt' there anymore
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {:ok, Map.put(state, :inactive_players, %{player_tile.id => 5, other_player_tile.id => 0})}
+    end)
+
+    :ok = Process.send(instance_process, :check_on_inactive_players, [])
+
+    %Instances{ inactive_players: inactive_players,
+                player_locations: player_locations } = InstanceProcess.get_state(instance_process)
+
+    assert %{other_player_tile.id => 1} == inactive_players
+    assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
   end
 
   test "write_db", %{instance_process: instance_process, map_instance: map_instance} do

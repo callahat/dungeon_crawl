@@ -121,6 +121,11 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert ^map_tile = DungeonInstances.get_map_tile(map_tile.map_instance_id, map_tile.row, map_tile.col)
     end
 
+    test "get_map_tile_by_id/1" do
+      map_tile = Map.delete(map_tile_fixture(), :tile_template_id)
+      assert ^map_tile = DungeonInstances.get_map_tile_by_id(map_tile.id)
+    end
+
     test "new_map_tile/1 with valid data returns a populated MapTile struct" do
       other_map_tile = map_tile_fixture()
       assert {:ok, %MapTile{id: nil} = _map_tile} = DungeonInstances.new_map_tile(Map.merge @valid_attrs, Map.take(other_map_tile, [:map_instance_id, :tile_template_id]))

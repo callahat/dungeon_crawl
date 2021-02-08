@@ -1,8 +1,8 @@
 defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.Player
+  alias DungeonCrawl.DungeonProcesses.MapSets
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
@@ -52,7 +52,7 @@ defmodule DungeonCrawl.Action.Travel do
         {:ok, state}
 
       true ->
-        {:ok, dest_instance} = InstanceRegistry.lookup_or_create(DungeonInstanceRegistry, target_map.id)
+        {:ok, dest_instance} = MapSets.instance_process(target_map.map_set_instance_id, target_map.id)
         InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
           {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location, passage)
 
@@ -79,7 +79,7 @@ defmodule DungeonCrawl.Action.Travel do
   defp _broadcast_tile_change(state, coord) do
     top_tile = Instances.get_map_tile(state, coord)
     payload = Elixir.Map.put(Elixir.Map.take(coord, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-    DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+    DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
                                        "tile_changes",
                                        %{tiles: [payload]}
   end

@@ -4,9 +4,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   require Logger
 
   alias DungeonCrawl.Admin
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -14,6 +16,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   ## Client API
 
   @timeout 50
+  @inactive_player_timeout 60_000
 
   @doc """
   Starts the instance process.
@@ -82,6 +85,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   """
   def start_scheduler(instance) do
     Process.send_after(instance, :perform_actions, @timeout)
+    Process.send_after(instance, :check_on_inactive_players, @inactive_player_timeout)
   end
 
   @doc """
@@ -284,6 +288,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     {:noreply, state}
   end
 
+  @impl true
   def handle_info(:perform_actions, %Instances{} = state) do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
@@ -297,6 +302,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     Process.send_after(self(), :perform_actions, @timeout)
 
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:check_on_inactive_players, %Instances{inactive_players: inactive_players} = state) do
+    {stone, inactive_players} = inactive_players
+                                |> Map.to_list()
+                                |> Enum.map(fn {map_tile_id, count} -> {map_tile_id, count + 1} end)
+                                |> Enum.split_with(fn {_, count} -> count > 5 end)
+
+    inactive_players = Enum.into(inactive_players, %{})
+    stone = Keyword.keys(stone)
+
+    Process.send_after(self(), :check_on_inactive_players, @inactive_player_timeout)
+
+    _petrify_old_inactive_players(stone, %{ state | inactive_players: inactive_players})
   end
 
   # TODO: maybe there really isn't any need to write to the DB periodically. It is expensive and not really ever
@@ -390,7 +410,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _rerender_tiles(state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
       dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}",
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
                                          "full_render",
                                          %{dungeon_render: dungeon_table}
     else
@@ -403,7 +423,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
          end)
       payload = %{tiles: tile_changes}
 
-      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.instance_id}", "tile_changes", payload)
+      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload)
     end
 
     %{ state | rerender_coords: %{} }
@@ -436,6 +456,19 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                                                                     event_sender: sender}})
     else
       _message_programs(messages, program_contexts)
+    end
+  end
+
+  defp _petrify_old_inactive_players([], state), do: {:noreply, state}
+  defp _petrify_old_inactive_players([map_tile_id | to_stone], state) do
+    if player_location = Instances.get_player_location(state, %{id: map_tile_id}) do
+      player_name = Account.get_name(player_location.user_id_hash)
+      Logger.info "Player #{player_name} has idled out and become a statue in MSI #{state.map_set_instance_id}"
+      {_statue, state} = PlayerInstance.petrify(state, %{id: map_tile_id})
+      _petrify_old_inactive_players(to_stone, state)
+    else
+       Logger.info "Player ID #{map_tile_id} has idled out but they were not found in MSI #{state.map_set_instance_id}"
+      _petrify_old_inactive_players(to_stone, state)
     end
   end
 
@@ -480,7 +513,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       payload = %{tiles: [
                    Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                   ]}
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.instance_id}", "tile_changes", payload
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
     end
 
     _standard_behaviors(messages, state)

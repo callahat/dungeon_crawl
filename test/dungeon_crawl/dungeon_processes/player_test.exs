@@ -26,7 +26,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                  {_, state} = Instances.create_map_tile(state, dmt)
                  state
                end)
-    state = %{ state | spawn_coordinates: [{2,3}] }
+    state = %{ state | spawn_coordinates: [{2,3}], player_locations: %{player_location.map_tile.id => player_location} }
 
     %{state: state, player_map_tile: player_location.map_tile, player_location: player_location}
   end
@@ -92,6 +92,31 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert junk_pile.script =~ ~r/#GIVE cash, 420, \?sender/i
     assert junk_pile.script =~ ~r/#GIVE gems, 1, \?sender/i
     assert junk_pile.script =~ ~r/#GIVE red_key, 1, \?sender/i
+  end
+
+  test "petrify/2", %{state: state, player_map_tile: player_map_tile} do
+    {statue, state} = Player.petrify(state, player_map_tile)
+
+    [top, junk_pile | _others] = Instances.get_map_tiles(state, statue)
+
+    assert top == statue
+
+    assert %{row: player_map_tile.row,
+             col: player_map_tile.col,
+             character: "@"} == Map.take(statue, [:row, :col, :character])
+    assert statue.z_index == 3
+
+    assert %{row: player_map_tile.row,
+             col: player_map_tile.col,
+             character: "Д"} == Map.take(junk_pile, [:row, :col, :character])
+    assert junk_pile.z_index == 2
+
+    assert junk_pile.script =~ ~r/#GIVE ammo, 4, \?sender/i
+    assert junk_pile.script =~ ~r/#GIVE cash, 420, \?sender/i
+    assert junk_pile.script =~ ~r/#GIVE gems, 1, \?sender/i
+    assert junk_pile.script =~ ~r/#GIVE red_key, 1, \?sender/i
+
+    refute state.map_by_ids[player_map_tile.id]
   end
 
   test "respawn/2", %{state: state, player_map_tile: player_map_tile} do

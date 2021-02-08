@@ -26,7 +26,7 @@ defmodule DungeonCrawl.DungeonInstances.MapTile do
     field :animate_period, :integer
 
     belongs_to :dungeon, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_instance_id
-    has_many :player_locations, DungeonCrawl.Player.Location, foreign_key: :map_tile_instance_id, on_delete: :delete_all
+    has_one :player_location, DungeonCrawl.Player.Location, foreign_key: :map_tile_instance_id, on_delete: :delete_all
   end
 
   @doc false

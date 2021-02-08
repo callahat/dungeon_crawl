@@ -60,7 +60,7 @@
                 <td><%= msi.locations |> Enum.count %></td>
                 <td>
                   <span class="pull-right">
-                    <%= link "Join", to: Routes.crawler_path(@conn, :join, map_set_instance_id: msi.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                    <%= link "Join", to: Routes.crawler_path(@conn, :avatar, map_set_instance_id: msi.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
                   </span>
                 </td>
               </tr>

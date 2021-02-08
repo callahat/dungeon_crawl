@@ -1,5 +1,8 @@
 <pre class="dungeon_preview border rounded"
-><table id="dungeon_instance" data-instance-id="<%= @dungeon.id %>" data-readonly="<%= @readonly %>">
+><table id="dungeon_instance"
+        data-map-set-id="<%= @dungeon.map_set_instance_id %>"
+        data-instance-id="<%= @dungeon.id %>"
+        data-readonly="<%= @readonly %>">
 <%= {:safe, dungeon_as_table(@dungeon, @height, @width) } %>
 </table
 ></pre>

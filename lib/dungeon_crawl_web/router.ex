@@ -50,6 +50,10 @@ defmodule DungeonCrawlWeb.Router do
     resources "/users", ManageUserController
     resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
     resources "/settings", SettingController, singleton: true, only: [:edit, :update]
+    resources "/map_sets", ManageMapSetInstanceController, only: [:index, :show, :delete]
+       get    "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :show
+       delete "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :delete
+
 #    resources "/tile_templates", ManageTileTemplateController
 #      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
 #      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
