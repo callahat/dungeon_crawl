@@ -394,6 +394,51 @@ ALTER SEQUENCE public.spawn_locations_id_seq OWNED BY public.spawn_locations.id;
 
 
 --
+-- Name: tile_shortlists; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tile_shortlists (
+    id bigint NOT NULL,
+    user_id bigint,
+    tile_template_id bigint,
+    name character varying(255),
+    "character" character varying(255),
+    description character varying(255),
+    color character varying(255),
+    background_color character varying(255),
+    script character varying(255),
+    state character varying(255),
+    slug character varying(255),
+    animate_random boolean,
+    animate_colors character varying(255),
+    animate_background_colors character varying(255),
+    animate_characters character varying(32),
+    animate_period integer,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: tile_shortlists_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.tile_shortlists_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: tile_shortlists_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.tile_shortlists_id_seq OWNED BY public.tile_shortlists.id;
+
+
+--
 -- Name: tile_templates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -543,6 +588,13 @@ ALTER TABLE ONLY public.spawn_locations ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: tile_shortlists id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tile_shortlists ALTER COLUMN id SET DEFAULT nextval('public.tile_shortlists_id_seq'::regclass);
+
+
+--
 -- Name: tile_templates id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -634,6 +686,14 @@ ALTER TABLE ONLY public.settings
 
 ALTER TABLE ONLY public.spawn_locations
     ADD CONSTRAINT spawn_locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tile_shortlists tile_shortlists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tile_shortlists
+    ADD CONSTRAINT tile_shortlists_pkey PRIMARY KEY (id);
 
 
 --
@@ -748,6 +808,20 @@ CREATE INDEX spawn_locations_dungeon_id_index ON public.spawn_locations USING bt
 --
 
 CREATE UNIQUE INDEX spawn_locations_dungeon_id_row_col_index ON public.spawn_locations USING btree (dungeon_id, "row", col);
+
+
+--
+-- Name: tile_shortlists_tile_template_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tile_shortlists_tile_template_id_index ON public.tile_shortlists USING btree (tile_template_id);
+
+
+--
+-- Name: tile_shortlists_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tile_shortlists_user_id_index ON public.tile_shortlists USING btree (user_id);
 
 
 --
@@ -889,6 +963,22 @@ ALTER TABLE ONLY public.spawn_locations
 
 
 --
+-- Name: tile_shortlists tile_shortlists_tile_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tile_shortlists
+    ADD CONSTRAINT tile_shortlists_tile_template_id_fkey FOREIGN KEY (tile_template_id) REFERENCES public.tile_templates(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tile_shortlists tile_shortlists_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tile_shortlists
+    ADD CONSTRAINT tile_shortlists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: tile_templates tile_templates_previous_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -908,5 +998,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414), (20201117224347), (20201204023727), (20201205171203), (20201215004936);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414), (20201117224347), (20201204023727), (20201205171203), (20201215004936), (20210208023219);
 
