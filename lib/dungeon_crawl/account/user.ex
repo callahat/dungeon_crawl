@@ -16,6 +16,7 @@ defmodule DungeonCrawl.Account.User do
     field :color, :string, default: "black"
 
     has_many :map_sets, DungeonCrawl.Dungeon.MapSet
+    has_many :tile_shortlist, DungeonCrawl.TileShortlists.TileShortlist
 
     timestamps()
   end
