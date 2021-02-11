@@ -51,5 +51,15 @@ defmodule DungeonCrawl.TileShortlistsTest do
       assert %{character: ^last_character} = Enum.at(list, 0)
       assert %{character: "Y"} = Enum.at(list, 19)
     end
+
+    test "add_to_shortlist/2 but the input is bad", config do
+      bad_params = %{name: "1234567890abcdefghijklmnopqrstuvwxyz", state: "bad", script: "#DERP alsobad"}
+      assert {:error, changeset} = TileShortlists.add_to_shortlist(config.user1, bad_params)
+      assert %{
+               script: ["Unknown command: `DERP` - near line 1"],
+               state: ["Error parsing around: bad"],
+               name: ["should be at most 32 character(s)"]
+             } = errors_on(changeset)
+    end
   end
 end

@@ -56,7 +56,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     |> validate_required([:name, :description])
     |> validate_animation_fields
     |> validate_renderables
-    |> validate_script(tile_template) # seems like an clumsy way to get a user just to validate a TTID in a script
+    |> validate_script(tile_template.user_id) # seems like an clumsy way to get a user just to validate a TTID in a script
     |> validate_state_values
   end
 
@@ -75,9 +75,9 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_script(changeset, tile_template) do
+  def validate_script(changeset, user_id) do
     script = get_field(changeset, :script)
-    _validate_script(changeset, script, tile_template)
+    _validate_script(changeset, script, user_id)
   end
 
   @doc false
@@ -90,10 +90,10 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   defp _validate_script(changeset, nil, _), do: changeset
-  defp _validate_script(changeset, script, tile_template) do
+  defp _validate_script(changeset, script, user_id) do
     case Scripting.Parser.parse(script) do
       {:error, message, program} -> add_error(changeset, :script, "#{message} - near line #{Enum.count(program.instructions) + 1}")
-      {:ok, program}             -> _validate_program(changeset, changeset.changes[:user_id] || tile_template.user_id, program)
+      {:ok, program}             -> _validate_program(changeset, changeset.changes[:user_id] || user_id, program)
     end
   end
   defp _validate_program(changeset, user_id, program) do

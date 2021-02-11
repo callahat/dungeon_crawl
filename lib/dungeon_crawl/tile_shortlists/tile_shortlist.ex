@@ -50,5 +50,6 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
     |> TileTemplate.validate_animation_fields
     |> TileTemplate.validate_renderables
     |> TileTemplate.validate_state_values
+    |> TileTemplate.validate_script(tile_shortlist.user_id)
   end
 end

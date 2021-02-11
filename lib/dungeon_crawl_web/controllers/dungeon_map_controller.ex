@@ -181,7 +181,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
 
   def validate_map_tile(conn, %{"dungeon_id" => map_set_id, "id" => id, "map_tile" => map_tile_params}) do
     map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Elixir.Map.merge(map_tile_params, %{"map_set_id" => map_set_id, "dungeon_id" => id}))
-                         |> TileTemplates.TileTemplate.validate_script(%{user_id: conn.assigns.current_user.id})
+                         |> TileTemplates.TileTemplate.validate_script(conn.assigns.current_user.id)
 
     render(conn, "map_tile_errors.json", map_tile_errors: map_tile_changeset.errors)
   end
