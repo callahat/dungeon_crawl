@@ -2,6 +2,7 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   schema "tile_shortlists" do
@@ -47,9 +48,26 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
                     :user_id])
     |> validate_length(:name, max: 32)
     |> validate_required([:user_id])
+    |> _validate_tile_template_id
     |> TileTemplate.validate_animation_fields
     |> TileTemplate.validate_renderables
     |> TileTemplate.validate_state_values
     |> TileTemplate.validate_script(tile_shortlist.user_id)
+  end
+
+  defp _validate_tile_template_id(changeset) do
+    if tile_template_id = get_field(changeset, :tile_template_id) do
+      _validate_tile_template_not_historic(changeset, TileTemplates.get_tile_template(tile_template_id))
+    else
+      changeset
+    end
+  end
+
+  defp _validate_tile_template_not_historic(changeset, nil) do
+    add_error(changeset, :tile_template_id, "tile template does not exist")
+  end
+  defp _validate_tile_template_not_historic(changeset, %{deleted_at: nil}), do: changeset
+  defp _validate_tile_template_not_historic(changeset, _historic) do
+    add_error(changeset, :tile_template_id, "cannot shortlist an historic tile template")
   end
 end

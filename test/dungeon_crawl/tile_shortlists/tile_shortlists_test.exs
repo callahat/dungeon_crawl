@@ -61,5 +61,22 @@ defmodule DungeonCrawl.TileShortlistsTest do
                name: ["should be at most 32 character(s)"]
              } = errors_on(changeset)
     end
+
+    test "add_to_shortlist/2 with ok tile_template_id", config do
+      tile_template = insert_tile_template()
+      assert {:ok, tile_shortlist} = TileShortlists.add_to_shortlist(config.user1, %{tile_template_id: tile_template.id})
+      assert tile_shortlist.tile_template_id == tile_template.id
+    end
+
+    test "add_to_shortlist/2 with bad tile_template_id", config do
+      assert {:error, changeset} = TileShortlists.add_to_shortlist(config.user1, %{tile_template_id: 12345})
+      assert errors_on(changeset).tile_template_id == ["tile template does not exist"]
+    end
+
+    test "add_to_shortlist/2 with historic tile_template_id", config do
+      tile_template = insert_tile_template(%{deleted_at: NaiveDateTime.utc_now})
+      assert {:error, changeset} = TileShortlists.add_to_shortlist(config.user1, %{tile_template_id: tile_template.id})
+      assert errors_on(changeset).tile_template_id == ["cannot shortlist an historic tile template"]
+    end
   end
 end
