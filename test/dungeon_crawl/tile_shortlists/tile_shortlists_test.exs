@@ -41,6 +41,15 @@ defmodule DungeonCrawl.TileShortlistsTest do
       assert TileShortlists.list_tiles(config.user2) == [added_tile, config.tile3]
     end
 
+    test "add_to_shortlist/2 when its a tile template", config do
+      tile_template = insert_tile_template()
+      assert {:ok, added_tile} = TileShortlists.add_to_shortlist(config.user2, tile_template)
+      expected_character = tile_template.character
+      expected_name = tile_template.name
+      assert %{character: ^expected_character, name: ^expected_name} = added_tile
+      assert TileShortlists.list_tiles(config.user2) == [added_tile, config.tile3]
+    end
+
     test "add_to_shortlist/2 drops the oldest first to maintain a list that is short", config do
       Enum.each (?a)..(?a+18), fn(i) -> TileShortlists.add_to_shortlist(config.user1, %{character: "#{[i]}"}) end
 

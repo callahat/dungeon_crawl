@@ -29,6 +29,11 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
   end
 
   @doc false
+  def changeset(tile_shortlist, %TileTemplate{} = attrs) do
+    changeset(tile_shortlist, Map.drop(attrs, [:__meta__, :__struct__, :user_id]))
+  end
+
+  @doc false
   def changeset(tile_shortlist, attrs) do
     tile_shortlist
     |> cast(attrs, [:background_color,

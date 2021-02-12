@@ -60,6 +60,9 @@
                   <b>Tile Pallette</b>
                   <br/>
                   <div class="tile_pallette_group">
+                    <%= tile_template_pres(@tile_shortlist) %>
+<hr/>
+
                     <%= tile_template_pres(@tile_templates.active) %>
 
                     <%= if Enum.count(@historic_templates) > 0 do %>
