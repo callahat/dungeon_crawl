@@ -12,7 +12,7 @@ defmodule DungeonCrawl.Repo.Migrations.CreateTileShortlists do
       add :color, :string
       add :background_color, :string
 
-      add :script, :string
+      add :script, :string, size: 2048
       add :state, :string
       add :slug, :string
 

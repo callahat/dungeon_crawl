@@ -406,7 +406,7 @@ CREATE TABLE public.tile_shortlists (
     description character varying(255),
     color character varying(255),
     background_color character varying(255),
-    script character varying(255),
+    script character varying(2048),
     state character varying(255),
     slug character varying(255),
     animate_random boolean,
