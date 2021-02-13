@@ -8,8 +8,9 @@ defmodule DungeonCrawl.TileShortlists do
 
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.TileShortlists.TileShortlist
+  alias DungeonCrawl.TileTemplates.TileSeeder
 
-  @max_size 20
+  @max_size 30
 
   @doc """
   Returns the list of tile_shortlists.
@@ -51,8 +52,28 @@ defmodule DungeonCrawl.TileShortlists do
     %TileShortlist{user_id: user_id}
     |> TileShortlist.changeset(attrs)
     |> Repo.insert()
+    |> _dedupe()
     |> _trim_shortlist()
   end
+
+  defp _dedupe({:error, _changeset} = result), do: result
+  defp _dedupe({:ok, shortlist_entry} = result) do
+    tile_attrs = Map.take(shortlist_entry, TileShortlist.key_attributes())
+                 |> Map.put(:user_id, shortlist_entry.user_id)
+    [_added | dupes] = Repo.all(from _attrs_query(tile_attrs), order_by: [desc: :id])
+    Enum.each(dupes, fn dupe -> Repo.delete(dupe) end)
+    result
+  end
+
+  defp _attrs_query(attrs) do
+    Enum.reduce(attrs, TileShortlist,
+      fn {x,y}, query ->
+        _attrs_where(query, {x, y})
+      end)
+  end
+
+  defp _attrs_where(query, {key,   nil}), do: where(query, [ts], is_nil(field(ts, ^key)))
+  defp _attrs_where(query, {key, value}), do: where(query, ^[{key, value}])
 
   defp _trim_shortlist({:error, _changeset} = result), do: result
   defp _trim_shortlist({:ok, shortlist_entry} = result) do
@@ -67,5 +88,50 @@ defmodule DungeonCrawl.TileShortlists do
     end
 
     result
+  end
+
+  @doc """
+  Adds some basic tiles to the users shortlist (if there is room).
+  """
+  def seed_shortlist(%User{id: user_id}) do
+    seed_shortlist(user_id)
+  end
+  def seed_shortlist(user_id) do
+    current_list = list_tiles(user_id)
+
+    basic_tiles = TileSeeder.basic_tiles()
+    [
+      TileSeeder.generic_colored_key(),
+      TileSeeder.generic_colored_door(),
+      TileSeeder.ammo(),
+      TileSeeder.cash(),
+      TileSeeder.gem(),
+      TileSeeder.heart(),
+      TileSeeder.medkit(),
+      TileSeeder.scroll(),
+      TileSeeder.bomb(),
+      TileSeeder.passage(),
+      TileSeeder.stairs_up(),
+      TileSeeder.stairs_down(),
+      TileSeeder.boulder(),
+      TileSeeder.solo_door(),
+      basic_tiles["@"],
+      basic_tiles[" "],
+      basic_tiles["'"],
+      basic_tiles["+"],
+      basic_tiles["#"],
+      basic_tiles["."]
+    ]
+    |> Enum.each(fn tile ->
+         tile_attrs = Map.take(tile, TileShortlist.key_attributes())
+         add_to_shortlist(user_id, tile_attrs)
+       end)
+
+    current_list
+    |> Enum.reverse
+    |> Enum.each(fn tile ->
+         tile_attrs = Map.take(tile, TileShortlist.key_attributes())
+         add_to_shortlist(user_id, tile_attrs)
+       end)
   end
 end

@@ -5,6 +5,22 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  @key_attributes [:background_color,
+                   :character,
+                   :color,
+                   :description,
+                   :name,
+                   :slug,
+                   :script,
+                   :state,
+                   :animate_random,
+                   :animate_colors,
+                   :animate_background_colors,
+                   :animate_characters,
+                   :animate_period,
+                   :tile_template_id]
+  @changeset_attributes [:user_id | @key_attributes ]
+
   schema "tile_shortlists" do
     field :background_color, :string
     field :character, :string
@@ -29,6 +45,11 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
   end
 
   @doc false
+  def key_attributes() do
+    @key_attributes
+  end
+
+  @doc false
   def changeset(tile_shortlist, %TileTemplate{} = attrs) do
     changeset(tile_shortlist, Map.drop(attrs, [:__meta__, :__struct__, :user_id]))
   end
@@ -36,21 +57,7 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
   @doc false
   def changeset(tile_shortlist, attrs) do
     tile_shortlist
-    |> cast(attrs, [:background_color,
-                    :character,
-                    :color,
-                    :description,
-                    :name,
-                    :slug,
-                    :script,
-                    :state,
-                    :animate_random,
-                    :animate_colors,
-                    :animate_background_colors,
-                    :animate_characters,
-                    :animate_period,
-                    :tile_template_id,
-                    :user_id])
+    |> cast(attrs, @changeset_attributes)
     |> validate_length(:name, max: 32)
     |> validate_required([:user_id])
     |> _validate_tile_template_id
