@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.UserController do
   alias DungeonCrawl.Account
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.TileShortlists
 
   def new(conn, _params) do
     changeset = Account.change_user_registration(%User{})
@@ -14,7 +15,9 @@ defmodule DungeonCrawlWeb.UserController do
 
   def create(conn, %{"user" => user_params}) do
     case Account.create_user(_registration_params(conn, user_params)) do
-      {:ok, _user} ->
+      {:ok, user} ->
+        TileShortlists.seed_shortlist(user)
+
         conn
         |> put_flash(:info, "User created successfully.")
         |> redirect(to: Routes.page_path(conn, :index))

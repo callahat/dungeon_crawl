@@ -1,6 +1,7 @@
 defmodule DungeonCrawlWeb.UserControllerTest do
   use DungeonCrawlWeb.ConnCase
   alias DungeonCrawl.Account.User
+  alias DungeonCrawl.TileShortlists
 
   import Plug.Conn, only: [assign: 3, get_session: 2]
 
@@ -25,7 +26,8 @@ defmodule DungeonCrawlWeb.UserControllerTest do
   test "creates resource and redirects when data is valid", %{conn: conn} do
     conn = post conn, user_path(conn, :create), user: @valid_attrs
     assert redirected_to(conn) == page_path(conn, :index)
-    assert Repo.get_by(User, Map.delete(@valid_attrs, :password))
+    assert user = Repo.get_by(User, Map.delete(@valid_attrs, :password))
+    assert length(TileShortlists.list_tiles(user)) == 16
   end
 
   test "generates the user_id_hash from the session", %{conn: conn} do
