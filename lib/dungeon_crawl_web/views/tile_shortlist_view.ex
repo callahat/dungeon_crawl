@@ -1,6 +1,8 @@
 defmodule DungeonCrawlWeb.TileShortlistView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.TileShortlists
+
   def render("tile_shortlist.json", %{tile_shortlist: tile_shortlist}) do
     details = Map.take(tile_shortlist, [:background_color,
                     :character,
@@ -18,7 +20,9 @@ defmodule DungeonCrawlWeb.TileShortlistView do
                     :tile_template_id])
     tile_pre = render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: details, historic: false})
 
-    %{tile_shortlist: details, tile_pre: tile_pre}
+    %{tile_shortlist: details,
+      tile_pre: tile_pre,
+      attr_hash: TileShortlists.hash(details)}
   end
 
   def render("tile_shortlist.json", %{errors: tile_shortlist_errors}) do

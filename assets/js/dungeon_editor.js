@@ -837,12 +837,20 @@ let DungeonEditor = {
     context.addTileToShortlist(attributes, context)
   },
   addTileToShortlist(shortlist_attributes, context){
-
-    $.post("/tile_shortlists", {tile_shortlist: shortlist_attributes, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
+    $.post("/tile_shortlists", {tile_shortlist: shortlist_attributes,
+                                _csrf_token: document.getElementsByName("_csrf_token")[0].value})
      .done(function(resp){
-        document.getElementById("tile_pallette_entries").insertAdjacentHTML("afterbegin", resp.tile_pre)
-        document.querySelector("#tile_pallette_entries pre:first-of-type")
+        document.getElementById("tile_shortlist_entries").insertAdjacentHTML("afterbegin", resp.tile_pre)
+        document.querySelector("#tile_shortlist_entries pre:first-of-type")
                 .addEventListener('click', e => { context.updateActiveTile(e.target) });
+        let tiles = document.querySelectorAll(
+              "#tile_shortlist_entries [name=paintable_tile_template][data-attr-hash='" + resp.attr_hash + "']"),
+            dupeTiles = Array.prototype.slice.call(tiles, 1)
+        dupeTiles.forEach( tile => tile.remove() )
+
+        let fullShortlist = document.querySelectorAll("#tile_shortlist_entries [name=paintable_tile_template]"),
+            tilesToTrim = Array.prototype.slice.call(fullShortlist, 30)
+        tilesToTrim.forEach( tile => tile.remove() )
      })
      .fail(function(resp){
         console.log(resp.status)

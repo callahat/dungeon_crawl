@@ -18,4 +18,5 @@
   data-characters="<%= @tile_template.animate_characters %>"
   data-colors="<%= @tile_template.animate_colors %>"
   data-background-colors="<%= @tile_template.animate_background_colors %>"
+  data-attr-hash="<%= DungeonCrawl.TileShortlists.hash(@tile_template) %>"
 ><%= {:safe, DungeonCrawlWeb.SharedView.tile_and_style(@tile_template)} %></pre>

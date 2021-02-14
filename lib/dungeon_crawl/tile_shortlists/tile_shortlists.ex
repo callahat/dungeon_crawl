@@ -135,4 +135,18 @@ defmodule DungeonCrawl.TileShortlists do
          add_to_shortlist(user_id, tile_attrs)
        end)
   end
+
+  @doc """
+  Returns a hashed base64 encoded string of the TileShortlist entry.
+  """
+  def hash(attrs) do
+    Base.encode64(:crypto.hash(:sha256, characteristic_string(attrs)))
+  end
+
+  defp characteristic_string(attrs) do
+    Map.take(attrs, TileShortlist.key_attributes())
+    |> Enum.sort()
+    |> Keyword.values
+    |> Enum.join("")
+  end
 end
