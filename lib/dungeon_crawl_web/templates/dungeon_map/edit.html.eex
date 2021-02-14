@@ -20,4 +20,5 @@ window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_map_edge_
 
 <%= render "tile_edit_modal.html" %>
 <%= render "tile_detail_modal.html" %>
+<%= render "tile_list_modal.html", tile_templates: @tile_templates %>
 <%= render DungeonCrawlWeb.SharedView, "character_select_modal.html" %>

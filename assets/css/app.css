@@ -146,6 +146,14 @@ input#tile_template_character {
   border-right: 1px solid black;
 }
 
+#tileListModal .btn-sm {
+  padding: 0rem 0.25rem;
+}
+
+#tileListModal .modal-dialog {
+  max-width: 700px
+}
+
 /*
  * Table with sticky header row
  */

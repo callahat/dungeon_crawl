@@ -124,6 +124,7 @@ defmodule DungeonCrawl.TileShortlists do
     ]
     |> Enum.each(fn tile ->
          tile_attrs = Map.take(tile, TileShortlist.key_attributes())
+                      |> Map.put(:tile_template_id, tile.id)
          add_to_shortlist(user_id, tile_attrs)
        end)
 

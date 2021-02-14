@@ -7,9 +7,9 @@ let DungeonEditor = {
 
     for(let tile_template of document.getElementsByName("paintable_tile_template")){
       tile_template.addEventListener('click', e => { this.updateActiveTile(e.target) });
-      window.addEventListener('keydown', e => { this.hilightTiles(e) });
-      window.addEventListener('keyup', e => { this.unHilightTiles(e) });
     }
+    window.addEventListener('keydown', e => { this.hilightTiles(e) });
+    window.addEventListener('keyup', e => { this.unHilightTiles(e) });
 
     for(let color of document.getElementsByName("paintable_color")){
       color.addEventListener('mousedown', e => { this.updateActiveColor(e) });
@@ -270,6 +270,19 @@ let DungeonEditor = {
     document.getElementById("tile_detail_tool").addEventListener("click", function(event){
       $('#tileDetailModal').modal({show: true})
     })
+
+    // Tile listing
+    document.getElementById("tile_list_tool").addEventListener("click", function(event){
+      $('#tileListModal').modal({show: true})
+    })
+    for(let add_to_shortlist_button of document.getElementsByClassName("add-tile-to-shortlist")){
+      add_to_shortlist_button.addEventListener('click', event => {
+        let targetId = event.target.getAttribute("data-target-id"),
+            tileToShortlist = document.getElementById(targetId).children[0]
+        this.addTileToShortlistFromPre(tileToShortlist, this)
+        return false
+      })
+    }
 
     // Submit is overridden to build the JSON that updates the dungeon map tiles
     var dungeonForm = document.getElementById("dungeon_form");
@@ -805,6 +818,35 @@ let DungeonEditor = {
       let edgeTiles = document.querySelectorAll("#dungeon td.edge." + edge)
       edgeTiles.forEach( (tile) => { tile.innerHTML = "" })
     }
+  },
+  addTileToShortlistFromPre(tag, context){
+    let attributes = {tile_template_id: tag.getAttribute("data-tile-template-id"),
+                      color: tag.getAttribute("data-color"),
+                      background_color: tag.getAttribute("data-background-color"),
+                      character: tag.getAttribute("data-character"),
+                      state: tag.getAttribute("data-state"),
+                      script: tag.getAttribute("data-script"),
+                      name: tag.getAttribute("data-name"),
+                      description: tag.getAttribute("data-tile-template-description"),
+                      slug: tag.getAttribute("data-slug"),
+                      animate_random: tag.getAttribute("data-random"),
+                      animate_period: tag.getAttribute("data-period"),
+                      animate_characters: tag.getAttribute("data-characters"),
+                      animate_colors: tag.getAttribute("data-colors"),
+                      animate_background_colors: tag.getAttribute("data-background-colors")}
+    context.addTileToShortlist(attributes, context)
+  },
+  addTileToShortlist(shortlist_attributes, context){
+
+    $.post("/tile_shortlists", {tile_shortlist: shortlist_attributes, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
+     .done(function(resp){
+        document.getElementById("tile_pallette_entries").insertAdjacentHTML("afterbegin", resp.tile_pre)
+        document.querySelector("#tile_pallette_entries pre:first-of-type")
+                .addEventListener('click', e => { context.updateActiveTile(e.target) });
+     })
+     .fail(function(resp){
+        console.log(resp.status)
+     })
   },
   blankDivNode: null,
   selectedTileId: null,
