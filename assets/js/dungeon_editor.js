@@ -179,6 +179,10 @@ let DungeonEditor = {
       $('#tileDetailModal').modal({show: true})
     })
 
+    document.getElementById("shortlist_active_tile").addEventListener("click", event => {
+      this.shortlistActiveTile()
+    })
+
     // Tile listing
     document.getElementById("tile_list_tool").addEventListener("click", function(event){
       $('#tileListModal').modal({show: true})
@@ -748,17 +752,21 @@ let DungeonEditor = {
     $.post("/tile_shortlists", {tile_shortlist: shortlist_attributes,
                                 _csrf_token: document.getElementsByName("_csrf_token")[0].value})
      .done(function(resp){
-        document.getElementById("tile_shortlist_entries").insertAdjacentHTML("afterbegin", resp.tile_pre)
-        document.querySelector("#tile_shortlist_entries pre:first-of-type")
-                .addEventListener('click', e => { context.updateActiveTile(e.target) });
-        let tiles = document.querySelectorAll(
-              "#tile_shortlist_entries [name=paintable_tile_template][data-attr-hash='" + resp.attr_hash + "']"),
-            dupeTiles = Array.prototype.slice.call(tiles, 1)
-        dupeTiles.forEach( tile => tile.remove() )
+        if(resp.errors && resp.errors.length > 0){
+          alert(resp.errors[0].detail)
+        } else {
+          document.getElementById("tile_shortlist_entries").insertAdjacentHTML("afterbegin", resp.tile_pre)
+          document.querySelector("#tile_shortlist_entries pre:first-of-type")
+                  .addEventListener('click', e => { context.updateActiveTile(e.target) });
+          let tiles = document.querySelectorAll(
+                "#tile_shortlist_entries [name=paintable_tile_template][data-attr-hash='" + resp.attr_hash + "']"),
+              dupeTiles = Array.prototype.slice.call(tiles, 1)
+          dupeTiles.forEach( tile => tile.remove() )
 
-        let fullShortlist = document.querySelectorAll("#tile_shortlist_entries [name=paintable_tile_template]"),
-            tilesToTrim = Array.prototype.slice.call(fullShortlist, 30)
-        tilesToTrim.forEach( tile => tile.remove() )
+          let fullShortlist = document.querySelectorAll("#tile_shortlist_entries [name=paintable_tile_template]"),
+              tilesToTrim = Array.prototype.slice.call(fullShortlist, 30)
+          tilesToTrim.forEach( tile => tile.remove() )
+        }
      })
      .fail(function(resp){
         console.log(resp.status)
@@ -864,6 +872,24 @@ let DungeonEditor = {
   tileEditorShortlistedSuccessCallback(map_tile_attrs, context){
     context.addTileToShortlist(map_tile_attrs, context)
     $("#tileEditModal").modal('hide')
+  },
+  shortlistActiveTile(){
+    let map_tile_attrs = {
+          tile_template_id: this.selectedTileId,
+          character: this.selectedTileCharacter,
+          color: this.selectedTileColor,
+          background_color: this.selectedTileBackgroundColor,
+          state: this.selectedTileState,
+          script: this.selectedTileScript,
+          name: this.selectedTileName,
+          slug: this.selectedTileSlug,
+          animate_random: this.selectedTileAnimateRandom,
+          animate_period: this.selectedTileAnimatePeriod,
+          animate_characters: this.selectedTileAnimateCharacters,
+          animate_colors: this.selectedTileAnimateColors,
+          animate_background_colors: this.selectedTileAnimateBackgroundColors
+        }
+    this.addTileToShortlist(map_tile_attrs, this)
   },
   blankDivNode: null,
   selectedTileId: null,

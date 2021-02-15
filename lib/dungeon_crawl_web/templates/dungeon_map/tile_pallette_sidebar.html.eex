@@ -55,6 +55,7 @@
                   <pre id="active_tile_character" class="tile_template_preview embiggen_most">?</pre>
                     <span id="active_tile_description">This should be replaced with an actual tile by the JS</span><br/>
                   <button id="tile_detail_tool" class="btn btn-info btn-sm mx-1" title="View active tile details">Tile Details</button>
+                  <button id="shortlist_active_tile" class="btn btn-success btn-sm mx-1" title="Add active tile to shortlist">Shortlist</button>
                 </div>
                 <div>
                   <b>Tile Pallette</b>
