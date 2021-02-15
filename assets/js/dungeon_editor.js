@@ -157,104 +157,12 @@ let DungeonEditor = {
 
     // Tile Editor Tool
     document.getElementById("save_tile_changes").addEventListener('click', e => {
-      let map_tile_attrs = {
-            row: document.getElementById("tile_template_row").value,
-            col: document.getElementById("tile_template_col").value,
-            z_index: document.getElementById("tile_template_z_index").value,
-            character: (document.getElementById("tile_template_character").value[0] || " "),
-            color: (document.getElementById("tile_template_color").value || ""),
-            background_color: (document.getElementById("tile_template_background_color").value || ""),
-            tile_name: (document.getElementById("tile_template_name").value || ""),
-            state: (document.getElementById("tile_template_state").value || ""),
-            script: (document.getElementById("tile_template_script").value || ""),
-            name: (document.getElementById("tile_template_name").value || ""),
-            animate_random: (document.getElementById("tile_template_animate_random").checked),
-            animate_period: (document.getElementById("tile_template_animate_period").value || ""),
-            animate_characters: (document.getElementById("tile_template_animate_characters").value || ""),
-            animate_colors: (document.getElementById("tile_template_animate_colors").value || ""),
-            animate_background_colors: (document.getElementById("tile_template_animate_background_colors").value || ""),
-          },
-          map_location_td = document.getElementById(map_tile_attrs.row + "_" + map_tile_attrs.col),
-          map_location = this.findOrCreateActiveTileDiv(map_location_td),
-          tileHtml = this.blankDivNode.cloneNode(true),
-          paintTileFunction = this.paintTile,
-          findOrCreateActiveTileDivFunction = this.findOrCreateActiveTileDiv,
-          resetTileModalErrors = this.resetTileModalErrors
+      this.validateTileEditorFields(this.tileEditorEditedSuccessCallback, this)
+    })
 
-      $.post(this.validate_map_tile_url, {map_tile: map_tile_attrs, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
-       .done(function(resp){
-          if(resp.errors.length > 0){
-            let otherErrors = ["Errors exist with the tile"]
-            for(let error of resp.errors){
-              let field = document.getElementById('tile_template_' + error.field),
-                  errorMessageEl = document.getElementById('tile_template_' + error.field + '_error_messages')
-              if(field) {
-                field.classList.add("error")
-                if(errorMessageEl){
-                  errorMessageEl.innerText = error.detail
-                }
-              } else {
-                otherErrors.push(error.field + ' - ' + error.detail)
-              }
-            }
-            document.getElementById("tile_errors").innerText = otherErrors.join("<br/>")
-            document.getElementById("tile_errors").classList.remove("hidden")
-
-          } else {
-            resetTileModalErrors()
-
-            tileHtml.innerText = map_tile_attrs.character
-            tileHtml.style["color"] = map_tile_attrs.color
-            tileHtml.style["background-color"] = map_tile_attrs.background_color
-
-            if(map_tile_attrs.animate_characters != "" ||
-               map_tile_attrs.animate_colors != "" ||
-               map_tile_attrs.animate_background_colors != ""){
-
-              tileHtml.setAttribute("data-random", map_tile_attrs.animate_random)
-              tileHtml.setAttribute("data-period", map_tile_attrs.animate_period)
-              tileHtml.setAttribute("data-characters", map_tile_attrs.animate_characters)
-              tileHtml.setAttribute("data-colors", map_tile_attrs.animate_colors)
-              tileHtml.setAttribute("data-background-colors", map_tile_attrs.animate_background_colors)
-
-              tileHtml.classList.add("animate")
-              if(map_tile_attrs.animate_random == "true"){
-                tileHtml.classList.add("random")
-              } else {
-                tileHtml.classList.remove("random")
-              }
-              //window.TileAnimation.renderTile(window.TileAnimation, div)
-            } else {
-              tileHtml.classList.remove("animate")
-              tileHtml.classList.remove("random")
-            }
-
-
-            paintTileFunction(map_location_td, {selectedTileId: "",
-                                                selectedTileHtml: tileHtml,
-                                                selectedTileColor: map_tile_attrs.color,
-                                                selectedTileBackgroundColor: map_tile_attrs.background_color,
-                                                selectedTileName: map_tile_attrs.tile_name,
-                                                selectedTileCharacter: map_tile_attrs.character,
-                                                selectedTileState: map_tile_attrs.state,
-                                                selectedTileScript: map_tile_attrs.script,
-                                                selectedTileAnimateRandom: map_tile_attrs.animate_random,
-                                                selectedTileAnimatePeriod: map_tile_attrs.animate_period,
-                                                selectedTileAnimateCharacters: map_tile_attrs.animate_characters,
-                                                selectedTileAnimateColors: map_tile_attrs.animate_colors,
-                                                selectedTileAnimateBackgroundColors: map_tile_attrs.animate_background_colors,
-                                                findOrCreateActiveTileDiv: findOrCreateActiveTileDivFunction
-            })
-
-            $("#tileEditModal").modal('hide')
-          }
-       })
-       .fail(function(resp){
-          console.log(resp.status)
-       })
-
-
-    }) // end save_tile_changes listener
+    document.getElementById("tile_edit_add_to_shortlist").addEventListener('click', e => {
+      this.validateTileEditorFields(this.tileEditorShortlistedSuccessCallback, this)
+    })
 
     $("#tileEditModal").on('hide.bs.modal', event => {
       let row = document.getElementById("tile_template_row").value,
@@ -855,6 +763,107 @@ let DungeonEditor = {
      .fail(function(resp){
         console.log(resp.status)
      })
+  },
+  validateTileEditorFields(successFunction, context){
+    let map_tile_attrs = {
+          row: document.getElementById("tile_template_row").value,
+          col: document.getElementById("tile_template_col").value,
+          z_index: document.getElementById("tile_template_z_index").value,
+          character: (document.getElementById("tile_template_character").value[0] || " "),
+          color: (document.getElementById("tile_template_color").value || ""),
+          background_color: (document.getElementById("tile_template_background_color").value || ""),
+          tile_name: (document.getElementById("tile_template_name").value || ""),
+          state: (document.getElementById("tile_template_state").value || ""),
+          script: (document.getElementById("tile_template_script").value || ""),
+          name: (document.getElementById("tile_template_name").value || ""),
+          animate_random: (document.getElementById("tile_template_animate_random").checked),
+          animate_period: (document.getElementById("tile_template_animate_period").value || ""),
+          animate_characters: (document.getElementById("tile_template_animate_characters").value || ""),
+          animate_colors: (document.getElementById("tile_template_animate_colors").value || ""),
+          animate_background_colors: (document.getElementById("tile_template_animate_background_colors").value || ""),
+        }
+
+    $.post(context.validate_map_tile_url, {map_tile: map_tile_attrs, _csrf_token: document.getElementsByName("_csrf_token")[0].value})
+     .done(function(resp){
+        if(resp.errors.length > 0){
+          let otherErrors = ["Errors exist with the tile"]
+          for(let error of resp.errors){
+            let field = document.getElementById('tile_template_' + error.field),
+                errorMessageEl = document.getElementById('tile_template_' + error.field + '_error_messages')
+            if(field) {
+              field.classList.add("error")
+              if(errorMessageEl){
+                errorMessageEl.innerText = error.detail
+              }
+            } else {
+              otherErrors.push(error.field + ' - ' + error.detail)
+            }
+          }
+          document.getElementById("tile_errors").innerText = otherErrors.join("<br/>")
+          document.getElementById("tile_errors").classList.remove("hidden")
+
+        } else {
+          context.resetTileModalErrors()
+
+          successFunction(map_tile_attrs, context)
+        }
+     })
+     .fail(function(resp){
+        console.log(resp.status)
+     })
+  },
+  tileEditorEditedSuccessCallback(map_tile_attrs, context){
+    let map_location_td = document.getElementById(map_tile_attrs.row + "_" + map_tile_attrs.col),
+        map_location = context.findOrCreateActiveTileDiv(map_location_td),
+        tileHtml = context.blankDivNode.cloneNode(true)
+
+    tileHtml.innerText = map_tile_attrs.character
+    tileHtml.style["color"] = map_tile_attrs.color
+    tileHtml.style["background-color"] = map_tile_attrs.background_color
+
+    if(map_tile_attrs.animate_characters != "" ||
+       map_tile_attrs.animate_colors != "" ||
+       map_tile_attrs.animate_background_colors != ""){
+
+      tileHtml.setAttribute("data-random", map_tile_attrs.animate_random)
+      tileHtml.setAttribute("data-period", map_tile_attrs.animate_period)
+      tileHtml.setAttribute("data-characters", map_tile_attrs.animate_characters)
+      tileHtml.setAttribute("data-colors", map_tile_attrs.animate_colors)
+      tileHtml.setAttribute("data-background-colors", map_tile_attrs.animate_background_colors)
+
+      tileHtml.classList.add("animate")
+      if(map_tile_attrs.animate_random == "true"){
+        tileHtml.classList.add("random")
+      } else {
+        tileHtml.classList.remove("random")
+      }
+      //window.TileAnimation.renderTile(window.TileAnimation, div)
+    } else {
+      tileHtml.classList.remove("animate")
+      tileHtml.classList.remove("random")
+    }
+
+    context.paintTile(map_location_td, {selectedTileId: "",
+                                        selectedTileHtml: tileHtml,
+                                        selectedTileColor: map_tile_attrs.color,
+                                        selectedTileBackgroundColor: map_tile_attrs.background_color,
+                                        selectedTileName: map_tile_attrs.tile_name,
+                                        selectedTileCharacter: map_tile_attrs.character,
+                                        selectedTileState: map_tile_attrs.state,
+                                        selectedTileScript: map_tile_attrs.script,
+                                        selectedTileAnimateRandom: map_tile_attrs.animate_random,
+                                        selectedTileAnimatePeriod: map_tile_attrs.animate_period,
+                                        selectedTileAnimateCharacters: map_tile_attrs.animate_characters,
+                                        selectedTileAnimateColors: map_tile_attrs.animate_colors,
+                                        selectedTileAnimateBackgroundColors: map_tile_attrs.animate_background_colors,
+                                        findOrCreateActiveTileDiv: context.findOrCreateActiveTileDiv
+    })
+
+    $("#tileEditModal").modal('hide')
+  },
+  tileEditorShortlistedSuccessCallback(map_tile_attrs, context){
+    context.addTileToShortlist(map_tile_attrs, context)
+    $("#tileEditModal").modal('hide')
   },
   blankDivNode: null,
   selectedTileId: null,

@@ -145,6 +145,9 @@
         </div>
       </div>
       <div class="modal-footer">
+        <div class="flex-grow-1">
+          <button type="button" class="btn btn-success left" id="tile_edit_add_to_shortlist">Add to Shortlist</button>
+        </div>
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
         <button type="button" class="btn btn-primary" id="save_tile_changes">Save changes</button>
       </div>

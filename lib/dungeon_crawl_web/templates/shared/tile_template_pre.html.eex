@@ -2,7 +2,7 @@
   name="paintable_tile_template"
   title="<%= @tile_template.name %>"
   <%= if @historic, do: " data-historic-template=true" %>
-  data-tile-template-id="<%= Map.get(@tile_template, :tile_template_id) || @tile_template.id %>"
+  data-tile-template-id="<%= Map.get(@tile_template, :tile_template_id) || Map.get(@tile_template, :id) %>"
   data-tile-template-description="<%= @tile_template.description %>"
   data-tile-template-state="<%= @tile_template.state %>"
   data-tile-template-script="<%= @tile_template.script %>"
