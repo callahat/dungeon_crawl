@@ -126,5 +126,9 @@ defmodule DungeonCrawl.TileShortlistsTest do
       assert Enum.map(Enum.reverse(existing_list_reverse), &(Map.drop(&1, [:id, :inserted_at, :updated_at]))) ==
              Enum.map(existing_list, &(Map.drop(&1, [:id, :inserted_at, :updated_at])))
     end
+
+    test "hash/1", config do
+      assert "S2irOEf+2n1sYsH7y+6/o16rc1HtXnj03a3qXfZLgBU=" = TileShortlists.hash(config.tile1)
+    end
   end
 end
