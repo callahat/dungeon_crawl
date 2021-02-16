@@ -17,20 +17,22 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
 
     test "returns empty array of errors when its all good", %{conn: conn} do
       conn = post conn, tile_shortlist_path(conn, :create), tile_shortlist: @create_attrs
-      assert json_response(conn, 200) == %{"tile_shortlist" => %{"animate_background_colors" => nil,
-                                                                 "animate_characters" => nil,
-                                                                 "animate_colors" => nil,
-                                                                 "animate_period" => nil,
-                                                                 "animate_random" => nil,
-                                                                 "background_color" => nil,
-                                                                 "character" => "&",
-                                                                 "color" => "green",
-                                                                 "description" => nil,
-                                                                 "name" => "ampersand",
-                                                                 "script" => "#end\n:touch\nHEY",
-                                                                 "slug" => nil,
-                                                                 "state" => "flag: true",
-                                                                 "tile_template_id" => nil}}
+      assert %{"attr_hash" => "KC5pOg+1FJk79NA2U7xf83HM8t7iG9SuYuD5lczePX0=",
+               "tile_pre" => _tile_pre,
+               "tile_shortlist" => %{"animate_background_colors" => nil,
+                                     "animate_characters" => nil,
+                                     "animate_colors" => nil,
+                                     "animate_period" => nil,
+                                     "animate_random" => nil,
+                                     "background_color" => nil,
+                                     "character" => "&",
+                                     "color" => "green",
+                                     "description" => nil,
+                                     "name" => "ampersand",
+                                     "script" => "#end\n:touch\nHEY",
+                                     "slug" => nil,
+                                     "state" => "flag: true",
+                                     "tile_template_id" => nil}} = json_response(conn, 200)
     end
 
     test "returns array of validation errors when there are problems", %{conn: conn} do

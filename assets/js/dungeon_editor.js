@@ -301,6 +301,7 @@ let DungeonEditor = {
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
+    this.selectedTileDescription = tag.getAttribute("data-tile-template-description")
     this.selectedTileSlug = tag.getAttribute("data-slug")
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
@@ -506,6 +507,7 @@ let DungeonEditor = {
     // to make things consistent
 
     div.setAttribute("data-name", context.selectedTileName)
+    div.setAttribute("data-description", context.selectedTileDescription)
     div.setAttribute("data-character", context.selectedTileCharacter)
     div.setAttribute("data-state", context.selectedTileState)
     div.setAttribute("data-script", context.selectedTileScript)
@@ -856,6 +858,7 @@ let DungeonEditor = {
                                         selectedTileColor: map_tile_attrs.color,
                                         selectedTileBackgroundColor: map_tile_attrs.background_color,
                                         selectedTileName: map_tile_attrs.tile_name,
+                                        selectedTileDescription: map_tile_attrs.description,
                                         selectedTileCharacter: map_tile_attrs.character,
                                         selectedTileState: map_tile_attrs.state,
                                         selectedTileScript: map_tile_attrs.script,
@@ -882,6 +885,7 @@ let DungeonEditor = {
           state: this.selectedTileState,
           script: this.selectedTileScript,
           name: this.selectedTileName,
+          description: this.selectedTileDescription,
           slug: this.selectedTileSlug,
           animate_random: this.selectedTileAnimateRandom,
           animate_period: this.selectedTileAnimatePeriod,
@@ -897,6 +901,7 @@ let DungeonEditor = {
   selectedTileColor: null,
   selectedTileBackgroundColor: null,
   selectedTileName: null,
+  selectedTileDescription: null,
   selectedTileSlug: null,
   selectedTileCharacter: null,
   selectedTileState: null,

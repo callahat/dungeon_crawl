@@ -64,12 +64,7 @@
                     <div id="tile_shortlist_entries">
                     <%= tile_template_pres(@tile_shortlist) %>
                     </div>
-                    <br/>
                     <button id="tile_list_tool" class="btn btn-info btn-sm mx-1" title="View active tile details">Tile List</button>
-<hr/>
-
-                    <%= tile_template_pres(@tile_templates.active) %>
-
                     <%= if Enum.count(@historic_templates) > 0 do %>
                       <br/>
                       <span><b>Historic Tiles</b> (can no longer be added)</span>
