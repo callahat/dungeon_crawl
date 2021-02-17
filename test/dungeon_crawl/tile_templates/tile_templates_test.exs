@@ -53,6 +53,10 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.get_tile_template(nil) == %TileTemplate{}
     end
 
+    test "get_tile_template/1 returns nil for a nonexistant id" do
+      refute TileTemplates.get_tile_template(1234134)
+    end
+
     test "get_tile_template!/1 returns the tile_template with given id" do
       tile_template = tile_template_fixture()
       assert TileTemplates.get_tile_template!(tile_template.id) == tile_template

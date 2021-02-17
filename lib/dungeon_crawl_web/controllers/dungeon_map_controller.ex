@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   alias DungeonCrawl.Dungeon.Map
   alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias DungeonCrawl.MapGenerators.Empty
   alias DungeonCrawl.MapGenerators.Labrynth
@@ -134,10 +135,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
       {:ok, tile_additions} ->
         # TODO: move this to a method in Dungeon
         tile_additions
-        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]),
+        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]) || %TileTemplate{},
                                ta
                               ] end)
-        |> Enum.reject(fn([tt,_]) -> is_nil(tt) end)
         |> Enum.map(fn([tt, ta]) ->
              Dungeon.create_map_tile!(%{dungeon_id: dungeon.id,
                                         row: ta["row"],

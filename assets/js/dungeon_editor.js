@@ -30,6 +30,7 @@ let DungeonEditor = {
     document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     document.getElementById("color_pallette").oncontextmenu = function (){ return false }
+    document.getElementById("active_color_pallette").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = null} );
 
 
@@ -335,13 +336,24 @@ let DungeonEditor = {
     if(!target) { return }
 
     let tag = target.tagName == "SPAN" ? target.parentNode : target
-    if(event.which == 3 || event.button == 2) {
-      // right click background
-      document.getElementById("tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
-    } else {
-      document.getElementById("tile_color").value = this.selectedColor = tag.getAttribute("data-color")
+
+    if(this.mode == "tile_painting") {
+      if(event.which == 3 || event.button == 2) {
+        // right click background
+        document.getElementById("active_tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
+      } else {
+        document.getElementById("active_tile_color").value = this.selectedColor = tag.getAttribute("data-color")
+      }
+      this.updateActiveColorPreviews()
+    } else if(this.mode == "color_painting") {
+      if(event.which == 3 || event.button == 2) {
+        // right click background
+        document.getElementById("tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
+      } else {
+        document.getElementById("tile_color").value = this.selectedColor = tag.getAttribute("data-color")
+      }
+      this.updateColorPreviews()
     }
-    this.updateColorPreviews()
   },
   selectDungeonTile(event){
     if(event.target.classList.contains("edge") || event.target.parentNode.classList.contains("edge") ) { return }
@@ -495,9 +507,11 @@ let DungeonEditor = {
   paintTile(map_location_td, context){
     // there should only ever be one not hidden, TODO: but want to also get the current edited z-index
     let div = context.findOrCreateActiveTileDiv(map_location_td)
-    let old_tile = div.children[0]
+    let old_tile = div.children[0],
+        active_tile = document.querySelector("#active_tile_character div")
 
-    div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
+    // div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
+    div.insertBefore(active_tile.cloneNode(true), old_tile)
     if(old_tile){ div.removeChild(old_tile) } else { div.innerHTML = "" }
     div.setAttribute("data-tile-template-id", context.selectedTileId)
     div.setAttribute("data-color", context.selectedTileColor)
@@ -617,11 +631,26 @@ let DungeonEditor = {
     let color = document.getElementById("tile_color").value;
     let background_color = document.getElementById("tile_background_color").value;
 
-    this.selectedBackgroundColor = document.getElementById("tile_background_color").value
-    this.selectedColor = document.getElementById("tile_color").value
+    this.selectedBackgroundColor = background_color
+    this.selectedColor = color
 
     this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
     this.updateColors(document.getElementById("tile_background_color_pre"), color, background_color)
+  },
+  updateActiveColorPreviews(){
+    let color = document.getElementById("active_tile_color").value;
+    let background_color = document.getElementById("active_tile_background_color").value;
+
+    this.selectedBackgroundColor = background_color
+    this.selectedColor = color
+
+    this.selectedTileBackgroundColor = background_color
+    this.selectedTileColor = color
+
+    this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
+
+    this.updateColors(document.getElementById("active_tile_color_pre"), color, background_color)
+    this.updateColors(document.getElementById("active_tile_background_color_pre"), color, background_color)
   },
   updateColors(element, color, background_color){
     if(color == "" && background_color == ""){
