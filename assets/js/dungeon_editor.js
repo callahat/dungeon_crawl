@@ -284,10 +284,12 @@ let DungeonEditor = {
     this.lastDraggedCoord = null
     this.painting = false
   },
-  updateActiveTile(target){
+  updateActiveTile(target, map_tile = {getAttribute: () => {return null} }){
     if(!target) { return }
 
-    let tag = target.tagName == "DIV" && target.parentNode.tagName != "TD" ? target.parentNode : target
+    let tag = target.tagName == "DIV" && target.parentNode.tagName != "TD" ? target.parentNode : target,
+        mc = map_tile.getAttribute("data-color"),
+        mbc = map_tile.getAttribute("data-background-color")
 
     if(target.classList.contains("placeholder") || target.classList.contains("edge")) { return }
 
@@ -299,8 +301,8 @@ let DungeonEditor = {
     this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
     this.selectedTileHtml = tag.children[0] || target
-    this.selectedTileColor = tag.getAttribute("data-color")
-    this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
+    this.selectedTileColor = mc !== null ? mc : tag.getAttribute("data-color")
+    this.selectedTileBackgroundColor = mbc !== null ? mbc : tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
     this.selectedTileDescription = tag.getAttribute("data-tile-template-description")
     this.selectedTileSlug = tag.getAttribute("data-slug")
@@ -312,6 +314,18 @@ let DungeonEditor = {
     this.selectedTileAnimateCharacters = tag.getAttribute("data-characters")
     this.selectedTileAnimateColors = tag.getAttribute("data-colors")
     this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-background-colors")
+
+    let color = this.selectedTileColor;
+    let background_color = this.selectedTileBackgroundColor;
+
+    document.getElementById("active_tile_color").value = color
+    document.getElementById("active_tile_background_color").value = background_color
+
+    this.updateColors(document.getElementById("active_tile_color_pre"), color, background_color)
+    this.updateColors(document.getElementById("active_tile_background_color_pre"), color, background_color)
+
+    this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
+
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
     }
@@ -369,7 +383,7 @@ let DungeonEditor = {
       let target = [...document.getElementsByName("paintable_tile_template")].find(
         function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
         || map_location
-      this.updateActiveTile(target)
+      this.updateActiveTile(target, map_location)
     } else if(this.mode == "color_painting") {
 
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
