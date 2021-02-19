@@ -322,16 +322,10 @@ let DungeonEditor = {
     this.selectedTileAnimateColors = tag.getAttribute("data-colors")
     this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-background-colors")
 
-    let color = this.selectedTileColor;
-    let background_color = this.selectedTileBackgroundColor;
+    document.getElementById("tile_color").value = this.selectedTileColor
+    document.getElementById("tile_background_color").value = this.selectedTileBackgroundColor
 
-    document.getElementById("tile_color").value = color
-    document.getElementById("tile_background_color").value = background_color
-
-    this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
-    this.updateColors(document.getElementById("tile_background_color_pre"), color, background_color)
-
-    this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
+    this.updateColorPreviews()
 
     if(this.historicTile){
       document.getElementById("active_tile_name").innerText += " (historic)"
@@ -642,6 +636,7 @@ let DungeonEditor = {
     let color = document.getElementById("tile_color").value;
     let background_color = document.getElementById("tile_background_color").value;
 
+    // can these be consolidated into selectedTileBackgroundColor?
     this.selectedBackgroundColor = background_color
     this.selectedColor = color
 
