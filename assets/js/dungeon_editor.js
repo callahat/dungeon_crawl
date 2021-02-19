@@ -30,21 +30,28 @@ let DungeonEditor = {
     document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
     document.getElementById("dungeon").oncontextmenu = function (){ return false }
     document.getElementById("color_pallette").oncontextmenu = function (){ return false }
-    document.getElementById("active_color_pallette").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = null} );
 
-
     document.getElementById("tiletool-tab").addEventListener('click', e => {
+      document.getElementById("color_area").classList.remove("hidden")
+      document.getElementById("tile_color").value = this.lastTilePaintingColor
+      document.getElementById("tile_background_color").value = this.lastTilePaintingBackgroundColor
       this.mode = "tile_painting"
       this.unHilightSpawnTiles()
+      this.updateColorPreviews()
     });
 
     document.getElementById("colortool-tab").addEventListener('click', e => {
+      document.getElementById("color_area").classList.remove("hidden")
+      document.getElementById("tile_color").value = this.lastColorPaintingColor
+      document.getElementById("tile_background_color").value = this.lastColorPaintingBackgroundColor
       this.mode = "color_painting"
       this.unHilightSpawnTiles()
+      this.updateColorPreviews()
     });
 
     document.getElementById("other-tab").addEventListener('click', e => {
+      document.getElementById("color_area").classList.add("hidden")
       // defaulting to tile edit
       this.mode = "tile_edit"
       this.unHilightSpawnTiles()
@@ -318,11 +325,11 @@ let DungeonEditor = {
     let color = this.selectedTileColor;
     let background_color = this.selectedTileBackgroundColor;
 
-    document.getElementById("active_tile_color").value = color
-    document.getElementById("active_tile_background_color").value = background_color
+    document.getElementById("tile_color").value = color
+    document.getElementById("tile_background_color").value = background_color
 
-    this.updateColors(document.getElementById("active_tile_color_pre"), color, background_color)
-    this.updateColors(document.getElementById("active_tile_background_color_pre"), color, background_color)
+    this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
+    this.updateColors(document.getElementById("tile_background_color_pre"), color, background_color)
 
     this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
 
@@ -351,23 +358,13 @@ let DungeonEditor = {
 
     let tag = target.tagName == "SPAN" ? target.parentNode : target
 
-    if(this.mode == "tile_painting") {
-      if(event.which == 3 || event.button == 2) {
-        // right click background
-        document.getElementById("active_tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
-      } else {
-        document.getElementById("active_tile_color").value = this.selectedColor = tag.getAttribute("data-color")
-      }
-      this.updateActiveColorPreviews()
-    } else if(this.mode == "color_painting") {
-      if(event.which == 3 || event.button == 2) {
-        // right click background
-        document.getElementById("tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
-      } else {
-        document.getElementById("tile_color").value = this.selectedColor = tag.getAttribute("data-color")
-      }
-      this.updateColorPreviews()
+    if(event.which == 3 || event.button == 2) {
+      // right click background
+      document.getElementById("tile_background_color").value = this.selectedBackgroundColor = tag.getAttribute("data-color")
+    } else {
+      document.getElementById("tile_color").value = this.selectedColor = tag.getAttribute("data-color")
     }
+    this.updateColorPreviews()
   },
   selectDungeonTile(event){
     if(event.target.classList.contains("edge") || event.target.parentNode.classList.contains("edge") ) { return }
@@ -648,23 +645,20 @@ let DungeonEditor = {
     this.selectedBackgroundColor = background_color
     this.selectedColor = color
 
+    if(this.mode == "tile_painting"){
+      this.selectedTileBackgroundColor = background_color
+      this.selectedTileColor = color
+
+      this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
+      this.lastTilePaintingColor = color
+      this.lastTilePaintingBackgroundColor = background_color
+    } else if(this.mode = "color_painting") {
+      this.lastColorPaintingColor = color
+      this.lastColorPaintingBackgroundColor = background_color
+    }
+
     this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
     this.updateColors(document.getElementById("tile_background_color_pre"), color, background_color)
-  },
-  updateActiveColorPreviews(){
-    let color = document.getElementById("active_tile_color").value;
-    let background_color = document.getElementById("active_tile_background_color").value;
-
-    this.selectedBackgroundColor = background_color
-    this.selectedColor = color
-
-    this.selectedTileBackgroundColor = background_color
-    this.selectedTileColor = color
-
-    this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
-
-    this.updateColors(document.getElementById("active_tile_color_pre"), color, background_color)
-    this.updateColors(document.getElementById("active_tile_background_color_pre"), color, background_color)
   },
   updateColors(element, color, background_color){
     if(color == "" && background_color == ""){
@@ -970,7 +964,10 @@ let DungeonEditor = {
   hilightingSpawnTiles: false,
   validate_map_tile_url: null,
   map_edge_url: null,
-
+  lastTilePaintingColor: null,
+  lastTilePaintingBackgroundColor: null,
+  lastColorPaintingColor: null,
+  lastColorPaintingBackgroundColor: null,
 }
 
 export default DungeonEditor
