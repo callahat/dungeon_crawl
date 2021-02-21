@@ -119,6 +119,7 @@
              <%= color_tr(["#831", "#B32", "#951", "#882", "#271", "#357", "#236", "#127", "#517", "#716"]) %>
           </table></pre>
           </div>
+          <div><button id="reset_colors" class="btn btn-info btn-sm" title="Reset colors">Reset</button></div>
         </div>
       </li>
     </ul>

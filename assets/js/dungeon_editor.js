@@ -220,6 +220,10 @@ let DungeonEditor = {
     sides.forEach( (side) => {
       document.getElementById("map_number_" + side).addEventListener("change", (event) => this.updateEdgeTiles(side, event.target.value, this))
     })
+
+    document.getElementById("reset_colors").addEventListener("click", event => {
+      this.resetColors()
+    })
   }, // end init
   resetTileModalErrors(){
     document.getElementById("tile_errors").classList.add("hidden")
@@ -926,6 +930,19 @@ let DungeonEditor = {
           animate_background_colors: this.selectedTileAnimateBackgroundColors
         }
     this.addTileToShortlist(map_tile_attrs, this)
+  },
+  resetColors(){
+    if(this.mode == "tile_painting"){
+      let tt = [...document.getElementsByName("paintable_tile_template")
+               ].find(i => { return i.getAttribute("data-tile-template-id") == this.selectedTileId })
+
+      document.getElementById("tile_color").value = tt ? tt.getAttribute("data-color") : ""
+      document.getElementById("tile_background_color").value = tt ? tt.getAttribute("data-background-color") : ""
+    } else {
+      document.getElementById("tile_color").value = ""
+      document.getElementById("tile_background_color").value = ""
+    }
+    this.updateColorPreviews()
   },
   blankDivNode: null,
   selectedTileId: null,
