@@ -10,6 +10,7 @@ let DungeonEditor = {
     }
     window.addEventListener('keydown', e => { this.hilightTiles(e) });
     window.addEventListener('keyup', e => { this.unHilightTiles(e) });
+    window.addEventListener('keydown', e => { this.typeCharacter(e, this) });
 
     for(let color of document.getElementsByName("paintable_color")){
       color.addEventListener('mousedown', e => { this.updateActiveColor(e) });
@@ -38,6 +39,7 @@ let DungeonEditor = {
       document.getElementById("tile_background_color").value = this.lastTilePaintingBackgroundColor
       this.mode = "tile_painting"
       this.unHilightSpawnTiles()
+      this.unHilightTextCursor()
       this.updateColorPreviews()
     });
 
@@ -47,57 +49,47 @@ let DungeonEditor = {
       document.getElementById("tile_background_color").value = this.lastColorPaintingBackgroundColor
       this.mode = "color_painting"
       this.unHilightSpawnTiles()
+      this.unHilightTextCursor()
       this.updateColorPreviews()
     });
 
     document.getElementById("other-tab").addEventListener('click', e => {
-      document.getElementById("color_area").classList.add("hidden")
       // defaulting to tile edit
       this.mode = "tile_edit"
-      this.unHilightSpawnTiles()
-      document.getElementById("tile_editor_tool").classList.add('btn-info')
-      document.getElementById("tile_editor_tool").classList.remove('btn-light')
-      document.getElementById("erase_tool").classList.add('btn-light')
-      document.getElementById("erase_tool").classList.remove('btn-info')
-      document.getElementById("spawn_location_tool").classList.add('btn-light')
-      document.getElementById("spawn_location_tool").classList.remove('btn-info')
+      this.otherTabHilightTool("tile_editor_tool")
     });
 
     document.getElementById("tile_editor_tool").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "tile_edit"
-      this.unHilightSpawnTiles()
-      document.getElementById("tile_editor_tool").classList.add('btn-info')
-      document.getElementById("tile_editor_tool").classList.remove('btn-light')
-      document.getElementById("erase_tool").classList.add('btn-light')
-      document.getElementById("erase_tool").classList.remove('btn-info')
-      document.getElementById("spawn_location_tool").classList.add('btn-light')
-      document.getElementById("spawn_location_tool").classList.remove('btn-info')
+      this.otherTabHilightTool("tile_editor_tool")
     });
 
     document.getElementById("erase_tool").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "tile_erase"
-      this.unHilightSpawnTiles()
-      document.getElementById("tile_editor_tool").classList.add('btn-light')
-      document.getElementById("tile_editor_tool").classList.remove('btn-info')
-      document.getElementById("erase_tool").classList.add('btn-info')
-      document.getElementById("erase_tool").classList.remove('btn-light')
-      document.getElementById("spawn_location_tool").classList.add('btn-light')
-      document.getElementById("spawn_location_tool").classList.remove('btn-info')
+      this.otherTabHilightTool("erase_tool")
     });
 
     document.getElementById("spawn_location_tool").addEventListener('click', e => {
       // defaulting to tile edit
       this.mode = "spawn_location"
+      this.otherTabHilightTool("spawn_location_tool")
       this.hilightSpawnTiles()
-      document.getElementById("tile_editor_tool").classList.add('btn-light')
-      document.getElementById("tile_editor_tool").classList.remove('btn-info')
-      document.getElementById("erase_tool").classList.add('btn-light')
-      document.getElementById("erase_tool").classList.remove('btn-info')
-      document.getElementById("spawn_location_tool").classList.add('btn-info')
-      document.getElementById("spawn_location_tool").classList.remove('btn-light')
     });
+
+    document.getElementById("text_tool").addEventListener('click', e => {
+      // defaulting to tile edit
+      document.getElementById("tile_color").value = this.lastTextColor
+      document.getElementById("tile_background_color").value = this.lastTextBackgroundColor
+      this.mode = "text"
+      this.unHilightSpawnTiles()
+      this.otherTabHilightTool("text_tool")
+      this.textCursorCoordinates = null
+      document.getElementById("color_area").classList.remove("hidden")
+      this.updateColorPreviews()
+    });
+
 
     for(let field of ['tile_color', 'tile_background_color']){
       document.getElementById(field).addEventListener('change', e => {
@@ -422,7 +414,15 @@ let DungeonEditor = {
       return
     }
 
-    let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode)
+    if(this.mode == "text") {
+      this.unHilightTextCursor()
+      let map_location_td = this.getMapLocation(event).parentNode
+      this.textCursorCoordinates = map_location_td.id
+      this.hilightTextCursor()
+      return
+    }
+
+    let map_location = this.findOrCreateActiveTileDiv(this.getMapLocation(event).parentNode, this)
 
     if(!map_location) { return } // event picked up on bad element
 
@@ -481,7 +481,7 @@ let DungeonEditor = {
       paintMethod(document.getElementById(coord), this)
     }
   },
-  findOrCreateActiveTileDiv(map_location_td){
+  findOrCreateActiveTileDiv(map_location_td, context){
     let div = map_location_td.querySelector("td > div[data-z-index='" + document.getElementById("z_index_current").value + "']")
     map_location_td.querySelector("td > div:not(.hidden)").classList.add("hidden")
 
@@ -489,7 +489,7 @@ let DungeonEditor = {
       div.classList.remove("hidden")
       return(div)
     } else {
-      let blankDiv = this.blankDivNode.cloneNode(true);
+      let blankDiv = context.blankDivNode.cloneNode(true);
 
       blankDiv.setAttribute("data-z-index", document.getElementById("z_index_current").value)
       map_location_td.appendChild(blankDiv)
@@ -515,31 +515,31 @@ let DungeonEditor = {
   },
   paintTile(map_location_td, context){
     // there should only ever be one not hidden, TODO: but want to also get the current edited z-index
-    let div = context.findOrCreateActiveTileDiv(map_location_td)
+    let div = context.findOrCreateActiveTileDiv(map_location_td, context)
     let old_tile = div.children[0],
         active_tile = document.querySelector("#active_tile_character div")
 
-    // div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
-    div.insertBefore(active_tile.cloneNode(true), old_tile)
+    div.insertBefore(context.selectedTileHtml.cloneNode(true), old_tile)
+    //div.insertBefore(active_tile.cloneNode(true), old_tile)
     if(old_tile){ div.removeChild(old_tile) } else { div.innerHTML = "" }
-    div.setAttribute("data-tile-template-id", context.selectedTileId)
-    div.setAttribute("data-color", context.selectedTileColor)
-    div.setAttribute("data-background-color", context.selectedTileBackgroundColor)
+    div.setAttribute("data-tile-template-id", context.selectedTileId || "")
+    div.setAttribute("data-color", context.selectedTileColor || "")
+    div.setAttribute("data-background-color", context.selectedTileBackgroundColor || "")
 
     // from individual tile edits; painted templates dont have these currently. probably should though
     // to make things consistent
 
-    div.setAttribute("data-name", context.selectedTileName)
-    div.setAttribute("data-description", context.selectedTileDescription)
-    div.setAttribute("data-character", context.selectedTileCharacter)
-    div.setAttribute("data-state", context.selectedTileState)
-    div.setAttribute("data-script", context.selectedTileScript)
+    div.setAttribute("data-name", context.selectedTileName || "")
+    div.setAttribute("data-description", context.selectedTileDescription || "")
+    div.setAttribute("data-character", context.selectedTileCharacter || "")
+    div.setAttribute("data-state", context.selectedTileState || "")
+    div.setAttribute("data-script", context.selectedTileScript || "")
 
-    div.setAttribute("data-random", context.selectedTileAnimateRandom)
-    div.setAttribute("data-period", context.selectedTileAnimatePeriod)
-    div.setAttribute("data-characters", context.selectedTileAnimateCharacters)
-    div.setAttribute("data-colors", context.selectedTileAnimateColors)
-    div.setAttribute("data-background-colors", context.selectedTileAnimateBackgroundColors)
+    div.setAttribute("data-random", context.selectedTileAnimateRandom || "")
+    div.setAttribute("data-period", context.selectedTileAnimatePeriod || "")
+    div.setAttribute("data-characters", context.selectedTileAnimateCharacters || "")
+    div.setAttribute("data-colors", context.selectedTileAnimateColors || "")
+    div.setAttribute("data-background-colors", context.selectedTileAnimateBackgroundColors || "")
 
     if(div.classList.contains("placeholder")  || div.classList.contains("blank") || div.classList.contains("new-map-tile")){
       if(document.getElementById("z_index_current").value > context.zIndexUpperBound) {
@@ -593,7 +593,7 @@ let DungeonEditor = {
       for(let candidate of this.adjacentCoords(coord)) {
         tileId = candidate.join("_")
         if(map_tile_td = document.getElementById(tileId)) {
-          el = this.findOrCreateActiveTileDiv(map_tile_td)
+          el = this.findOrCreateActiveTileDiv(map_tile_td, this)
           if(!(coords.find(c => { return c == tileId }) || frontier.find(c => { return c.join("_") == tileId })) &&
              this.sameTileTemplate(el, map_location, attributes)){
             frontier.push(candidate)
@@ -651,9 +651,16 @@ let DungeonEditor = {
       this.updateColors(document.querySelector("#active_tile_character div"), color, background_color)
       this.lastTilePaintingColor = color
       this.lastTilePaintingBackgroundColor = background_color
-    } else if(this.mode = "color_painting") {
+
+      let active_tile = document.querySelector("#active_tile_character div")
+
+      this.selectedTileHtml = active_tile
+    } else if(this.mode == "color_painting") {
       this.lastColorPaintingColor = color
       this.lastColorPaintingBackgroundColor = background_color
+    } else if(this.mode == "text") {
+      this.lastTextColor = color
+      this.lastTextBackgroundColor = background_color
     }
 
     this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
@@ -860,7 +867,7 @@ let DungeonEditor = {
   },
   tileEditorEditedSuccessCallback(map_tile_attrs, context){
     let map_location_td = document.getElementById(map_tile_attrs.row + "_" + map_tile_attrs.col),
-        map_location = context.findOrCreateActiveTileDiv(map_location_td),
+        map_location = context.findOrCreateActiveTileDiv(map_location_td, context),
         tileHtml = context.blankDivNode.cloneNode(true)
 
     tileHtml.innerText = map_tile_attrs.character
@@ -944,6 +951,70 @@ let DungeonEditor = {
     }
     this.updateColorPreviews()
   },
+  otherTabHilightTool(tool_id){
+    document.getElementById("color_area").classList.add("hidden")
+    this.unHilightSpawnTiles()
+    this.unHilightTextCursor()
+
+    document.getElementById("tile_editor_tool").classList.add('btn-light')
+    document.getElementById("tile_editor_tool").classList.remove('btn-info')
+    document.getElementById("erase_tool").classList.add('btn-light')
+    document.getElementById("erase_tool").classList.remove('btn-info')
+    document.getElementById("spawn_location_tool").classList.add('btn-light')
+    document.getElementById("spawn_location_tool").classList.remove('btn-info')
+    document.getElementById("text_tool").classList.add('btn-light')
+    document.getElementById("text_tool").classList.remove('btn-info')
+
+    document.getElementById(tool_id).classList.add('btn-info')
+    document.getElementById(tool_id).classList.remove('btn-light')
+  },
+  hilightTextCursor(){
+    document.getElementById(this.textCursorCoordinates).classList.add("cursor-hilight")
+  },
+  unHilightTextCursor(){
+    if(! this.textCursorCoordinates){ return }
+    document.getElementById(this.textCursorCoordinates).classList.remove("cursor-hilight")
+  },
+  typeCharacter(event, context){
+    let character = event.key
+
+    if(context.mode != "text" || ! context.textCursorCoordinates || character.length != 1) { return }
+    event.preventDefault();
+
+    let map_location_td = document.getElementById(context.textCursorCoordinates),
+        tileHtml = context.blankDivNode.cloneNode(true),
+        [cursorRow, cursorCol] = context.textCursorCoordinates.split("_")
+
+    tileHtml.innerText = character
+    tileHtml.style["color"] = context.selectedColor
+    tileHtml.style["background-color"] = context.selectedBackgroundColor
+
+    context.paintTile(map_location_td, {blankDivNode: context.blankDivNode,
+                                        selectedTileId: "",
+                                        selectedTileHtml: tileHtml,
+                                        selectedTileColor: context.selectedColor,
+                                        selectedTileBackgroundColor: context.selectedBackgroundColor,
+                                        selectedTileCharacter: character,
+                                        findOrCreateActiveTileDiv: context.findOrCreateActiveTileDiv
+    })
+
+    // advance cursor
+    context.unHilightTextCursor()
+    context.nextCursorCoords(context)
+    context.hilightTextCursor()
+  },
+  nextCursorCoords(context){
+    let [cursorRow, cursorCol] = context.textCursorCoordinates.split("_")
+    cursorRow = parseInt(cursorRow)
+    cursorCol = parseInt(cursorCol)
+
+    cursorRow += cursorCol + 1 >= window.dungeon_width ? 1 : 0
+    cursorRow %= window.dungeon_height
+
+    cursorCol += 1
+    cursorCol %= window.dungeon_width
+    context.textCursorCoordinates = [cursorRow, cursorCol].join("_")
+  },
   blankDivNode: null,
   selectedTileId: null,
   selectedTileHtml: null,
@@ -980,6 +1051,9 @@ let DungeonEditor = {
   lastTilePaintingBackgroundColor: null,
   lastColorPaintingColor: null,
   lastColorPaintingBackgroundColor: null,
+  lastTextColor: null,
+  lastTextBackgroundColor: null,
+  textCursorCoordinates: null,
 }
 
 export default DungeonEditor

@@ -3,4 +3,7 @@
 <%= {:safe, editor_dungeon_as_table(@dungeon, @dungeon.height, @dungeon.width) } %>
 </table>
 </pre>
-
+<script>
+window.dungeon_height = <%= @dungeon.height %>;
+window.dungeon_width = <%= @dungeon.width %>;
+</script>
