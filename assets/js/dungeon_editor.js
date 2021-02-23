@@ -978,7 +978,25 @@ let DungeonEditor = {
   typeCharacter(event, context){
     let character = event.key
 
-    if(context.mode != "text" || ! context.textCursorCoordinates || character.length != 1) { return }
+    if(context.mode != "text" || !context.textCursorCoordinates || character.length != 1){
+      if(character == "Backspace"){
+        event.preventDefault();
+        context.unHilightTextCursor()
+
+        let map_location_td = document.getElementById(context.textCursorCoordinates),
+            current_z_index = document.getElementById("z_index_current").value,
+            visible_tile_div = map_location_td.querySelector("td > div[data-z-index='" + current_z_index + "']:not(.hidden):not(.placeholder)")
+
+        if(visible_tile_div){
+          visible_tile_div.classList.add("deleted-map-tile")
+          context.showVisibleTileAtCoordinate(map_location_td, current_z_index)
+        }
+
+        context.previousCursorCoords(context)
+        context.hilightTextCursor()
+      }
+      return
+    }
     event.preventDefault();
 
     let map_location_td = document.getElementById(context.textCursorCoordinates),
@@ -1013,6 +1031,18 @@ let DungeonEditor = {
 
     cursorCol += 1
     cursorCol %= window.dungeon_width
+    context.textCursorCoordinates = [cursorRow, cursorCol].join("_")
+  },
+  previousCursorCoords(context){
+    let [cursorRow, cursorCol] = context.textCursorCoordinates.split("_")
+    cursorRow = parseInt(cursorRow)
+    cursorCol = parseInt(cursorCol)
+
+    cursorRow -= cursorCol - 1 < 0 ? 1 : 0
+    cursorRow = cursorRow < 0 ? window.dungeon_height -1 : cursorRow
+
+    cursorCol -= 1
+    cursorCol = cursorCol < 0 ? window.dungeon_width - 1 : cursorCol
     context.textCursorCoordinates = [cursorRow, cursorCol].join("_")
   },
   blankDivNode: null,
