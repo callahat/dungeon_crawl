@@ -20,30 +20,8 @@ defmodule DungeonCrawlWeb.DungeonMapView do
 
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
-    |> Enum.map(fn(tile_template) ->
-         """
-           <pre class="tile_template_preview embiggen"
-                name="paintable_tile_template"
-                title="#{ tile_template.name }"
-                #{ if historic, do: " data-historic-template=true" }
-                data-tile-template-id="#{ tile_template.id }"
-                data-tile-template-description="#{ tile_template.description }"
-                data-tile-template-state="#{ Phoenix.HTML.Safe.to_iodata tile_template.state }"
-                data-tile-template-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }"
-                data-color="#{ tile_template.color }"
-                data-background-color="#{ tile_template.background_color }"
-                data-name="#{ Phoenix.HTML.Safe.to_iodata tile_template.name }"
-                data-slug="#{ Phoenix.HTML.Safe.to_iodata tile_template.slug }"
-                data-character="#{ Phoenix.HTML.Safe.to_iodata tile_template.character }"
-                data-state="#{ Phoenix.HTML.Safe.to_iodata tile_template.state }"
-                data-script="#{ Phoenix.HTML.Safe.to_iodata tile_template.script }"
-                data-random="#{ tile_template.animate_random }"
-                data-period="#{ tile_template.animate_period }"
-                data-characters="#{ tile_template.animate_characters }"
-                data-colors="#{ tile_template.animate_colors }"
-                data-background-colors="#{ tile_template.animate_background_colors }"
-             >#{ DungeonCrawlWeb.SharedView.tile_and_style(tile_template) }</pre>
-         """
+    |> Enum.map(fn(tt) ->
+         render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: tt, historic: historic})
        end)
     |> Enum.join("\n")
     |> _make_it_safe()

@@ -32,6 +32,7 @@ pre.color_pallette {
   border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
+  margin-bottom: 0;
   padding: 0.5em;
   font-size: 14px;
 }
@@ -144,6 +145,14 @@ input#tile_template_character {
 }
 .edge.west {
   border-right: 1px solid black;
+}
+
+#tileListModal .btn-sm {
+  padding: 0rem 0.25rem;
+}
+
+#tileListModal .modal-dialog {
+  max-width: 700px
 }
 
 /*

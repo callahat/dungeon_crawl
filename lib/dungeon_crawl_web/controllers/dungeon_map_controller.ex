@@ -4,7 +4,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.Dungeon.Map
+  alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias DungeonCrawl.MapGenerators.Empty
   alias DungeonCrawl.MapGenerators.Labrynth
@@ -13,6 +15,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
   plug :validate_edit_dungeon_available
   plug :assign_map_set when action in [:new, :create, :edit, :update, :delete, :map_edge]
   plug :assign_dungeon when action in [:edit, :update, :delete]
+  plug :assign_tile_shortlist when action in [:edit, :update]
   plug :validate_updateable when action in [:edit, :update]
   plug :set_sidebar_col when action in [:edit, :update]
 
@@ -59,7 +62,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
 
     adjacent_map_edge_tiles = Dungeon.adjacent_map_edge_tiles(dungeon)
 
-    render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations, adjacent_map_edge_tiles: adjacent_map_edge_tiles)
+    render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations, adjacent_map_edge_tiles: adjacent_map_edge_tiles, tile_shortlist: conn.assigns.tile_shortlist)
   end
 
   def update(conn, %{"id" => _id, "map" => dungeon_params}) do
@@ -91,7 +94,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
                           |> Enum.into(%{}, fn(sl) -> {"#{sl.row}_#{sl.col}", true} end)
         adjacent_map_edge_tiles = Dungeon.adjacent_map_edge_tiles(dungeon)
 
-        render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, map_set: conn.assigns.map_set, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations, adjacent_map_edge_tiles: adjacent_map_edge_tiles)
+        render(conn, "edit.html", map_set: conn.assigns.map_set, dungeon: dungeon, changeset: changeset, tile_templates: tile_templates, historic_templates: historic_templates, low_z_index: low_z, high_z_index: high_z, map_set: conn.assigns.map_set, max_dimensions: _max_dimensions(), spawn_locations: spawn_locations, adjacent_map_edge_tiles: adjacent_map_edge_tiles, tile_shortlist: conn.assigns.tile_shortlist)
     end
   end
 
@@ -132,10 +135,9 @@ defmodule DungeonCrawlWeb.DungeonMapController do
       {:ok, tile_additions} ->
         # TODO: move this to a method in Dungeon
         tile_additions
-        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]),
+        |> Enum.map(fn(ta) -> [TileTemplates.get_tile_template(ta["tile_template_id"]) || %TileTemplate{},
                                ta
                               ] end)
-        |> Enum.reject(fn([tt,_]) -> is_nil(tt) end)
         |> Enum.map(fn([tt, ta]) ->
              Dungeon.create_map_tile!(%{dungeon_id: dungeon.id,
                                         row: ta["row"],
@@ -181,7 +183,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
 
   def validate_map_tile(conn, %{"dungeon_id" => map_set_id, "id" => id, "map_tile" => map_tile_params}) do
     map_tile_changeset = Dungeon.MapTile.changeset(%Dungeon.MapTile{}, Elixir.Map.merge(map_tile_params, %{"map_set_id" => map_set_id, "dungeon_id" => id}))
-                         |> TileTemplates.TileTemplate.validate_script(%{user_id: conn.assigns.current_user.id})
+                         |> TileTemplates.TileTemplate.validate_script(conn.assigns.current_user.id)
 
     render(conn, "map_tile_errors.json", map_tile_errors: map_tile_changeset.errors)
   end
@@ -250,6 +252,11 @@ defmodule DungeonCrawlWeb.DungeonMapController do
       |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
+  end
+
+  defp assign_tile_shortlist(conn, _opts) do
+    conn
+    |> assign(:tile_shortlist, TileShortlists.list_tiles(conn.assigns.current_user))
   end
 
   defp validate_updateable(conn, _opts) do

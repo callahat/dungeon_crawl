@@ -4,7 +4,8 @@
 <%= render "tile_pallette_sidebar.html", tile_templates: @tile_templates,
                                          historic_templates: @historic_templates,
                                          low_z_index: @low_z_index,
-                                         high_z_index: @high_z_index %>
+                                         high_z_index: @high_z_index,
+                                         tile_shortlist: @tile_shortlist %>
 </div>
 
 <%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, dungeon: @dungeon, map_set: @map_set,
@@ -19,4 +20,5 @@ window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_map_edge_
 
 <%= render "tile_edit_modal.html" %>
 <%= render "tile_detail_modal.html" %>
+<%= render "tile_list_modal.html", tile_templates: @tile_templates %>
 <%= render DungeonCrawlWeb.SharedView, "character_select_modal.html" %>
