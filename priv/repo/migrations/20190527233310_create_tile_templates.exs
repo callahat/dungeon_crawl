@@ -1,8 +1,8 @@
 defmodule DungeonCrawl.Repo.Migrations.CreateTileTemplates do
   use Ecto.Migration
 
-  alias DungeonCrawl.Repo
-  alias DungeonCrawl.Dungeon.MapTile
+  # alias DungeonCrawl.Repo
+  # alias DungeonCrawl.Dungeon.MapTile
 
   def up do
     create table(:tile_templates) do

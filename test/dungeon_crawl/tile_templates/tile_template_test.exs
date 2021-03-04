@@ -6,6 +6,10 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
   @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "#F00", background_color: "black", script: nil}
   @invalid_attrs %{name: "", character: "BIG", script: "#NOCOMMAND", state: "badstate", color: "#mm", background_color: "#mm", animate_period: 0}
 
+  test "groups/0" do
+    assert ["terrain", "doors", "monsters", "items", "misc", "custom"] == TileTemplate.groups
+  end
+
   test "changeset with valid attributes" do
     changeset = TileTemplate.changeset(%TileTemplate{}, @valid_attrs)
     assert changeset.valid?
@@ -55,5 +59,20 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
                              Line 1: BECOME command has errors: `background_color - has invalid format`
                              Line 3: IF command references nonexistant label `NOTALABEL`
                              """ |> String.trim ]
+  end
+
+  test "changeset with a group" do
+    changeset = TileTemplate.changeset(%TileTemplate{}, Map.put(@valid_attrs, :group_name, nil))
+    assert changeset.valid?
+    changeset = TileTemplate.changeset(%TileTemplate{}, Map.put(@valid_attrs, :group_name, "items"))
+    assert changeset.valid?
+    changeset = TileTemplate.changeset(%TileTemplate{}, Map.put(@valid_attrs, :group_name, "badgroup"))
+    refute changeset.valid?
+    errs = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+               Enum.reduce(opts, msg, fn {key, value}, acc ->
+                 String.replace(acc, "%{#{key}}", to_string(value))
+               end)
+             end)
+    assert errs[:group_name] == ["is invalid"]
   end
 end

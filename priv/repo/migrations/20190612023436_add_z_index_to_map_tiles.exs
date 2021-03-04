@@ -1,15 +1,15 @@
 defmodule DungeonCrawl.Repo.Migrations.AddZIndexToMapTiles do
   use Ecto.Migration
 
-  alias DungeonCrawl.Repo
-  alias DungeonCrawl.Dungeon.MapTile
+  # alias DungeonCrawl.Repo
+  # alias DungeonCrawl.Dungeon.MapTile
 
   def change do
     alter table(:dungeon_map_tiles) do
       add :z_index, :integer
     end
 
-    flush()
+    # flush()
 
     # Update with z_index 0
     # Repo.all(MapTile)

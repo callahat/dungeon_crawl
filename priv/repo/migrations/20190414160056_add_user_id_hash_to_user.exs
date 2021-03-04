@@ -1,8 +1,8 @@
 defmodule DungeonCrawl.Repo.Migrations.AddUserIdHashToUser do
   use Ecto.Migration
-  import Ecto.Query
-  alias DungeonCrawl.Repo
-  alias DungeonCrawl.Account.User
+  # import Ecto.Query
+  # alias DungeonCrawl.Repo
+  # alias DungeonCrawl.Account.User
 
   def up do
     alter table(:users) do
@@ -11,12 +11,12 @@ defmodule DungeonCrawl.Repo.Migrations.AddUserIdHashToUser do
 
     flush()
 
-    Repo.all(User)
-    |> Enum.each(fn(u) -> 
-         User.changeset(u)
-         |> Ecto.Changeset.put_change(:user_id_hash, :base64.encode(:crypto.strong_rand_bytes(24)))
-         |> Repo.update!
-       end)
+    # Repo.all(User)
+    # |> Enum.each(fn(u) ->
+    #      User.changeset(u)
+    #      |> Ecto.Changeset.put_change(:user_id_hash, :base64.encode(:crypto.strong_rand_bytes(24)))
+    #      |> Repo.update!
+    #    end)
 
     create index(:users, [:user_id_hash])
   end

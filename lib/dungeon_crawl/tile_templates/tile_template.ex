@@ -4,6 +4,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
 
   @color_match ~r/\A(?:[a-z]+|#(?:[\da-f]{3}){1,2})\z/i
 
+  @groups ["terrain","doors", "monsters", "items", "misc", "custom"]
+
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.StateValue
 
@@ -25,12 +27,20 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :animate_background_colors, :string
     field :animate_characters, :string
     field :animate_period, :integer
+    field :group_name, :string
     has_one :next_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id, on_delete: :nilify_all
     has_many :map_tiles, DungeonCrawl.Dungeon.MapTile, on_delete: :nilify_all
     belongs_to :previous_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id
     belongs_to :user, DungeonCrawl.Account.User
 
     timestamps()
+  end
+
+  @doc """
+  Returns the available groups
+  """
+  def groups() do
+    @groups
   end
 
   @doc false
@@ -53,8 +63,10 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
                     :animate_colors,
                     :animate_background_colors,
                     :animate_characters,
-                    :animate_period])
+                    :animate_period,
+                    :group_name])
     |> validate_required([:name, :description])
+    |> validate_inclusion(:group_name, @groups)
     |> validate_animation_fields
     |> validate_renderables
     |> validate_script(tile_template.user_id) # seems like an clumsy way to get a user just to validate a TTID in a script
