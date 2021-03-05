@@ -11,6 +11,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         color: "maroon",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 :THUD
                 :NEW_SPEED
@@ -47,6 +48,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         color: "brown",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 :top
                 #target_player nearest
@@ -95,6 +97,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         color: "green",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 @range -= 1
                 #IF @range == 0, done
@@ -123,6 +126,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         color: "darkorange",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 :top
                 #target_player nearest
@@ -153,6 +157,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         state: "blocking: true, soft: true, facing: south, pulling: map_tile_id",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 :main
                 #pull @facing
@@ -206,6 +211,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         state: "pullable: map_tile_id, pulling: map_tile_id, blocking: true, soft: true, facing: west",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 #end
                 :shot
@@ -249,6 +255,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         color: "teal",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 :top
                 #target_player nearest
@@ -287,6 +294,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
         color: "green",
         public: true,
         active: true,
+        group_name: "monsters",
         script: """
                 #cycle 8
                 :top

@@ -12,6 +12,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
           color: color,
           public: true,
           active: true,
+          group_name: "items",
           script: """
                   #END
                   :TOUCH
@@ -36,6 +37,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
           state: "blocking: true",
           public: true,
           active: true,
+          group_name: "doors",
           script: """
                   #END
                   :TOUCH
@@ -61,6 +63,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
         background_color: "gray",
         public: true,
         active: true,
+        group_name: "items",
         script: """
                 #END
                 :TOUCH
@@ -86,6 +89,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
         state: "blocking: true",
         public: true,
         active: true,
+        group_name: "doors",
         script: """
                 #END
                 :TOUCH

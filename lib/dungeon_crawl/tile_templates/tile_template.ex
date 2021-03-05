@@ -27,7 +27,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :animate_background_colors, :string
     field :animate_characters, :string
     field :animate_period, :integer
-    field :group_name, :string
+    field :group_name, :string, default: "custom"
     has_one :next_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id, on_delete: :nilify_all
     has_many :map_tiles, DungeonCrawl.Dungeon.MapTile, on_delete: :nilify_all
     belongs_to :previous_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id

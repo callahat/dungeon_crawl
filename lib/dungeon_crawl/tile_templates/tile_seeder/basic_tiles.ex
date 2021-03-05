@@ -8,13 +8,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
   as the key, and the existing or created tile template record as the value.
   """
   def basic_tiles() do
-    floor = create_with_defaults!("floor", %{character: ".", name: "Floor", description: "Just a dusty floor", state: "blocking: false"})
-    wall  = create_with_defaults!("wall", %{character: "#", name: "Wall",  description: "A Rough wall", state: "blocking: true"})
+    floor = create_with_defaults!("floor", %{character: ".", name: "Floor", description: "Just a dusty floor", state: "blocking: false", group_name: "terrain"})
+    wall  = create_with_defaults!("wall", %{character: "#", name: "Wall",  description: "A Rough wall", state: "blocking: true", group_name: "terrain"})
     rock  = rock_tile()
     statue= statue_tile()
 
-    open_door    = create_with_defaults!("open_door", %{character: "'", name: "Open Door", description: "An open door", state: "blocking: false, open: true", script: ""})
-    closed_door  = create_with_defaults!("closed_door", %{character: "+", name: "Closed Door", description: "A closed door", state: "blocking: true, open: false", script: ""})
+    open_door    = create_with_defaults!("open_door", %{character: "'", name: "Open Door", description: "An open door", state: "blocking: false, open: true", script: "", group_name: "doors"})
+    closed_door  = create_with_defaults!("closed_door", %{character: "+", name: "Closed Door", description: "A closed door", state: "blocking: true, open: false", script: "", group_name: "doors"})
 
     open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{script: "#END\n:CLOSE\n#BECOME slug: #{closed_door.slug}"})
     closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{script: "#END\n:OPEN\n#BECOME slug: #{open_door.slug}"})
@@ -29,14 +29,14 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
   Seeds the DB with the basic player character tile, returning that record.
   """
   def rock_tile() do
-    create_with_defaults!("rock", %{character: " ", name: "Rock",  description: "Impassible stone", state: "blocking: true"})
+    create_with_defaults!("rock", %{character: " ", name: "Rock",  description: "Impassible stone", state: "blocking: true", group_name: "terrain"})
   end
 
   @doc """
   Seeds the DB with the basic statue tile, returning that record.
   """
   def statue_tile() do
-    create_with_defaults!("statue", %{character: "@", name: "Statue",  description: "It looks oddly familiar", state: "blocking: true"})
+    create_with_defaults!("statue", %{character: "@", name: "Statue",  description: "It looks oddly familiar", state: "blocking: true", group_name: "misc"})
   end
 
   @doc """
@@ -52,6 +52,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
         name: "Basic Door",
         description: "A basic door, it opens and closes",
         state: state,
+        group_name: "doors",
         script: """
                 #END
                 :CLOSE

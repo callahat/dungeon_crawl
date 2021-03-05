@@ -9,7 +9,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         description: "A smooth boulder",
         state: "blocking: true, pushable: true, pullable: true",
         public: true,
-        active: true
+        active: true,
+        group_name: "terrain"
     })
   end
 
@@ -22,6 +23,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         state: "blocking: true, wait_cycles: 2",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 :top
                 /i
@@ -42,6 +44,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         state: "blocking: true, wait_cycles: 2",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 :top
                 /i
@@ -63,6 +66,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         color: "green",
         public: true,
         active: true,
+        group_name: "terrain",
         script: """
                 #end
                 :touch
@@ -100,6 +104,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         background_color: "red",
         public: true,
         active: true,
+        group_name: "terrain",
         animate_random: true,
         animate_period: 10,
         animate_characters: "▒, ░, ░",
@@ -134,6 +139,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         state: "ricochet: true, blocking: true",
         public: true,
         active: true,
+        group_name: "terrain"
     })
   end
 
@@ -145,7 +151,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         description: "It can be moved north and south",
         state: "blocking: true, pushable: ew",
         public: true,
-        active: true
+        active: true,
+        group_name: "terrain"
     })
   end
 
@@ -157,7 +164,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         description: "It can be moved north and south",
         state: "blocking: true, pushable: ns",
         public: true,
-        active: true
+        active: true,
+        group_name: "terrain"
     })
   end
 

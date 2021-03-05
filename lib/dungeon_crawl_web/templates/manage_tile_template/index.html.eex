@@ -21,9 +21,8 @@
           <th>Id</th>
           <th>Slug</th>
           <th>Name</th>
+          <th>Group</th>
           <th>Character</th>
-          <th>Color</th>
-          <th>B.Color</th>
           <th>Use Count</th>
           <th title="Public">P</th>
           <th title="Active">A</th>
@@ -38,9 +37,8 @@
           <td><%= tile_template.id %></td>
           <td><%= tile_template.slug %></td>
           <td><%= tile_template.name %></td>
+          <td><%= tile_template.group_name %></td>
           <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre></td>
-          <td><%= tile_template.color %></td>
-          <td><%= tile_template.background_color %></td>
           <td><%= DungeonCrawl.Dungeon.tile_template_reference_count(tile_template) %></td>
           <td><%= if tile_template.public, do: "Y", else: "N" %></td>
           <td><%= if tile_template.active, do: "Y", else: "N" %></td>

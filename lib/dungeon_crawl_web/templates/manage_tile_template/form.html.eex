@@ -94,15 +94,23 @@
       </div>
 
       <div class="row">
+      <%= if @conn.assigns.current_user.is_admin do %>
         <div class="col-md-3">
-      <%= if @conn.assigns.current_user.is_admin && (f.data.user_id == @conn.assigns.current_user.id || f.data.user_id == nil) do %>
-      <div class="form-group">
-        <label class="control-label" for="self_owned">Owned by self</label>
-        <input id="self_owned" name="self_owned" type="hidden" value="false">
-        <input id="self_owned" name="self_owned" type="checkbox" value="true" <%= if f.data.user_id == @conn.assigns.current_user.id, do: "checked" %>>
-      </div>
-      <% end %>
+          <div class="form-group">
+            <%= label f, :group_name, class: "control-label" %>
+            <%= select f, :group_name, TileTemplate.groups(), class: "form-control", prompt: "Please select" %>
+          </div>
         </div>
+      <% end %>
+      <%= if @conn.assigns.current_user.is_admin && (f.data.user_id == @conn.assigns.current_user.id || f.data.user_id == nil) do %>
+        <div class="col-md-3">
+          <div class="form-group">
+            <label class="control-label" for="self_owned">Owned by self</label>
+            <input id="self_owned" name="self_owned" type="hidden" value="false">
+            <input id="self_owned" name="self_owned" type="checkbox" value="true" <%= if f.data.user_id == @conn.assigns.current_user.id, do: "checked" %>>
+          </div>
+        </div>
+      <% end %>
         <div class="col-md-3">
           <div class="form-group">
             <%= label f, :public, class: "control-label" %>

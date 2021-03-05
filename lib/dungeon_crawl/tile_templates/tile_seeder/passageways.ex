@@ -12,6 +12,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
         background_color: "gray",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 #PASSAGE @background_color
                 #END
@@ -31,6 +32,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
         color: "black",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 #PASSAGE stairs_up
                 #END
@@ -50,6 +52,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
         color: "black",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 #PASSAGE stairs_down
                 #END

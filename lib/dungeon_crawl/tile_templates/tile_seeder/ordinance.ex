@@ -11,6 +11,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         color: "black",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 #END
                 :TOUCH
@@ -43,8 +44,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Caught up in the explosion",
         state: "count: 3, damage: 10",
         color: "crimson",
-        public: true,
+        public: true, # TODO: should this be false? would that prevent others from using the slug even though its standard?
         active: true,
+        group_name: "misc",
         script: """
                 #SEND bombed, here
                 :TOP
@@ -68,6 +70,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         color: "gray",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 @counter = 0
                 :wait
@@ -98,6 +101,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Its going to get you.",
         public: true,
         active: true,
+        group_name: "misc",
         animate_period: 1,
         animate_characters: "|, \\, -, /",
         animate_colors: "red, green, darkorange, blue, purple",
@@ -139,6 +143,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Shoots stars",
         public: true,
         active: true,
+        group_name: "misc",
         state: "star_range: 50, star_damage: 10, wait_cycles: 100, blocking: true",
         script: """
                 :top

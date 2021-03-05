@@ -9,7 +9,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
         description: "A solid wall",
         state: "blocking: true",
         public: true,
-        active: true
+        active: true,
+        group_name: "terrain"
     })
   end
 
@@ -21,7 +22,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
         description: "A normal wall",
         state: "blocking: true",
         public: true,
-        active: true
+        active: true,
+        group_name: "terrain"
     })
   end
 
@@ -33,7 +35,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
         description: "A breakable wall",
         state: "blocking: true, destroyable: true, soft: true",
         public: true,
-        active: true
+        active: true,
+        group_name: "terrain"
     })
   end
 
@@ -46,6 +49,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
         state: "blocking: true",
         public: true,
         active: true,
+        group_name: "terrain",
         script: """
                 #END
                 :TOUCH
@@ -73,6 +77,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
         state: "blocking: true",
         public: true,
         active: true,
+        group_name: "terrain",
         script: """
                 #end
                 :touch
