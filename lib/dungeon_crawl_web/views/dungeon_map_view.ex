@@ -1,6 +1,9 @@
 defmodule DungeonCrawlWeb.DungeonMapView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawlWeb.DungeonMapView
+
   def adjacent_selects(form, dungeons) do
     options = Enum.map(dungeons, &{"#{&1.number} #{&1.name}", &1.number})
     ["north", "south", "east", "west"]
@@ -85,5 +88,22 @@ defmodule DungeonCrawlWeb.DungeonMapView do
   end
   defp _render_detail(message) do
     message
+  end
+
+  def tile_template_nav_tabs() do
+    render_to_string(__MODULE__, "tile_list_navtabs.html", %{})
+    |> _make_it_safe()
+  end
+  def tile_template_tabs(tile_templates) do
+    TileTemplate.groups()
+    |> Enum.map(fn group_name ->
+         render_to_string(__MODULE__,
+                 "tile_list_tab_content.html",
+                 %{tile_templates: tile_templates,
+                   group_name: group_name,
+                   show_active: if(group_name == "terrain", do: " show active")})
+       end)
+    |> Enum.join("")
+    |> _make_it_safe()
   end
 end
