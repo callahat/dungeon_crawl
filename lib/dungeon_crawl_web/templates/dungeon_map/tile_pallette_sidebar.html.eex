@@ -87,6 +87,7 @@
                   <button id="erase_tool" class="btn btn-info btn-sm mx-1" title="Erase tiles">Eraser</button>
                   <button id="spawn_location_tool" class="btn btn-info btn-sm mx-1" title="Spawn Locations">Spawn Locations</button>
                   <button id="text_tool" class="btn btn-info btn-sm mx-1" title="Text">Text</button>
+                  <button id="line_draw_tool" class="btn btn-info btn-sm mx-1" title="Line Draw">Line Draw</button>
                 </div>
               </div>
             </div>

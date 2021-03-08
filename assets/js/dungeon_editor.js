@@ -90,6 +90,16 @@ let DungeonEditor = {
       this.updateColorPreviews()
     });
 
+    document.getElementById("line_draw_tool").addEventListener('click', e => {
+      // defaulting to tile edit
+      document.getElementById("tile_color").value = this.lastLineDrawColor
+      document.getElementById("tile_background_color").value = this.lastLineDrawBackgroundColor
+      this.mode = "line_draw"
+      this.unHilightSpawnTiles()
+      this.otherTabHilightTool("line_draw_tool")
+      document.getElementById("color_area").classList.remove("hidden")
+      this.updateColorPreviews()
+    });
 
     for(let field of ['tile_color', 'tile_background_color']){
       document.getElementById(field).addEventListener('change', e => {
@@ -359,7 +369,7 @@ let DungeonEditor = {
   selectDungeonTile(event){
     if(event.target.classList.contains("edge") || event.target.parentNode.classList.contains("edge") ) { return }
 
-    if(this.mode == "tile_edit" || this.mode == "tile_erase" || this.mode == "spawn_location") { return }
+    if(this.mode == "tile_edit" || this.mode == "tile_erase" || this.mode == "spawn_location" || this.mode == "line_draw") { return }
 
     let map_location = this.getMapLocation(event)
     if(!map_location) { return } // event picked up on bad element
@@ -436,6 +446,9 @@ let DungeonEditor = {
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_painting") {
       var paintMethod = this.paintTile,
+          attributes = ["data-color", "data-background-color", "data-tile-template-id"]
+    } else if(this.mode == "line_draw"){
+      var paintMethod = this.drawLine,
           attributes = ["data-color", "data-background-color", "data-tile-template-id"]
     } else if(this.mode == "tile_edit") {
       document.getElementById("tile_template_row").value = targetCoord[0]
@@ -552,6 +565,9 @@ let DungeonEditor = {
       div.setAttribute("class", "changed-map-tile")
     }
   },
+  drawLine(map_location_td, context){
+    console.log("line draw magic")
+  },
   getMapLocation(event){
     if(event.target.tagName == "TD"){
       console.log("MISSED THE DIV AND HIT A TD INSTEAD!")
@@ -661,6 +677,9 @@ let DungeonEditor = {
     } else if(this.mode == "text") {
       this.lastTextColor = color
       this.lastTextBackgroundColor = background_color
+    } else if(this.mode == "line_draw") {
+      this.lastLineDrawColor = color
+      this.lastLineDrawBackgroundColor = background_color
     }
 
     this.updateColors(document.getElementById("tile_color_pre"), color, background_color)
@@ -964,6 +983,8 @@ let DungeonEditor = {
     document.getElementById("spawn_location_tool").classList.remove('btn-info')
     document.getElementById("text_tool").classList.add('btn-light')
     document.getElementById("text_tool").classList.remove('btn-info')
+    document.getElementById("line_draw_tool").classList.add('btn-light')
+    document.getElementById("line_draw_tool").classList.remove('btn-info')
 
     document.getElementById(tool_id).classList.add('btn-info')
     document.getElementById(tool_id).classList.remove('btn-light')
@@ -1084,6 +1105,8 @@ let DungeonEditor = {
   lastTextColor: null,
   lastTextBackgroundColor: null,
   textCursorCoordinates: null,
+  lastLineDrawColor: null,
+  lastLineDrawBackgroundColor: null
 }
 
 export default DungeonEditor
