@@ -71,13 +71,6 @@
                       <br/>
                       <%= tile_template_pres(@historic_templates, :historic) %>
                     <% end %>
-
-                    <%= if Enum.count(@tile_templates.inactive) > 0 do %>
-                      <br/>
-                      <span><b>Inactive Tiles</b> (must be activated before the dungeon can be)</span>
-                      <br/>
-                      <%= tile_template_pres(@tile_templates.inactive) %>
-                    <% end %>
                   </div>
                 </div>
               </div>

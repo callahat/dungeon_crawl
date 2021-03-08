@@ -38,15 +38,17 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.list_tile_templates() == [tile_template]
     end
 
-    test "list_placeable_tile_templates/1 returns all tile_templates placeable for the given user" do
+    test "list_placeable_tile_templates/2 returns all tile_templates placeable for the given user partitioned" do
       user = insert_user()
       different_user = insert_user()
-      tile_template = tile_template_fixture(%{user_id: user.id})
+      tile_template = tile_template_fixture(%{user_id: user.id, group_name: "monsters"})
       inactive_tile_template = tile_template_fixture(%{user_id: user.id, active: false})
       tile_template_fixture(%{user_id: different_user.id})
       public_tile_template = tile_template_fixture(%{user_id: different_user.id, public: true})
       deleted_tile_template_fixture()
-      assert TileTemplates.list_placeable_tile_templates(user) == %{active: [tile_template, public_tile_template], inactive: [inactive_tile_template]}
+      assert TileTemplates.list_placeable_tile_templates(user) ==
+               %{active: %{"monsters" => [tile_template], "custom" => [public_tile_template]},
+                 inactive: %{"custom" => [inactive_tile_template]}}
     end
 
     test "get_tile_template/1 returns an empty struct for nil" do
