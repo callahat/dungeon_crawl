@@ -408,6 +408,12 @@ let DungeonEditor = {
       if(this.erased == next_top_coords) { return }
 
       visible_tile_div.classList.add("deleted-map-tile")
+
+      if(visible_tile_div.classList.contains("line-point")){
+        visible_tile_div.classList.remove("line-point")
+        this.updateLinePoint(map_location_td, visible_tile_div, true, this)
+      }
+
       this.showVisibleTileAtCoordinate(map_location_td, document.getElementById("z_index_current").value)
       visible_tile_div = map_location_td.querySelector("td > div:not(.hidden):not(.placeholder)")
 
@@ -495,7 +501,7 @@ let DungeonEditor = {
     }
   },
   findOrCreateActiveTileDiv(map_location_td, context){
-    let div = map_location_td.querySelector("td > div[data-z-index='" + document.getElementById("z_index_current").value + "']")
+    let div = map_location_td.querySelector("td > div:not(.deleted-map-tile)[data-z-index='" + document.getElementById("z_index_current").value + "']")
     map_location_td.querySelector("td > div:not(.hidden)").classList.add("hidden")
 
     if(!!div) {
@@ -567,6 +573,61 @@ let DungeonEditor = {
   },
   drawLine(map_location_td, context){
     console.log("line draw magic")
+    let div = context.findOrCreateActiveTileDiv(map_location_td, context),
+        color = context.lastLineDrawColor || "",
+        background_color = context.lastLineDrawBackgroundColor || "",
+        tileHtml = context.blankDivNode.cloneNode(true)
+
+    tileHtml.innerText = "⋅"
+    tileHtml.style["color"] = color
+    tileHtml.style["background-color"] = background_color
+    tileHtml.classList.remove("placeholder")
+
+    context.paintTile(map_location_td, {blankDivNode: context.blankDivNode,
+                                        selectedTileId: "",
+                                        selectedTileHtml: tileHtml,
+                                        selectedTileColor: color,
+                                        selectedTileBackgroundColor: background_color,
+                                        selectedTileCharacter: "⋅",
+                                        selectedTileState: "blocking: true",
+                                        findOrCreateActiveTileDiv: context.findOrCreateActiveTileDiv
+    })
+
+    div.classList.add("line-point")
+
+    context.updateLinePoint(map_location_td, div, true, context)
+  },
+  updateLinePoint(map_location_td, div, neighbors, context){
+    if(!map_location_td) { return }
+
+    let coords = map_location_td.id.split("_").map( c => parseInt(c)),
+        north_td = document.getElementById([coords[0] - 1, coords[1]].join("_")),
+        south_td = document.getElementById([coords[0] + 1, coords[1]].join("_")),
+        east_td = document.getElementById([coords[0], coords[1] + 1].join("_")),
+        west_td = document.getElementById([coords[0], coords[1] - 1].join("_")),
+        score = 0,
+        div_north = north_td ? context.findOrCreateActiveTileDiv(north_td, context) : null,
+        div_south = south_td ? context.findOrCreateActiveTileDiv(south_td, context) : null,
+        div_east = east_td ? context.findOrCreateActiveTileDiv(east_td, context) : null,
+        div_west = west_td ? context.findOrCreateActiveTileDiv(west_td, context) : null
+
+    score += div_north && div_north.classList.contains("line-point") ? 8 : 0
+    score += div_south && div_south.classList.contains("line-point") ? 4 : 0
+    score += div_east && div_east.classList.contains("line-point") ? 2 : 0
+    score += div_west && div_west.classList.contains("line-point") ? 1 : 0
+
+    let lineChar = context.lineScoreMap[score] || "X"
+
+    div.setAttribute("data-character", lineChar)
+    div.children[0].innerText = lineChar
+    if(neighbors){
+      context.updateLinePoint(north_td, div_north, false, context)
+      context.updateLinePoint(south_td, div_south, false, context)
+      context.updateLinePoint(east_td, div_east, false, context)
+      context.updateLinePoint(west_td, div_west, false, context)
+    }
+    context.deletePlaceholders()
+    context.updateVisibleStacks()
   },
   getMapLocation(event){
     if(event.target.tagName == "TD"){
@@ -1066,6 +1127,11 @@ let DungeonEditor = {
     cursorCol = cursorCol < 0 ? window.dungeon_width - 1 : cursorCol
     context.textCursorCoordinates = [cursorRow, cursorCol].join("_")
   },
+  deletePlaceholders(){
+    for(let placeholder of document.getElementsByClassName("placeholder")){
+      placeholder.remove()
+    }
+  },
   blankDivNode: null,
   selectedTileId: null,
   selectedTileHtml: null,
@@ -1106,7 +1172,10 @@ let DungeonEditor = {
   lastTextBackgroundColor: null,
   textCursorCoordinates: null,
   lastLineDrawColor: null,
-  lastLineDrawBackgroundColor: null
+  lastLineDrawBackgroundColor: null,
+  lineScoreMap: { 0: "⋅",  1: "╡",  2: "╞",  3: "═",  4: "╥",  5: "╗",
+                  6: "╔",  7: "╦",  8: "╩",  9: "╝", 10: "╚", 11: "╩",
+                 12: "║", 13: "╣", 14: "╠", 15: "╬"}
 }
 
 export default DungeonEditor
