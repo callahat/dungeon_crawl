@@ -409,8 +409,8 @@ let DungeonEditor = {
 
       visible_tile_div.classList.add("deleted-map-tile")
 
-      if(visible_tile_div.classList.contains("line-point")){
-        visible_tile_div.classList.remove("line-point")
+      if(visible_tile_div.getAttribute("data-name") == "line-point"){
+        visible_tile_div.setAttribute("data-name", "")
         this.updateLinePoint(map_location_td, visible_tile_div, true, this)
       }
 
@@ -593,7 +593,7 @@ let DungeonEditor = {
                                         findOrCreateActiveTileDiv: context.findOrCreateActiveTileDiv
     })
 
-    div.classList.add("line-point")
+    div.setAttribute("data-name", "line-point")
 
     context.updateLinePoint(map_location_td, div, true, context)
   },
@@ -611,15 +611,18 @@ let DungeonEditor = {
         div_east = east_td ? context.findOrCreateActiveTileDiv(east_td, context) : null,
         div_west = west_td ? context.findOrCreateActiveTileDiv(west_td, context) : null
 
-    score += div_north && div_north.classList.contains("line-point") ? 8 : 0
-    score += div_south && div_south.classList.contains("line-point") ? 4 : 0
-    score += div_east && div_east.classList.contains("line-point") ? 2 : 0
-    score += div_west && div_west.classList.contains("line-point") ? 1 : 0
+    if(div.getAttribute("data-name") == "line-point") {
+      score += div_north && div_north.getAttribute("data-name") == "line-point" ? 8 : 0
+      score += div_south && div_south.getAttribute("data-name") == "line-point" ? 4 : 0
+      score += div_east && div_east.getAttribute("data-name") == "line-point" ? 2 : 0
+      score += div_west && div_west.getAttribute("data-name") == "line-point" ? 1 : 0
 
-    let lineChar = context.lineScoreMap[score] || "X"
+      let lineChar = context.lineScoreMap[score] || "X"
 
-    div.setAttribute("data-character", lineChar)
-    div.children[0].innerText = lineChar
+      div.setAttribute("data-character", lineChar)
+      div.children[0].innerText = lineChar
+    }
+
     if(neighbors){
       context.updateLinePoint(north_td, div_north, false, context)
       context.updateLinePoint(south_td, div_south, false, context)
@@ -1174,7 +1177,7 @@ let DungeonEditor = {
   lastLineDrawColor: null,
   lastLineDrawBackgroundColor: null,
   lineScoreMap: { 0: "⋅",  1: "╡",  2: "╞",  3: "═",  4: "╥",  5: "╗",
-                  6: "╔",  7: "╦",  8: "╩",  9: "╝", 10: "╚", 11: "╩",
+                  6: "╔",  7: "╦",  8: "╨",  9: "╝", 10: "╚", 11: "╩",
                  12: "║", 13: "╣", 14: "╠", 15: "╬"}
 }
 
