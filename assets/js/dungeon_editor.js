@@ -369,7 +369,7 @@ let DungeonEditor = {
   selectDungeonTile(event){
     if(event.target.classList.contains("edge") || event.target.parentNode.classList.contains("edge") ) { return }
 
-    if(this.mode == "tile_edit" || this.mode == "tile_erase" || this.mode == "spawn_location" || this.mode == "line_draw") { return }
+    if(this.mode == "tile_edit" || this.mode == "tile_erase" || this.mode == "spawn_location") { return }
 
     let map_location = this.getMapLocation(event)
     if(!map_location) { return } // event picked up on bad element
@@ -381,7 +381,7 @@ let DungeonEditor = {
         function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
         || map_location
       this.updateActiveTile(target, map_location)
-    } else if(this.mode == "color_painting") {
+    } else if(this.mode == "color_painting" || this.mode == "text" || this.mode == "line_draw") {
 
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
