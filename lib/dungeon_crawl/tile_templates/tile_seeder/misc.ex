@@ -10,6 +10,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
         state: "direction: north, delay: 0, blocking: true, wait_cycles: 5",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 :delay
                 #if @delay <= 0, point_beam
@@ -68,6 +69,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
         state: "facing: north, wait_cycles: 10, blocking: true",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 :main
                 /i
@@ -98,6 +100,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
              color: "black",
              public: true,
              active: true,
+             group_name: "misc",
              script: """
                      :thud
                      /i
@@ -117,6 +120,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
         color: "black",
         public: true,
         active: true,
+        group_name: "misc",
         script: """
                 :main
                 /i

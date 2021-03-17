@@ -31,6 +31,11 @@
   </li>
 
   <li>
+    <strong>Group:</strong>
+    <%= @tile_template.group_name || "(none)" %>
+  </li>
+
+  <li>
     <strong>Color:</strong>
     <%= @tile_template.color %>
   </li>

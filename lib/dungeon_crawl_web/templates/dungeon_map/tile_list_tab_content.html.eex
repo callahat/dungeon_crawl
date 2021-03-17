@@ -1,0 +1,7 @@
+<div class="tab-pane<%= @show_active %>" id="group-<%= @group_name %>" role="tabpanel" aria-labelledby="group-<%= @group_name %>-tab">
+<%= render(DungeonMapView, "tile_list_table.html", %{tile_templates: @tile_templates.active[@group_name]}) %>
+<%= if inactive_tiles = @tile_templates.inactive[@group_name] do %>
+  <b>Inactive Tiles</b>
+  <%= render(DungeonMapView, "tile_list_table.html", %{tile_templates: inactive_tiles}) %>
+<% end %>
+</div>

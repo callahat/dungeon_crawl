@@ -39,6 +39,8 @@ defmodule DungeonCrawlWeb.Router do
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
       post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl
 
+    post "/tile_shortlists", TileShortlistController, :create
+
     resources "/tile_templates", ManageTileTemplateController
       post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
       put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate

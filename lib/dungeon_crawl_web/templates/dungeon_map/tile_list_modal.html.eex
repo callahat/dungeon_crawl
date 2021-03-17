@@ -1,0 +1,23 @@
+<!-- Modal -->
+<div class="modal fade" id="tileListModal" tabindex="-1" role="dialog" aria-labelledby="tileListModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tileEditModalLabel">Available Tiles</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <%= tile_template_nav_tabs() %>
+        <div class="tab-content">
+          <%= tile_template_tabs(@tile_templates) %>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+

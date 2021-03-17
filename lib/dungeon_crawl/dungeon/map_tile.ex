@@ -53,5 +53,6 @@ defmodule DungeonCrawl.Dungeon.MapTile do
     |> TileTemplate.validate_animation_fields
     |> TileTemplate.validate_renderables
     |> TileTemplate.validate_state_values
+    # TODO: validate the script (before actually saving it)
   end
 end

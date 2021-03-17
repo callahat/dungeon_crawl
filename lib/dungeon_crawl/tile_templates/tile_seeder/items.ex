@@ -11,6 +11,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         color: "olivedrab",
         public: true,
         active: true,
+        group_name: "items",
         script: """
                 :main
                 #end
@@ -38,6 +39,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         background_color: "black",
         public: true,
         active: true,
+        group_name: "items",
         script: """
                 :main
                 #end
@@ -61,6 +63,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         color: "blue",
         public: true,
         active: true,
+        group_name: "items",
         script: """
                 :main
                 #end
@@ -83,6 +86,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         color: "red",
         public: true,
         active: true,
+        group_name: "items",
         script: """
                 :main
                 #end
@@ -106,6 +110,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         background_color: "white",
         public: true,
         active: true,
+        group_name: "items",
         script: """
                 :main
                 #end
@@ -127,6 +132,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         state: "pushable: true, wait_cycles: 2",
         public: true,
         active: true,
+        group_name: "items",
         animate_random: true,
         animate_period: 1,
         animate_colors: "red, orange, yellow,cyan, magenta, blue, white, green, purple, darkcyan, darkred",

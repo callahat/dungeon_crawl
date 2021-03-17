@@ -1,0 +1,15 @@
+<ul class="nav nav-tabs" id="tile_nav_tabs" role="tablist">
+  <%= Enum.map(TileTemplate.groups, fn(group_name) -> %>
+    <li class="nav-item">
+      <a class="nav-link<%= if group_name == "terrain", do: " active" %>"
+         id="group-<%= group_name %>-tab"
+         data-toggle="tab"
+         href="#group-<%= group_name %>"
+         role="tab"
+         aria-controls="group-<%= group_name %>"
+         aria-selected="<%= !! group_name == 'terrain' %>">
+        <%= group_name %>
+      </a>
+    </li>
+  <% end) %>
+</ul>

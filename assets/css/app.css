@@ -32,6 +32,7 @@ pre.color_pallette {
   border: 1px solid #dee2e6;
   display: inline-block;
   line-height: 1;
+  margin-bottom: 0;
   padding: 0.5em;
   font-size: 14px;
 }
@@ -95,6 +96,16 @@ pre.dungeon_preview table tr td, pre.color_pallette table tr td {
   25%  { background-color: lightblue;}
 }
 
+#dungeon_editor pre.dungeon_preview table td.cursor-hilight div {
+/*  background-color: blue !important; */
+  animation: cursorBackground 1s infinite !important;
+}
+
+@keyframes cursorBackground{
+  0%   { }
+  25%  { background-color: cyan;}
+}
+
 #dungeon_editor .tile_template_preview div:hover,
 #characterPickModal .tile_template_preview div:hover{
   background-color:orange !important;
@@ -144,6 +155,14 @@ input#tile_template_character {
 }
 .edge.west {
   border-right: 1px solid black;
+}
+
+#tileListModal .btn-sm {
+  padding: 0rem 0.25rem;
+}
+
+#tileListModal .modal-dialog {
+  max-width: 700px
 }
 
 /*

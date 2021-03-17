@@ -5,7 +5,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
 
   alias DungeonCrawl.TileTemplates.TileTemplate
 
-  @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black"}
+  @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black", group_name: "misc"}
   @update_attrs %{color: "puce", character: "█"}
   @invalid_attrs %{name: "", character: "BIG"}
 
@@ -36,7 +36,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
     test "creates resource and redirects when data is valid", %{conn: conn} do
       conn = post conn, manage_tile_template_path(conn, :create), tile_template: @valid_attrs
       assert redirected_to(conn) == manage_tile_template_path(conn, :index)
-      new_tile_template = Repo.get_by(TileTemplate, @valid_attrs)
+      new_tile_template = Repo.get_by(TileTemplate, Map.put(@valid_attrs, :group_name, "custom"))
       assert new_tile_template
     end
 
@@ -200,6 +200,8 @@ defmodule DungeonCrawlWeb.ManageTileTemplateControllerTest do
       new_tile_template = Repo.get_by(TileTemplate, @valid_attrs)
       assert new_tile_template
       assert new_tile_template.user_id == nil
+      # admin can assign group_name
+      assert new_tile_template.group_name == "misc"
     end
 
     test "creates resource and redirects when data is valid and can own", %{conn: conn} do

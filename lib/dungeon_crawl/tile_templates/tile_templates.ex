@@ -55,7 +55,7 @@ defmodule DungeonCrawl.TileTemplates do
   ## Examples
 
       iex> list_placeable_tile_templates(%User{})
-      %{active: [%TileTemplate{},...], inactive: [%TileTemplate{},...]}
+      %{active: %{"custom" => [%TileTemplate{},...], ...}, inactive: %{"custom" => [%TileTemplate{},...], ...}}
   """
   def list_placeable_tile_templates(%DungeonCrawl.Account.User{} = user) do
     %{ active: _list_placeable_tile_templates(user.id, true),
@@ -68,6 +68,7 @@ defmodule DungeonCrawl.TileTemplates do
              where: t.active == ^active_or_inactive,
              where: is_nil(t.deleted_at),
              order_by: :id)
+    |> Enum.group_by(&(&1.group_name))
   end
 
   @doc """
