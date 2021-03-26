@@ -5,7 +5,7 @@
 %
 
 Nonterminals script lines line list_args list_arg kwargs kwarg expression maybe_space.
-Terminals '#' ':' ',' '\n' assignment comparison integer float operator space word.
+Terminals '#' ':' ',' '\n' assignment comparison integer float operator space word character literal.
 Rootsymbol script.
 
 script   -> lines      : {'$1'}.
@@ -33,6 +33,8 @@ kwarg     -> word ':' space                              : {extract_token('$1'),
 expression -> integer             : extract_token('$1').
 expression -> float               : extract_token('$1').
 expression -> word                : extract_token('$1').
+expression -> character           : extract_token('$1').
+expression -> literal             : extract_token('$1').
 
 
 maybe_space -> space      : nil.

@@ -10,6 +10,8 @@ SPECIAL    = [#:@\/?,]
 SPACE      = [\s]
 TAB        = [\t]
 NEWLINE    = [\n\r]
+QUOTED     = ".*?"
+CHAR       = .
 
 Rules.
 
@@ -23,6 +25,12 @@ Rules.
 {SPACE}+      : {token, {space, TokenLine, TokenChars}}.
 {NEWLINE}     : {token, {'\n', TokenLine}}.
 {TAB}+        : skip_token.
+{QUOTED}      : {token, {literal, TokenLine, dequote(TokenChars)}}.
+{CHAR}        : {token, {character, TokenLine, TokenChars}}.
 
 Erlang code.
 
+dequote([_|Chars]) ->
+    dequoter(lists:reverse(Chars)).
+dequoter([_|Chars]) ->
+    lists:reverse(Chars).
