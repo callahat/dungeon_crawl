@@ -1510,6 +1510,8 @@ defmodule DungeonCrawl.Scripting.Command do
   the line of text at the current pc, and continuing until the last sequential text message. This also
   increments the pc approprately after bundling all the messages from the text commands.
 
+  To have an interpolated value in the text which will be computed at run time, wrap it in ${ }.
+
   ## Examples
 
     iex> Command.text(%Runner{program: program}, params: ["Door opened"])
