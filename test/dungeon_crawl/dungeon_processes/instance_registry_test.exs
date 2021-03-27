@@ -58,7 +58,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                                            program: %Program{broadcasts: [],
                                                              instructions: %{1 => [:halt, [""]],
                                                                              2 => [:noop, "TOUCH"],
-                                                                             3 => [:text, ["*PimPom*"]]},
+                                                                             3 => [:text, [["*PimPom*"]]]},
                                                              labels: %{"touch" => [[2, true]]},
                                                              locked: false,
                                                              pc: 1,

@@ -29,7 +29,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                     instructions: %{
                       1 => [:halt, [""]],
                       2 => [:noop, "TOUCH"],
-                      3 => [:text, ["Hey"]],
+                      3 => [:text, [["Hey"]]],
                       4 => [:halt, [""]],
                       5 => [:noop, "TERMINATE"],
                       6 => [:die, [""]]

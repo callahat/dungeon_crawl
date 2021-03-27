@@ -9,7 +9,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   A script can be empty, in which case it will do nothing.
   It may also be one or more lines, each line having a character prefix
   indicating what it is (WIP - this might change as the prefix
-  may not really be needed except for certain cases, such as to 
+  may not really be needed except for certain cases, such as to
   indicate a label.)
 
   Two prefixes currently supported
@@ -200,7 +200,7 @@ defmodule DungeonCrawl.Scripting.Parser do
          existing_labels <- program.labels[label] || [],
          updated_labels <- existing_labels ++ [[line_number, true]] do
       # No need to add the label; its a noop anyway
-      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:noop, line]), 
+      {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:noop, line]),
                         labels: Map.put(program.labels, label, updated_labels)}}
     else
       _ ->
@@ -257,13 +257,24 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _handle_text(line, program) do
     line_number = Enum.count(program.instructions) + 1
 
-    case Regex.named_captures(~r/(?:!(?<label>[A-Za-z\d_]+);)?(?<text>.*)$/, line) do
-      %{"label" => label, "text" => text} when label != "" ->
-        {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, [text, label] ]) } }
+    %{"label" => label, "text" => text} = Regex.named_captures(~r/(?:!(?<label>[A-Za-z\d_]+);)?(?<text>.*)$/, line)
 
-      %{"text" => text} -> # Just a normal line of text
-        {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, [text] ]) } }
-    end
+    text_chunks = _interpolations(text)
+    params = if label != "", do: [text_chunks, label], else: [text_chunks]
+
+    {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, params ]) } }
+  end
+
+  defp _interpolations(text) do
+    texts = Regex.split ~r/\${.+?}/, text
+    interpolations = Regex.scan(~r/\${.+?}/, text)
+                     |> Enum.map(&(Enum.at(&1,0)))
+    _extract_interpolations(texts, interpolations)
+  end
+  defp _extract_interpolations(texts, []), do: texts
+  defp _extract_interpolations([ text | texts], [interpolation | interpolations]) do
+    %{"value" => inner_value} = Regex.named_captures(~r/\${\s*(?<value>.*?)\s*}/, interpolation)
+    [ text, _cast_simple_param(inner_value) | _extract_interpolations(texts, interpolations) ]
   end
 
   defp _sendable_command(command) do
