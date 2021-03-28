@@ -105,17 +105,19 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF @notok
                #TARGET_PLAYER nearest
                #IF ?any_player@is_facing, touch
+               text with interpolation ${ @color }
+               !buy;buy ${ @id }
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
                                                  2 => [:noop, "TOUCH"],
                                                  3 => [:jump_if, [{:state_variable, :open}, "ALREADY_OPEN"]],
                                                  4 => [:become, [%{character: "'", color: "white"}]],
-                                                 5 => [:text, ["The door creaks open"]],
+                                                 5 => [:text, [["The door creaks open"]]],
                                                  6 => [:halt, [""]],
                                                  7 => [:noop, "ALREADY_OPEN"],
-                                                 8 => [:text, ["Door is already open."]],
-                                                 9 => [:text, ["Can't open it anymore."]],
+                                                 8 => [:text, [["Door is already open."]]],
+                                                 9 => [:text, [["Can't open it anymore."]]],
                                                  10 => [:change_state, [:counter, "+=", 1]],
                                                  11 => [:become, [{:ttid, tile_template.id}]],
                                                  12 => [:move, ["south", true]],
@@ -171,13 +173,15 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  62 => [:passage, [{:state_variable, :background_color}]],
                                                  63 => [:transport, [[:event_sender], "up"]],
                                                  64 => [:transport, [{:state_variable, :target_player}, 2, "red"]],
-                                                 65 => [:text, ["buy some more", "buy"]],
+                                                 65 => [:text, [["buy some more"], "buy"]],
                                                  66 => [:random, ["dir", "NORTH", "SOUTH", "PLAYER"]],
                                                  67 => [:sequence, ["c", "<", "^", ">", "v"]],
                                                  68 => [:jump_if, [{:state_variable, :ok}, 3]],
                                                  69 => [:jump_if, [{:state_variable, :notok}]],
                                                  70 => [:target_player, ["nearest"]],
                                                  71 => [:jump_if, [{:any_player, :is_facing}, "touch"]],
+                                                 72 => [:text, [["text with interpolation ", {:state_variable, :color}, ""]]],
+                                                 73 => [:text, [["buy ", {:state_variable, :id}, ""], "buy"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

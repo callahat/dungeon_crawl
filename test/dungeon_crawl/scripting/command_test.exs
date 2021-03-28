@@ -100,7 +100,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
-             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+             3 => [:text, [["SQUEEEEEEEEEK"]]]} = program.instructions
     assert %{blocking: true} = updated_map_tile.parsed_state
 
     # BECOME a ttid with no script, when currently has script
@@ -145,7 +145,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert program.status == :wait
     assert %{1 => [:halt, [""]],
              2 => [:noop, "TOUCH"],
-             3 => [:text, ["SQUEEEEEEEEEK"]]} = program.instructions
+             3 => [:text, [["SQUEEEEEEEEEK"]]]} = program.instructions
     assert %{blocking: true} = updated_map_tile.parsed_state
 
     # BECOME with variables that resolve to invalid values does nothing
@@ -1715,6 +1715,20 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.status == program.status
     assert updated_program.pc == 3
     assert updated_state.message_actions == %{444 => ["no", "label"]}
+  end
+
+  test "TEXT with interpolation" do
+    program = program_fixture("${ true } My id is: ${ @id } here is junk ${ 12.4 } ${ boring text } ${ @@flag }")
+
+    stubbed_object = %{id: 2, state: "thing: true"}
+    state = %Instances{map_by_ids: %{1 => stubbed_object}, state_values: %{flag: "OK"}}
+    runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
+
+    # also html escapes the text
+    %Runner{program: updated_program} = Command.text(runner_state, [["ignored"]])
+    assert updated_program.responses == [{"message", %{message: "true My id is: 2 here is junk 12.4 boring text OK"}}]
+    assert updated_program.status == program.status
+    assert updated_program.pc == 1
   end
 
   test "TRANSPORT" do

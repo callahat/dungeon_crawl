@@ -1506,7 +1506,11 @@ defmodule DungeonCrawl.Scripting.Command do
   the player.
 
   When the initial text is empty string `""`, nothing is done. However empty strings or new lines
-  will be included after the first non empty text
+  will be included after the first non empty text. The params are ignored in favor of looking up
+  the line of text at the current pc, and continuing until the last sequential text message. This also
+  increments the pc approprately after bundling all the messages from the text commands.
+
+  To have an interpolated value in the text which will be computed at run time, wrap it in ${ }.
 
   ## Examples
 
@@ -1514,7 +1518,7 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{ program: %{program | responses: ["Door opened"]} }
   """
   def text(%Runner{event_sender: event_sender} = runner_state, params) do
-    if params != [""] do
+    if params != [[""]] do
       { %Runner{program: program, state: state} = runner_state, lines, labels } = _process_text(runner_state, runner_state.program.pc)
 
       payload = if length(lines) == 1 && ! String.contains?(Enum.at(lines, 0), "messageLink") do
@@ -1543,18 +1547,27 @@ defmodule DungeonCrawl.Scripting.Command do
     case program.instructions[pc] do
       [:text, [another_line]] ->
         runner_state = %{runner_state | program: %{ program | pc: pc }}
-        {:safe, safe_text} = html_escape(another_line)
+        safe_text = _interpolate_and_escape(another_line, runner_state)
         _process_text(runner_state, pc + 1, [ "#{ safe_text }" | lines], labels)
 
       [:text, [another_line, label]] ->
         runner_state = %{runner_state | program: %{ program | pc: pc }}
-        {:safe, safe_text} = html_escape(another_line)
+        safe_text = _interpolate_and_escape(another_line, runner_state)
         attrs = "class='btn-link messageLink' data-label='#{ label }' data-tile-id='#{ object_id }'"
         _process_text(runner_state, pc + 1, [ "    <span #{attrs}>▶#{ safe_text }</span>" | lines], [ String.downcase(label) | labels ])
 
       _ ->
         {runner_state, lines, labels}
     end
+  end
+
+  defp _interpolate_and_escape([], _runner_state), do: ""
+  defp _interpolate_and_escape([fragment | text_fragments], runner_state) do
+    {:safe, safe_text} = resolve_variable(runner_state, fragment)
+                         |> to_string()
+                         |> html_escape()
+
+    "#{safe_text}" <> _interpolate_and_escape(text_fragments, runner_state)
   end
 
   @doc """

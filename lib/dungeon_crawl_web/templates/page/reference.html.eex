@@ -272,8 +272,9 @@
             <td>This will display a text message to the player that sent the last message (ie, a player tile touches
                 a tile and said player sees a message). If there were none, nothing noticable happens. When there are
                 several adjacent text commands, they may be displayed together in a text modal, instead of the side
-                chat log.</td>
-            <td><pre class="script">Hello player</pre></td>
+                chat log. To include values interpolated at run time, wrap them in a ${ } in the line.</td>
+            <td><pre class="script">Hello player</pre>
+                <pre class="script">My color is ${ @color }, and name is ${ @name }</pre></td>
           </tr>
           <tr>
             <td>!&lt;label&gt;;</td>
