@@ -88,7 +88,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who),
+    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
                do: ["Line #{line_no}: GIVE command references invalid direction `#{who}`" | errors],
                else: errors
     errors = unless is_nil(max) or (is_number(max) and max > 0 || is_tuple(max)),
@@ -318,7 +318,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate_change(line_no, [what, operator, value], program, instructions, errors, user) do
     _validate_change(line_no, [nil, what, operator, value], program, instructions, errors, user)
   end
-  defp _validate_change(line_no, [who, what, operator, value], program, instructions, errors, user) do
+  defp _validate_change(line_no, [_who, _what, operator, value], program, instructions, errors, user) do
     errors = if (operator == "--" || operator == "++") && (value != "" || value == nil) do
                ["Line #{line_no}: CHANGE command #{ operator } takes only one operand, got `#{ value }`" | errors]
              else
