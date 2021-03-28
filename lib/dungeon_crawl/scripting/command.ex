@@ -4,7 +4,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
 
   alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Direction
@@ -42,6 +42,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :become       -> :become
       :change_state -> :change_state
       :change_instance_state -> :change_instance_state
+      :change_map_set_instance_state -> :change_map_set_instance_state
       :change_other_state -> :change_other_state
       :cycle        -> :cycle
       :die          -> :die
@@ -200,6 +201,28 @@ defmodule DungeonCrawl.Scripting.Command do
     state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
 
     %Runner{ runner_state | state: %{ state | state_values: state_values } }
+  end
+
+  @doc """
+  Changes the map set instance state_values element given in params. (Similar to change_state)
+
+  ## Examples
+
+    iex> Command.change_map_set_instance_state(%Runner{program: program,
+                                                       state: %Instances{state_values: %{}}},
+                                               [:counter, "+=", 3])
+    %Runner{program: program,
+            state: %Instances{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
+  """
+  def change_map_set_instance_state(%Runner{state: state} = runner_state, params) do
+    [var, op, value] = params
+
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+    old_val = MapSetProcess.get_state_value(map_set_process, var)
+    new_val = Maths.calc(old_val || 0, op, value)
+    MapSetProcess.set_state_value(map_set_process, var, new_val)
+
+    runner_state
   end
 
   @doc """

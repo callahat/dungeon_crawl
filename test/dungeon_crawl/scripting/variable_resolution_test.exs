@@ -11,8 +11,10 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   describe "resolve_variable" do
     test "resolves state_variable" do
-      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40}},
-                              %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"})
+      map_set_instance = insert_stubbed_map_set_instance(%{state: "msi_thing1: 999, msi_flag: false"})
+      {map_tile_1, state} = Instances.create_map_tile(%Instances{state_values: %{rows: 20, cols: 40},
+                                                                 map_set_instance_id: map_set_instance.id},
+                                                      %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"})
       {map_tile_2, state} = Instances.create_map_tile(state,
                               %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"})
 
@@ -63,6 +65,10 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :east_edge}) == 39
       assert VariableResolution.resolve_variable(runner_state1, {:instance_state_variable, :south_edge}) == 19
 
+      # can get a map_set_instance_state_value
+      assert VariableResolution.resolve_variable(runner_state1, {:map_set_instance_state_variable, :msi_thing1}) == 999
+      assert VariableResolution.resolve_variable(runner_state1, {:map_set_instance_state_variable, :msi_flag}) == false
+
       # handles a concatenation
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :color, "_key"}) == "red_key"
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass, "_key"}) == "bob_key"
@@ -72,6 +78,11 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       # handles range
       assert VariableResolution.resolve_variable(runner_state1, {2, :distance}) == 1.0
       assert VariableResolution.resolve_variable(runner_state2, {{:state_variable, :id}, :distance}) == 0.0
+
+      # handles random range
+      rnd = VariableResolution.resolve_variable(runner_state1, {:random, 1..10})
+      assert rnd >= 1
+      assert rnd <= 10
     end
   end
 

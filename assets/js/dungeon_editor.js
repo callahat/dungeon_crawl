@@ -1061,9 +1061,11 @@ let DungeonEditor = {
     document.getElementById(this.textCursorCoordinates).classList.remove("cursor-hilight")
   },
   typeCharacter(event, context){
+    if(context.mode != "text") { return }
+
     let character = event.key
 
-    if(context.mode != "text" || !context.textCursorCoordinates || character.length != 1){
+    if(!context.textCursorCoordinates || character.length != 1){
       if(character == "Backspace"){
         event.preventDefault();
         context.unHilightTextCursor()
@@ -1091,6 +1093,7 @@ let DungeonEditor = {
     tileHtml.innerText = character
     tileHtml.style["color"] = context.selectedColor
     tileHtml.style["background-color"] = context.selectedBackgroundColor
+    tileHtml.classList.remove("placeholder")
 
     context.paintTile(map_location_td, {blankDivNode: context.blankDivNode,
                                         selectedTileId: "",

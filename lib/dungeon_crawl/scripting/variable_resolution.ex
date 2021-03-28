@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   Resolves variables to values.
   """
 
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Runner
 
@@ -78,6 +78,10 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   end
   def resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
     state.state_values[var]
+  end
+  def resolve_variable(%Runner{state: state}, {:map_set_instance_state_variable, var}) do
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+    MapSetProcess.get_state_value(map_set_process, var)
   end
   def resolve_variable(%Runner{}, {:random, range}) do
     Enum.random(range)

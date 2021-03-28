@@ -48,6 +48,15 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   @@countdown -= 1
 
+  ### Map Set Instance Value
+
+  & - references a state value for the map set instance (ie, it can be accessed by the current map as well as other maps
+      in the game instance. Can be used for reading or setting a map set value.
+
+  &flag_1 = true
+
+  &switches_on += 1
+
   ### Other's State Value
 
   ?<target>@ - refernces the state value of another object. Can be used for setting the state value
@@ -108,7 +117,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _parse_line(line, program) do
     other_state_change = "\\?({@.+?}|{\\?.+?}|[^{}@]+?)@"
-    case Regex.named_captures(~r/^(?<type>#|:|@@|@|#{other_state_change}|\/|\?)(?<instruction>.*)$/, line) do
+    case Regex.named_captures(~r/^(?<type>#|:|@@|@|&|#{other_state_change}|\/|\?)(?<instruction>.*)$/, line) do
       %{"type" => "/", "instruction" => _command} ->
         _parse_shorthand_movement(line, program)
 
@@ -126,6 +135,9 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       %{"type" => "@@", "instruction" => state_element} ->
         _parse_state_change(:change_instance_state, state_element, program)
+
+      %{"type" => "&", "instruction" => state_element} ->
+        _parse_state_change(:change_map_set_instance_state, state_element, program)
 
       %{"type" => type, "instruction" => state_element} when type != "" ->
         _parse_state_change(:change_other_state, type, state_element, program)
@@ -347,7 +359,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
-      Regex.match?(~r/^(not |! ?)?(\?[^@]*?@|@@|@).+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
+      Regex.match?(~r/^(not |! ?)?(\?[^@]*?@|@@|@|&).+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
     end
@@ -359,7 +371,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
-      Regex.match?(~r/^(\?[^@]*?@|@@|@).+?$/i, param) -> _normalize_state_arg(param)
+      Regex.match?(~r/^(\?[^@]*?@|@@|@|&).+?$/i, param) -> _normalize_state_arg(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
     end
@@ -368,7 +380,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   # conditional state value
   defp _normalize_conditional(param) do
     # todo: look into relaxing the left/right charcters for the capture groups
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?@_A-Za-z0-9\+ ]+?))?$/i,
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?&@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?&@_A-Za-z0-9\+ ]+?))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->
         _normalize_state_arg(left)
@@ -387,7 +399,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _normalize_state_arg(arg) do
-    case Regex.named_captures(~r/^(?<type>\?.*?@|@@|@)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
+    case Regex.named_captures(~r/^(?<type>\?.*?@|@@|@|&)(?<state_element>[_A-Za-z0-9]+?)\s*?(\+\s?(?<concat>[_A-Za-z0-9]+?))?\s*$/i, String.trim(arg)) do
       %{"type" => "?random@", "state_element" => number} ->
         if Regex.match?(~r/^\d{1,3}$/, number) do
           {:random, 1..String.to_integer(number)}
@@ -407,12 +419,15 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _state_var_type(type) do
-    case Regex.named_captures(~r/^(?<lead>\?|@@|@)(?<mid>.*?)(?<tail>@|)$/, type) do
+    case Regex.named_captures(~r/^(?<lead>\?|@@|@|&)(?<mid>.*?)(?<tail>@|)$/, type) do
       %{"lead" => "@", "mid" => "", "tail" => ""} ->
         :state_variable
 
       %{"lead" => "@@", "mid" => "", "tail" => ""} ->
         :instance_state_variable
+
+      %{"lead" => "&", "mid" => "", "tail" => ""} ->
+        :map_set_instance_state_variable
 
       %{"lead" => "?", "mid" => who, "tail" => "@"} ->
         case Regex.named_captures(~r/^(?:(?<sender>[^@{}]*$|$)|{@(?<variable>[^@]+)})$/, who) do
