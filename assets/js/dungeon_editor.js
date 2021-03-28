@@ -1061,9 +1061,11 @@ let DungeonEditor = {
     document.getElementById(this.textCursorCoordinates).classList.remove("cursor-hilight")
   },
   typeCharacter(event, context){
+    if(context.mode != "text") { return }
+
     let character = event.key
 
-    if(context.mode != "text" || !context.textCursorCoordinates || character.length != 1){
+    if(!context.textCursorCoordinates || character.length != 1){
       if(character == "Backspace"){
         event.preventDefault();
         context.unHilightTextCursor()
