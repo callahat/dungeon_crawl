@@ -80,20 +80,22 @@ CodeMirror.defineSimpleMode("simplemode", {
     // number
     {regex: /[-+]?\d+\.?\d*/, token: "number"},
     // state change
-    {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@)[^@]+?\b/, token: "variable-2"},
+    {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variable-2"},
     // invalid state change
     {regex: /(\?.*@|\?{@.+}@).+\b/, token: "error"},
     // text link
     {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
     // text
-    {regex: /[^#@:\/\?].*$/, token: "string", sol: true},
+    {regex: /^[^&#@:\/\?]/, token: "string", sol: true, next: "text"},
     // operators
     {regex: /==|>=|<=|<|>|!=|\+=|-=|\/=|\*=|\+\+|--|=|not|!/, token: "operator"},
     // invalid movement shorthand
     {regex: /[\?\/]./, token: "error"},
   ],
   text: [
-    {regex: /.*$/, token: "string", next: "start"}
+    {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
+    {regex: /\${/, mode: {spec: "simplemode", end: /}/}},
+    {regex: /[^${}]/, token: "string"}
   ]
 })
 
