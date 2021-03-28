@@ -47,6 +47,16 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate_map_tile_kwargs(line_no, "BECOME", params, program, instructions, errors, user)
   end
 
+  defp _validate(program, [ {line_no, [ :change_state, params ]} | instructions], errors, user) do
+    _validate_change(line_no, params, program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [ :change_instance_state, params ]} | instructions], errors, user) do
+    _validate_change(line_no, params, program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [ :change_other_state, params ]} | instructions], errors, user) do
+    _validate_change(line_no, params, program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [ :cycle, [ wait_cycles ] ]} | instructions], errors, user) when is_integer(wait_cycles) do
     if wait_cycles > 0 do
       _validate(program, instructions, errors, user)
@@ -302,6 +312,18 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ _nothing_to_validate | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
+
+  defp _validate_change(line_no, [what, operator, value], program, instructions, errors, user) do
+    _validate_change(line_no, [nil, what, operator, value], program, instructions, errors, user)
+  end
+  defp _validate_change(line_no, [who, what, operator, value], program, instructions, errors, user) do
+    errors = if (operator == "--" || operator == "++") && (value != "" || value == nil) do
+               ["Line #{line_no}: CHANGE command #{ operator } takes only one operand, got `#{ value }`" | errors]
+             else
+               errors
+             end
     _validate(program, instructions, errors, user)
   end
 

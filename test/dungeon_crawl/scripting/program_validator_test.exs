@@ -109,6 +109,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #IF @badjump, 0
     #TARGET_PLAYER someone
     #TARGET_PLAYER
+    @@bob ++= 9
     """
   end
 
@@ -187,6 +188,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 74: IF command jump distance must be positive `0`",
                "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
                "Line 76: TARGET_PLAYER command specifies invalid target ``",
+               "Line 77: CHANGE command ++ takes only one operand, got `= 9`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -239,6 +241,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 74: IF command jump distance must be positive `0`",
                "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
                "Line 76: TARGET_PLAYER command specifies invalid target ``",
+               "Line 77: CHANGE command ++ takes only one operand, got `= 9`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end
