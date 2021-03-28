@@ -22,6 +22,7 @@
                     <a class='nav-link' href='#become'>become</a>
                     <a class='nav-link' href='#change_state'>change_state</a>
                     <a class='nav-link' href='#change_instance_state'>change_instance_state</a>
+                    <a class='nav-link' href='#change_map_set_instance_state'>change_map_set_instance_state</a>
                     <a class='nav-link' href='#cycle'>cycle</a>
                     <a class='nav-link' href='#die'>die</a>
                     <a class='nav-link' href='#end'>end</a>
@@ -229,6 +230,14 @@
                 <pre class="script">#IF @col >= @@east_edge, something</pre></td>
           </tr>
           <tr>
+            <td>&</td>
+            <td>Map Set value</td>
+            <td>Similar to the State Value, however this is for the entire map set. This is useful for when one dungeon map
+                sets a flag, and another dungeon map checks to see if it has been set.</td>
+            <td><pre class="script">&alarm = true</pre>
+                <pre class="script">#IF &countdown == 0, doorslocked</pre></td>
+          </tr>
+          <tr>
             <td>?&lt;target&gt;@</td>
             <td>Other's State Value</td>
             <td>Not to be confused with the Shorthand for try.
@@ -404,6 +413,13 @@
             <td>Changes the dungeon instance state_values element given in params. (Similar to change_state)</td>
             <td><pre class="script">@@red_flag = false</pre>
                 <pre class="script">@@locks -= 1</pre></td>
+          </tr>
+          <tr id="change_map_set_instance_state">
+            <td>CHANGE_MAP_SET_INSTANCE_STATE</td>
+            <td>list - 3</td>
+            <td>Changes the map set instance state_values element given in params. (Similar to change_state)</td>
+            <td><pre class="script">&red_flag = false</pre>
+                <pre class="script">&locks -= 1</pre></td>
           </tr>
           <tr id="cycle">
             <td>CYCLE</td>

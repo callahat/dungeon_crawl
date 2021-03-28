@@ -107,6 +107,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF ?any_player@is_facing, touch
                text with interpolation ${ @color }
                !buy;buy ${ @id }
+               &msi_thing++
+               #IF &msi_thing > 10, TOUCH
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -182,6 +184,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  71 => [:jump_if, [{:any_player, :is_facing}, "touch"]],
                                                  72 => [:text, [["text with interpolation ", {:state_variable, :color}, ""]]],
                                                  73 => [:text, [["buy ", {:state_variable, :id}, ""], "buy"]],
+                                                 74 => [:change_map_set_instance_state, [:msi_thing, "++", ""]],
+                                                 75 => [:jump_if, [[{:map_set_instance_state_variable, :msi_thing}, ">", 10], "TOUCH"]],
                                                  },
                                  status: :alive,
                                  pc: 1,
@@ -195,6 +199,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       map_instance = insert_stubbed_dungeon_instance()
       map_tile_params = %MapTile{map_instance_id: map_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
       {map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile_params)
+      state = %{ state | map_set_instance_id: map_instance.map_set_instance_id }
 
       runner_state = %Runner{object_id: map_tile.id, program: program, state: state}
 
