@@ -1091,6 +1091,7 @@ let DungeonEditor = {
     tileHtml.innerText = character
     tileHtml.style["color"] = context.selectedColor
     tileHtml.style["background-color"] = context.selectedBackgroundColor
+    tileHtml.classList.remove("placeholder")
 
     context.paintTile(map_location_td, {blankDivNode: context.blankDivNode,
                                         selectedTileId: "",
