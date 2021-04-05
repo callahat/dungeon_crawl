@@ -7,7 +7,11 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Runner
 
-  def resolve_variable_map(%Runner{} = runner_state, variable_map) when is_map(variable_map) do
+  def resolve_variables(%Runner{}, []), do: []
+  def resolve_variables(%Runner{} = runner_state, [variable | variables]) do
+    [ resolve_variable(runner_state, variable) | resolve_variables(runner_state, variables) ]
+  end
+  def resolve_variables(%Runner{} = runner_state, variable_map) when is_map(variable_map) do
     variable_map
     |> Map.to_list()
     |> Enum.map(fn {key, val} -> resolve_keyed_variable(runner_state, key, val) end)

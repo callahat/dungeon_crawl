@@ -16,7 +16,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
-  import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variable_map: 2, resolve_variable: 2]
+  import DungeonCrawl.Scripting.VariableResolution, only: [resolve_variables: 2, resolve_variable: 2]
   import Direction, only: [is_valid_orthogonal_change: 1, is_valid_orthogonal: 1]
 
   import Phoenix.HTML, only: [html_escape: 1]
@@ -112,8 +112,8 @@ defmodule DungeonCrawl.Scripting.Command do
     _become(runner_state, new_attrs, new_state_attrs)
   end
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
-    new_attrs = resolve_variable_map(runner_state, new_attrs)
-    new_state_attrs = resolve_variable_map(runner_state, new_state_attrs)
+    new_attrs = resolve_variables(runner_state, new_attrs)
+    new_state_attrs = resolve_variables(runner_state, new_state_attrs)
 
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
 
@@ -862,14 +862,14 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{}
   """
   def put(%Runner{state: state} = runner_state, [%{clone: clone_tile} = params]) do
-    params = resolve_variable_map(runner_state, params)
+    params = resolve_variables(runner_state, params)
     clone_tile = resolve_variable(runner_state, clone_tile)
     clone_base_tile = Instances.get_map_tile_by_id(state, %{id: clone_tile})
 
     if clone_base_tile do
       attributes = TileTemplates.copy_fields(clone_base_tile)
-                   |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
-      new_state_attrs = resolve_variable_map(runner_state,
+                   |> Map.merge(resolve_variables(runner_state, Map.take(params, [:character, :color, :background_color])))
+      new_state_attrs = resolve_variables(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape, :clone] )))
       _put(runner_state, attributes, params, new_state_attrs)
     else
@@ -878,13 +878,13 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   def put(%Runner{} = runner_state, [%{slug: _slug} = params]) do
-    params = resolve_variable_map(runner_state, params)
+    params = resolve_variables(runner_state, params)
     {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
 
     if slug_tile do
       attributes = TileTemplates.copy_fields(slug_tile)
-                   |> Map.merge(resolve_variable_map(runner_state, Map.take(params, [:character, :color, :background_color])))
-      new_state_attrs = resolve_variable_map(runner_state,
+                   |> Map.merge(resolve_variables(runner_state, Map.take(params, [:character, :color, :background_color])))
+      new_state_attrs = resolve_variables(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape] )))
 
       _put(runner_state, attributes, params, new_state_attrs)
