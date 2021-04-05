@@ -197,6 +197,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def change_instance_state(%Runner{state: state} = runner_state, params) do
     [var, op, value] = params
+    value = resolve_variable(runner_state, value)
 
     state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
 
@@ -216,6 +217,7 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def change_map_set_instance_state(%Runner{state: state} = runner_state, params) do
     [var, op, value] = params
+    value = resolve_variable(runner_state, value)
 
     {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
     old_val = MapSetProcess.get_state_value(map_set_process, var)

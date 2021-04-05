@@ -69,6 +69,10 @@ Logger.info "instance state:"
 Logger.info inspect state.state_values
 Logger.info "msg_count: " <> inspect(runner_state.msg_count)
 end
+
+        # TODO: refactor later, always run the params through the variable resolver before applying the command;
+        #       add/rename the resolve_variable_map to be resolve_variables and use guards for handling a map vs
+        #       list. Watch out for this breaking things, such as with the TEXT command
         runner_state = apply(Command, command, [runner_state, params])
 
         # increment program counter, check for end of program

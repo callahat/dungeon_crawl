@@ -202,20 +202,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.state_values == %{add: 8, one: 432}
     %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:new, "+=", 1])
     assert updated_state.state_values == %{add: 8, new: 1, one: 100}
+    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: updated_state}, [:new, "+=", {:instance_state_variable, :one}])
+    assert updated_state.state_values == %{add: 8, new: 101, one: 100}
   end
 
   test "CHANGE_MAP_SET_INSTANCE_STATE" do
     map_set_instance = insert_stubbed_map_set_instance(%{state: "msi_thing1: 999, msi_flag: false"})
-    state = %Instances{state_values: %{}, map_set_instance_id: map_set_instance.id}
+    state = %Instances{state_values: %{a: 5}, map_set_instance_id: map_set_instance.id}
     {_map_tile, state} = Instances.create_map_tile(state, %MapTile{id: 123, row: 1, col: 2, character: "."})
 
     Command.change_map_set_instance_state(%Runner{state: state}, [:msi_thing1, "+=", 1])
     Command.change_map_set_instance_state(%Runner{state: state}, [:msi_flag, "=", "well ok"])
+    Command.change_map_set_instance_state(%Runner{state: state}, [:b, "=", {:instance_state_variable, :a}])
 
     {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
 
     assert 1000 == MapSetProcess.get_state_value(map_set_process, :msi_thing1)
     assert "well ok" == MapSetProcess.get_state_value(map_set_process, :msi_flag)
+    assert 5 == MapSetProcess.get_state_value(map_set_process, :b)
   end
 
   test "CHANGE_OTHER_STATE" do
