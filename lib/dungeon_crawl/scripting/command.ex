@@ -83,7 +83,7 @@ defmodule DungeonCrawl.Scripting.Command do
   @doc """
   Transforms the object refernced by the id in some way. Changes can include character, color, background color.
   Additionally, if given a `slug`, the tile will be replaced with the matching tile template corresponding to the
-  given slug. Other changes given, such as character, color, background color, will override the values from
+  given slug. Other changes given, such as name, character, color, background color, will override the values from
   the matching tile template. Other values not mentioned above will set state values.
   Just changing the tile_template_id does not copy all other attributes of that tile template to the object.
   Reference variables can be used instead of literals; however if they resolve to invalid values, then
@@ -107,8 +107,8 @@ defmodule DungeonCrawl.Scripting.Command do
   def become(%Runner{} = runner_state, [params]) do
     {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
     new_attrs = TileTemplates.copy_fields(slug_tile)
-                |> Map.merge(Map.take(params, [:character, :color, :background_color]))
-    new_state_attrs = Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplates.TileTemplate{}) ++ [:slug]))
+                |> Map.merge(Map.take(params, [:name, :character, :color, :background_color]))
+    new_state_attrs = Map.take(params, Map.keys(params) -- Map.keys(%TileTemplates.TileTemplate{}))
     _become(runner_state, new_attrs, new_state_attrs)
   end
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
@@ -845,7 +845,7 @@ defmodule DungeonCrawl.Scripting.Command do
   location. Direction can also be given to put the tile one square from the given coordinates in that direction.
   If both `row` and `col` are not given, then neither are used. If the specified location or direction is invalid/off the map,
   then nothing is done.
-  Other kwargs can be given, such as character, color, background color, and will override the values from
+  Other kwargs can be given, such as name, character, color, background color, and will override the values from
   the matching tile template. Other values not mentioned above will set state values.
   Reference variables can be used instead of literals; however if they resolve to invalid values, then
   this command will do nothing.
@@ -868,7 +868,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
     if clone_base_tile do
       attributes = TileTemplates.copy_fields(clone_base_tile)
-                   |> Map.merge(resolve_variables(runner_state, Map.take(params, [:character, :color, :background_color])))
+                   |> Map.merge(resolve_variables(runner_state, Map.take(params, [:name, :character, :color, :background_color])))
       new_state_attrs = resolve_variables(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape, :clone] )))
       _put(runner_state, attributes, params, new_state_attrs)
@@ -883,7 +883,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
     if slug_tile do
       attributes = TileTemplates.copy_fields(slug_tile)
-                   |> Map.merge(resolve_variables(runner_state, Map.take(params, [:character, :color, :background_color])))
+                   |> Map.merge(resolve_variables(runner_state, Map.take(params, [:name, :character, :color, :background_color])))
       new_state_attrs = resolve_variables(runner_state,
                                              Map.take(params, Map.keys(params) -- (Map.keys(%TileTemplate{}) ++ [:direction, :shape] )))
 
@@ -1077,7 +1077,7 @@ defmodule DungeonCrawl.Scripting.Command do
   Removes a map tile. Uses kwargs, the `target` KWARG in addition to other attribute targets may be used.
   Valid targets are a direction, or the name (case insensitive) of a tile. If there are many tiles with
   that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
-  than one tiles there. If there are no tiles matching, nothing is done.
+  than one tile there. If there are no tiles matching, nothing is done.
   Player tiles will not be removed.
   """
   def remove(%Runner{} = runner_state, [params]) do

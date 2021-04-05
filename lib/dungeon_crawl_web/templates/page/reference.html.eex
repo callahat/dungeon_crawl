@@ -392,7 +392,7 @@
                 Additionally, if given a `slug`, the tile will be replaced with the matching tile template corresponding to the
                 given slug. If the slug has a script, that script will replace the currently running one. If the slug has state,
                 the state will be merged on top of the existing state key/values (a key not existing in the slug's state but existing
-                for the tile won't be overwritten). Other changes given, such as character, color, background color, will override the values from
+                for the tile won't be overwritten). Other changes given, such as name, character, color, background color, will override the values from
                 the matching tile template. Other values not mentioned above will set state values.</td>
             <td><pre class="script">#BECOME slug: breakable_wall</pre>
                 <pre class="script">#BECOME character: X, background_color: #000, color: #fab</pre></td>
@@ -559,7 +559,7 @@
                 treated as open spaces where the shape may be drawn over. "include_origin" defaults to false (except for circle),
                 and this kwarg indicates whether or not the origin (ie, the active object) will be included in the shape or not.
 
-                Other kwargs can be given, such as character, color, background color, and will override the values from
+                Other kwargs can be given, such as name, character, color, background color, and will override the values from
                 the matching tile template. Other values not mentioned above will set state values.
                 Reference variables can be used instead of literals; however if they resolve to invalid values, then
                 this command will do nothing.</td>
