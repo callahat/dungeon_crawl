@@ -18,6 +18,10 @@ let CodemirrorWrapper = {
       }
     })
 
+    $(triggerEl).on("hide.bs.tab", () => {
+      this.codemirror.save()
+    })
+
     if(!!$("#tile_template_script ~ pre.help-block")[0]) {
       $(triggerEl).tab('show')
     }
@@ -66,6 +70,11 @@ let commands = [
 
 CodeMirror.defineSimpleMode("simplemode", {
   start: [
+    // text link
+    {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
+    // text
+    {regex: /^[^&#@:\/\?]/, token: "string", sol: true, next: "text"},
+    // Label
     {regex: /:[^ ]*$/, token: "label", sol: true},
     {regex: /:.*$/, token: "error", sol: true},
     // Command
@@ -83,10 +92,6 @@ CodeMirror.defineSimpleMode("simplemode", {
     {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variable-2"},
     // invalid state change
     {regex: /(\?.*@|\?{@.+}@).+\b/, token: "error"},
-    // text link
-    {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
-    // text
-    {regex: /^[^&#@:\/\?]/, token: "string", sol: true, next: "text"},
     // operators
     {regex: /==|>=|<=|<|>|!=|\+=|-=|\/=|\*=|\+\+|--|=|not|!/, token: "operator"},
     // invalid movement shorthand
@@ -94,7 +99,8 @@ CodeMirror.defineSimpleMode("simplemode", {
   ],
   text: [
     {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
-    {regex: /\${/, mode: {spec: "simplemode", end: /}/}},
+    {regex: /\${/, token: "meta", mode: {spec: "simplemode", end: /}/}},
+    {regex: /[^${}]$/, token: "string", next: "start"},
     {regex: /[^${}]/, token: "string"}
   ]
 })
