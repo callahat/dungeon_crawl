@@ -382,7 +382,6 @@ let DungeonEditor = {
         || map_location
       this.updateActiveTile(target, map_location)
     } else if(this.mode == "color_painting" || this.mode == "text" || this.mode == "line_draw") {
-
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
       this.updateColorPreviews()
@@ -619,6 +618,9 @@ let DungeonEditor = {
 
       let lineChar = context.lineScoreMap[score] || "X"
 
+      if(!div.classList.contains("new-map-tile")){
+        div.setAttribute("class", "changed-map-tile")
+      }
       div.setAttribute("data-character", lineChar)
       div.children[0].innerText = lineChar
     }
