@@ -78,6 +78,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     ricochet()
     slider_horizontal()
     slider_vertical()
+    water()
 
     :ok
   end

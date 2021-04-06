@@ -169,6 +169,24 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
     })
   end
 
+  def water() do
+    TileTemplates.update_or_create_tile_template!(
+      "water",
+      %{character: "░",
+        name: "Water",
+        description: "Its wet",
+        state: "blocking: true, low: true, soft: true",
+        color: "white",
+        background_color: "blue",
+        public: true,
+        active: true,
+        group_name: "terrain",
+        animate_random: false,
+        animate_period: 5,
+        animate_characters: "░, ▒, ░, "
+    })
+  end
+
   defmacro __using__(_params) do
     quote do
       def boulder(), do: unquote(__MODULE__).boulder()
@@ -181,6 +199,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
       def ricochet(), do: unquote(__MODULE__).ricochet()
       def slider_horizontal(), do: unquote(__MODULE__).slider_horizontal()
       def slider_vertical(), do: unquote(__MODULE__).slider_vertical()
+      def water(), do: unquote(__MODULE__).water()
     end
   end
 end
