@@ -106,12 +106,13 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
       state = %{ state | state_values: %{flag1: true, flash: "fire"}}
 
-      runner_state1 = %Runner{state: state, object_id: map_tile_1.id, event_sender: map_tile_2}
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id, event_sender: Map.put(%Location{id: 123, map_tile_instance_id: map_tile_2.id}, :parsed_state, map_tile_2.parsed_state)}
 
       variable_list = ["nothing done",
                        {:state_variable, :color},
                        {:state_variable, :pass},
                        {:event_sender_variable, :id},
+                       [:event_sender],
                        {:event_sender_variable, :pass},
                        {{:direction, "north"}, :character},
                        {:instance_state_variable, :flag1}]
@@ -119,7 +120,8 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       expected = ["nothing done",
                   "red",
                   nil,
-                  223344,
+                  map_tile_2.id,
+                  map_tile_2.id,
                   "bob",
                   "X",
                   true]
@@ -139,6 +141,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
                        state_var_1: {:state_variable, :color},
                        state_var_2: {:state_variable, :pass},
                        event_sender_id: {:event_sender_variable, :id},
+                       event_sender_id2: [:event_sender],
                        event_sender: {:event_sender_variable, :pass},
                        directional: {{:direction, "north"}, :character},
                        instance: {:instance_state_variable, :flag1}}
@@ -146,7 +149,8 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       expected = %{literal: "nothing done",
                        state_var_1: "red",
                        state_var_2: nil,
-                       event_sender_id: 223344,
+                       event_sender_id: map_tile_2.id,
+                       event_sender_id2: map_tile_2.id,
                        event_sender: "bob",
                        directional: "X",
                        instance: true}
