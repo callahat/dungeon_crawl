@@ -6,6 +6,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Player.Location
 
   def resolve_variables(%Runner{}, []), do: []
   def resolve_variables(%Runner{} = runner_state, [variable | variables]) do
@@ -61,6 +62,14 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     object.parsed_state[var]
+  end
+  def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, :id}) do
+    cond do
+      %Location{} = event_sender ->
+        event_sender && event_sender.map_tile_instance_id
+      true ->
+        event_sender && event_sender.id
+    end
   end
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, :name}) do
     event_sender && event_sender.name

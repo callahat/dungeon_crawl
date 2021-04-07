@@ -111,6 +111,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       variable_list = ["nothing done",
                        {:state_variable, :color},
                        {:state_variable, :pass},
+                       {:event_sender_variable, :id},
                        {:event_sender_variable, :pass},
                        {{:direction, "north"}, :character},
                        {:instance_state_variable, :flag1}]
@@ -118,6 +119,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       expected = ["nothing done",
                   "red",
                   nil,
+                  223344,
                   "bob",
                   "X",
                   true]
@@ -136,6 +138,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       variable_map = %{literal: "nothing done",
                        state_var_1: {:state_variable, :color},
                        state_var_2: {:state_variable, :pass},
+                       event_sender_id: {:event_sender_variable, :id},
                        event_sender: {:event_sender_variable, :pass},
                        directional: {{:direction, "north"}, :character},
                        instance: {:instance_state_variable, :flag1}}
@@ -143,6 +146,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       expected = %{literal: "nothing done",
                        state_var_1: "red",
                        state_var_2: nil,
+                       event_sender_id: 223344,
                        event_sender: "bob",
                        directional: "X",
                        instance: true}
