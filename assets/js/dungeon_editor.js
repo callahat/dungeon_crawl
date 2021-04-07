@@ -958,6 +958,7 @@ let DungeonEditor = {
     tileHtml.innerText = map_tile_attrs.character
     tileHtml.style["color"] = map_tile_attrs.color
     tileHtml.style["background-color"] = map_tile_attrs.background_color
+    tileHtml.classList.remove("placeholder")
 
     if(map_tile_attrs.animate_characters != "" ||
        map_tile_attrs.animate_colors != "" ||
