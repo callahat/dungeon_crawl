@@ -989,8 +989,17 @@ defmodule DungeonCrawl.Scripting.Command do
                     else
                       Enum.random(values)
                     end
-    change_state(runner_state, [String.to_atom(state_variable), "=", random_value])
+    _random(runner_state, state_variable, random_value)
   end
+
+  def _random(runner_state, {:instance_state_variable, state_variable}, random_value),
+    do: change_instance_state(runner_state, [state_variable, "=", random_value])
+  def _random(runner_state, {:map_set_instance_state_variable, state_variable}, random_value),
+    do: change_map_set_instance_state(runner_state, [state_variable, "=", random_value])
+  def _random(runner_state, {:state_variable, state_variable}, random_value),
+    do: change_state(runner_state, [state_variable, "=", random_value])
+  def _random(runner_state, state_variable, random_value),
+    do: change_state(runner_state, [String.to_atom(state_variable), "=", random_value])
 
   @doc """
   Replaces a map tile. Uses KWARGs, `target` and attributes prefixed with `target_` can be used to specify which tiles to replace.

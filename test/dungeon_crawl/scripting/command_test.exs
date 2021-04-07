@@ -1087,7 +1087,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "RANDOM" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+    map_set_instance = insert_stubbed_map_set_instance(%{state: "msi_thing1: 999, msi_flag: false"})
+    state = %Instances{map_set_instance_id: map_set_instance.id}
+
+    {map_tile, state} = Instances.create_map_tile(state, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
 
     # range
     %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["cookies", "5 - 10"])
@@ -1103,6 +1106,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["flaw", " - 5"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
     assert Enum.member?(["- 5"], updated_map_tile.parsed_state[:flaw])
+
+    # when given state_variable
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state},
+                                                   [{:state_variable, :a}, "a", "b", "c"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert Enum.member?(["a", "b", "c"], updated_map_tile.parsed_state[:a])
+
+    # when given instance_state_varable
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state},
+                                                   [{:instance_state_variable, :instance_me}, "testing", "checking"])
+    assert Enum.member?(["testing", "checking"], updated_state.state_values[:instance_me])
+
+    # when given map_set_instance_state_variable
+    %Runner{} = Command.random(%Runner{object_id: map_tile.id, state: state},
+                                       [{:map_set_instance_state_variable, :mapset_me}, "test", "check"])
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+
+    assert Enum.member?(["test", "check"], MapSetProcess.get_state_value(map_set_process, :mapset_me))
   end
 
   test "REPLACE tile in a direction" do

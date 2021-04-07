@@ -181,9 +181,15 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
   end
 
-  defp _validate(program, [ {_line_no, [:random, [_state_var | list]]} | instructions], errors, user)
+  defp _validate(program, [ {line_no, [:random, [state_var | list]]} | instructions], errors, user)
       when list != [] and is_list(list) do
-    _validate(program, instructions, errors, user)
+    case state_var do
+      {:state_variable, _} -> _validate(program, instructions, errors, user)
+      {:instance_state_variable, _} -> _validate(program, instructions, errors, user)
+      {:map_set_instance_state_variable, _} -> _validate(program, instructions, errors, user)
+      var when is_binary(var) -> _validate(program, instructions, errors, user)
+      var -> _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid variable specified #{inspect var}" | errors], user)
+    end
   end
   defp _validate(program, [ {line_no, [:random, _]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid number of parameters" | errors], user)

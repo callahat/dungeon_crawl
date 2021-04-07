@@ -110,6 +110,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #TARGET_PLAYER someone
     #TARGET_PLAYER
     @@bob ++= 9
+    #RANDOM @var, a, b, c
+    #RANDOM @@var, a, b, c
+    #RANDOM &var, a, b, c
+    #RANDOM ?sender, a, b, c
+    ?south@blocking = false
     """
   end
 
@@ -189,6 +194,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
                "Line 76: TARGET_PLAYER command specifies invalid target ``",
                "Line 77: CHANGE command ++ takes only one operand, got `= 9`",
+               "Line 81: RANDOM command has an invalid variable specified [:event_sender]",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -242,6 +248,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 75: TARGET_PLAYER command specifies invalid target `someone`",
                "Line 76: TARGET_PLAYER command specifies invalid target ``",
                "Line 77: CHANGE command ++ takes only one operand, got `= 9`",
+               "Line 81: RANDOM command has an invalid variable specified [:event_sender]",
               ],
               program} == ProgramValidator.validate(program, admin)
     end
