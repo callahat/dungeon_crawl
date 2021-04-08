@@ -70,6 +70,8 @@ let commands = [
 
 CodeMirror.defineSimpleMode("simplemode", {
   start: [
+    // interpolated text
+    {regex: /\${/, token: "meta", sol: true, mode: {spec: "simplemode", end: /}/}, next: "text"},
     // text link
     {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
     // text
@@ -100,8 +102,8 @@ CodeMirror.defineSimpleMode("simplemode", {
   text: [
     {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
     {regex: /\${/, token: "meta", mode: {spec: "simplemode", end: /}/}},
-    {regex: /[^${}]$/, token: "string", next: "start"},
-    {regex: /[^${}]/, token: "string"}
+    {regex: /.$/, token: "string", next: "start"},
+    {regex: /./, token: "string"}
   ]
 })
 
