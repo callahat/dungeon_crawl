@@ -191,6 +191,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.change_state(%Runner{program: program, object_id: map_tile.id, state: state}, [:new, "+=", 1])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
+
+    # when its a new map tile
+    {new_map_tile, state} = Instances.create_map_tile(state, %MapTile{id: "new_1", row: 1, col: 2, z_index: -1, character: ".", state: "fresh: true"})
+    %Runner{state: updated_state} = Command.change_state(%Runner{object_id: new_map_tile.id, state: state}, [:new, "+=", 1])
+    updated_new_map_tile = Instances.get_map_tile_by_id(updated_state, new_map_tile)
+    top_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert updated_new_map_tile.state == "fresh: true, new: 1"
+    assert top_map_tile.state == map_tile.state
   end
 
   test "CHANGE_INSTANCE_STATE" do
@@ -1548,6 +1556,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     assert bullet.character == "◦"
     assert bullet.parsed_state[:facing] == "north"
+    assert updated_state.program_contexts[bullet.id]
+    assert updated_state.program_messages == []
+    assert updated_state.new_pids == [bullet.id]
+    assert updated_state.program_contexts[bullet.id].program.status == :alive
+
+    # shooting towards player
+    # when no player doesn't shoot
+    %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["gibberish"])
+    tile = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+
+    assert tile.character == "@"
+
+    # when there is a player
+    {_, state_w_player} = Instances.create_player_map_tile(state,
+                                                           %MapTile{id: 43201, row: 2, col: 6, z_index: 0, character: "@"},
+                                                           %Location{})
+    %Runner{state: updated_state} = Command.shoot(%Runner{state: state_w_player, object_id: obj.id}, ["player"])
+    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+
+    assert bullet.character == "◦"
+    assert bullet.parsed_state[:facing] == "east"
     assert updated_state.program_contexts[bullet.id]
     assert updated_state.program_messages == []
     assert updated_state.new_pids == [bullet.id]

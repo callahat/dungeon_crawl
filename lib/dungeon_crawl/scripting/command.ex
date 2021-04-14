@@ -256,19 +256,15 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  def _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) when is_binary(target) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    target_tile = Instances.get_map_tile(state, object, target)
-    _change_state(runner_state, target_tile, var, op, value)
-  end
+  def _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) do
+    target_tile = if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+                    Instances.get_map_tile_by_id(state, %{id: target})
+                  else
+                    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+                    Instances.get_map_tile(state, object, target)
+                  end
 
-  def _change_state(%Runner{state: state} = runner_state, target, var, op, value) when is_integer(target) do
-    target_tile = Instances.get_map_tile_by_id(state, %{id: target})
     _change_state(runner_state, target_tile, var, op, value)
-  end
-
-  def _change_state(%Runner{} = runner_state, _, _, _, _) do
-    runner_state
   end
 
   @doc """
@@ -1369,6 +1365,10 @@ defmodule DungeonCrawl.Scripting.Command do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     shoot(runner_state, [object.parsed_state[var]])
   end
+  def shoot(%Runner{} = runner_state, ["player"]) do
+    {new_runner_state, player_direction} = _direction_of_player(runner_state)
+    shoot(new_runner_state, [player_direction])
+  end
   def shoot(%Runner{object_id: object_id, state: state} = runner_state, [direction]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
     direction = _get_real_direction(object, direction)
@@ -1727,8 +1727,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _direction_of_player(%Runner{state: state} = runner_state, nil) do
     with map_tile_ids when length(map_tile_ids) != 0 <- Map.keys(state.player_locations),
-         player_map_tile_id <- Enum.random(map_tile_ids) do
-
+         player_map_tile_id when not is_nil(player_map_tile_id) <- Enum.random(map_tile_ids) do
       _direction_of_player(change_state(runner_state, [:target_player_map_tile_id, "=", player_map_tile_id]))
     else
       _ -> {change_state(runner_state, [:target_player_map_tile_id, "=", nil]), "idle"}
