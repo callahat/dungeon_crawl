@@ -1433,6 +1433,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.program_messages == []
   end
 
+  test "SEND message to tiles by id" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123, character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: "new_1", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+    sender = %{map_tile_id: obj.id, parsed_state: %{}, name: nil}
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", 123])
+    assert updated_state.program_messages == [{123, "name", sender}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "new_1"])
+    assert updated_state.program_messages == [{"new_1", "name", sender}]
+
+    # still adds a message even though new_2 doesnt exist
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "new_2"])
+    assert updated_state.program_messages == [{"new_2", "name", %{map_tile_id: 1337, name: nil, parsed_state: %{}}}]
+  end
+
   test "SEQUENCE" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
 

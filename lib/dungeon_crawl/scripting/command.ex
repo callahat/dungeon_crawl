@@ -531,16 +531,22 @@ defmodule DungeonCrawl.Scripting.Command do
     direction = Direction.change_direction(object.parsed_state[:facing], change)
     _facing(runner_state, direction)
   end
-  def facing(%Runner{object_id: object_id, state: state} = runner_state, [tile_id]) when is_integer(tile_id) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
-    if target = Instances.get_map_tile_by_id(state, %{id: tile_id}) do
-      _facing(runner_state, Instances.direction_of_map_tile(state, object, target))
+  def facing(%Runner{object_id: object_id, state: state} = runner_state, [target]) do
+    direction = if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+                  object = Instances.get_map_tile_by_id(state, %{id: object_id})
+                  if target_tile = Instances.get_map_tile_by_id(state, %{id: target}) do
+                    Instances.direction_of_map_tile(state, object, target_tile)
+                  else
+                    nil
+                  end
+                else
+                  target
+                end
+    if direction do
+      _facing(runner_state, direction)
     else
       runner_state
     end
-  end
-  def facing(runner_state, [direction]) do
-    _facing(runner_state, direction)
   end
   def _facing(runner_state, direction) do
     runner_state = change_state(runner_state, [:facing, "=", direction])
@@ -1203,10 +1209,8 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
   def send_message(%Runner{} = runner_state, [label, target]) do
-    _send_message(runner_state, [label, String.downcase(target)])
-  end
-  defp _send_message(%Runner{} = runner_state, [label, target]) when is_integer(target) do
-    _send_message_via_ids(runner_state, label, [target])
+    target = if is_binary(target), do: String.downcase(target), else: target
+    _send_message(runner_state, [label, target])
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
     object = Instances.get_map_tile_by_id(state, %{id: object_id})
@@ -1227,11 +1231,15 @@ defmodule DungeonCrawl.Scripting.Command do
     _send_message_in_direction(runner_state, label, target)
   end
   defp _send_message(%Runner{state: state} = runner_state, [label, target]) do
-    map_tile_ids = state.map_by_ids
-                   |> Map.to_list
-                   |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
-                   |> Enum.map(fn {id, _tile} -> id end)
-    _send_message_via_ids(runner_state, label, map_tile_ids)
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      _send_message_via_ids(runner_state, label, [target])
+    else
+      map_tile_ids = state.map_by_ids
+                     |> Map.to_list
+                     |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
+                     |> Enum.map(fn {id, _tile} -> id end)
+      _send_message_via_ids(runner_state, label, map_tile_ids)
+    end
   end
 
   defp _send_message_in_direction(%Runner{state: state, object_id: object_id} = runner_state, label, direction) do
@@ -1419,19 +1427,19 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _take(%Runner{} = runner_state, what, amount, id, label) when is_integer(id) do
-    _take_via_id(runner_state, what, amount, id, label)
-  end
-
-  defp _take(%Runner{object_id: object_id, state: state} = runner_state, what, amount, direction, label) do
-    with direction <- resolve_variable(runner_state, direction),
-         direction when is_valid_orthogonal(direction) <- direction,
-         object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
-         map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
-      _take(runner_state, what, amount, map_tile.id, label)
+  defp _take(%Runner{state: state, object_id: object_id} = runner_state, what, amount, target, label) do
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      _take_via_id(runner_state, what, amount, target, label)
     else
-      _ ->
-        runner_state
+      with direction <- resolve_variable(runner_state, target),
+           direction when is_valid_orthogonal(direction) <- direction,
+           object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+           map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
+        _take(runner_state, what, amount, map_tile.id, label)
+      else
+        _ ->
+          runner_state
+      end
     end
   end
 
@@ -1446,16 +1454,13 @@ defmodule DungeonCrawl.Scripting.Command do
         {:ok, state} ->
           %{ runner_state | state: state }
 
-        {:not_enough, _state} ->
+        {_not_successful, _state} ->
           if label do
             updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
             %{ runner_state | program: updated_program }
           else
             runner_state
           end
-
-        {_noop_or_no_loser, _state} ->
-          runner_state
       end
     else
       runner_state
