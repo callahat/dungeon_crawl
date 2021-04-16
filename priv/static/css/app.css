@@ -12912,6 +12912,10 @@ span.CodeMirror-selectedtext { background: none; }
 
 /* This file is for your main application css. */
 
+.commands td.examples {
+  padding-left: 4em;
+}
+
 pre.script {
   background: #f5f5f5;
   border-radius: 0.25rem;
@@ -13105,6 +13109,7 @@ input#tile_template_character {
 
 .sidebar-scroll {
   overflow-y: scroll;
+  width: 25%;
 }
 
 .sidebar-sticky {
