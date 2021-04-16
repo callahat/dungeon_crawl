@@ -212,7 +212,10 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   defp _tile_template_copy_changeset(tile_template) do
-    with old_attrs     <- Elixir.Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :responders, :state, :script]),
+    with old_attrs     <- Elixir.Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public,
+                                                          :description, :state, :script, :slug,
+                                                          :animate_random, :animate_colors, :animate_background_colors,
+                                                          :animate_characters, :animate_period, :group_name]),
          version_attrs <- %{version: tile_template.version+1, previous_version_id: tile_template.id},
          new_attrs     <- Elixir.Map.merge(old_attrs, version_attrs)
     do

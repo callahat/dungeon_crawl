@@ -145,12 +145,18 @@ defmodule DungeonCrawl.TileTemplatesTest do
     end
 
     test "create_new_tile_template_version/1 creates a new version" do
-      tile_template = tile_template_fixture(%{active: true})
+      tile_template = tile_template_fixture(%{active: true, animate_characters: "a,b,c", group_name: "items"})
       assert {:ok, new_tile_template} = TileTemplates.create_new_tile_template_version(tile_template)
       assert new_tile_template.version == tile_template.version + 1
       refute new_tile_template.active
-      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script, :slug]) ==
-             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public, :description, :state, :script, :slug])
+      assert Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public,
+                                      :description, :state, :script, :slug,
+                                      :animate_random, :animate_colors, :animate_background_colors,
+                                      :animate_characters, :animate_period, :group_name]) ==
+             Map.take(new_tile_template, [:name, :background_color, :character, :color, :user_id, :public,
+                                          :description, :state, :script, :slug,
+                                          :animate_random, :animate_colors, :animate_background_colors,
+                                          :animate_characters, :animate_period, :group_name])
     end
 
     test "create_new_tile_template_version/1 does not create a new version if the next one exists" do
