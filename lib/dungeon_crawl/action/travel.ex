@@ -60,6 +60,9 @@ defmodule DungeonCrawl.Action.Travel do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "change_dungeon",
                                              %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "stat_update",
+                                             %{stats: Player.current_stats(other_instance_state, updated_tile)}
 
           DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
 
