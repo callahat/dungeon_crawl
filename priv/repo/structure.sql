@@ -325,6 +325,43 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: scores; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.scores (
+    id bigint NOT NULL,
+    score integer,
+    steps integer,
+    duration time(0) without time zone,
+    result character varying(255),
+    victory boolean DEFAULT false NOT NULL,
+    map_set_id bigint,
+    user_id_hash character varying(255),
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: scores_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.scores_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.scores_id_seq OWNED BY public.scores.id;
+
+
+--
 -- Name: settings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -575,6 +612,13 @@ ALTER TABLE ONLY public.player_locations ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: scores id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scores ALTER COLUMN id SET DEFAULT nextval('public.scores_id_seq'::regclass);
+
+
+--
 -- Name: settings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -671,6 +715,14 @@ ALTER TABLE ONLY public.player_locations
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: scores scores_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scores
+    ADD CONSTRAINT scores_pkey PRIMARY KEY (id);
 
 
 --
@@ -795,6 +847,20 @@ CREATE INDEX player_locations_map_tile_instance_id_index ON public.player_locati
 --
 
 CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USING btree (user_id_hash);
+
+
+--
+-- Name: scores_map_set_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX scores_map_set_id_index ON public.scores USING btree (map_set_id);
+
+
+--
+-- Name: scores_user_id_hash_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX scores_user_id_hash_index ON public.scores USING btree (user_id_hash);
 
 
 --
@@ -963,6 +1029,14 @@ ALTER TABLE ONLY public.player_locations
 
 
 --
+-- Name: scores scores_map_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.scores
+    ADD CONSTRAINT scores_map_set_id_fkey FOREIGN KEY (map_set_id) REFERENCES public.map_sets(id);
+
+
+--
 -- Name: spawn_locations spawn_locations_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1006,5 +1080,5 @@ ALTER TABLE ONLY public.tile_templates
 -- PostgreSQL database dump complete
 --
 
-INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414), (20201117224347), (20201204023727), (20201205171203), (20201215004936), (20210208023219), (20210304032345);
+INSERT INTO public."schema_migrations" (version) VALUES (20190324205201), (20190330204745), (20190402223857), (20190402225536), (20190413175151), (20190414160056), (20190419001231), (20190527233310), (20190609142636), (20190609171130), (20190612023436), (20190612023457), (20190615154923), (20190616233716), (20190622001716), (20190622003151), (20190622003218), (20190622010437), (20190629130917), (20190630174337), (20190806015637), (20190819020358), (20190825172537), (20190827000819), (20190918120207), (20200310031404), (20200310040856), (20200321024143), (20200510030351), (20200523211657), (20200806010421), (20200909021208), (20200921024551), (20201005015458), (20201028012821), (20201108145214), (20201108191414), (20201117224347), (20201204023727), (20201205171203), (20201215004936), (20210208023219), (20210304032345), (20210417230808);
 
