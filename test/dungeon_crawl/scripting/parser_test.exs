@@ -43,7 +43,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                :ALREADY_OPEN
                Door is already open.
                Can't open it anymore.
-               @counter += 1
+               @counter_1 += 1
                #BECOME TTID:#{tile_template.id}
                #MOVE south, true
                #MOVE east
@@ -120,7 +120,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  7 => [:noop, "ALREADY_OPEN"],
                                                  8 => [:text, [["Door is already open."]]],
                                                  9 => [:text, [["Can't open it anymore."]]],
-                                                 10 => [:change_state, [:counter, "+=", 1]],
+                                                 10 => [:change_state, [:counter_1, "+=", 1]],
                                                  11 => [:become, [{:ttid, tile_template.id}]],
                                                  12 => [:move, ["south", true]],
                                                  13 => [:move, ["east"]],

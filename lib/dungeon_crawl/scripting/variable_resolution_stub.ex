@@ -62,6 +62,12 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:state_variable, _var}) do
     "."
   end
+  def resolve_variable(%{}, {:event_sender_variable, :id}) do
+    223344
+  end
+  def resolve_variable(%{}, [:event_sender]) do
+    223344
+  end
   def resolve_variable(%{}, {:event_sender_variable, _var}) do
     "from sender"
   end

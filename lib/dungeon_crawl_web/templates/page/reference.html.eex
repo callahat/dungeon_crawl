@@ -378,12 +378,11 @@
 
         <b>Scripting Commands</b>
 
-        <table class="table table-sm table-bordered linked-scroll">
+        <table class="table table-sm table-bordered linked-scroll commands">
           <tr>
             <th>Command</th>
             <th>Params</th>
             <th>Description</th>
-            <th>Examples</th>
           </tr>
           <tr id="become">
             <td>BECOME</td>
@@ -392,9 +391,12 @@
                 Additionally, if given a `slug`, the tile will be replaced with the matching tile template corresponding to the
                 given slug. If the slug has a script, that script will replace the currently running one. If the slug has state,
                 the state will be merged on top of the existing state key/values (a key not existing in the slug's state but existing
-                for the tile won't be overwritten). Other changes given, such as character, color, background color, will override the values from
+                for the tile won't be overwritten). Other changes given, such as name, character, color, background color, will override the values from
                 the matching tile template. Other values not mentioned above will set state values.</td>
-            <td><pre class="script">#BECOME slug: breakable_wall</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#BECOME slug: breakable_wall</pre>
                 <pre class="script">#BECOME character: X, background_color: #000, color: #fab</pre></td>
           </tr>
           <tr id="change_state">
@@ -403,7 +405,10 @@
             <td>Changes the object's state element given in params. The params also specify what operation is being used,
                 and the value to use in conjunction with the value from the state. When there is no state value;
                 0 is used as default. The shorthand for this command should be used instead.</td>
-            <td><pre class="script">@open = true</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">@open = true</pre>
                 <pre class="script">@ammo += 10</pre>
                 <pre class="script">@gems /= 2</pre></td>
           </tr>
@@ -411,14 +416,20 @@
             <td>CHANGE_INSTANCE_STATE</td>
             <td>list - 3</td>
             <td>Changes the dungeon instance state_values element given in params. (Similar to change_state)</td>
-            <td><pre class="script">@@red_flag = false</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">@@red_flag = false</pre>
                 <pre class="script">@@locks -= 1</pre></td>
           </tr>
           <tr id="change_map_set_instance_state">
             <td>CHANGE_MAP_SET_INSTANCE_STATE</td>
             <td>list - 3</td>
             <td>Changes the map set instance state_values element given in params. (Similar to change_state)</td>
-            <td><pre class="script">&red_flag = false</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">&red_flag = false</pre>
                 <pre class="script">&locks -= 1</pre></td>
           </tr>
           <tr id="cycle">
@@ -427,20 +438,29 @@
             <td>Sets the cycle speed of the object. The cycle speed is how quickly the object moves.
                 It defaults to 5 (about one move every 5 ticks, where a tick is ~50ms currently).
                 The lower the number the faster. Lowest it can be set is 1.</td>
-            <td><pre class="script">#CYCLE 3</pre></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#CYCLE 3</pre></td>
           </tr>
           <tr id="die">
             <td>DIE</td>
             <td>none</td>
             <td>Stops and removes the running script for the map tile.</td>
-            <td><pre class="script">#DIE</pre></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#DIE</pre></td>
           </tr>
           <tr id="end">
             <td>END</td>
             <td>none</td>
             <td>Changes the program state to idle. No further instructions will run,
                 but the script will respond to messages (ie, a TOUCH event)</td>
-            <td><pre class="script">#END</pre></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#END</pre></td>
           </tr>
           <tr id="facing">
             <td>FACING</td>
@@ -451,7 +471,10 @@
                 rotations) are specified. player will cause the object to face the player it is targeting
                 (a player will be picked to target if it is not already targeting one - state value at
                 "target_player_map_tile_id").</td>
-            <td><pre class="script">#FACING player</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#FACING player</pre>
                 <pre class="script">#FACING south</pre>
                 <pre class="script">#FACING counterclockwise</pre></td>
           </tr>
@@ -470,7 +493,10 @@
                 the specail varialble `?sender` can be used to give to the program/player
                 that sent the last event. For example, if a player touches a certain object,
                 that object could give them gems.</td>
-            <td><pre class="script">#GIVE cash, 10, north</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#GIVE cash, 10, north</pre>
                 <pre class="script">#GIVE ammo, 6, ?sender</pre>
                 <pre class="script">#GIVE health, @heals, ?sender, ?sender@max_health, at_max_health</pre></td>
           </tr>
@@ -481,7 +507,10 @@
                 it will retry until successful. The front slash "/" followed by a direction character (n, s, e, or w) or
                 another character (i for idle, c to continue moving in the direction its facing, or p to move towards the
                 targeted player) is this command's shorthand, and several shorthand commands may be on the same line.</td>
-            <td><pre class="script">#GO player</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#GO player</pre>
                 <pre class="script">/i/i/s/s/c</pre>
                 <pre class="script">/s</pre></td>
           </tr>
@@ -492,7 +521,10 @@
                 starting next at the first active matching label (nothing happens if there is no matching active label).<br/>
                 When no label is given, or an integer is given instead, if the expression is false, then the following N instruction(s)
                 will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).</td>
-            <td><pre class="script">#IF @open, ALREADY_OPEN</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#IF @open, ALREADY_OPEN</pre>
                 <pre class="script">#IF ?sender@blocking, TOUCH</pre>
                 <pre class="script">#IF @timer > 0, CONTINUE</pre>
                 <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre>
@@ -505,14 +537,20 @@
             <td>Locks the object. This will prevent it from receiving and acting on any
                 message/event until it is unlocked. The underlying state value `locked`
                 can also be directly set via the state shorthand `@locked=true`.</td>
-            <td><pre class="script">#LOCK</pre></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#LOCK</pre></td>
           </tr>
           <tr id="passage">
             <td>PASSAGE</td>
             <td>list - 1</td>
             <td>Registers the coordinates the map tile/object is at as a passage exit which will be a candidate for the match_key.
                 The passage exits are used by the TRANSPORT command (where the exit used may be specified by the match_key).</td>
-            <td><pre class="script">#PASSAGE up</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#PASSAGE up</pre>
                 <pre class="script">#PASSAGE @background_color</pre></td>
           </tr>
           <tr id="pull">
@@ -521,7 +559,10 @@
             <td>Similar to the TRY command. The main difference is that the object will pull an adjacent map tile into its
                 previous location if able. If the pulled tile has the state value `pulling` set then that tile may also pull an
                 adjacent tile to where it was (this can be chained).</td>
-            <td><pre class="script">#PULL north</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#PULL north</pre>
                 <pre class="script">#PULL south, true</pre></td>
           </tr>
           <tr id="push">
@@ -531,7 +572,10 @@
                 Tiles may be pushed up to the given `range` (default of 1) away. For example, a pushable tile immediately to the
                 west would be pushed one more space to the west when `direction` is west and `range` is one.
                 A tile in range will be pushed up to one space for each invocation of a push method.</td>
-            <td><pre class="script">#PUSH north</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#PUSH north</pre>
                 <pre class="script">#PUSH @facing, 3</pre></td>
           </tr>
           <tr id="put">
@@ -559,11 +603,14 @@
                 treated as open spaces where the shape may be drawn over. "include_origin" defaults to false (except for circle),
                 and this kwarg indicates whether or not the origin (ie, the active object) will be included in the shape or not.
 
-                Other kwargs can be given, such as character, color, background color, and will override the values from
+                Other kwargs can be given, such as name, character, color, background color, and will override the values from
                 the matching tile template. Other values not mentioned above will set state values.
                 Reference variables can be used instead of literals; however if they resolve to invalid values, then
                 this command will do nothing.</td>
-            <td><pre class="script">#PUT slug: expanding_foam, direction: south, color: @color</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#PUT slug: expanding_foam, direction: south, color: @color</pre>
                 <pre class="script">#PUT slug: wall, row: 1, col: 1</pre></td>
           </tr>
           <tr id="random">
@@ -574,7 +621,10 @@
                 OR an integer range. An integer range may be specified by a low bound and a high bound
                 with a hyphen in the middle (ie, 1-10). The range is inclusive, and a random integer within the
                 bounds (inclusive) will be used. Both the list and the range have a uniform distribution.</td>
-            <td><pre class="script">#RANDOM hits, 5-10</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#RANDOM hits, 5-10</pre>
                 <pre class="script">#RANDOM direction, north, south, east, west</pre></td>
           </tr>
           <tr id="replace">
@@ -586,7 +636,10 @@
                 that name, then all those tiles will be replaced. For a direction, only the top tile will be removed when there are more
                 than one tiles there.
                 If there are no tiles matching, nothing is done. Player tiles will not be replaced.</td>
-            <td><pre class="script">#REPLACE target_color: red, color: blue</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#REPLACE target_color: red, color: blue</pre>
                 <pre class="script">#REPLACE target: wall, target_color: green, slug: floor</pre></td>
           </tr>
           <tr id="remove">
@@ -597,7 +650,10 @@
                 that name, then all those tiles will be removed. For a direction, only the top tile will be removed when there are more
                 than one tiles there. If there are no tiles matching, nothing is done.
                 Player tiles will not be removed.</td>
-            <td><pre class="script">#REMOVE target_color: green</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#REMOVE target_color: green</pre>
                 <pre class="script">#REMOVE target: south</pre>
                 <pre class="script">#REMOVE target: locked door</pre></td>
           </tr>
@@ -607,7 +663,10 @@
             <td>Restores a disabled ('zapped') label. This will allow it to be used when an event
                 is sent to the object/program. Nothing is done if all labels that match the given one
                 are active. Reactivates labels prioritizing the one closer to the end of the script.</td>
-            <td><pre class="script">#RESTORE touch</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#RESTORE touch</pre>
                 <pre class="script">#RESTORE thud</pre></td>
           </tr>
           <tr id="send">
@@ -621,7 +680,10 @@
                 a tile. A direction takes priority over a tile name. The specail varialble `?sender` can be used
                 to send the message to the program that sent the event. `here` can be used to send the message to all
                 the tiles at the same location as the message sender (including the message sender).</td>
-            <td><pre class="script">#SEND touch, ?sender</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#SEND touch, ?sender</pre>
                 <pre class="script">#SEND close, all</pre>
                 <pre class="script">#SEND done</pre></td>
           </tr>
@@ -634,7 +696,10 @@
                 first time it runs, the state value is set to the first item in the sequence, the second time it is
                 set to the second item in the sequence, etc. When the last item has been assigned, it starts back over
                 at the first item</td>
-            <td><pre class="script">#SEQUENCE c, red, blue</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#SEQUENCE c, red, blue</pre>
                 <pre class="script">#SEQUENCE count, 9, 8, 6, 3, 1</pre></td>
           </tr>
           <tr id="shift">
@@ -644,7 +709,10 @@
                 Valid parameters are `clockwise` or `counterclockwise` to rotate in those respective
                 directions. If a `pushable` tile is blocked by a blocking tile that cannot be pushed,
                 that tile will not be moved.</td>
-            <td><pre class="script">#SHIFT clockwise</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#SHIFT clockwise</pre>
                 <pre class="script">#SHIFT counterclockwise</pre></td>
           </tr>
           <tr id="shoot">
@@ -653,7 +721,10 @@
             <td>Fires a bullet in the given direction. The bullet will spawn on the same tile as the object.
                 The bullet will walk in given direction until it hits something, or something
                 responds to the "SHOT" message.</td>
-            <td><pre class="script">#SHOOT north</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#SHOOT north</pre>
                 <pre class="script">#SHOOT @facing</pre></td>
           </tr>
           <tr id="take">
@@ -670,7 +741,10 @@
                 the special varialble `?sender` can be used to give to the program/player
                 that sent the last event. For example, if a player touches a certain object,
                 that object could give them gems.</td>
-            <td><pre class="script">#TAKE gems, 1, north</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#TAKE gems, 1, north</pre>
                 <pre class="script">#TAKE cash, 10, ?sender, toopoor</pre></td>
           </tr>
           <tr id="terminate">
@@ -679,7 +753,10 @@
             <td>Ends the running script and removes it. The map tile will no longer have a running script,
                 and will not respond to messages (other than standard behaviors). Useful when you want a map tile
                 to stop doing things, but don't want the map tile removed outright.</td>
-            <td><pre class="script">#TERMINATE</pre></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#TERMINATE</pre></td>
           </tr>
           <tr id="transport">
             <td>TRANSPORT</td>
@@ -696,7 +773,10 @@
                 When more than one match, one is randomly picked. Also, when there is no match key specified, a random passage_exit
                 will be used. When no match key is specified, and there are no passage exits, then a random spawn coordinate will
                 be used as a last option.</td>
-            <td><pre class="script">#TRANSPORT ?sender, up, stairs_down</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#TRANSPORT ?sender, up, stairs_down</pre>
                 <pre class="script">#TRANSPORT @target_player, 1, blue</pre></td>
           </tr>
           <tr id="try">
@@ -706,7 +786,10 @@
                 next command. The question mark "?" followed by a direction character (n, s, e, or w) or
                 another character (i for idle, c to continue moving in the direction its facing, or p to move towards the
                 targeted player) is this command's shorthand, and several shorthand commands may be on the same line.</td>
-            <td><pre class="script">#TRY west</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#TRY west</pre>
                 <pre class="script">?w?w?c</pre>
                 <pre class="script">?i</pre></td>
           </tr>
@@ -716,7 +799,10 @@
             <td>Unlocks the object. This will allow it to receive and act on any
                 message/event it may receive. The underlying state value `locked`
                 can also be directly set via the state shorthand `@`.</td>
-            <td><pre class="script">#UNLOCK</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#UNLOCK</pre>
                 <pre class="script">@locked = false</pre></td>
           </tr>
           <tr id="walk">
@@ -726,7 +812,10 @@
                 Similar to `TRY` but repeats until it cannot move in the given direction anymore.
                 This can be used when the distance a tile should go is unknown, instead of chaining
                 together multiple tries in a direction.</td>
-            <td><pre class="script">#WALK west</pre>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#WALK west</pre>
                 <pre class="script">#WALK player</pre></td>
           </tr>
           <tr id="zap">
@@ -735,7 +824,10 @@
             <td>Disables a label. This will prevent the label from being used to change the pc when
                 the program/object recieves an event. Nothing is done if all labels that match the
                 given one are inactive. Disables labels prioritizing the one closer to the top of the script.</td>
-            <td><pre class="script">#ZAP touch</pre></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#ZAP touch</pre></td>
           </tr>
         </table>
 

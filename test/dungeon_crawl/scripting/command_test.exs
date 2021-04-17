@@ -191,6 +191,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.change_state(%Runner{program: program, object_id: map_tile.id, state: state}, [:new, "+=", 1])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
     assert updated_map_tile.state == "add: 8, new: 1, one: 100"
+
+    # when its a new map tile
+    {new_map_tile, state} = Instances.create_map_tile(state, %MapTile{id: "new_1", row: 1, col: 2, z_index: -1, character: ".", state: "fresh: true"})
+    %Runner{state: updated_state} = Command.change_state(%Runner{object_id: new_map_tile.id, state: state}, [:new, "+=", 1])
+    updated_new_map_tile = Instances.get_map_tile_by_id(updated_state, new_map_tile)
+    top_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert updated_new_map_tile.state == "fresh: true, new: 1"
+    assert top_map_tile.state == map_tile.state
   end
 
   test "CHANGE_INSTANCE_STATE" do
@@ -202,20 +210,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.state_values == %{add: 8, one: 432}
     %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:new, "+=", 1])
     assert updated_state.state_values == %{add: 8, new: 1, one: 100}
+    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: updated_state}, [:new, "+=", {:instance_state_variable, :one}])
+    assert updated_state.state_values == %{add: 8, new: 101, one: 100}
   end
 
   test "CHANGE_MAP_SET_INSTANCE_STATE" do
     map_set_instance = insert_stubbed_map_set_instance(%{state: "msi_thing1: 999, msi_flag: false"})
-    state = %Instances{state_values: %{}, map_set_instance_id: map_set_instance.id}
+    state = %Instances{state_values: %{a: 5}, map_set_instance_id: map_set_instance.id}
     {_map_tile, state} = Instances.create_map_tile(state, %MapTile{id: 123, row: 1, col: 2, character: "."})
 
     Command.change_map_set_instance_state(%Runner{state: state}, [:msi_thing1, "+=", 1])
     Command.change_map_set_instance_state(%Runner{state: state}, [:msi_flag, "=", "well ok"])
+    Command.change_map_set_instance_state(%Runner{state: state}, [:b, "=", {:instance_state_variable, :a}])
 
     {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
 
     assert 1000 == MapSetProcess.get_state_value(map_set_process, :msi_thing1)
     assert "well ok" == MapSetProcess.get_state_value(map_set_process, :msi_flag)
+    assert 5 == MapSetProcess.get_state_value(map_set_process, :b)
   end
 
   test "CHANGE_OTHER_STATE" do
@@ -1083,7 +1095,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "RANDOM" do
-    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
+    map_set_instance = insert_stubbed_map_set_instance(%{state: "msi_thing1: 999, msi_flag: false"})
+    state = %Instances{map_set_instance_id: map_set_instance.id}
+
+    {map_tile, state} = Instances.create_map_tile(state, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
 
     # range
     %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["cookies", "5 - 10"])
@@ -1099,6 +1114,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state}, ["flaw", " - 5"])
     updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
     assert Enum.member?(["- 5"], updated_map_tile.parsed_state[:flaw])
+
+    # when given state_variable
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state},
+                                                   [{:state_variable, :a}, "a", "b", "c"])
+    updated_map_tile = Instances.get_map_tile_by_id(updated_state, map_tile)
+    assert Enum.member?(["a", "b", "c"], updated_map_tile.parsed_state[:a])
+
+    # when given instance_state_varable
+    %Runner{state: updated_state} = Command.random(%Runner{object_id: map_tile.id, state: state},
+                                                   [{:instance_state_variable, :instance_me}, "testing", "checking"])
+    assert Enum.member?(["testing", "checking"], updated_state.state_values[:instance_me])
+
+    # when given map_set_instance_state_variable
+    %Runner{} = Command.random(%Runner{object_id: map_tile.id, state: state},
+                                       [{:map_set_instance_state_variable, :mapset_me}, "test", "check"])
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+
+    assert Enum.member?(["test", "check"], MapSetProcess.get_state_value(map_set_process, :mapset_me))
   end
 
   test "REPLACE tile in a direction" do
@@ -1400,6 +1433,24 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.program_messages == []
   end
 
+  test "SEND message to tiles by id" do
+    state = %Instances{}
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: 123, character: ".", row: 1, col: 2, z_index: 0, script: "#END"})
+    {_, state}   = Instances.create_map_tile(state, %MapTile{id: "new_1", character: ".", row: 1, col: 2, z_index: 1, script: "#END"})
+    {obj, state} = Instances.create_map_tile(state, %MapTile{id: 1337, name: nil, character: "c", row: 2, col: 2, z_index: 0})
+    sender = %{map_tile_id: obj.id, parsed_state: %{}, name: nil}
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", 123])
+    assert updated_state.program_messages == [{123, "name", sender}]
+
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "new_1"])
+    assert updated_state.program_messages == [{"new_1", "name", sender}]
+
+    # still adds a message even though new_2 doesnt exist
+    %Runner{state: updated_state} = Command.send_message(%Runner{state: state, object_id: obj.id}, ["name", "new_2"])
+    assert updated_state.program_messages == [{"new_2", "name", %{map_tile_id: 1337, name: nil, parsed_state: %{}}}]
+  end
+
   test "SEQUENCE" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, z_index: 0, character: ".", state: ""})
 
@@ -1523,6 +1574,27 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     assert bullet.character == "◦"
     assert bullet.parsed_state[:facing] == "north"
+    assert updated_state.program_contexts[bullet.id]
+    assert updated_state.program_messages == []
+    assert updated_state.new_pids == [bullet.id]
+    assert updated_state.program_contexts[bullet.id].program.status == :alive
+
+    # shooting towards player
+    # when no player doesn't shoot
+    %Runner{state: updated_state} = Command.shoot(%Runner{state: state, object_id: obj.id}, ["gibberish"])
+    tile = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+
+    assert tile.character == "@"
+
+    # when there is a player
+    {_, state_w_player} = Instances.create_player_map_tile(state,
+                                                           %MapTile{id: 43201, row: 2, col: 6, z_index: 0, character: "@"},
+                                                           %Location{})
+    %Runner{state: updated_state} = Command.shoot(%Runner{state: state_w_player, object_id: obj.id}, ["player"])
+    assert bullet = Instances.get_map_tile(updated_state, %{row: 2, col: 2})
+
+    assert bullet.character == "◦"
+    assert bullet.parsed_state[:facing] == "east"
     assert updated_state.program_contexts[bullet.id]
     assert updated_state.program_messages == []
     assert updated_state.new_pids == [bullet.id]

@@ -224,7 +224,7 @@ defmodule DungeonCrawl.Scripting.Parser do
     with %{"target" => target} <- Regex.named_captures(~r/^\?{?(?<target>.*?)}?@$/, other),
          target <- _cast_other_target(target),
          state_element <- String.trim(String.downcase(element)),
-         %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
+         %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_\d]+)(?<setting>.+)\z/i, state_element),
          element = String.to_atom(element),
          {:ok, op, value} <- _parse_state_setting(setting),
          line_number <- Enum.count(program.instructions) + 1 do
@@ -237,7 +237,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _parse_state_change(type, element, program) do
     with state_element <- String.trim(String.downcase(element)),
-         %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_]+)(?<setting>.+)\z/i, state_element),
+         %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_\d]+)(?<setting>.+)\z/i, state_element),
          element = String.to_atom(element),
          {:ok, op, value} <- _parse_state_setting(setting),
          line_number <- Enum.count(program.instructions) + 1 do
@@ -259,7 +259,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_state_setting(setting) do
-    with %{"op" => op, "value" => value} <- Regex.named_captures(~r/(?<op>\+\+|--|(?:\+|-|\*|\/)?=)\s*(?<value>.*)/, String.trim(setting)) do
+    with %{"op" => op, "value" => value} <- Regex.named_captures(~r/\A\s*(?<op>\+\+|--|(?:\+|-|\*|\/)?=)\s*(?<value>.*)/, String.trim(setting)) do
       {:ok, op, _cast_param(value)}
     else
       _ -> {:error, "Invalid state assignment: `#{setting}`"}

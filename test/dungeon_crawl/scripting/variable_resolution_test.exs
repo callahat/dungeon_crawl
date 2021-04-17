@@ -99,7 +99,36 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
     end
   end
 
-  describe "resolve_variable_map" do
+  describe "resolve_variables" do
+    test "resolves a list of variables" do
+      {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray"})
+      {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X"})
+
+      state = %{ state | state_values: %{flag1: true, flash: "fire"}}
+
+      runner_state1 = %Runner{state: state, object_id: map_tile_1.id, event_sender: Map.put(%Location{id: 123, map_tile_instance_id: map_tile_2.id}, :parsed_state, map_tile_2.parsed_state)}
+
+      variable_list = ["nothing done",
+                       {:state_variable, :color},
+                       {:state_variable, :pass},
+                       {:event_sender_variable, :id},
+                       [:event_sender],
+                       {:event_sender_variable, :pass},
+                       {{:direction, "north"}, :character},
+                       {:instance_state_variable, :flag1}]
+
+      expected = ["nothing done",
+                  "red",
+                  nil,
+                  map_tile_2.id,
+                  map_tile_2.id,
+                  "bob",
+                  "X",
+                  true]
+
+      assert VariableResolution.resolve_variables(runner_state1, variable_list) == expected
+    end
+
     test "resolves a map of variables" do
       {map_tile_1, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 1, row: 1, col: 1, color: "red", background_color: "gray"})
       {map_tile_2, state} = Instances.create_map_tile(state, %MapTile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X"})
@@ -111,6 +140,8 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       variable_map = %{literal: "nothing done",
                        state_var_1: {:state_variable, :color},
                        state_var_2: {:state_variable, :pass},
+                       event_sender_id: {:event_sender_variable, :id},
+                       event_sender_id2: [:event_sender],
                        event_sender: {:event_sender_variable, :pass},
                        directional: {{:direction, "north"}, :character},
                        instance: {:instance_state_variable, :flag1}}
@@ -118,11 +149,13 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       expected = %{literal: "nothing done",
                        state_var_1: "red",
                        state_var_2: nil,
+                       event_sender_id: map_tile_2.id,
+                       event_sender_id2: map_tile_2.id,
                        event_sender: "bob",
                        directional: "X",
                        instance: true}
 
-      assert VariableResolution.resolve_variable_map(runner_state1, variable_map) == expected
+      assert VariableResolution.resolve_variables(runner_state1, variable_map) == expected
     end
   end
 

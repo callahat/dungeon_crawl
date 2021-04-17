@@ -76,6 +76,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
              active: true,
              animate_period: 2,
              animate_characters: sequence,
+             group_name: "misc",
              script: ""
          })
       end)

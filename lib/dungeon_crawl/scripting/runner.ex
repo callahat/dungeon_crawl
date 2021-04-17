@@ -69,6 +69,7 @@ Logger.info "instance state:"
 Logger.info inspect state.state_values
 Logger.info "msg_count: " <> inspect(runner_state.msg_count)
 end
+
         runner_state = apply(Command, command, [runner_state, params])
 
         # increment program counter, check for end of program
