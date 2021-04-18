@@ -20,6 +20,8 @@ defmodule DungeonCrawl.Dungeon.MapSet do
     has_many :spawn_locations, through: [:dungeons, :spawn_locations], on_delete: :delete_all
     has_many :locations, through: [:map_set_instances, :locations], on_delete: :delete_all
     has_many :next_versions, DungeonCrawl.Dungeon.MapSet, foreign_key: :previous_version_id, on_delete: :nilify_all
+    has_many :scoreboards, DungeonCrawl.Scores.Score, foreign_key: :map_set_id, on_delete: :delete_all
+
     belongs_to :previous_version, DungeonCrawl.Dungeon.MapSet, foreign_key: :previous_version_id
     belongs_to :user, DungeonCrawl.Account.User
 
