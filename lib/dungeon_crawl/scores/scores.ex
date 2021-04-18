@@ -24,6 +24,16 @@ defmodule DungeonCrawl.Scores do
   end
 
   @doc """
+  Returns the list of most recent scores.
+  """
+  def list_new_scores(top \\ 10) do
+    _from_scores()
+    |> _order_recent_descending()
+    |> _limit(top)
+    |> Repo.all()
+  end
+
+  @doc """
   Returns the list of scores for the given map set.
   """
   def top_scores_for_map_set(map_set_id, top \\ 10) do
@@ -55,6 +65,11 @@ defmodule DungeonCrawl.Scores do
   defp _order_score_descending(query) do
     from s in query,
     order_by: [desc: s.score]
+  end
+
+  defp _order_recent_descending(query) do
+    from s in query,
+    order_by: [desc: s.id]
   end
 
   defp _filter_on_map_set_id(query, map_set_id) do

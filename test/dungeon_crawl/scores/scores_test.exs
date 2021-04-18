@@ -28,6 +28,15 @@ defmodule DungeonCrawl.ScoresTest do
       assert Scores.list_scores() == [score]
     end
 
+    test "list_new_scores/0 returns most recent scores" do
+      Enum.each(0..15, fn i -> score_fixture(%{score: i}) end)
+      scores = Scores.list_new_scores()
+      assert length(scores) == 10
+      [newest | _] = scores
+      [oldest | _] = Enum.reverse(scores)
+      assert newest.id > oldest.id
+    end
+
     test "top_scores_for_map_set/1 returns scores for given map set" do
       map_set_2 = insert_map_set()
       score_fixture()
