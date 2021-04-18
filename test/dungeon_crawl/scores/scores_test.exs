@@ -24,14 +24,14 @@ defmodule DungeonCrawl.ScoresTest do
     end
 
     test "list_scores/0 returns scores" do
-      score = score_fixture()
+      score = Repo.preload(score_fixture(), :map_set)
       assert Scores.list_scores() == [score]
     end
 
     test "top_scores_for_map_set/1 returns scores for given map set" do
       map_set_2 = insert_map_set()
       score_fixture()
-      score = score_fixture(%{map_set_id: map_set_2.id})
+      score = Repo.preload(score_fixture(%{map_set_id: map_set_2.id}), :map_set)
       assert Scores.top_scores_for_map_set(map_set_2.id) == [score]
     end
 
@@ -44,9 +44,11 @@ defmodule DungeonCrawl.ScoresTest do
     end
 
     test "top_scores_for_player/1 returns top scores for given user_id_hash" do
-      score = score_fixture(%{user_id_hash: "me"})
+      user = insert_user
+      score = Repo.preload(score_fixture(%{user_id_hash: user.user_id_hash}), :map_set)
+              |> Map.put(:user, Map.put(user, :password, nil))
       score_fixture(%{user_id_hash: "notme"})
-      assert Scores.top_scores_for_player("me") == [score]
+      assert Scores.top_scores_for_player(user.user_id_hash) == [score]
     end
 
     test "create_score/1 with valid data creates a score" do
