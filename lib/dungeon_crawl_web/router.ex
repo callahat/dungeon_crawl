@@ -44,6 +44,8 @@ defmodule DungeonCrawlWeb.Router do
     resources "/tile_templates", ManageTileTemplateController
       post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
       put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
+
+    get "/scores", ScoreController, :index
   end
 
   scope "/manage", DungeonCrawlWeb do

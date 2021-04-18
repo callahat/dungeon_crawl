@@ -1,0 +1,39 @@
+<h5>High Scores<%= if @details[:who], do: " for #{@details[:who]}", else: "" %></h5>
+
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th>Score</th>
+      <th>Player</th>
+      <th>Dungeon</th>
+      <th>Date</th>
+      <th>Duration</th>
+      <th>Steps</th>
+      <th>Result</th>
+      <th>Victory</th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for score <- @scores do %>
+    <tr>
+      <td><%= score.score %></td>
+      <td>
+        <%= if score.user,
+              do: score_filter_link(@conn,Account.get_name(score.user), %{user_id: score.user.id}),
+              else: Account.get_name(score.user) %>
+      </td>
+      <td>
+        <%= score_filter_link(@conn,
+                              "#{score.map_set.name} (v. #{score.map_set.version})",
+                              %{map_set_id: score.map_set_id}) %>
+      </td>
+      <td><%= score.inserted_at %></td>
+      <td><%= score.duration %></td>
+      <td><%= score.steps %></td>
+      <td><%= score.result %></td>
+      <td><%= score.victory %></td>
+    </tr>
+<% end %>
+  </tbody>
+</table>
+
