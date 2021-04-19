@@ -40,6 +40,7 @@ let Player = {
     })
   },
   statUpdate(stats){
+    document.getElementById("score").innerHTML = stats.score
     document.getElementById("health").innerText = stats.health
     document.getElementById("gems").innerText = stats.gems
     document.getElementById("cash").innerText = stats.cash

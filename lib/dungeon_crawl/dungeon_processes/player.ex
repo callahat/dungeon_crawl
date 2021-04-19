@@ -44,8 +44,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
               end)
            |> Enum.join("")
 
-    %{health: 0, gems: 0, cash: 0, ammo: 0}
-    |> Map.merge(Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo]))
+    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0}
+    |> Map.merge(Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo, :score]))
     |> Map.put(:keys, keys)
   end
 
