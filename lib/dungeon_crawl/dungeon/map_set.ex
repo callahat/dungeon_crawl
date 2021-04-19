@@ -15,7 +15,7 @@ defmodule DungeonCrawl.Dungeon.MapSet do
     field :default_map_width, :integer
     field :default_map_height, :integer
     field :line_identifier, :integer
-    field :score_count, :integer, virtual: true
+    field :score_count, :integer, virtual: true, default: 0
 
     has_many :map_set_instances, DungeonCrawl.DungeonInstances.MapSet, foreign_key: :map_set_id, on_delete: :delete_all
     has_many :dungeons, DungeonCrawl.Dungeon.Map, foreign_key: :map_set_id, on_delete: :delete_all

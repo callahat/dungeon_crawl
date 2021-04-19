@@ -37,3 +37,27 @@
   </tbody>
 </table>
 
+<%= if @details[:other_map_sets] do %>
+  <h5>Other Versions</h5>
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th>Dungeon</th>
+      <th>Scores</th>
+    </tr>
+  </thead>
+  <tbody>
+  <%= for other_map_set <- Enum.reject(@details[:other_map_sets], fn ms -> ms.score_count < 1 end) do %>
+    <tr>
+      <td><%= score_filter_link(@conn,
+                                if(other_map_set.id == @details[:map_set_id], do: "*", else: "")
+                                <> " #{other_map_set.name} (v. #{other_map_set.version})",
+                                %{map_set_id: other_map_set.id}) %>
+      </td>
+      <td><%= other_map_set.score_count %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+

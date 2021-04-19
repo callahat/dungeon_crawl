@@ -53,7 +53,7 @@ defmodule DungeonCrawl.ScoresTest do
     end
 
     test "top_scores_for_player/1 returns top scores for given user_id_hash" do
-      user = insert_user
+      user = insert_user()
       score = Repo.preload(score_fixture(%{user_id_hash: user.user_id_hash}), :map_set)
               |> Map.put(:user, Map.put(user, :password, nil))
       score_fixture(%{user_id_hash: "notme"})

@@ -4,8 +4,8 @@ defmodule DungeonCrawlWeb.ScoreControllerTest do
   alias DungeonCrawl.Scores
 
   setup %{conn: conn} do
-    map_set_1 = insert_map_set(%{name: "DungeonOne"})
-    map_set_2 = insert_map_set(%{name: "DungeonTwo"})
+    map_set_1 = insert_map_set(%{name: "DungeonOne", line_identifier: 1})
+    map_set_2 = insert_map_set(%{name: "DungeonTwo", line_identifier: 2})
     user_1 = insert_user(%{name: "UserOne", user_id_hash: "one"})
     user_2 = insert_user(%{name: "UserTwo", user_id_hash: "two"})
 
@@ -26,6 +26,8 @@ defmodule DungeonCrawlWeb.ScoreControllerTest do
     test "lists all scores for map set", %{conn: conn, map_set_1: map_set_1, map_set_2: map_set_2} do
       conn = get(conn, score_path(conn, :index, map_set_id: map_set_1.id))
       assert html_response(conn, 200) =~ "High Scores for #{map_set_1.name}"
+      assert html_response(conn, 200) =~ "Other Versions"
+      assert html_response(conn, 200) =~ "* #{map_set_1.name}"
       refute html_response(conn, 200) =~ map_set_2.name
     end
 
