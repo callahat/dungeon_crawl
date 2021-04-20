@@ -133,13 +133,13 @@ defmodule DungeonCrawlWeb.TestHelpers do
       row: 3,
       col: 1,
       character: "@",
-      state: "blocking: true, soft: true",
       script: ""
     }, attrs)
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
 
-    Map.take(changes, [:map_instance_id, :row, :col, :character, :state, :script])
+    %{state: player_tile_template.state}
+    |> Map.merge(Map.take(changes, [:map_instance_id, :row, :col, :character, :state, :script]))
     |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end
