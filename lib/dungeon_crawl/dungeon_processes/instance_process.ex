@@ -492,7 +492,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
         _damaged_tile(object, sender, messages, state)
 
       object && StateValue.get_bool(object, :destroyable) ->
-        _destroyed_tile(object, messages, state)
+        _destroyed_tile(object, sender, messages, state)
 
       true ->
         _standard_behaviors(messages, state)
@@ -500,22 +500,51 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    {_result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
+    {result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
+
+    state = if result == :died, do: _award_points(object, sender, state), else: state
 
     _standard_behaviors(messages, state)
   end
 
-  defp _destroyed_tile(object, messages, state) do
+  defp _destroyed_tile(object, sender, messages, state) do
     {deleted_tile, state} = Instances.delete_map_tile(state, object)
 
     if deleted_tile do
+      state = _award_points(object, sender, state)
+
       top_tile = Instances.get_map_tile(state, deleted_tile)
       payload = %{tiles: [
                    Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                   ]}
       DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
+      _standard_behaviors(messages, state)
+    else
+      _standard_behaviors(messages, state)
     end
+  end
 
-    _standard_behaviors(messages, state)
+  defp _award_points(object, sender, state) do
+    awardee = case sender do
+                %{parsed_state: %{owner: owner_id}} -> Instances.get_map_tile_by_id(state, %{id: owner_id})
+                %{map_tile_id: id} -> Instances.get_map_tile_by_id(state, %{id: id})
+                _ -> nil
+              end
+
+    points = object.parsed_state[:points]
+
+    if is_number(points) && awardee do
+      current_points = awardee.parsed_state[:score] || 0
+      {_awardee, state} = Instances.update_map_tile_state(state, awardee, %{score: current_points + points})
+
+      payload = %{stats: PlayerInstance.current_stats(state, awardee)}
+      player_location = state.player_locations[awardee.id]
+
+      if player_location, do: DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", payload
+
+      state
+    else
+      state
+    end
   end
 end

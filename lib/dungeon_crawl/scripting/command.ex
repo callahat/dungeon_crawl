@@ -1454,6 +1454,9 @@ defmodule DungeonCrawl.Scripting.Command do
         {:ok, state} ->
           %{ runner_state | state: state }
 
+        {:died, state} ->
+          %{ runner_state | state: state }
+
         {_not_successful, _state} ->
           if label do
             updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }

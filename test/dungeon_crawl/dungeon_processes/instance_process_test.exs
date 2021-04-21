@@ -359,6 +359,51 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
   end
 
+  test "perform_actions standard_behavior point awarding", %{instance_process: instance_process,
+                                                             map_instance: map_instance} do
+    map_tiles = [
+        %{character: "B", row: 1, col: 2, z_index: 0, script: "#SEND shot, another nonprog", state: "damage: 5", name: "damager"},
+        %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
+        %{character: "O", row: 1, col: 9, z_index: 0, state: "destroyable: true, points: 5", name: "another nonprog"},
+        %{character: "O", row: 1, col: 5, z_index: 0, script: "#SEND shot, worthless nonprog", state: "destroyable: true, owner: 23423, points: 3", name: "worthless nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "#SEND shot, a nonprog", state: "damage: 10", name: "player"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    damager_tile = Enum.at(map_tiles, 0)
+    healty_tile = Enum.at(map_tiles, 1)
+    destroyable_tile = Enum.at(map_tiles, 2)
+    worthless_tile = Enum.at(map_tiles, 3)
+    player_tile = Enum.at(map_tiles, 4)
+
+    player_location = %Location{id: 555, map_tile_instance_id: player_tile.id}
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      Instances.create_player_map_tile(state, player_tile, player_location)
+    end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+
+    assert :ok = InstanceProcess.update_tile(instance_process, damager_tile.id, %{state: "damage: 15, owner: #{ player_tile.id }"})
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    %Instances{ map_by_ids: map_by_ids } = InstanceProcess.get_state(instance_process)
+
+    refute map_by_ids[healty_tile.id]
+    refute map_by_ids[destroyable_tile.id]
+    refute map_by_ids[worthless_tile.id]
+    refute map_by_ids[damager_tile.id].parsed_state[:score]
+    assert map_by_ids[player_tile.id].parsed_state[:score] == 14
+
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{score: 14}}}
+  end
+
   test "check_on_inactive_players", %{instance_process: instance_process, map_instance: map_instance} do
     player_tile = DungeonInstances.create_map_tile!(
                     %{character: "@",

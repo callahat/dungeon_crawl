@@ -530,7 +530,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert {:noop, updated_state} = Instances.subtract(state, :health, 5, wall.id)
     assert state == updated_state
 
-    assert {:ok, updated_state} = Instances.subtract(state, :health, 5, breakable.id)
+    assert {:died, updated_state} = Instances.subtract(state, :health, 5, breakable.id)
     refute Instances.get_map_tile_by_id(updated_state, breakable)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
@@ -540,7 +540,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 3, rendering: _anything}]}}
-    assert {:ok, updated_state} = Instances.subtract(state, :health, 10, damageable.id)
+    assert {:died, updated_state} = Instances.subtract(state, :health, 10, damageable.id)
     refute Instances.get_map_tile_by_id(updated_state, damageable)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,

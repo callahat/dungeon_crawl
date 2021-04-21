@@ -520,7 +520,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         payload = %{tiles: [ Map.put(loser_coords, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile)) ]}
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
 
-        {:ok, state}
+        {:died, state}
       else
         {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
