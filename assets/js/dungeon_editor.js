@@ -498,6 +498,9 @@ let DungeonEditor = {
     for(let coord of coords){
       paintMethod(document.getElementById(coord), this)
     }
+
+    this.deletePlaceholders()
+    this.updateVisibleStacks()
   },
   findOrCreateActiveTileDiv(map_location_td, context){
     let div = map_location_td.querySelector("td > div:not(.deleted-map-tile)[data-z-index='" + document.getElementById("z_index_current").value + "']")
