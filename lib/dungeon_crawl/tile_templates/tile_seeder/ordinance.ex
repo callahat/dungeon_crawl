@@ -20,6 +20,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 #RESTORE TOUCH
                 #END
                 :FUSE_LIT
+                @owner = ?sender@id
                 #BECOME character: @counter
                 Ssssss.....
                 :TOP
@@ -30,7 +31,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 #SEND TOP
                 #END
                 :BOOM
-                #PUT slug: explosion, shape: circle, range: 6, damage: @bomb_damage
+                #PUT slug: explosion, shape: circle, range: 6, damage: @bomb_damage, owner: @owner
                 #DIE
                 """
     })

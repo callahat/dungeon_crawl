@@ -395,34 +395,31 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender], max, label]) do
     case event_sender do
-      %{map_tile_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+      %{map_tile_id: id} -> _give(runner_state, [what, amount, id, max, label])
 
-      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, id, max, label])
 
       nil              -> runner_state
     end
   end
 
-  defp _give(%Runner{} = runner_state, [what, amount, [id], max, label]) do
-    _give_via_id(runner_state, [what, amount, [id], max, label])
-  end
-
-  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction, max, label]) do
-    if Direction.valid_orthogonal?(direction) do
-      object = Instances.get_map_tile_by_id(state, %{id: object_id})
-      map_tile = Instances.get_map_tile(state, object, direction)
-
-      if map_tile do
-        _give(runner_state, [what, amount, [map_tile.id], max, label])
-      else
-        runner_state
-      end
+  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, target, max, label]) do
+    target = resolve_variable(runner_state, target)
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      _give_via_id(runner_state, [what, amount, target, max, label])
     else
-      runner_state
+      with direction when is_valid_orthogonal(direction) <- target,
+           object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+           map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
+        _give_via_id(runner_state, [what, amount, map_tile.id, max, label])
+      else
+        _ ->
+          runner_state
+      end
     end
   end
 
-  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, [id], max, label]) do
+  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, id, max, label]) do
     amount = resolve_variable(runner_state, amount)
     what = resolve_variable(runner_state, what)
 
@@ -1428,14 +1425,14 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take(%Runner{state: state, object_id: object_id} = runner_state, what, amount, target, label) do
+    target = resolve_variable(runner_state, target)
     if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
       _take_via_id(runner_state, what, amount, target, label)
     else
-      with direction <- resolve_variable(runner_state, target),
-           direction when is_valid_orthogonal(direction) <- direction,
+      with direction when is_valid_orthogonal(direction) <- target,
            object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
            map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
-        _take(runner_state, what, amount, map_tile.id, label)
+        _take_via_id(runner_state, what, amount, map_tile.id, label)
       else
         _ ->
           runner_state
