@@ -292,6 +292,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_info(:perform_actions, %Instances{} = state) do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
+            |> _broadcast_stat_updates()
             |> _rerender_tiles()
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
@@ -405,6 +406,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       {[ [pid, Map.take(runner_state, [:program, :object_id, :event_sender])] | other_program_contexts ], updated_state}
     end
   end
+
+  defp _broadcast_stat_updates(%{ dirty_player_map_tile_stats: pmt_ids} = state) do
+    Enum.uniq(pmt_ids)
+    |> _broadcast_stat_updates(%{ state | dirty_player_map_tile_stats: [] })
+  end
+  defp _broadcast_stat_updates([], state), do: state
+  defp _broadcast_stat_updates([ pmt_id | pmt_ids ], state) do
+    if player_location = state.player_locations[pmt_id] do
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                         "stat_update",
+                                         %{stats: PlayerInstance.current_stats(state, %{id: pmt_id})}
+    end
+    _broadcast_stat_updates(pmt_ids, state)
+  end
+
 
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
@@ -536,11 +552,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     if is_number(points) && awardee do
       current_points = awardee.parsed_state[:score] || 0
       {_awardee, state} = Instances.update_map_tile_state(state, awardee, %{score: current_points + points})
-
-      payload = %{stats: PlayerInstance.current_stats(state, awardee)}
-      player_location = state.player_locations[awardee.id]
-
-      if player_location, do: DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", payload
 
       state
     else

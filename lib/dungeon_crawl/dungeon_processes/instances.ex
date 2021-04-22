@@ -17,6 +17,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             new_ids: %{},
             new_id_counter: 0,
             player_locations: %{},
+            dirty_player_map_tile_stats: [],
             program_messages: [],
             new_pids: [],
             spawn_coordinates: [],
@@ -306,7 +307,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   def update_map_tile_state(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id}, state_attributes) do
     map_tile = by_id[map_tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
-    update_map_tile(state, map_tile, %{state: state_str})
+
+    if state.player_locations[map_tile_id] && Enum.any?(Map.keys(state_attributes), fn i -> Enum.member?(Player.stats, i) end) do
+      dirty_stats = [ map_tile_id | state.dirty_player_map_tile_stats ]
+      update_map_tile(%{ state | dirty_player_map_tile_stats: dirty_stats }, map_tile, %{state: state_str})
+    else
+      update_map_tile(state, map_tile, %{state: state_str})
+    end
   end
 
   @doc """
@@ -552,29 +559,24 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         payload = %{tiles: [
                      Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
                     ]}
-        # TODO: maybe defer broadcasting til in the 50ms instance program cycle, and then consolidate outgoing messages.
-        # but this might be ok to do individually, as state updates will happen significantly less often than other
-        # tile animations/movements
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
         {:ok, state}
 
       true ->
-        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
+        {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
     end
   end
 
-  def _subtract(%Instances{} = state, what, amount, loser, player_location) do
+  def _subtract(%Instances{} = state, what, amount, loser, _player_location) do
     new_amount = (loser.parsed_state[what] || 0) - amount
 
     if new_amount < 0 do
       {:not_enough, state}
     else
-      {loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_amount})
-      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(state, loser)}
+      {_loser, state} = Instances.update_map_tile_state(state, loser, %{what => new_amount})
+
       {:ok, state}
     end
   end

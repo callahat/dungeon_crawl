@@ -575,10 +575,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: _anything}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel,
-            event: "stat_update",
-            payload: %{stats: %{ammo: 0, cash: 0, gems: 10, health: 20, keys: ""}}}
+    assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
 
     assert {:ok, updated_state} = Instances.subtract(state, :health, 30, player_tile.id)
     assert_receive %Phoenix.Socket.Broadcast{
@@ -587,12 +584,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
             payload: %{tiles: [%{col: 4, rendering: "<div>✝</div>", row: 4}]}}
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
-            event: "stat_update",
-            payload: %{stats: %{ammo: 0, cash: 0, gems: 0, health: 0, keys: ""}}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel,
             event: "message",
             payload: %{message: "You died!"}}
+    assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
   end
 
   test "subtract/4 non health on a player tile" do
@@ -606,10 +600,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     assert {:ok, updated_state} = Instances.subtract(state, :gems, 10, player_tile.id)
     assert Instances.get_map_tile_by_id(updated_state, player_tile).parsed_state[:gems] == 0
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel,
-            event: "stat_update",
-            payload: %{stats: %{ammo: 0, cash: 0, gems: 0, health: 30, keys: ""}}}
+    assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
 
     assert {:not_enough, updated_state} = Instances.subtract(state, :gems, 12, player_tile.id)
     assert state == updated_state
