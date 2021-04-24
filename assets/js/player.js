@@ -56,8 +56,11 @@ let Player = {
   },
   gameover(resp){
     document.gameover = true
-    let link = document.getElementById("scoreboard").getAttribute("data-to")
-    document.getElementById("scoreboard").setAttribute("data-to", link + "?score_id=" + resp.score_id + "&map_set_id=" + resp.map_set_id)
+    let scoreboard = document.getElementById("scoreboard")
+    let params = resp.score_id == undefined ? "" : "?score_id=" + resp.score_id + "&map_set_id=" + resp.map_set_id
+    if(scoreboard){
+      scoreboard.setAttribute("data-to", scoreboard.getAttribute("data-to") + params)
+    }
     $('#gameoverModal').modal('show')
   }
 }

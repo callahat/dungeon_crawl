@@ -413,32 +413,44 @@ defmodule DungeonCrawl.Scripting.Command do
   def _gameover(%Runner{state: state} = runner_state, [victory, result, id]) do
     with id when not is_nil(id) <- resolve_variable(runner_state, id),
          map_tile when not is_nil(map_tile) <- Instances.get_map_tile_by_id(state, %{id: id}),
-         player_location when not is_nil(player_location) <- state.player_locations[id] do
+         player_location when not is_nil(player_location) <- state.player_locations[id],
+         msi_id when not is_nil(msi_id) <- DungeonCrawl.Repo.preload(map_tile, :dungeon).dungeon.map_set_instance_id,
+         {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, msi_id),
+         %{state_values: msi_state_values} <- MapSetProcess.get_state(map_set_process) do
+
       # TODO: format the seconds in a view function
-      if map_tile.parsed_state[:gameover] do
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
-                                           "gameover",
-                                           Map.take(map_tile.parsed_state, [:score_id, :map_set_id])
+      cond do
+        msi_state_values[:no_scoring] ->
+          {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true})
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "gameover",
+                                             %{}
+          %{runner_state | state: state}
 
-        runner_state
-      else
-        seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, player_location.inserted_at)
+        map_tile.parsed_state[:gameover] ->
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "gameover",
+                                             Map.take(map_tile.parsed_state, [:score_id, :map_set_id])
+          runner_state
 
-        attrs = %{duration: seconds,
-                  result: result,
-                  score: map_tile.parsed_state[:score],
-                  steps: map_tile.parsed_state[:steps],
-                  victory: victory,
-                  user_id_hash: player_location.user_id_hash,
-                  map_set_id: DungeonCrawl.Repo.preload(map_tile, [dungeon: :map_set]).dungeon.map_set.map_set_id}
-        {:ok, score} = Scores.create_score(attrs)
-        {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true,
-                                                                                   score_id: score.id,
-                                                                                   map_set_id: score.map_set_id})
-        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
-                                           "gameover",
-                                           %{map_set_id: score.map_set_id, score_id: score.id}
-        %{runner_state | state: state}
+        true ->
+          seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, player_location.inserted_at)
+
+          attrs = %{duration: seconds,
+                    result: result,
+                    score: map_tile.parsed_state[:score],
+                    steps: map_tile.parsed_state[:steps],
+                    victory: victory,
+                    user_id_hash: player_location.user_id_hash,
+                    map_set_id: DungeonCrawl.Repo.preload(map_tile, [dungeon: :map_set]).dungeon.map_set.map_set_id}
+          {:ok, score} = Scores.create_score(attrs)
+          {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true,
+                                                                                     score_id: score.id,
+                                                                                     map_set_id: score.map_set_id})
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "gameover",
+                                             %{map_set_id: score.map_set_id, score_id: score.id}
+          %{runner_state | state: state}
       end
     else
       _ ->

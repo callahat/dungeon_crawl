@@ -61,7 +61,9 @@ defmodule DungeonCrawl.Scores do
   """
   def get_ranked_score(map_set_id, score_id) do
     Repo.one from o in _from_ranked_scores_subquery(map_set_id),
-             where: o.id == ^score_id
+             where: o.id == ^score_id,
+             left_join: u in DungeonCrawl.Account.User, on: u.user_id_hash == o.user_id_hash,
+             select_merge: %{user: u}
   end
 
   defp _from_ranked_scores_subquery() do
