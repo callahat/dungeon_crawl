@@ -6,7 +6,7 @@ defmodule DungeonCrawl.ScoresTest do
   describe "scores" do
     alias DungeonCrawl.Scores.Score
 
-    @valid_attrs %{duration: ~T[14:00:00], result: "win", score: 42, victory: true, user_id_hash: "sdf"}
+    @valid_attrs %{duration: 123, result: "win", score: 42, victory: true, user_id_hash: "sdf"}
     @invalid_attrs %{result: nil, score: nil, steps: nil, victory: nil}
 
     def score_fixture(attrs \\ %{}) do
@@ -63,7 +63,7 @@ defmodule DungeonCrawl.ScoresTest do
     test "create_score/1 with valid data creates a score" do
       map_set = insert_map_set()
       assert {:ok, %Score{} = score} = Scores.create_score(Map.put(@valid_attrs, :map_set_id, map_set.id))
-      assert %{duration: ~T[14:00:00],
+      assert %{duration: 123,
                result: "win",
                score: 42,
                victory: true} = score

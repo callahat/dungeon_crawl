@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Scores.Score do
   import Ecto.Changeset
 
   schema "scores" do
-    field :duration, :time
+    field :duration, :integer
     field :result, :string
     field :score, :integer
     field :steps, :integer
