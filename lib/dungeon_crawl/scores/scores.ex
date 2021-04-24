@@ -20,7 +20,7 @@ defmodule DungeonCrawl.Scores do
   def list_scores do
     _from_ranked_scores_subquery()
     |> _order_score_descending()
-    |> _preload_map_set()
+    |> _preload_map_set_and_user()
     |> Repo.all()
   end
 
@@ -28,10 +28,9 @@ defmodule DungeonCrawl.Scores do
   Returns the list of most recent scores.
   """
   def list_new_scores(top \\ 10) do
-    _from_ranked_scores_subquery()
-    |> _order_recent_descending()
+    _order_recent_descending(DungeonCrawl.Scores.Score)
     |> _limit(top)
-    |> _preload_map_set()
+    |> _preload_map_set_and_user()
     |> Repo.all()
   end
 
@@ -42,7 +41,7 @@ defmodule DungeonCrawl.Scores do
     _from_ranked_scores_subquery(map_set_id)
     |> _order_score_descending()
     |> _limit(top)
-    |> _preload_map_set()
+    |> _preload_map_set_and_user()
     |> Repo.all()
   end
 
@@ -50,11 +49,10 @@ defmodule DungeonCrawl.Scores do
   Returns the list of scores for the given player.
   """
   def top_scores_for_player(user_id_hash, top \\ 10) do
-    _from_scores()
-    |> _order_score_descending()
+    _order_score_descending(DungeonCrawl.Scores.Score)
     |> _filter_on_user_id_hash(user_id_hash)
     |> _limit(top)
-    |> _preload_map_set()
+    |> _preload_map_set_and_user()
     |> Repo.all()
   end
 
@@ -77,14 +75,10 @@ defmodule DungeonCrawl.Scores do
              where: s.map_set_id == ^map_set_id)
   end
 
-  defp _from_scores(query \\ DungeonCrawl.Scores.Score) do
+  defp _preload_map_set_and_user(query) do
     from s in query,
     left_join: u in DungeonCrawl.Account.User, on: u.user_id_hash == s.user_id_hash,
-    select_merge: %{user: u}
-  end
-
-  defp _preload_map_set(query \\ DungeonCrawl.Scores.Score) do
-    from s in query,
+    select_merge: %{user: u},
     preload: [:map_set]
   end
 
@@ -96,11 +90,6 @@ defmodule DungeonCrawl.Scores do
   defp _order_recent_descending(query) do
     from s in query,
     order_by: [desc: s.id]
-  end
-
-  defp _filter_on_map_set_id(query, map_set_id) do
-    from s in query,
-    where: s.map_set_id == ^map_set_id
   end
 
   defp _filter_on_user_id_hash(query, user_id_hash) do

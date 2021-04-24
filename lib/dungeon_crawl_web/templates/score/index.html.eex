@@ -3,6 +3,7 @@
 <table class="table table-sm">
   <thead>
     <tr>
+      <th></th>
       <th>Score</th>
       <th>Player</th>
       <th>Dungeon</th>
@@ -15,7 +16,8 @@
   </thead>
   <tbody>
 <%= for score <- @scores do %>
-    <tr>
+    <tr<%= if @details[:score] && @details[:score].id == score.id, do: " class=hilighted-score"  %>>
+      <td><%= score.place %></td>
       <td><%= score.score %></td>
       <td>
         <%= if score.user,
@@ -33,6 +35,30 @@
       <td><%= score.result %></td>
       <td><%= score.victory %></td>
     </tr>
+<% end %>
+<%= if @details[:score] && not Enum.member?(@scores, @details[:score]) do %>
+  <tr>
+    <td colspan="100%">...</td>
+  </tr>
+  <tr class="hilighted-score">
+    <td><%= @details[:score].place %></td>
+    <td><%= @details[:score].score %></td>
+    <td>
+      <%= if @details[:score].user,
+            do: score_filter_link(@conn,Account.get_name(@details[:score].user), %{user_id: @details[:score].user.id}),
+            else: Account.get_name(@details[:score].user) %>
+    </td>
+    <td>
+      <%= score_filter_link(@conn,
+                            "#{@details[:score].map_set.name} (v. #{@details[:score].map_set.version})",
+                            %{map_set_id: @details[:score].map_set_id}) %>
+    </td>
+    <td><%= @details[:score].inserted_at %></td>
+    <td><%= @details[:score].duration %></td>
+    <td><%= @details[:score].steps %></td>
+    <td><%= @details[:score].result %></td>
+    <td><%= @details[:score].victory %></td>
+  </tr>
 <% end %>
   </tbody>
 </table>
