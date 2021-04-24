@@ -4,6 +4,7 @@
   <%= render "help_modal.html" %>
   <%= render "dialog_modal.html" %>
   <%= render "death_notice_modal.html" # , dungeon: @player_location.map_tile.dungeon # TODO: some dungeons may have special rules around allowing respawns %>
+  <%= render "gameover_modal.html", conn: @conn, scorable: @scorable %>
 
   <div class="col-9 offset-3">
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />

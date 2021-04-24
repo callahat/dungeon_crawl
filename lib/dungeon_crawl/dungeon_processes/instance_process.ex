@@ -454,7 +454,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     if threshold = Application.get_env(:dungeon_crawl, :full_rerender_threshold) do
       threshold
     else
-      Application.put_env :dungeon_crawl, :full_rerender_threshold, Admin.get_setting().full_rerender_threshold || 50
+      threshold = Admin.get_setting().full_rerender_threshold || 50
+      Application.put_env(:dungeon_crawl, :full_rerender_threshold, threshold)
+      threshold
     end
   end
 

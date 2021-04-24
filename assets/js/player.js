@@ -23,6 +23,10 @@ let Player = {
       this.statUpdate(resp.stats)
     })
 
+    playerChannel.on("gameover", (resp) => {
+      this.gameover(resp)
+    })
+
     playerChannel.join()
       .receive("ok", (resp) => {
         dungeonJs.renderMessage("Entered the dungeon")
@@ -49,6 +53,12 @@ let Player = {
     if(parseInt(stats.health) <= 0) {
       $('#respawnModal').modal('show')
     }
+  },
+  gameover(resp){
+    document.gameover = true
+    let link = document.getElementById("scoreboard").getAttribute("data-to")
+    document.getElementById("scoreboard").setAttribute("data-to", link + "?score_id=" + resp.score_id + "&map_set_id=" + resp.map_set_id)
+    $('#gameoverModal').modal('show')
   }
 }
 

@@ -1,0 +1,31 @@
+<!-- Modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="gameoverModal" aria-labelledby="gameoverModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+
+      <div class="modal-body text-left">
+
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Game Over</strong><br/>
+            <span>Your game is over. You can keep watch here, or view your final score.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <%= if @scorable do %>
+          <%= button "View Scores",
+                     to: Routes.crawler_path(@conn, :destroy),
+                     method: :delete,
+                     id: "scoreboard",
+                     class: "btn btn-danger" %>
+        <% else %>
+          <%= button "Leave", to: Routes.crawler_path(@conn, :destroy), method: :delete, class: "btn btn-danger" %>
+        <% end %>
+
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

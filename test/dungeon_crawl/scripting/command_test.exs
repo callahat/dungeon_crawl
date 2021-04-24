@@ -494,14 +494,30 @@ defmodule DungeonCrawl.Scripting.CommandTest do
             topic: ^player_channel_2,
             event: "gameover",
             payload: %{score_id: ^score_2_id, map_set_id: ^map_set_id}}
+  end
+
+  test "GAMEOVER with bad target doesnt crash game" do
+    instance = insert_stubbed_dungeon_instance(%{}, [
+                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"}
+               ])
+    [player_tile_1] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+
+    player_location_1 = %Location{id: 12,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
+                                  user_id_hash: "goober"}
+    state = %Instances{state_values: %{rows: 20, cols: 20}}
+    {_player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+
+    player_channel_1 = "players:#{player_location_1.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
+
+    runner_state = %Runner{state: state, event_sender: player_location_1}
 
     # doesn't crash when given bad player (ie player already left)
-    assert runner_state == Command.gameover(runner_state, [true, "ok", player_tile_1.id + player_tile_2.id])
+    assert runner_state == Command.gameover(runner_state, [true, "ok", -1])
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel_1}
-    refute_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel_2}
-
   end
 
   test "GIVE" do

@@ -39,6 +39,7 @@ let commands = [
       "die",
       "end",
       "facing",
+      "gameover",
       "give",
       "go",
       "if",
