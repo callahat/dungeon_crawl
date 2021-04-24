@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
+  alias DungeonCrawl.Scores
 
   import ExUnit.CaptureLog
 
@@ -34,6 +35,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
+    assert Command.get_command(:gameover) == :gameover
     assert Command.get_command(:give) == :give
     assert Command.get_command(:go) == :go
     assert Command.get_command(:if) == :jump_if
@@ -364,6 +366,142 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_map_tile
     assert [] = program.broadcasts
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
+  end
+
+  test "GAMEOVER" do
+    instance = insert_stubbed_dungeon_instance(%{}, [
+                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
+                 %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
+               ])
+    [player_tile_1, player_tile_2] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+
+    player_location_1 = %Location{id: 12,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
+                                  user_id_hash: "goober"}
+
+    player_location_2 = %Location{id: 13,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
+                                  user_id_hash: "goober"}
+
+    state = %Instances{state_values: %{rows: 20, cols: 20}}
+    {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+    {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, player_location_2)
+
+    player_channel_1 = "players:#{player_location_1.id}"
+    player_channel_2 = "players:#{player_location_2.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_2)
+
+    runner_state = %Runner{state: state, event_sender: player_location_1}
+
+    map_set_id = Repo.preload(instance, :map_set).map_set.map_set_id
+
+    # default gameover - sender gets victory
+    %Runner{state: updated_state} = Command.gameover(runner_state, [""])
+
+    score = Scores.list_scores |> Enum.reverse |> Enum.at(0)
+    score_id = score.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    refute Instances.get_map_tile_by_id(updated_state, player_tile_2).parsed_state[:gameover]
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_id, map_set_id: ^map_set_id}}
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2}
+    assert %{user_id_hash: "goober",
+             score: 3,
+             steps: 10,
+             map_set_id: ^map_set_id,
+             victory: true,
+             result: "Win"} = score
+    Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
+
+    # different victory flag
+    %Runner{state: updated_state} = Command.gameover(runner_state, [false])
+
+    score = Scores.list_scores |> Enum.reverse |> Enum.at(0)
+    score_id = score.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert %{user_id_hash: "goober",
+             map_set_id: ^map_set_id,
+             victory: false,
+             result: "Win"} = score
+    Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
+
+    # different victory flag and result text
+    %Runner{state: updated_state} = Command.gameover(runner_state, [false, "Huge Loss"])
+
+    score = Scores.list_scores |> Enum.reverse |> Enum.at(0)
+    score_id = score.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert %{user_id_hash: "goober",
+             map_set_id: ^map_set_id,
+             victory: false,
+             result: "Huge Loss"} = score
+    Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
+
+    # all players get the gameover
+    %Runner{state: updated_state} = Command.gameover(runner_state, [false, "loss", "all"])
+
+    [score_1, score_2] = Scores.list_scores
+    score_1_id = score_1.id
+    score_2_id = score_2.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_1_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert %{parsed_state: %{gameover: true, score_id: ^score_2_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_2)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_1_id, map_set_id: ^map_set_id}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2,
+            event: "gameover",
+            payload: %{score_id: ^score_2_id, map_set_id: ^map_set_id}}
+    assert %{user_id_hash: "goober",
+             score: 3,
+             steps: 10,
+             map_set_id: ^map_set_id,
+             victory: false,
+             result: "loss"} = score_1
+    assert %{user_id_hash: "goober",
+             score: 1,
+             steps: 99,
+             map_set_id: ^map_set_id,
+             victory: false,
+             result: "loss"} = score_2
+
+    # doesn't make new scores when the tiles already have gameover state
+    test_runner_state = %Runner{state: updated_state}
+    assert test_runner_state == Command.gameover(test_runner_state, [false, "loss", "all"])
+
+    assert [score_1, score_2] == Scores.list_scores
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_1_id, map_set_id: ^map_set_id}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2,
+            event: "gameover",
+            payload: %{score_id: ^score_2_id, map_set_id: ^map_set_id}}
+
+    # doesn't crash when given bad player (ie player already left)
+    assert runner_state == Command.gameover(runner_state, [true, "ok", player_tile_1.id + player_tile_2.id])
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1}
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2}
+
   end
 
   test "GIVE" do

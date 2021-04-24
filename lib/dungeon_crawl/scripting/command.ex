@@ -13,6 +13,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting.Shape
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
+  alias DungeonCrawl.Scores
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
 
@@ -48,6 +49,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :die          -> :die
       :end          -> :halt
       :facing       -> :facing
+      :gameover     -> :gameover
       :give         -> :give
       :go           -> :go
       :if           -> :jump_if
@@ -357,6 +359,93 @@ defmodule DungeonCrawl.Scripting.Command do
             program: %{program | status: :dead, pc: -1},
             state: updated_state}
   end
+
+  @doc """
+  The gameover command. This triggers the end of the game, and records scores when applicable.
+  The three parameters are optional, the first being a boolean for victory (true) or loss (false),
+  the second is the result the scores will be recorded as (ie, Win, Lose, etc, defaults as "Win") and
+  is really a more wordy version of the first parameter but could be used to specify different win or lose
+  conditions.
+  The third is player(s) for which this command will end the game.
+  Only three valid values `?sender`, a player map tile id, or `all`. Defaults to the event sender, which will end
+  the game will be ended for only that player. When `all`, the game ends for all players in the map set.
+
+  TODO: Map Set state value that skips recording of scores?
+
+  ## Examples
+
+    iex> Command.gameover(%Runner{}, ["Loss"])
+    %Runner{}
+
+    iex> Command.gameover(%Runner{}, ["Loss", [:event_sender]])
+    %Runner{}
+  """
+  def gameover(%Runner{} = runner_state, [""]) do
+    _gameover(runner_state, [true, "Win", [:event_sender]])
+  end
+
+  def gameover(%Runner{} = runner_state, [victory]) do
+    _gameover(runner_state, [victory, "Win", [:event_sender]])
+  end
+
+  def gameover(%Runner{} = runner_state, [victory, result]) do
+    _gameover(runner_state, [victory, result, [:event_sender]])
+  end
+
+  def gameover(%Runner{} = runner_state, [victory, result, who]) do
+    _gameover(runner_state, [victory, result, who])
+  end
+
+  def _gameover(%Runner{event_sender: event_sender} = runner_state, [victory, result, [:event_sender]]) do
+    case event_sender do
+      %Location{map_tile_instance_id: id} -> _gameover(runner_state, [victory, result, id])
+
+      _nil              -> runner_state
+    end
+  end
+
+  def _gameover(%Runner{state: state} = runner_state, [victory, result, "all"]) do
+    state.player_locations
+    |> Map.keys()
+    |> Enum.reduce(runner_state, fn player_tile_id, runner_state -> _gameover(runner_state, [victory, result, player_tile_id]) end)
+  end
+
+  def _gameover(%Runner{state: state} = runner_state, [victory, result, id]) do
+    with id when not is_nil(id) <- resolve_variable(runner_state, id),
+         map_tile when not is_nil(map_tile) <- Instances.get_map_tile_by_id(state, %{id: id}),
+         player_location when not is_nil(player_location) <- state.player_locations[id] do
+      # TODO: format the seconds in a view function
+      if map_tile.parsed_state[:gameover] do
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                           "gameover",
+                                           Map.take(map_tile.parsed_state, [:score_id, :map_set_id])
+
+        runner_state
+      else
+        seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, player_location.inserted_at)
+
+        attrs = %{duration: seconds,
+                  result: result,
+                  score: map_tile.parsed_state[:score],
+                  steps: map_tile.parsed_state[:steps],
+                  victory: victory,
+                  user_id_hash: player_location.user_id_hash,
+                  map_set_id: DungeonCrawl.Repo.preload(map_tile, [dungeon: :map_set]).dungeon.map_set.map_set_id}
+        {:ok, score} = Scores.create_score(attrs)
+        {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true,
+                                                                                   score_id: score.id,
+                                                                                   map_set_id: score.map_set_id})
+        DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                           "gameover",
+                                           %{map_set_id: score.map_set_id, score_id: score.id}
+        %{runner_state | state: state}
+      end
+    else
+      _ ->
+        runner_state
+    end
+  end
+
 
   @doc """
   Give a tile an amount of something. This modifies the state of that tile by adding the amount to

@@ -109,6 +109,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                !buy;buy ${ @id }
                &msi_thing++
                #IF &msi_thing > 10, TOUCH
+               #GAMEOVER
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -186,6 +187,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  73 => [:text, [["buy ", {:state_variable, :id}, ""], "buy"]],
                                                  74 => [:change_map_set_instance_state, [:msi_thing, "++", ""]],
                                                  75 => [:jump_if, [[{:map_set_instance_state_variable, :msi_thing}, ">", 10], "TOUCH"]],
+                                                 76 => [:gameover, [""]],
                                                  },
                                  status: :alive,
                                  pc: 1,
