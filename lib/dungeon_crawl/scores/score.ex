@@ -11,6 +11,7 @@ defmodule DungeonCrawl.Scores.Score do
     field :user_id_hash, :string
 
     field :user, :map, virtual: true
+    field :place, :integer, virtual: true
 
     belongs_to :map_set, DungeonCrawl.Dungeon.MapSet, foreign_key: :map_set_id
 

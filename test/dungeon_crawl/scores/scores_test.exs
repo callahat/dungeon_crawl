@@ -25,7 +25,7 @@ defmodule DungeonCrawl.ScoresTest do
 
     test "list_scores/0 returns scores" do
       score = Repo.preload(score_fixture(), :map_set)
-      assert Scores.list_scores() == [score]
+      assert Scores.list_scores() == [%{score | place: 1}]
     end
 
     test "list_new_scores/0 returns most recent scores" do
@@ -41,7 +41,7 @@ defmodule DungeonCrawl.ScoresTest do
       map_set_2 = insert_map_set()
       score_fixture()
       score = Repo.preload(score_fixture(%{map_set_id: map_set_2.id}), :map_set)
-      assert Scores.top_scores_for_map_set(map_set_2.id) == [score]
+      assert Scores.top_scores_for_map_set(map_set_2.id) == [%{score | place: 1}]
     end
 
     test "top_scores_for_map_set/2 returns top scores for given map set" do
@@ -49,7 +49,8 @@ defmodule DungeonCrawl.ScoresTest do
       score_fixture(%{score: 500})
       Enum.each(0..15, fn i -> score_fixture(%{score: i, map_set_id: map_set_2.id}) end)
       assert length(Scores.top_scores_for_map_set(map_set_2.id)) == 10
-      assert [%{score: 15}] = Scores.top_scores_for_map_set(map_set_2.id, 1)
+      assert [%{score: 15, place: 1}] = Scores.top_scores_for_map_set(map_set_2.id, 1)
+      assert [%{score: 15, place: 1}, %{score: 14, place: 2}] = Scores.top_scores_for_map_set(map_set_2.id, 2)
     end
 
     test "top_scores_for_player/1 returns top scores for given user_id_hash" do
@@ -57,7 +58,17 @@ defmodule DungeonCrawl.ScoresTest do
       score = Repo.preload(score_fixture(%{user_id_hash: user.user_id_hash}), :map_set)
               |> Map.put(:user, Map.put(user, :password, nil))
       score_fixture(%{user_id_hash: "notme"})
-      assert Scores.top_scores_for_player(user.user_id_hash) == [score]
+      assert Scores.top_scores_for_player(user.user_id_hash) == [%{ score | place: nil }]
+    end
+
+    test "get_ranked_score/2 returns the ranked score" do
+      map_set_2 = insert_map_set()
+      score_fixture(%{score: 500})
+      Enum.each(0..15, fn i -> score_fixture(%{score: i * 2, map_set_id: map_set_2.id}) end)
+      score = score_fixture(%{score: 7, map_set_id: map_set_2.id})
+
+      assert %{ score | place: 13 } == Scores.get_ranked_score(map_set_2.id, score.id)
+      refute Scores.get_ranked_score(map_set_2.id, score.id + 1)
     end
 
     test "create_score/1 with valid data creates a score" do
