@@ -18,6 +18,8 @@ defmodule DungeonCrawl.Repo.Migrations.AddLineIndentifierToMapSets do
     end
   end
 
+  def down, do: nil
+
   defp _initial_line_identifiers() do
     execute """
       UPDATE map_sets
