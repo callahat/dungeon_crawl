@@ -10,7 +10,10 @@
                   <a class="nav-link" href="#general">General</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="#state_values">State Values</a>
+                  <a class="nav-link" href="#state_values">Map Tile State Values</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="#map_set_state_values">Map Set State Values</a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#scripting">Scripting</a>
@@ -27,6 +30,7 @@
                     <a class='nav-link' href='#die'>die</a>
                     <a class='nav-link' href='#end'>end</a>
                     <a class='nav-link' href='#facing'>facing</a>
+                    <a class='nav-link' href='#gameover'>gameover</a>
                     <a class='nav-link' href='#give'>give</a>
                     <a class='nav-link' href='#go'>go</a>
                     <a class='nav-link' href='#if'>if</a>
@@ -88,9 +92,9 @@
            The script controls more complicated behavior of the map tile (further reference below).
            </p>
 
-        <h5 id="state_values">State Attributes and Values</h5>
+        <h5 id="state_values">Map Tile State Attributes and Values</h5>
 
-        <p>There are several standard behaviors based on certain state values.</p>
+        <p>There are several standard behaviors based on certain state values of a map tile.</p>
 
         <table class="table table-sm table-bordered">
           <tr>
@@ -175,6 +179,54 @@
                 be replaced with the id of the tile it pulls on a pull command or chain pull. If nothing is pulled,
                 then pulling will be set to false. This helps to create double linked chains of map tiles that will only pull
                 one specific tile, and will only be pulled by one specific tile.</td>
+          </tr>
+          <tr>
+            <td colspan=2>Player Tile Specific</td>
+          </tr>
+          <tr>
+            <td>player</td>
+            <td>Indicates the tile is a player tile</td>
+          </tr>
+          <tr>
+            <td>steps</td>
+            <td>How many steps (ie, movements) the player has taken this game.</td>
+          </tr>
+          <tr>
+            <td>deaths</td>
+            <td>How many times the player has died</td>
+          </tr>
+          <tr>
+            <td>lives</td>
+            <td>How many lives a player has. -1 for infinite lives. Otherwise, triggers an
+                end game event when it reaches zero, preventing the player from respawning.</td>
+          </tr>
+          <tr>
+            <td>gameover</td>
+            <td>Indicates that the players game has ended. This is set by the GAMEOVER command,
+                or when the player runs out of lives.</td>
+          </tr>
+        </table>
+
+        <h5 id="map_set_state_values">Map Set State Attributes and Values</h5>
+
+        <p>There are several standard behaviors based on certain map set state values.</p>
+
+        <table class="table table-sm table-bordered">
+          <tr>
+            <th>State Attribute</th>
+            <th>Standard Behavior</th>
+          </tr>
+          <tr>
+            <td>no_scoring</td>
+            <td>When this is set to true, when an end game event occurs no score will be recorded
+                for the player(s). Defaults to false.</td>
+          </tr>
+          <tr>
+            <td>starting_lives</td>
+            <td>The number of lives a player starts with. When a player dies, they lose a life. When
+                their lives reach zero the game ends. Defaults to -1 (infinite lives), but can be set to
+                a positive integer. Players can gain lives (ie, the GIVE command may increase the number of
+                lives); their starting lives are set when they join the dungeon.</td>
           </tr>
         </table>
 
@@ -477,6 +529,24 @@
                 <pre class="script">#FACING player</pre>
                 <pre class="script">#FACING south</pre>
                 <pre class="script">#FACING counterclockwise</pre></td>
+          </tr>
+          <tr id="gameover">
+            <td>GAMEOVER</td>
+            <td>list - 0-3</td>
+            <td>This triggers the end of the game, and records scores when applicable.
+                The three parameters are optional, the first being a boolean for victory (true) or loss (false).<br/>
+                the second is the result the scores will be recorded as (ie, Win, Lose, etc, defaults as "Win") and
+                is really a more wordy version of the first parameter but could be used to specify different win or lose
+                conditions.<br/>
+                The third is player(s) for which this command will end the game.
+                Only three valid values `?sender`, a player map tile id, or `all`. Defaults to the event sender, which will end
+                the game will be ended for only that player. When `all`, the game ends for all players in the map set.</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+                <pre class="script">#GAMEOVER</pre>
+                <pre class="script">#GAMEOVER true, Victory</pre>
+                <pre class="script">#GAMEOVER false, Loss, all</pre></td>
           </tr>
           <tr id="give">
             <td>GIVE</td>
@@ -833,7 +903,8 @@
 
         <h5 id="system_messages">System messages</h5>
 
-        <p>Currently there are only a few messages that will be sent when certain things happen.</p>
+        <p>Currently there are only a few messages that will be sent automatically when certain things happen.
+           These message may also be send via the SEND command artifically.</p>
 
         <table class="table table-sm table-bordered">
           <tr>

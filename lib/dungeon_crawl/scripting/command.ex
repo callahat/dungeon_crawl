@@ -369,14 +369,12 @@ defmodule DungeonCrawl.Scripting.Command do
   Only three valid values `?sender`, a player map tile id, or `all`. Defaults to the event sender, which will end
   the game will be ended for only that player. When `all`, the game ends for all players in the map set.
 
-  TODO: Map Set state value that skips recording of scores?
-
   ## Examples
 
-    iex> Command.gameover(%Runner{}, ["Loss"])
+    iex> Command.gameover(%Runner{}, [false, "Loss"])
     %Runner{}
 
-    iex> Command.gameover(%Runner{}, ["Loss", [:event_sender]])
+    iex> Command.gameover(%Runner{}, [false, "Loss", [:event_sender]])
     %Runner{}
   """
   def gameover(runner_state, params, instance_module \\ Instances)
