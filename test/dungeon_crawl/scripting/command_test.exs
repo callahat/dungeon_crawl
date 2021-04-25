@@ -386,7 +386,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                                   inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
                                   user_id_hash: "goober"}
 
-    state = %Instances{state_values: %{rows: 20, cols: 20}}
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
     {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
     {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, player_location_2)
 
@@ -508,7 +508,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                                   inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
                                   user_id_hash: "goober"}
 
-    state = %Instances{state_values: %{rows: 20, cols: 20}}
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
     {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
 
     player_channel_1 = "players:#{player_location_1.id}"
@@ -539,7 +539,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                                   map_tile_instance_id: player_tile_1.id,
                                   inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
                                   user_id_hash: "goober"}
-    state = %Instances{state_values: %{rows: 20, cols: 20}}
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
     {_player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
 
     player_channel_1 = "players:#{player_location_1.id}"

@@ -414,13 +414,12 @@ defmodule DungeonCrawl.Scripting.Command do
     with id when not is_nil(id) <- resolve_variable(runner_state, id),
          map_tile when not is_nil(map_tile) <- Instances.get_map_tile_by_id(state, %{id: id}),
          player_location when not is_nil(player_location) <- state.player_locations[id],
-         msi_id when not is_nil(msi_id) <- DungeonCrawl.Repo.preload(map_tile, :dungeon).dungeon.map_set_instance_id,
-         {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, msi_id),
-         %{state_values: msi_state_values} <- MapSetProcess.get_state(map_set_process) do
+         {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id),
+         no_scoring = MapSetProcess.get_state_value(map_set_process, :no_scoring) do
 
       # TODO: format the seconds in a view function
       cond do
-        msi_state_values[:no_scoring] ->
+        no_scoring ->
           {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true})
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
