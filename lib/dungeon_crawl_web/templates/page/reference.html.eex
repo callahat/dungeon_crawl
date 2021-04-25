@@ -181,11 +181,30 @@
                 one specific tile, and will only be pulled by one specific tile.</td>
           </tr>
           <tr>
+            <td>points</td>
+            <td>When a destroyable tile (ie, one with health or simply `destroyable: true` as a state value) is destroyed
+                the points to award to the player (tile) that did it. This is the tile that sent the shot/damaging message
+                that resulted in the tile with points being destroyed. When this tile has an `owner`, specified by that
+                state value, the points will go to that tiles score instead. Bullet and bomb explosion automatically will
+                have the player that fired the bullet (or lit the bomb) as the owner.</td>
+          </tr>
+          <tr>
+            <td>owner</td>
+            <td>The ID of the tile that owns this one. Mainly used to determine whom to give points to when
+                a tile is destroyed via standard behaviors.</td>
+          </tr>
+          <tr>
             <td colspan=2>Player Tile Specific</td>
           </tr>
           <tr>
             <td>player</td>
             <td>Indicates the tile is a player tile</td>
+          </tr>
+          <tr>
+            <td>score</td>
+            <td>The players score. Mainly used on the scoreboard. Score can be given via GIVE command, but also
+                points will be added to the score when a player causes another tile to be destroyed via a bullet or
+                blast from a bomb.</td>
           </tr>
           <tr>
             <td>steps</td>
