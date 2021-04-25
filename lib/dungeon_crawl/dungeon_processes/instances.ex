@@ -31,13 +31,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
-  alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonProcesses.Player
+  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess, Player}
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.Scripting.Runner
+  alias DungeonCrawl.Scores
 
   require Logger
 
@@ -554,13 +554,17 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         {:noop, state}
 
       new_amount <= 0 ->
-        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
+        lives = if loser.parsed_state[:lives] > 0, do: loser.parsed_state[:lives] - 1, else: -1
+        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount, lives: lives})
         {grave, state} = Player.bury(state, loser)
         payload = %{tiles: [
                      Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
                     ]}
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
+        if lives == 0 do
+          #gameover
+        end
         {:ok, state}
 
       true ->
@@ -599,5 +603,57 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
 
   def get_tile_template(_slug, state), do: {nil, state, :not_found}
+
+  @doc """
+  Update the given player tile to gameover. Broadcasts the gameover message to the appropriate channel.
+  Creates a score record if applicable.
+  """
+  def gameover(%Instances{} = state, player_map_tile_id, victory, result) do
+    with map_tile when not is_nil(map_tile) <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}),
+         player_location when not is_nil(player_location) <- state.player_locations[player_map_tile_id],
+         {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id),
+         no_scoring = MapSetProcess.get_state_value(map_set_process, :no_scoring),
+         map_set_id = MapSetProcess.get_map_set_id(map_set_process) do
+
+      # TODO: format the seconds in a view function
+      cond do
+        no_scoring ->
+          {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true})
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "gameover",
+                                             %{}
+          state
+
+        map_tile.parsed_state[:gameover] ->
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "gameover",
+                                             Map.take(map_tile.parsed_state, [:score_id, :map_set_id])
+          state
+
+        true ->
+          seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, player_location.inserted_at)
+
+          attrs = %{duration: seconds,
+                    result: result,
+                    score: map_tile.parsed_state[:score],
+                    steps: map_tile.parsed_state[:steps],
+                    victory: victory,
+                    user_id_hash: player_location.user_id_hash,
+                    map_set_id: map_set_id}
+
+          {:ok, score} = Scores.create_score(attrs)
+          {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true,
+                                                                                     score_id: score.id,
+                                                                                     map_set_id: score.map_set_id})
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                             "gameover",
+                                             %{map_set_id: score.map_set_id, score_id: score.id}
+          state
+      end
+    else
+      _ ->
+        state
+    end
+  end
 end
 

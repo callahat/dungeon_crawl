@@ -18,6 +18,11 @@ defmodule DungeonCrawl.MapSetProcessTest do
     %{map_set_process: map_set_process, map_set_instance: map_set_instance}
   end
 
+  test "set_map_set_id", %{map_set_process: map_set_process} do
+    MapSetProcess.set_map_set_id(map_set_process, 12345)
+    assert %{ map_set_id: 12345 } = MapSetProcess.get_state(map_set_process)
+  end
+
   test "set_map_set_instance", %{map_set_process: map_set_process, map_set_instance: map_set_instance} do
     MapSetProcess.set_map_set_instance(map_set_process, map_set_instance)
     assert %{ map_set_instance: ^map_set_instance } = MapSetProcess.get_state(map_set_process)

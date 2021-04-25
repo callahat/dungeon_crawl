@@ -3,7 +3,8 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
 
   require Logger
 
-  defstruct map_set_instance: nil,
+  defstruct map_set_id: nil,
+            map_set_instance: nil,
             state_values: %{},
             instance_registry: %{},
             entrances: []
@@ -21,6 +22,13 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
   """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
+  end
+
+  @doc """
+  Sets the map set id
+  """
+  def set_map_set_id(server, map_set_id) do
+    GenServer.call(server, {:set_map_set_id, map_set_id})
   end
 
   @doc """
@@ -61,6 +69,13 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
   end
 
   @doc """
+  Gets the map set id
+  """
+  def get_map_set_id(server) do
+    GenServer.call(server, {:get_map_set_id})
+  end
+
+  @doc """
   Inspect the state
   """
   def get_state(server) do
@@ -97,6 +112,11 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
   end
 
   @impl true
+  def handle_call({:set_map_set_id, map_set_id}, _from, state) do
+    {:reply, :ok, %{ state | map_set_id: map_set_id }}
+  end
+
+  @impl true
   def handle_call({:set_map_set_instance, map_set_instance}, _from, state) do
     {:reply, :ok, %{ state | map_set_instance: map_set_instance }}
   end
@@ -120,6 +140,11 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
   @impl true
   def handle_call({:get_instance_registry}, _from, state) do
     {:reply, state.instance_registry, state}
+  end
+
+  @impl true
+  def handle_call({:get_map_set_id}, _from, state) do
+    {:reply, state.map_set_id, state}
   end
 
   @impl true
