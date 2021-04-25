@@ -550,7 +550,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     new_amount = (loser.parsed_state[:health] || 0) - amount
 
     cond do
-      StateValue.get_bool(loser, :buried) ->
+      StateValue.get_bool(loser, :buried) || StateValue.get_bool(loser, :gameover) ->
         {:noop, state}
 
       new_amount <= 0 ->
@@ -563,9 +563,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         if lives == 0 do
-          #gameover
+          {:ok, gameover(state, loser.id, false, "Dead")}
+        else
+          {:ok, state}
         end
-        {:ok, state}
 
       true ->
         {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
@@ -612,12 +613,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     with map_tile when not is_nil(map_tile) <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}),
          player_location when not is_nil(player_location) <- state.player_locations[player_map_tile_id],
          {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id),
-         no_scoring = MapSetProcess.get_state_value(map_set_process, :no_scoring),
-         map_set_id = MapSetProcess.get_map_set_id(map_set_process) do
+         map_set when not is_nil(map_set) <- MapSetProcess.get_map_set(map_set_process),
+         scorable = MapSetProcess.scorable?(map_set_process) do
 
       # TODO: format the seconds in a view function
       cond do
-        no_scoring ->
+        not scorable ->
           {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true})
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
@@ -639,7 +640,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                     steps: map_tile.parsed_state[:steps],
                     victory: victory,
                     user_id_hash: player_location.user_id_hash,
-                    map_set_id: map_set_id}
+                    map_set_id: map_set.id}
 
           {:ok, score} = Scores.create_score(attrs)
           {_player_tile, state} = Instances.update_map_tile_state(state, map_tile, %{gameover: true,

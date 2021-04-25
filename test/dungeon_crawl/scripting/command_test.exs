@@ -433,10 +433,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     player_channel_1 = "players:#{player_location_1.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
 
-    runner_state = %Runner{state: state, event_sender: player_location_1}
+    runner_state = %Runner{state: state, event_sender: player_location_1, object_id: player_tile_1.id}
 
     # doesn't crash when given bad player (ie player already left)
-    assert runner_state == Command.gameover(runner_state, [true, "ok", -1])
+    assert runner_state == Command.gameover(runner_state, [true, "ok", {:state_variable, :nothing}])
     refute_receive %Phoenix.Socket.Broadcast{}
   end
 

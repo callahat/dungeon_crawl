@@ -50,7 +50,7 @@ let Player = {
     document.getElementById("cash").innerText = stats.cash
     document.getElementById("ammo").innerText = stats.ammo
     document.getElementById("keys").innerHTML = stats.keys
-    if(parseInt(stats.health) <= 0) {
+    if(parseInt(stats.health) <= 0 && !document.gameover) {
       $('#respawnModal').modal('show')
     }
   },

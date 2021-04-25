@@ -30,11 +30,11 @@ defmodule DungeonCrawl.MapSetRegistryTest do
 
   test "create/2", %{map_set_registry: map_set_registry} do
     msi = insert_stubbed_map_set_instance(%{state: "flag: off"}, %{}, [[%MapTile{character: "O", row: 1, col: 1, z_index: 0}]])
-    ms_id = msi.map_set_id
+    ms = Repo.preload(msi, :map_set).map_set
 
     assert :ok = MapSetRegistry.create(map_set_registry, msi.id)
     assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
-    assert %MapSetProcess{map_set_id: ^ms_id,
+    assert %MapSetProcess{map_set: ^ms,
                           map_set_instance: %MapSet{},
                           state_values: %{flag: "off"},
                           instance_registry: instance_registry,

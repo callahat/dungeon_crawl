@@ -246,7 +246,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND bombed, player", state: "damage: 5"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
-        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10", name: "player"}
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10, lives: 2", name: "player"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
