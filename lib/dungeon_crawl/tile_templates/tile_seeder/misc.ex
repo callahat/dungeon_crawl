@@ -22,8 +22,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
                 @wait_cycles = 30
                 @beam_wait_cycles = @wait_cycles
                 @beam_wait_cycles /= 2
-                #if direction == "north", vertical
-                #if direction == "south", vertical
+                #if @direction == north, vertical
+                #if @direction == south, vertical
                 @slug = beam_wall_horizontal
                 #send top
                 #end
