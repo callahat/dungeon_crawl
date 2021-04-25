@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scores.Score do
   import Ecto.Changeset
 
   schema "scores" do
+    field :deaths, :integer, default: 0
     field :duration, :integer
     field :result, :string
     field :score, :integer
@@ -21,7 +22,7 @@ defmodule DungeonCrawl.Scores.Score do
   @doc false
   def changeset(score, attrs) do
     score
-    |> cast(attrs, [:user_id_hash, :score, :steps, :duration, :result, :victory, :map_set_id])
+    |> cast(attrs, [:user_id_hash, :score, :steps, :duration, :result, :victory, :map_set_id, :deaths])
     |> validate_required([:user_id_hash, :score, :map_set_id])
   end
 end

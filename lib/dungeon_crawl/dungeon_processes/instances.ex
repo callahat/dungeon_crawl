@@ -638,6 +638,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                     result: result,
                     score: map_tile.parsed_state[:score],
                     steps: map_tile.parsed_state[:steps],
+                    deaths: map_tile.parsed_state[:deaths] || 0,
                     victory: victory,
                     user_id_hash: player_location.user_id_hash,
                     map_set_id: map_set.id}

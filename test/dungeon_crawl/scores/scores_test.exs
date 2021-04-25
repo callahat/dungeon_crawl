@@ -6,7 +6,7 @@ defmodule DungeonCrawl.ScoresTest do
   describe "scores" do
     alias DungeonCrawl.Scores.Score
 
-    @valid_attrs %{duration: 123, result: "win", score: 42, victory: true, user_id_hash: "sdf"}
+    @valid_attrs %{duration: 123, result: "win", score: 42, victory: true, user_id_hash: "sdf", deaths: 1}
     @invalid_attrs %{result: nil, score: nil, steps: nil, victory: nil}
 
     def score_fixture(attrs \\ %{}) do
@@ -77,7 +77,8 @@ defmodule DungeonCrawl.ScoresTest do
       assert %{duration: 123,
                result: "win",
                score: 42,
-               victory: true} = score
+               victory: true,
+               deaths: 1} = score
     end
 
     test "create_score/1 with invalid data returns error changeset" do

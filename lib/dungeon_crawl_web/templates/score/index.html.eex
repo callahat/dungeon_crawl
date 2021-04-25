@@ -10,6 +10,7 @@
       <th>Date</th>
       <th>Duration</th>
       <th>Steps</th>
+      <th>Deaths</th>
       <th>Result</th>
       <th>Victory</th>
     </tr>
@@ -32,6 +33,7 @@
       <td><%= score.inserted_at %></td>
       <td><%= score.duration %></td>
       <td><%= score.steps %></td>
+      <td><%= score.deaths %></td>
       <td><%= score.result %></td>
       <td><%= score.victory %></td>
     </tr>
@@ -56,6 +58,7 @@
     <td><%= @details[:score].inserted_at %></td>
     <td><%= @details[:score].duration %></td>
     <td><%= @details[:score].steps %></td>
+    <td><%= @details[:score].deaths %></td>
     <td><%= @details[:score].result %></td>
     <td><%= @details[:score].victory %></td>
   </tr>
