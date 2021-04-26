@@ -9,7 +9,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   alias DungeonCrawl.Scores
 
   setup do
-    map_tile =        %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#DIE"}
+    map_tile =        %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TAKE health, 100, ?sender\n#DIE"}
     map_tile_south_1  = %MapTile{id: 997, row: 1, col: 3, z_index: 1, character: "S", state: "", script: ""}
     map_tile_south_2  = %MapTile{id: 998, row: 1, col: 3, z_index: 0, character: "X", state: "", script: ""}
 
@@ -33,7 +33,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                       3 => [:text, [["Hey"]]],
                       4 => [:halt, [""]],
                       5 => [:noop, "TERMINATE"],
-                      6 => [:die, [""]]
+                      6 => [:take, ["health", 100, [:event_sender]]],
+                      7 => [:die, [""]]
                     },
                     labels: %{
                       "terminate" => [[5, true]],
@@ -98,7 +99,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "send_event/4", %{state: state} do
-    player_location = %Location{id: 555}
+    ms = insert_stubbed_dungeon_instance()
+    player_tile = %MapTile{map_instance_id: ms.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: "health: 100, lives: 3, player: true"}
+    player_location = %Location{id: 555, user_id_hash: "dubs", map_tile_instance_id: 123}
+    {_player_tile, state} = Instances.create_player_map_tile(state, player_tile, player_location)
 
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -126,9 +130,17 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     # prunes the program if died during the run of the label
     updated_state_3 = Instances.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location)
-    %Instances{ program_contexts: %{} ,
+    assert [new_tile_id] = Map.keys(updated_state_3.map_by_ids) -- Map.keys(updated_state_2.map_by_ids)
+
+    %Instances{ program_contexts: program_contexts ,
                 map_by_ids: _,
                 map_by_coords: _ } = updated_state_3
+
+    # dead player gets buried, but this also validates that new map tile with program actually gets
+    # added to the program contexts (and not lost)
+    refute program_contexts[999]
+    assert program_contexts[new_tile_id]
+    assert updated_state_3.map_by_ids[new_tile_id].name == "Grave"
   end
 
   test "add_message_action/3" do

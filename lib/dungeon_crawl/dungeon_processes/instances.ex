@@ -129,7 +129,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                                                                        event)
                                   |> handle_broadcasting()
         if program.status == :dead do
-          %Instances{ state | program_contexts: Map.delete(program_contexts, map_tile_id)}
+          %Instances{ state | program_contexts: Map.delete(state.program_contexts, map_tile_id)}
         else
           updated_program_context = %{program: program, object_id: object_id, event_sender: sender}
           %Instances{ state | program_contexts: Map.put(state.program_contexts, map_tile_id, updated_program_context)}
