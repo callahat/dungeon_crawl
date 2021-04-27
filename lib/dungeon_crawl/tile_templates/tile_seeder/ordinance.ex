@@ -13,6 +13,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         active: true,
         group_name: "misc",
         script: """
+                #IF @fuse_lit, FUSE_LIT
                 #END
                 :TOUCH
                 #ZAP TOUCH
@@ -20,6 +21,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 #RESTORE TOUCH
                 #END
                 :FUSE_LIT
+                #ZAP TOUCH
+                #IF @owner, 1
                 @owner = ?sender@id
                 #BECOME character: @counter
                 Ssssss.....
@@ -30,6 +33,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 #IF @counter <= 0, BOOM
                 #SEND TOP
                 #END
+                :BOMBED
+                @owner = ?sender@owner
                 :BOOM
                 #PUT slug: explosion, shape: circle, range: 6, damage: @bomb_damage, owner: @owner
                 #DIE
