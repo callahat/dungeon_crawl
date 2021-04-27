@@ -9,6 +9,8 @@ defmodule DungeonCrawlWeb.ScoreView do
          title: "Hi scores for `#{link_text}`")
   end
 
+  def format_duration(nil), do: "none"
+
   def format_duration(in_seconds) do
     days = div in_seconds, 60*60*24
     remainder = rem in_seconds, 60*60*24

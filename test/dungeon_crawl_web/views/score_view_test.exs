@@ -3,6 +3,8 @@ defmodule DungeonCrawlWeb.ScoreViewTest do
   import DungeonCrawlWeb.ScoreView
 
   test "format_duration/1" do
+    assert "none" == format_duration(nil)
+
     assert "00' 00\"" == format_duration(0)
     assert "00' 57\"" == format_duration(57)
 
