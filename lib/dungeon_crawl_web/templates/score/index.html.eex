@@ -31,7 +31,7 @@
                               %{map_set_id: score.map_set_id}) %>
       </td>
       <td><%= score.inserted_at %></td>
-      <td><%= score.duration %></td>
+      <td><%= format_duration score.duration %></td>
       <td><%= score.steps %></td>
       <td><%= score.deaths %></td>
       <td><%= score.result %></td>
@@ -56,7 +56,7 @@
                             %{map_set_id: @details[:score].map_set_id}) %>
     </td>
     <td><%= @details[:score].inserted_at %></td>
-    <td><%= @details[:score].duration %></td>
+    <td><%= format_duration @details[:score].duration %></td>
     <td><%= @details[:score].steps %></td>
     <td><%= @details[:score].deaths %></td>
     <td><%= @details[:score].result %></td>
