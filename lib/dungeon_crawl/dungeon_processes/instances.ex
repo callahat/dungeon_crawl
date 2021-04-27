@@ -308,7 +308,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     map_tile = by_id[map_tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
 
-    if state.player_locations[map_tile_id] && Enum.any?(Map.keys(state_attributes), fn i -> Enum.member?(Player.stats, i) end) do
+    if state.player_locations[map_tile_id] do
       dirty_stats = [ map_tile_id | state.dirty_player_map_tile_stats ]
       update_map_tile(%{ state | dirty_player_map_tile_stats: dirty_stats }, map_tile, %{state: state_str})
     else
