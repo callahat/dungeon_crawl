@@ -8,6 +8,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
 
+  require DungeonCrawl.InstancesMockFactory
+
   # A lot of these tests are semi redundant, as the code that actually modifies the state lives
   # in the Instances module. Testing this also effectively hits the Instances code,
   # which also has its own set of similar tests.
@@ -246,7 +248,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     map_tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND bombed, player", state: "damage: 5"},
         %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
-        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10", name: "player"}
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10, lives: 2", name: "player"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
@@ -357,6 +359,51 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert [ ^shooter_map_tile_id ] = Map.keys(program_contexts)
     assert [ ^shooter_map_tile_id ] = Map.keys(map_by_ids)
     assert %{ ^map_tile_id => :deleted, ^non_prog_tile_id => :deleted} = dirty_ids
+  end
+
+  test "perform_actions standard_behavior point awarding", %{instance_process: instance_process,
+                                                             map_instance: map_instance} do
+    map_tiles = [
+        %{character: "B", row: 1, col: 2, z_index: 0, script: "#SEND shot, another nonprog", state: "damage: 5", name: "damager"},
+        %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
+        %{character: "O", row: 1, col: 9, z_index: 0, state: "destroyable: true, points: 5", name: "another nonprog"},
+        %{character: "O", row: 1, col: 5, z_index: 0, script: "#SEND shot, worthless nonprog", state: "destroyable: true, owner: 23423, points: 3", name: "worthless nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "#SEND shot, a nonprog", state: "damage: 10", name: "player"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    damager_tile = Enum.at(map_tiles, 0)
+    healty_tile = Enum.at(map_tiles, 1)
+    destroyable_tile = Enum.at(map_tiles, 2)
+    worthless_tile = Enum.at(map_tiles, 3)
+    player_tile = Enum.at(map_tiles, 4)
+
+    player_location = %Location{id: 555, map_tile_instance_id: player_tile.id}
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      Instances.create_player_map_tile(state, player_tile, player_location)
+    end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+
+    assert :ok = InstanceProcess.update_tile(instance_process, damager_tile.id, %{state: "damage: 15, owner: #{ player_tile.id }"})
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    %Instances{ map_by_ids: map_by_ids } = InstanceProcess.get_state(instance_process)
+
+    refute map_by_ids[healty_tile.id]
+    refute map_by_ids[destroyable_tile.id]
+    refute map_by_ids[worthless_tile.id]
+    refute map_by_ids[damager_tile.id].parsed_state[:score]
+    assert map_by_ids[player_tile.id].parsed_state[:score] == 14
+
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "stat_update",
+            payload: %{stats: %{score: 14}}}
   end
 
   test "check_on_inactive_players", %{instance_process: instance_process, map_instance: map_instance} do
@@ -525,6 +572,38 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 1} => %{} } = by_coord
+  end
+
+  test "gameover/3", %{instance_process: instance_process, map_instance: map_instance} do
+    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self())
+
+    map_tiles = [
+        %{character: "B", row: 1, col: 2, z_index: 0, state: "damage: 5", name: "damager"},
+        %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, state: "damage: 10", name: "player"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    player_tile_1 = Enum.at(map_tiles, 0)
+    player_tile_2 = Enum.at(map_tiles, 2)
+
+    player_location_1 = %Location{id: 555, map_tile_instance_id: player_tile_1.id}
+    player_location_2 = %Location{id: 556, map_tile_instance_id: player_tile_2.id}
+
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+      Instances.create_player_map_tile(state, player_tile_2, player_location_2)
+    end)
+
+    %Instances{ instance_id: instance_id } = InstanceProcess.get_state(instance_process)
+
+    InstanceProcess.gameover(instance_process, false, "loss", instances_mock_mod)
+
+    assert_receive {:gameover_test, ^instance_id, false, "loss"}
+
+    # cleanup
+    :code.delete instances_mock_mod
   end
 
   test "run_with/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do

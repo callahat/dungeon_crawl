@@ -12912,6 +12912,10 @@ span.CodeMirror-selectedtext { background: none; }
 
 /* This file is for your main application css. */
 
+.hilighted-score {
+  background-color: aliceblue;
+}
+
 .commands td.examples {
   padding-left: 4em;
 }

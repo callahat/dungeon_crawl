@@ -117,6 +117,7 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
   defp _create_map_set(map_set_id, map_set_instance, state_values, {map_set_ids, refs, supervisor}) do
     {:ok, map_set_process} = DynamicSupervisor.start_child(supervisor, MapSetProcess)
 
+    MapSetProcess.set_map_set(map_set_process, Repo.preload(map_set_instance, :map_set).map_set)
     MapSetProcess.set_map_set_instance(map_set_process, map_set_instance)
     MapSetProcess.set_state_values(map_set_process, state_values)
     MapSetProcess.start_scheduler(map_set_process)

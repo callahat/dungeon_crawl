@@ -1,6 +1,9 @@
   <div class="col-3 d-none d-md-block bg-light sidebar">
     <div class="sidebar-sticky px-2 stat-sidebar d-flex flex-column">
       <div class="d-flex flex-row no-gutters">
+        <div class="col-6 text-right mr-2">Score:</div><div id="score" class="col-6 text-left"><%= @player_stats[:score] %></div>
+      </div>
+      <div class="d-flex flex-row no-gutters">
         <div class="col-6 text-right mr-2">Health:</div><div id="health" class="col-6 text-left"><%= @player_stats[:health] %></div>
       </div>
       <div class="d-flex flex-row no-gutters">

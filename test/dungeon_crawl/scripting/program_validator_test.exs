@@ -28,6 +28,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #PUSH @facing, @power
     #PUSH @facing, 1
     #SHIFT clockwise
+    #GAMEOVER
+    #GAMEOVER false
     """
   end
 
@@ -115,6 +117,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #RANDOM &var, a, b, c
     #RANDOM ?sender, a, b, c
     ?south@blocking = false
+    #GAMEOVER true, won, ?sender
+    #GAMEOVER blah, ok, nigeria
+    #GAMEOVER true, WIN
     """
   end
 
@@ -195,6 +200,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 76: TARGET_PLAYER command specifies invalid target ``",
                "Line 77: CHANGE command ++ takes only one operand, got `= 9`",
                "Line 81: RANDOM command has an invalid variable specified [:event_sender]",
+               "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
+               "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -249,6 +256,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 76: TARGET_PLAYER command specifies invalid target ``",
                "Line 77: CHANGE command ++ takes only one operand, got `= 9`",
                "Line 81: RANDOM command has an invalid variable specified [:event_sender]",
+               "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
+               "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

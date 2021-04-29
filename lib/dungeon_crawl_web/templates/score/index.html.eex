@@ -1,0 +1,92 @@
+<h5>High Scores<%= if @details[:who], do: " for #{@details[:who]}", else: "" %></h5>
+
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Score</th>
+      <th>Player</th>
+      <th>Dungeon</th>
+      <th>Date</th>
+      <th>Duration</th>
+      <th>Steps</th>
+      <th>Deaths</th>
+      <th>Result</th>
+      <th>Victory</th>
+    </tr>
+  </thead>
+  <tbody>
+<%= for score <- @scores do %>
+    <tr<%= if @details[:score] && @details[:score].id == score.id, do: " class=hilighted-score"  %>>
+      <td><%= score.place %></td>
+      <td><%= score.score %></td>
+      <td>
+        <%= if score.user,
+              do: score_filter_link(@conn,Account.get_name(score.user), %{user_id: score.user.id}),
+              else: Account.get_name(score.user) %>
+      </td>
+      <td>
+        <%= score_filter_link(@conn,
+                              "#{score.map_set.name} (v. #{score.map_set.version})",
+                              %{map_set_id: score.map_set_id}) %>
+      </td>
+      <td><%= score.inserted_at %></td>
+      <td><%= format_duration score.duration %></td>
+      <td><%= score.steps %></td>
+      <td><%= score.deaths %></td>
+      <td><%= score.result %></td>
+      <td><%= score.victory %></td>
+    </tr>
+<% end %>
+<%= if @details[:score] && not Enum.member?(@scores, @details[:score]) do %>
+  <tr>
+    <td colspan="100%">...</td>
+  </tr>
+  <tr class="hilighted-score">
+    <td><%= @details[:score].place %></td>
+    <td><%= @details[:score].score %></td>
+    <td>
+      <%= if @details[:score].user,
+            do: score_filter_link(@conn,Account.get_name(@details[:score].user), %{user_id: @details[:score].user.id}),
+            else: Account.get_name(@details[:score].user) %>
+    </td>
+    <td>
+      <%= score_filter_link(@conn,
+                            "#{@details[:score].map_set.name} (v. #{@details[:score].map_set.version})",
+                            %{map_set_id: @details[:score].map_set_id}) %>
+    </td>
+    <td><%= @details[:score].inserted_at %></td>
+    <td><%= format_duration @details[:score].duration %></td>
+    <td><%= @details[:score].steps %></td>
+    <td><%= @details[:score].deaths %></td>
+    <td><%= @details[:score].result %></td>
+    <td><%= @details[:score].victory %></td>
+  </tr>
+<% end %>
+  </tbody>
+</table>
+
+<%= if @details[:other_map_sets] do %>
+  <h5>Other Versions</h5>
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th>Dungeon</th>
+      <th>Scores</th>
+    </tr>
+  </thead>
+  <tbody>
+  <%= for other_map_set <- Enum.reject(@details[:other_map_sets], fn ms -> ms.score_count < 1 end) do %>
+    <tr>
+      <td><%= score_filter_link(@conn,
+                                if(other_map_set.id == @details[:map_set_id], do: "*", else: "")
+                                <> " #{other_map_set.name} (v. #{other_map_set.version})",
+                                %{map_set_id: other_map_set.id}) %>
+      </td>
+      <td><%= other_map_set.score_count %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+

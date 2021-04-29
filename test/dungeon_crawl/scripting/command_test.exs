@@ -34,6 +34,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
+    assert Command.get_command(:gameover) == :gameover
     assert Command.get_command(:give) == :give
     assert Command.get_command(:go) == :go
     assert Command.get_command(:if) == :jump_if
@@ -364,6 +365,96 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_map_tile
     assert [] = program.broadcasts
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
+  end
+
+  test "GAMEOVER" do
+    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self())
+
+    stubbed_map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [
+      [
+        %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10"},
+        %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99"}
+      ],
+      [
+        %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 0, steps: 10"}
+      ]])
+
+    [instance, instance2] = Repo.preload(stubbed_map_set_instance, :maps).maps
+
+    instance_id = instance.id
+    instance2_id = instance2.id
+
+    [player_tile_1, player_tile_2] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+                                     |> Enum.sort(fn a, b -> a.col < b.col end)
+
+    [player_tile_3] = Repo.preload(instance2, :dungeon_map_tiles).dungeon_map_tiles
+
+
+
+    state = %Instances{state_values: %{rows: 20, cols: 20},
+                       map_set_instance_id: instance.map_set_instance_id,
+                       instance_id: instance.id}
+    {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, %Location{})
+    {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, %Location{})
+
+    runner_state = %Runner{state: Map.put(state, :testpid, self()),
+                           event_sender: %Location{map_tile_instance_id: player_tile_1.id}}
+
+    player_tile_1_id = player_tile_1.id
+    player_tile_2_id = player_tile_2.id
+    player_tile_3_id = player_tile_3.id
+
+    # default gameover - sender gets victory
+    Command.gameover(runner_state, [""], instances_mock_mod)
+
+    assert_receive {:gameover_test, ^instance_id, ^player_tile_1_id, true, "Win"}
+    refute_receive {:gameover_test, _, ^player_tile_2_id, true, "Win"}
+    refute_receive {:gameover_test, _, ^player_tile_3_id, true, "Win"}
+
+    # different victory flag
+    Command.gameover(runner_state, [false], instances_mock_mod)
+
+    assert_receive {:gameover_test, ^instance_id, ^player_tile_1_id, false, "Win"}
+    refute_receive {:gameover_test, _, ^player_tile_2_id, false, "Win"}
+
+    # different victory flag and result text
+    Command.gameover(runner_state, [false, "Huge Loss"], instances_mock_mod)
+
+    assert_receive {:gameover_test, ^instance_id, ^player_tile_1_id, false, "Huge Loss"}
+    refute_receive {:gameover_test, _, ^player_tile_2_id, false, "Huge Loss"}
+
+    Command.gameover(runner_state, [false, "loss", "all"], instances_mock_mod)
+
+    # gameover - all - sends a CAST for each [map] instance process under the map set instance
+    # just validate the instances_module is being invoked by each instance process
+    assert_receive {:gameover_test, ^instance_id, false, "loss"}
+    assert_receive {:gameover_test, ^instance2_id, false, "loss"}
+
+    # cleanup
+    :code.delete instances_mock_mod
+  end
+
+  test "GAMEOVER with bad target doesnt crash game" do
+    instance = insert_stubbed_dungeon_instance(%{}, [
+                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"}
+               ])
+    [player_tile_1] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+
+    player_location_1 = %Location{id: 12,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
+                                  user_id_hash: "goober"}
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
+    {_player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+
+    player_channel_1 = "players:#{player_location_1.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
+
+    runner_state = %Runner{state: state, event_sender: player_location_1, object_id: player_tile_1.id}
+
+    # doesn't crash when given bad player (ie player already left)
+    assert runner_state == Command.gameover(runner_state, [true, "ok", {:state_variable, :nothing}])
+    refute_receive %Phoenix.Socket.Broadcast{}
   end
 
   test "GIVE" do

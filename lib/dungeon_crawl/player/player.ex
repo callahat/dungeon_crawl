@@ -7,6 +7,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Account
+  alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.TileTemplates
 
@@ -82,6 +83,7 @@ defmodule DungeonCrawl.Player do
     |> Map.merge(%{name: user_avatar["name"], color: user_avatar["color"], background_color: user_avatar["background_color"]})
     |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
+    |> _set_player_lives(msi)
   end
 
   defp _entrance(instance_maps) do
@@ -107,6 +109,14 @@ defmodule DungeonCrawl.Player do
     |> Enum.shuffle
     |> Enum.at(0)
   end
+
+  defp _set_player_lives(player_map_tile, msi) do
+    {:ok, map_set_parsed_state} = DungeonCrawl.StateValue.Parser.parse(msi.state)
+    starting_lives = "lives: #{ map_set_parsed_state[:starting_lives] || -1 }"
+
+    Repo.update!(MapTile.changeset(player_map_tile, %{state: player_map_tile.state <> ", " <> starting_lives }))
+  end
+
   @doc """
   Deletes a Location.
 

@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.MapGenerators.TestRooms
+  alias DungeonCrawl.Scores
 
   def insert_user(attrs \\ %{}) do
     changes = Map.merge(%{
@@ -133,13 +134,13 @@ defmodule DungeonCrawlWeb.TestHelpers do
       row: 3,
       col: 1,
       character: "@",
-      state: "blocking: true, soft: true",
       script: ""
     }, attrs)
 
     player_tile_template = DungeonCrawl.TileTemplates.TileSeeder.player_character_tile()
 
-    Map.take(changes, [:map_instance_id, :row, :col, :character, :state, :script])
+    %{state: player_tile_template.state}
+    |> Map.merge(Map.take(changes, [:map_instance_id, :row, :col, :character, :state, :script]))
     |> Map.merge(%{tile_template_id: player_tile_template.id, z_index: 1})
     |> DungeonCrawl.DungeonInstances.create_map_tile!()
   end
@@ -152,5 +153,20 @@ defmodule DungeonCrawlWeb.TestHelpers do
     map_tile_id = if changes[:map_tile_instance_id], do: changes[:map_tile_instance_id], else: insert_player_map_tile(changes).id
 
     DungeonCrawl.Player.create_location!(%{user_id_hash: changes.user_id_hash, map_tile_instance_id: map_tile_id})
+  end
+
+  def insert_score(map_set_id, attrs \\ %{}) do
+    changes = Map.merge(%{
+      victory: true,
+      result: "Win",
+      score: 10,
+      steps: 300,
+      user_id_hash: "insert_score",
+      map_set_id: map_set_id,
+      duration: 1000
+    }, attrs)
+
+    {:ok, score} = Scores.create_score(changes)
+    score
   end
 end

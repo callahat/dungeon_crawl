@@ -102,7 +102,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      if player_tile && not _player_alive(player_tile) do
+      if player_tile && not _player_alive(player_tile) && _game_active(player_tile, player_location) do
         {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
         death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
 
@@ -129,7 +129,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
 
-      if _shot_ready(socket) && _player_alive(player_tile) do
+      if _shot_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) do
         player_channel = "players:#{player_location.id}"
 
         updated_state = case Shoot.shoot(player_location, direction, instance_state) do
@@ -199,7 +199,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       destination = Instances.get_map_tile(instance_state, player_tile, direction)
 
       cond do
-        not _player_alive(player_tile) ->
+        not _player_alive(player_tile) || not _game_active(player_tile, player_location) ->
           {:ok, instance_state}
 
         adjacent_map_id ->
@@ -238,6 +238,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                                        else: instance_state
 
       with true <- _player_alive(player_tile),
+           true <- _game_active(player_tile, player_location),
            target_tiles when target_tiles != [] <- Instances.get_map_tiles(instance_state, player_tile, direction) do
 
         toucher = Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state]))
@@ -262,6 +263,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                                        else: instance_state
 
       with true <- _player_alive(player_tile),
+           true <- _game_active(player_tile, player_location),
            target_tile when not is_nil(target_tile) <- Instances.get_map_tile(instance_state, player_tile, direction) do
         if !Instances.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
@@ -288,6 +290,18 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   defp _player_alive(nil), do: false
   defp _player_alive(player_map_tile), do: player_map_tile.parsed_state[:health] > 0
+
+  defp _game_active(nil, _), do: false
+  defp _game_active(player_map_tile, player_location) do
+    if player_map_tile.parsed_state[:gameover] == true do
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                         "gameover",
+                                         Map.take(player_map_tile.parsed_state, [:score_id, :map_set_id])
+      false
+    else
+      true
+    end
+  end
 
   # TODO: this might be able to go away when every program is isolated to its own process.
   # although bullets will still probably collide if fired faster than every 100ms

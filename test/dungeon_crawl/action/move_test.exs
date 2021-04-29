@@ -9,7 +9,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     floor_a           = %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "."}
     floor_b           = %MapTile{id: 998, row: 1, col: 1, z_index: 0, character: "."}
 
-    player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@"}
+    player_location   = %MapTile{id: 1000,  row: 1, col: 2, z_index: 1, character: "@", state: "player: true"}
 
     {floor_a, state} = Instances.create_map_tile(%Instances{}, floor_a)
     {_floor_b, state} = Instances.create_map_tile(state, floor_b)
@@ -24,6 +24,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     assert Instances.get_map_tiles(state, %{row: 1, col: 2}) == [floor_a]
     assert Instances.get_map_tiles(state, %{row: 1, col: 1}) == [new_location,
                                                                  destination]
+    assert new_location.parsed_state[:steps] == 1
   end
 
   test "moving to an empty floor space from a non map tile" do
@@ -139,7 +140,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     # Something not pushing does not push
     bullet_location   = %MapTile{id: 1001,  row: 1, col: 3, z_index: 2, character: "-", state: "not_pushing: true"}
     {bullet_location, state} = Instances.create_map_tile(state, bullet_location)
-    
+
     assert {:invalid} = Move.go(bullet_location, ball, state)
   end
 

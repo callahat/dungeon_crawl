@@ -95,6 +95,11 @@ let Dungeon = {
 
       $('#messageModal').modal('hide')
 
+      if(document.gameover) {
+        $('#gameoverModal').modal('show')
+        return
+      }
+
       if(parseInt(document.getElementById("health").innerText) <= 0) {
         $('#respawnModal').modal('show')
         return

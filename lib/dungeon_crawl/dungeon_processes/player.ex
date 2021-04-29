@@ -5,6 +5,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
   alias DungeonCrawl.TileTemplates
 
+  @stats [:health, :gems, :cash, :ammo, :score]
+
   @doc """
   Returns the current stats (health, gems, cash, and ammo) for the player.
   When the instance state object is already available, that along with the player
@@ -44,8 +46,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
               end)
            |> Enum.join("")
 
-    %{health: 0, gems: 0, cash: 0, ammo: 0}
-    |> Map.merge(Map.take(tile.parsed_state, [:health, :gems, :cash, :ammo]))
+    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0}
+    |> Map.merge(Map.take(tile.parsed_state, @stats))
     |> Map.put(:keys, keys)
   end
 
@@ -266,4 +268,9 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     z_index = if top_tile, do: top_tile.z_index + 1, else: 0
     %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
   end
+
+  @doc """
+  Returns a list of the stats that the sidebar stat panel tracks.
+  """
+  def stats(), do: @stats
 end

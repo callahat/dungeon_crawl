@@ -4,7 +4,8 @@ defmodule DungeonCrawl.Scripting.Command do
   """
 
   alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
-  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, InstanceRegistry,
+                                       MapSetRegistry, MapSetProcess, MapSets}
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Direction
@@ -48,6 +49,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :die          -> :die
       :end          -> :halt
       :facing       -> :facing
+      :gameover     -> :gameover
       :give         -> :give
       :go           -> :go
       :if           -> :jump_if
@@ -359,6 +361,66 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
+  The gameover command. This triggers the end of the game, and records scores when applicable.
+  The three parameters are optional, the first being a boolean for victory (true) or loss (false),
+  the second is the result the scores will be recorded as (ie, Win, Lose, etc, defaults as "Win") and
+  is really a more wordy version of the first parameter but could be used to specify different win or lose
+  conditions.
+  The third is player(s) for which this command will end the game.
+  Only three valid values `?sender`, a player map tile id, or `all`. Defaults to the event sender, which will end
+  the game will be ended for only that player. When `all`, the game ends for all players in the map set.
+
+  ## Examples
+
+    iex> Command.gameover(%Runner{}, [false, "Loss"])
+    %Runner{}
+
+    iex> Command.gameover(%Runner{}, [false, "Loss", [:event_sender]])
+    %Runner{}
+  """
+  def gameover(runner_state, params, instance_module \\ Instances)
+  def gameover(%Runner{} = runner_state, [""], instance_module) do
+    _gameover(runner_state, [true, "Win", [:event_sender]], instance_module)
+  end
+
+  def gameover(%Runner{} = runner_state, [victory], instance_module) do
+    _gameover(runner_state, [victory, "Win", [:event_sender]], instance_module)
+  end
+
+  def gameover(%Runner{} = runner_state, [victory, result], instance_module) do
+    _gameover(runner_state, [victory, result, [:event_sender]], instance_module)
+  end
+
+  def gameover(%Runner{} = runner_state, [victory, result, who], instance_module) do
+    _gameover(runner_state, [victory, result, who], instance_module)
+  end
+
+  def _gameover(%Runner{event_sender: event_sender} = runner_state, [victory, result, [:event_sender]], instance_module) do
+    case event_sender do
+      %Location{map_tile_instance_id: id} -> _gameover(runner_state, [victory, result, id], instance_module)
+
+      _nil              -> runner_state
+    end
+  end
+
+  def _gameover(%Runner{state: state} = runner_state, [victory, result, "all"], instance_module) do
+    # Cast endgame to the other instance processes
+    {:ok, map_set_instance_registry} = MapSets.instance_registry(state.map_set_instance_id)
+    InstanceRegistry.list(map_set_instance_registry)
+    |> Enum.each(fn {_id, pid} -> InstanceProcess.gameover(pid, victory, result, instance_module) end)
+
+    runner_state
+  end
+
+  def _gameover(%Runner{state: state} = runner_state, [victory, result, id], instance_module) do
+    if player_map_tile_id = resolve_variable(runner_state, id) do
+      %{ runner_state | state: instance_module.gameover(state, player_map_tile_id, victory, result) }
+    else
+      runner_state
+    end
+  end
+
+  @doc """
   Give a tile an amount of something. This modifies the state of that tile by adding the amount to
   whatever is at that key is at (creating it if not already present). First parameter is `what` (the
   state field, ie `ammo`), second the quantity (must be a positive number). Quantity may reference a state
@@ -395,34 +457,31 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender], max, label]) do
     case event_sender do
-      %{map_tile_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+      %{map_tile_id: id} -> _give(runner_state, [what, amount, id, max, label])
 
-      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, [id], max, label])
+      %Location{map_tile_instance_id: id} -> _give(runner_state, [what, amount, id, max, label])
 
       nil              -> runner_state
     end
   end
 
-  defp _give(%Runner{} = runner_state, [what, amount, [id], max, label]) do
-    _give_via_id(runner_state, [what, amount, [id], max, label])
-  end
-
-  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, direction, max, label]) do
-    if Direction.valid_orthogonal?(direction) do
-      object = Instances.get_map_tile_by_id(state, %{id: object_id})
-      map_tile = Instances.get_map_tile(state, object, direction)
-
-      if map_tile do
-        _give(runner_state, [what, amount, [map_tile.id], max, label])
-      else
-        runner_state
-      end
+  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, target, max, label]) do
+    target = resolve_variable(runner_state, target)
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      _give_via_id(runner_state, [what, amount, target, max, label])
     else
-      runner_state
+      with direction when is_valid_orthogonal(direction) <- target,
+           object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+           map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
+        _give_via_id(runner_state, [what, amount, map_tile.id, max, label])
+      else
+        _ ->
+          runner_state
+      end
     end
   end
 
-  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, [id], max, label]) do
+  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, id, max, label]) do
     amount = resolve_variable(runner_state, amount)
     what = resolve_variable(runner_state, what)
 
@@ -1428,14 +1487,14 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   defp _take(%Runner{state: state, object_id: object_id} = runner_state, what, amount, target, label) do
+    target = resolve_variable(runner_state, target)
     if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
       _take_via_id(runner_state, what, amount, target, label)
     else
-      with direction <- resolve_variable(runner_state, target),
-           direction when is_valid_orthogonal(direction) <- direction,
+      with direction when is_valid_orthogonal(direction) <- target,
            object when not is_nil(object) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
            map_tile when not is_nil(map_tile) <- Instances.get_map_tile(state, object, direction) do
-        _take(runner_state, what, amount, map_tile.id, label)
+        _take_via_id(runner_state, what, amount, map_tile.id, label)
       else
         _ ->
           runner_state
@@ -1452,6 +1511,9 @@ defmodule DungeonCrawl.Scripting.Command do
 
       case Instances.subtract(state, what, amount, id) do
         {:ok, state} ->
+          %{ runner_state | state: state }
+
+        {:died, state} ->
           %{ runner_state | state: state }
 
         {_not_successful, _state} ->

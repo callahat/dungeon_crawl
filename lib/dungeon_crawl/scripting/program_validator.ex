@@ -76,14 +76,31 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:gameover, [""] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:gameover, [true, "Win", [:event_sender]] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:gameover, [victory] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:gameover, [victory, "Win", [:event_sender]] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:gameover, [victory, result] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:gameover, [victory, result, [:event_sender]] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:gameover, [victory, _result, who] ]} | instructions], errors, user) do
+    errors = unless is_boolean(victory) or is_tuple(victory),
+               do: ["Line #{line_no}: GAMEOVER command has invalid 1st parameter `#{victory}`" | errors],
+               else: errors
+    errors = unless who == [:event_sender] or is_tuple(who) or who == "all",
+               do: ["Line #{line_no}: GAMEOVER command has invalid 3rd parameter `#{who}`" | errors],
+               else: errors
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:give, [what, amount, who] ]} | instructions], errors, user) do
     _validate(program, [ {line_no, [:give, [what, amount, who, nil, nil] ]} | instructions], errors, user)
   end
-
   defp _validate(program, [ {line_no, [:give, [what, amount, who, max] ]} | instructions], errors, user) do
     _validate(program, [ {line_no, [:give, [what, amount, who, max, nil] ]} | instructions], errors, user)
   end
-
   defp _validate(program, [ {line_no, [:give, [_what, amount, who, max, label] ]} | instructions], errors, user) do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],

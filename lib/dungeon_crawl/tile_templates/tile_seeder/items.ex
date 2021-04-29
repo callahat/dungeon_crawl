@@ -71,6 +71,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 #if ! ?sender@player, main
                 You found a gem!
                 #give gems, 1, ?sender
+                #give score, 1, ?sender
                 #die
                 """
     })

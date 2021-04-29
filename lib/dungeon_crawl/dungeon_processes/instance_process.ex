@@ -161,6 +161,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Triggers the end game condition for all players in the instance.
+  """
+  def gameover(instance, victory, result, instances_module \\ Instances) do
+    GenServer.cast(instance, {:gameover, {victory, result, instances_module}})
+  end
+
+  @doc """
   Runs the given function in the context of the instance process.
   Expects the function passed in to take one parameter; `instance_state`.
   The function should return a tuple containing the return value for `run_with` and
@@ -279,6 +286,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
+  def handle_cast({:gameover, {victory, result, instances_module}}, %Instances{} = state) do
+    {:noreply, instances_module.gameover(state, victory, result)}
+  end
+
+  @impl true
   def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
     # No player is here, so don't cycle programs and wait longer til the next cycle, and save off any changes/new tiles
     send(self(), :write_db)
@@ -292,6 +304,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_info(:perform_actions, %Instances{} = state) do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
+            |> _broadcast_stat_updates()
             |> _rerender_tiles()
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
@@ -406,6 +419,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
   end
 
+  defp _broadcast_stat_updates(%{ dirty_player_map_tile_stats: pmt_ids} = state) do
+    Enum.uniq(pmt_ids)
+    |> _broadcast_stat_updates(%{ state | dirty_player_map_tile_stats: [] })
+  end
+  defp _broadcast_stat_updates([], state), do: state
+  defp _broadcast_stat_updates([ pmt_id | pmt_ids ], state) do
+    if player_location = state.player_locations[pmt_id] do
+      DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
+                                         "stat_update",
+                                         %{stats: PlayerInstance.current_stats(state, %{id: pmt_id})}
+    end
+    _broadcast_stat_updates(pmt_ids, state)
+  end
+
+
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
@@ -438,7 +466,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     if threshold = Application.get_env(:dungeon_crawl, :full_rerender_threshold) do
       threshold
     else
-      Application.put_env :dungeon_crawl, :full_rerender_threshold, Admin.get_setting().full_rerender_threshold || 50
+      threshold = Admin.get_setting().full_rerender_threshold || 50
+      Application.put_env(:dungeon_crawl, :full_rerender_threshold, threshold)
+      threshold
     end
   end
 
@@ -492,7 +522,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
         _damaged_tile(object, sender, messages, state)
 
       object && StateValue.get_bool(object, :destroyable) ->
-        _destroyed_tile(object, messages, state)
+        _destroyed_tile(object, sender, messages, state)
 
       true ->
         _standard_behaviors(messages, state)
@@ -500,22 +530,46 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    {_result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
+    {result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
+
+    state = if result == :died, do: _award_points(object, sender, state), else: state
 
     _standard_behaviors(messages, state)
   end
 
-  defp _destroyed_tile(object, messages, state) do
+  defp _destroyed_tile(object, sender, messages, state) do
     {deleted_tile, state} = Instances.delete_map_tile(state, object)
 
     if deleted_tile do
+      state = _award_points(object, sender, state)
+
       top_tile = Instances.get_map_tile(state, deleted_tile)
       payload = %{tiles: [
                    Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                   ]}
       DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
+      _standard_behaviors(messages, state)
+    else
+      _standard_behaviors(messages, state)
     end
+  end
 
-    _standard_behaviors(messages, state)
+  defp _award_points(object, sender, state) do
+    awardee = case sender do
+                %{parsed_state: %{owner: owner_id}} -> Instances.get_map_tile_by_id(state, %{id: owner_id})
+                %{map_tile_id: id} -> Instances.get_map_tile_by_id(state, %{id: id})
+                _ -> nil
+              end
+
+    points = object.parsed_state[:points]
+
+    if is_number(points) && awardee do
+      current_points = awardee.parsed_state[:score] || 0
+      {_awardee, state} = Instances.update_map_tile_state(state, awardee, %{score: current_points + points})
+
+      state
+    else
+      state
+    end
   end
 end

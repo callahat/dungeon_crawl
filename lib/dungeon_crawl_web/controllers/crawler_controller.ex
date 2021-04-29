@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.DungeonProcesses.{MapSetRegistry, MapSetProcess}
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias Ecto.Multi
 
@@ -31,6 +32,9 @@ defmodule DungeonCrawlWeb.CrawlerController do
                        |> Enum.map(fn(%{map_set: map_set}) -> Repo.preload(map_set, [:dungeons, :locations, :map_set_instances]) end)
     map_set = if player_location, do: Repo.preload(player_location, [map_tile: [dungeon: :map_set]]).map_tile.dungeon.map_set,
                                   else: nil
+    map_set = if map_set, do: Repo.preload(map_set, :map_set), else: nil
+
+    scorable = _scorable_map_set(map_set)
 
     player_stats = if player_location do
                      PlayerInstance.current_stats(player_location.user_id_hash)
@@ -38,7 +42,16 @@ defmodule DungeonCrawlWeb.CrawlerController do
                      %{}
                    end
 
-    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats, map_set: map_set)
+    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats, map_set: map_set, scorable: scorable)
+  end
+
+  def _scorable_map_set(nil), do: false
+  def _scorable_map_set(map_set_instance) do
+    with {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, map_set_instance.id) do
+      MapSetProcess.scorable?(map_set_process)
+    else
+      _ -> false
+    end
   end
 
   def avatar(conn, params) do
@@ -106,6 +119,21 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   def validate_invite(conn, %{"user" => _user} = params) do
     validate_avatar(conn, params)
+  end
+
+  def destroy(conn, %{"map_set_id" => map_set_id, "score_id" => score_id}) do
+    location = Player.get_location(conn.assigns[:user_id_hash])
+
+    if location do
+      leave_and_broadcast(location)
+
+      conn
+      |> put_flash(:info, "Dungeon cleared.")
+      |> redirect(to: Routes.score_path(conn, :index, %{map_set_id: map_set_id, score_id: score_id}))
+    else
+      conn
+      |> redirect(to: Routes.crawler_path(conn, :show))
+    end
   end
 
   def destroy(conn, _opts) do

@@ -4,6 +4,7 @@
   <%= render "help_modal.html" %>
   <%= render "dialog_modal.html" %>
   <%= render "death_notice_modal.html" # , dungeon: @player_location.map_tile.dungeon # TODO: some dungeons may have special rules around allowing respawns %>
+  <%= render "gameover_modal.html", conn: @conn, scorable: @scorable %>
 
   <div class="col-9 offset-3">
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />
@@ -44,6 +45,7 @@
         <tr>
           <th>Name</th>
           <th>Levels</th>
+          <th></th>
           <th>Instances/Players</th>
         </tr>
       </thead>
@@ -53,6 +55,7 @@
         <tr>
           <td><%= map_set.name %></td>
           <td><%= map_set.dungeons |> Enum.count %></td>
+          <td><%= link "Scores", to: Routes.score_path(@conn, :index, %{map_set_id: map_set.id}) %></td>
           <td>
             <table class="table table-sm">
             <%= for msi <- Enum.reject(map_set.map_set_instances, fn(msi) -> msi.is_private end) do %>

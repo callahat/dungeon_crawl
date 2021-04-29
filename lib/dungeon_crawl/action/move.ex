@@ -56,12 +56,20 @@ defmodule DungeonCrawl.Action.Move do
   defp _move(entity_map_tile, destination, state, tile_changes) do
     top_tile = Map.take(destination, [:map_instance_id, :row, :col, :z_index])
     {new_location, state} = Instances.update_map_tile(state, entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
+    {new_location, state} = _increment_player_steps(state, new_location)
+
     old_location_top_tile = Instances.get_map_tile(state, Map.take(entity_map_tile, [:row, :col]))
     old_location = if old_location_top_tile, do: old_location_top_tile, else: Map.merge(%MapTile{}, Map.take(entity_map_tile, [:row, :col]))
     new_changes = %{ {new_location.row, new_location.col} => new_location,
                      {old_location.row, old_location.col} => old_location}
     {:ok, Map.merge(tile_changes, new_changes), state}
   end
+
+  defp _increment_player_steps(state, %{parsed_state: %{player: true}} = player_map_tile) do
+    steps = player_map_tile.parsed_state[:steps] || 0
+    Instances.update_map_tile_state(state, player_map_tile, %{steps: steps + 1})
+  end
+  defp _increment_player_steps(state, map_tile), do: {map_tile, state}
 
   defp _is_teleporter(destination, entity_tile) do
     destination.parsed_state[:teleporter] &&

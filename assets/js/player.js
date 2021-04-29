@@ -23,6 +23,10 @@ let Player = {
       this.statUpdate(resp.stats)
     })
 
+    playerChannel.on("gameover", (resp) => {
+      this.gameover(resp)
+    })
+
     playerChannel.join()
       .receive("ok", (resp) => {
         dungeonJs.renderMessage("Entered the dungeon")
@@ -40,14 +44,24 @@ let Player = {
     })
   },
   statUpdate(stats){
+    document.getElementById("score").innerHTML = stats.score
     document.getElementById("health").innerText = stats.health
     document.getElementById("gems").innerText = stats.gems
     document.getElementById("cash").innerText = stats.cash
     document.getElementById("ammo").innerText = stats.ammo
     document.getElementById("keys").innerHTML = stats.keys
-    if(parseInt(stats.health) <= 0) {
+    if(parseInt(stats.health) <= 0 && !document.gameover) {
       $('#respawnModal').modal('show')
     }
+  },
+  gameover(resp){
+    document.gameover = true
+    let scoreboard = document.getElementById("scoreboard")
+    let params = resp.score_id == undefined ? "" : "?score_id=" + resp.score_id + "&map_set_id=" + resp.map_set_id
+    if(scoreboard){
+      scoreboard.setAttribute("data-to", scoreboard.getAttribute("data-to") + params)
+    }
+    $('#gameoverModal').modal('show')
   }
 }
 

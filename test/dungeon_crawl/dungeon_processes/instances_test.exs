@@ -3,12 +3,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
   import ExUnit.CaptureLog
 
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.Scores
 
   setup do
-    map_tile =        %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#DIE"}
+    map_tile =        %MapTile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TAKE health, 100, ?sender\n#DIE"}
     map_tile_south_1  = %MapTile{id: 997, row: 1, col: 3, z_index: 1, character: "S", state: "", script: ""}
     map_tile_south_2  = %MapTile{id: 998, row: 1, col: 3, z_index: 0, character: "X", state: "", script: ""}
 
@@ -32,7 +33,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
                       3 => [:text, [["Hey"]]],
                       4 => [:halt, [""]],
                       5 => [:noop, "TERMINATE"],
-                      6 => [:die, [""]]
+                      6 => [:take, ["health", 100, [:event_sender]]],
+                      7 => [:die, [""]]
                     },
                     labels: %{
                       "terminate" => [[5, true]],
@@ -97,7 +99,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "send_event/4", %{state: state} do
-    player_location = %Location{id: 555}
+    ms = insert_stubbed_dungeon_instance()
+    player_tile = %MapTile{map_instance_id: ms.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: "health: 100, lives: 3, player: true"}
+    player_location = %Location{id: 555, user_id_hash: "dubs", map_tile_instance_id: 123}
+    {_player_tile, state} = Instances.create_player_map_tile(state, player_tile, player_location)
 
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -125,9 +130,17 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     # prunes the program if died during the run of the label
     updated_state_3 = Instances.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location)
-    %Instances{ program_contexts: %{} ,
+    assert [new_tile_id] = Map.keys(updated_state_3.map_by_ids) -- Map.keys(updated_state_2.map_by_ids)
+
+    %Instances{ program_contexts: program_contexts ,
                 map_by_ids: _,
                 map_by_coords: _ } = updated_state_3
+
+    # dead player gets buried, but this also validates that new map tile with program actually gets
+    # added to the program contexts (and not lost)
+    refute program_contexts[999]
+    assert program_contexts[new_tile_id]
+    assert updated_state_3.map_by_ids[new_tile_id].name == "Grave"
   end
 
   test "add_message_action/3" do
@@ -530,7 +543,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert {:noop, updated_state} = Instances.subtract(state, :health, 5, wall.id)
     assert state == updated_state
 
-    assert {:ok, updated_state} = Instances.subtract(state, :health, 5, breakable.id)
+    assert {:died, updated_state} = Instances.subtract(state, :health, 5, breakable.id)
     refute Instances.get_map_tile_by_id(updated_state, breakable)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
@@ -540,7 +553,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 3, rendering: _anything}]}}
-    assert {:ok, updated_state} = Instances.subtract(state, :health, 10, damageable.id)
+    assert {:died, updated_state} = Instances.subtract(state, :health, 10, damageable.id)
     refute Instances.get_map_tile_by_id(updated_state, damageable)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
@@ -561,7 +574,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
   test "subtract/4 health on a player tile" do
     instance = insert_stubbed_dungeon_instance()
-    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: "", map_instance_id: instance.id}
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", script: "", map_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
     state = %Instances{map_set_instance_id: 14, instance_id: 123}
     {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
@@ -575,10 +588,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: _anything}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel,
-            event: "stat_update",
-            payload: %{stats: %{ammo: 0, cash: 0, gems: 10, health: 20, keys: ""}}}
+    assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
 
     assert {:ok, updated_state} = Instances.subtract(state, :health, 30, player_tile.id)
     assert_receive %Phoenix.Socket.Broadcast{
@@ -587,12 +597,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
             payload: %{tiles: [%{col: 4, rendering: "<div>✝</div>", row: 4}]}}
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
-            event: "stat_update",
-            payload: %{stats: %{ammo: 0, cash: 0, gems: 0, health: 0, keys: ""}}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel,
             event: "message",
             payload: %{message: "You died!"}}
+    assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
   end
 
   test "subtract/4 non health on a player tile" do
@@ -606,10 +613,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     assert {:ok, updated_state} = Instances.subtract(state, :gems, 10, player_tile.id)
     assert Instances.get_map_tile_by_id(updated_state, player_tile).parsed_state[:gems] == 0
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^player_channel,
-            event: "stat_update",
-            payload: %{stats: %{ammo: 0, cash: 0, gems: 0, health: 30, keys: ""}}}
+    assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
 
     assert {:not_enough, updated_state} = Instances.subtract(state, :gems, 12, player_tile.id)
     assert state == updated_state
@@ -633,6 +637,169 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
     # an id is given instead
     assert {nil, ^updated_state, :not_found} = Instances.get_tile_template(bullet.id, updated_state)
+  end
+
+  test "gameover/3 - ends game for all players in instance" do
+    instance = insert_stubbed_dungeon_instance(%{}, [
+                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
+                 %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
+               ])
+    [player_tile_1, player_tile_2] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+                                     |> Enum.sort(fn a, b -> a.col < b.col end)
+
+    player_location_1 = %Location{id: 12,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
+                                  user_id_hash: "goober"}
+
+    player_location_2 = %Location{id: 13,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
+                                  user_id_hash: "goober2"}
+
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
+    {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+    {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, player_location_2)
+
+    player_channel_1 = "players:#{player_location_1.id}"
+    player_channel_2 = "players:#{player_location_2.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_2)
+
+    map_set_id = Repo.preload(instance, :map_set).map_set.map_set_id
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+
+    # Ends game for all players in instance
+    updated_state = Instances.gameover(state, true, "Win")
+
+    [score_1, score_2] = Scores.list_scores
+    score_1_id = score_1.id
+    score_2_id = score_2.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_1_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert %{parsed_state: %{gameover: true, score_id: ^score_2_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_2)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_1_id, map_set_id: ^map_set_id}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2,
+            event: "gameover",
+            payload: %{score_id: ^score_2_id, map_set_id: ^map_set_id}}
+    assert %{user_id_hash: "goober",
+             score: 3,
+             steps: 10,
+             map_set_id: ^map_set_id,
+             victory: true,
+             result: "Win"} = score_1
+    assert %{user_id_hash: "goober2",
+             score: 1,
+             steps: 99,
+             map_set_id: ^map_set_id,
+             victory: true,
+             result: "Win"} = score_2
+
+    # doesn't make new scores when the tiles already have gameover state
+    Instances.gameover(updated_state, player_tile_1.id, true, "Won Still")
+
+    assert Scores.list_scores == [score_1, score_2]
+
+    Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
+
+    # no scoring
+    MapSetProcess.set_state_value(map_set_process, :no_scoring, true)
+    Instances.gameover(state, true, "Done")
+
+    assert Scores.list_scores == []
+
+    #cleanup
+    MapSetRegistry.remove(MapSetInstanceRegistry, instance.map_set_instance_id)
+  end
+
+  test "gameover/4 - ends game for given player" do
+    instance = insert_stubbed_dungeon_instance(%{}, [
+                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
+                 %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
+               ])
+    [player_tile_1, player_tile_2] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+                                     |> Enum.sort(fn a, b -> a.col < b.col end)
+
+    player_location_1 = %Location{id: 12,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
+                                  user_id_hash: "goober"}
+
+    player_location_2 = %Location{id: 13,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
+                                  user_id_hash: "goober2"}
+
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
+    {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+    {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, player_location_2)
+
+    player_channel_1 = "players:#{player_location_1.id}"
+    player_channel_2 = "players:#{player_location_2.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_2)
+
+    map_set_id = Repo.preload(instance, :map_set).map_set.map_set_id
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+
+    # default gameover - player gets victory
+    updated_state = Instances.gameover(state, player_tile_1.id, true, "Win")
+
+    score = Scores.list_scores |> Enum.reverse |> Enum.at(0)
+    score_id = score.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    refute Instances.get_map_tile_by_id(updated_state, player_tile_2).parsed_state[:gameover]
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_id, map_set_id: ^map_set_id}}
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2}
+    assert %{user_id_hash: "goober",
+             score: 3,
+             steps: 10,
+             map_set_id: ^map_set_id,
+             victory: true,
+             result: "Win"} = score
+
+    # doesn't make new scores when the tiles already have gameover state
+    updated_state = Instances.gameover(updated_state, player_tile_1.id, true, "Won Still")
+
+    assert [score] == Scores.list_scores
+    assert %{parsed_state: %{gameover: true, score_id: ^score_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_id, map_set_id: ^map_set_id}}
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2}
+
+    Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
+
+    # no scoring
+    MapSetProcess.set_state_value(map_set_process, :no_scoring, true)
+    updated_state = Instances.gameover(state, player_tile_1.id, true, "Done")
+
+    assert Scores.list_scores == []
+
+    assert %{parsed_state: %{gameover: true}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{}}
+
+    #cleanup
+    MapSetRegistry.remove(MapSetInstanceRegistry, instance.map_set_instance_id)
   end
 end
 

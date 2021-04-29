@@ -7,7 +7,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "♣",
         name: "Bandit",
         description: "It runs around",
-        state: "blocking: true, soft: true, destroyable: true, pushable: true",
+        state: "blocking: true, soft: true, destroyable: true, pushable: true, points: 5",
         color: "maroon",
         public: true,
         active: true,
@@ -44,7 +44,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "ö",
         name: "Bear",
         description: "They hibernate this time of year",
-        state: "int: 4, range: 5, blocking: true, soft: true, destroyable: true, pushable: true, awake: false",
+        state: "int: 4, range: 5, blocking: true, soft: true, destroyable: true, pushable: true, awake: false, points: 5",
         color: "brown",
         public: true,
         active: true,
@@ -122,7 +122,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "Ω",
         name: "Lion",
         description: "Hear its mighty roar",
-        state: "int: 4, blocking: true, soft: true, destroyable: true, pushable: true",
+        state: "int: 4, blocking: true, soft: true, destroyable: true, pushable: true, points: 10",
         color: "darkorange",
         public: true,
         active: true,
@@ -181,6 +181,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :bombed
                 #lock
                 #send pede_died, @pulling
+                #give score, 5, ?sender@owner
                 #die
                 #end
                 :surrounded
@@ -218,6 +219,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :bombed
                 #lock
                 #send pede_died, @pulling
+                #give score, 3, ?sender@owner
                 #die
                 :surrounded
                 #facing reverse
@@ -251,7 +253,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "π",
         name: "Tiger",
         description: "Cunning and swift, a prince of the jungle",
-        state: "int: 4, wis: 7, gun: 5, blocking: true, soft: true, destroyable: true, pushable: true, wait_cycles: 3",
+        state: "int: 4, wis: 7, gun: 5, blocking: true, soft: true, destroyable: true, pushable: true, wait_cycles: 3, points: 10",
         color: "teal",
         public: true,
         active: true,
@@ -320,10 +322,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :shot
                 #if ?sender@owner == enemy, top
                 @hits--
+                @who = ?sender@owner
                 #if @hits < 1, dead
+                /i
                 #send top
                 #end
                 :dead
+                #give score, 20, @who
                 #die
                 """
     })
