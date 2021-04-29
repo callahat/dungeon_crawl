@@ -368,53 +368,70 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "GAMEOVER" do
-    defmodule InstancesMock do
-      def gameover(%Instances{} = state, player_map_tile_id, victory, result) do
-        send(self(), {:gameover_test, player_map_tile_id, victory, result})
+    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self())
 
-        state
-      end
-    end
+    stubbed_map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [
+      [
+        %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10"},
+        %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99"}
+      ],
+      [
+        %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 0, steps: 10"}
+      ]])
 
-    instance = insert_stubbed_dungeon_instance(%{}, [
-                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
-                 %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
-               ])
+    [instance, instance2] = Repo.preload(stubbed_map_set_instance, :maps).maps
+
+    instance_id = instance.id
+    instance2_id = instance2.id
+
     [player_tile_1, player_tile_2] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
                                      |> Enum.sort(fn a, b -> a.col < b.col end)
 
-    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
+    [player_tile_3] = Repo.preload(instance2, :dungeon_map_tiles).dungeon_map_tiles
+
+
+
+    state = %Instances{state_values: %{rows: 20, cols: 20},
+                       map_set_instance_id: instance.map_set_instance_id,
+                       instance_id: instance.id}
     {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, %Location{})
     {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, %Location{})
 
-    runner_state = %Runner{state: state, event_sender: %Location{map_tile_instance_id: player_tile_1.id}}
+    runner_state = %Runner{state: Map.put(state, :testpid, self()),
+                           event_sender: %Location{map_tile_instance_id: player_tile_1.id}}
 
     player_tile_1_id = player_tile_1.id
     player_tile_2_id = player_tile_2.id
+    player_tile_3_id = player_tile_3.id
 
     # default gameover - sender gets victory
-    Command.gameover(runner_state, [""], InstancesMock)
+    Command.gameover(runner_state, [""], instances_mock_mod)
 
-    assert_receive {:gameover_test, ^player_tile_1_id, true, "Win"}
-    refute_receive {:gameover_test, ^player_tile_2_id, true, "Win"}
+    assert_receive {:gameover_test, ^instance_id, ^player_tile_1_id, true, "Win"}
+    refute_receive {:gameover_test, _, ^player_tile_2_id, true, "Win"}
+    refute_receive {:gameover_test, _, ^player_tile_3_id, true, "Win"}
 
     # different victory flag
-    Command.gameover(runner_state, [false], InstancesMock)
+    Command.gameover(runner_state, [false], instances_mock_mod)
 
-    assert_receive {:gameover_test, ^player_tile_1_id, false, "Win"}
-    refute_receive {:gameover_test, ^player_tile_2_id, false, "Win"}
+    assert_receive {:gameover_test, ^instance_id, ^player_tile_1_id, false, "Win"}
+    refute_receive {:gameover_test, _, ^player_tile_2_id, false, "Win"}
 
     # different victory flag and result text
-    Command.gameover(runner_state, [false, "Huge Loss"], InstancesMock)
+    Command.gameover(runner_state, [false, "Huge Loss"], instances_mock_mod)
 
-    assert_receive {:gameover_test, ^player_tile_1_id, false, "Huge Loss"}
-    refute_receive {:gameover_test, ^player_tile_2_id, false, "Huge Loss"}
+    assert_receive {:gameover_test, ^instance_id, ^player_tile_1_id, false, "Huge Loss"}
+    refute_receive {:gameover_test, _, ^player_tile_2_id, false, "Huge Loss"}
 
-    # all players get the gameover
-    Command.gameover(runner_state, [false, "loss", "all"], InstancesMock)
+    Command.gameover(runner_state, [false, "loss", "all"], instances_mock_mod)
 
-    assert_receive {:gameover_test, ^player_tile_1_id, false, "loss"}
-    assert_receive {:gameover_test, ^player_tile_2_id, false, "loss"}
+    # gameover - all - sends a CAST for each [map] instance process under the map set instance
+    # just validate the instances_module is being invoked by each instance process
+    assert_receive {:gameover_test, ^instance_id, false, "loss"}
+    assert_receive {:gameover_test, ^instance2_id, false, "loss"}
+
+    # cleanup
+    :code.delete instances_mock_mod
   end
 
   test "GAMEOVER with bad target doesnt crash game" do

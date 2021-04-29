@@ -609,6 +609,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Update the given player tile to gameover. Broadcasts the gameover message to the appropriate channel.
   Creates a score record if applicable.
   """
+  def gameover(%Instances{} = state, victory, result) do
+    state.player_locations
+    |> Map.keys()
+    |> Enum.reduce(state, fn(player_tile_id, state) ->
+                            gameover(state, player_tile_id, victory, result)
+                          end)
+  end
+
   def gameover(%Instances{} = state, player_map_tile_id, victory, result) do
     with map_tile when not is_nil(map_tile) <- Instances.get_map_tile_by_id(state, %{id: player_map_tile_id}),
          player_location when not is_nil(player_location) <- state.player_locations[player_map_tile_id],

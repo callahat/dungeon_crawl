@@ -639,7 +639,86 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert {nil, ^updated_state, :not_found} = Instances.get_tile_template(bullet.id, updated_state)
   end
 
-  test "gameover/4" do
+  test "gameover/3 - ends game for all players in instance" do
+    instance = insert_stubbed_dungeon_instance(%{}, [
+                 %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
+                 %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
+               ])
+    [player_tile_1, player_tile_2] = Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+                                     |> Enum.sort(fn a, b -> a.col < b.col end)
+
+    player_location_1 = %Location{id: 12,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -13),
+                                  user_id_hash: "goober"}
+
+    player_location_2 = %Location{id: 13,
+                                  map_tile_instance_id: player_tile_1.id,
+                                  inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
+                                  user_id_hash: "goober2"}
+
+    state = %Instances{state_values: %{rows: 20, cols: 20}, map_set_instance_id: instance.map_set_instance_id}
+    {player_tile_1, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+    {player_tile_2, state} = Instances.create_player_map_tile(state, player_tile_2, player_location_2)
+
+    player_channel_1 = "players:#{player_location_1.id}"
+    player_channel_2 = "players:#{player_location_2.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_1)
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel_2)
+
+    map_set_id = Repo.preload(instance, :map_set).map_set.map_set_id
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+
+    # Ends game for all players in instance
+    updated_state = Instances.gameover(state, true, "Win")
+
+    [score_1, score_2] = Scores.list_scores
+    score_1_id = score_1.id
+    score_2_id = score_2.id
+
+    assert %{parsed_state: %{gameover: true, score_id: ^score_1_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_1)
+    assert %{parsed_state: %{gameover: true, score_id: ^score_2_id}} =
+      Instances.get_map_tile_by_id(updated_state, player_tile_2)
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_1,
+            event: "gameover",
+            payload: %{score_id: ^score_1_id, map_set_id: ^map_set_id}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel_2,
+            event: "gameover",
+            payload: %{score_id: ^score_2_id, map_set_id: ^map_set_id}}
+    assert %{user_id_hash: "goober",
+             score: 3,
+             steps: 10,
+             map_set_id: ^map_set_id,
+             victory: true,
+             result: "Win"} = score_1
+    assert %{user_id_hash: "goober2",
+             score: 1,
+             steps: 99,
+             map_set_id: ^map_set_id,
+             victory: true,
+             result: "Win"} = score_2
+
+    # doesn't make new scores when the tiles already have gameover state
+    Instances.gameover(updated_state, player_tile_1.id, true, "Won Still")
+
+    assert Scores.list_scores == [score_1, score_2]
+
+    Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
+
+    # no scoring
+    MapSetProcess.set_state_value(map_set_process, :no_scoring, true)
+    Instances.gameover(state, true, "Done")
+
+    assert Scores.list_scores == []
+
+    #cleanup
+    MapSetRegistry.remove(MapSetInstanceRegistry, instance.map_set_instance_id)
+  end
+
+  test "gameover/4 - ends game for given player" do
     instance = insert_stubbed_dungeon_instance(%{}, [
                  %MapTile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
                  %MapTile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
@@ -718,6 +797,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
             topic: ^player_channel_1,
             event: "gameover",
             payload: %{}}
+
+    #cleanup
+    MapSetRegistry.remove(MapSetInstanceRegistry, instance.map_set_instance_id)
   end
 end
 

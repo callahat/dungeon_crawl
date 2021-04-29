@@ -4,7 +4,8 @@ defmodule DungeonCrawl.Scripting.Command do
   """
 
   alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
-  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, InstanceRegistry,
+                                       MapSetRegistry, MapSetProcess, MapSets}
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Direction
@@ -403,11 +404,12 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   def _gameover(%Runner{state: state} = runner_state, [victory, result, "all"], instance_module) do
-    state.player_locations
-    |> Map.keys()
-    |> Enum.reduce(runner_state, fn(player_tile_id, runner_state) ->
-                                   _gameover(runner_state, [victory, result, player_tile_id], instance_module)
-                                 end)
+    # Cast endgame to the other instance processes
+    {:ok, map_set_instance_registry} = MapSets.instance_registry(state.map_set_instance_id)
+    InstanceRegistry.list(map_set_instance_registry)
+    |> Enum.each(fn {_id, pid} -> InstanceProcess.gameover(pid, victory, result, instance_module) end)
+
+    runner_state
   end
 
   def _gameover(%Runner{state: state} = runner_state, [victory, result, id], instance_module) do

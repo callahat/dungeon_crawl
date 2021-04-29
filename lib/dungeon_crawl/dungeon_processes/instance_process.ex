@@ -161,6 +161,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Triggers the end game condition for all players in the instance.
+  """
+  def gameover(instance, victory, result, instances_module \\ Instances) do
+    GenServer.cast(instance, {:gameover, {victory, result, instances_module}})
+  end
+
+  @doc """
   Runs the given function in the context of the instance process.
   Expects the function passed in to take one parameter; `instance_state`.
   The function should return a tuple containing the return value for `run_with` and
@@ -276,6 +283,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_cast({:delete_map_tile, {map_tile_id}}, %Instances{} = state) do
     {_deleted_tile, state} = Instances.delete_map_tile(state, %{id: map_tile_id})
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:gameover, {victory, result, instances_module}}, %Instances{} = state) do
+    {:noreply, instances_module.gameover(state, victory, result)}
   end
 
   @impl true

@@ -8,6 +8,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
 
+  require DungeonCrawl.InstancesMockFactory
+
   # A lot of these tests are semi redundant, as the code that actually modifies the state lives
   # in the Instances module. Testing this also effectively hits the Instances code,
   # which also has its own set of similar tests.
@@ -570,6 +572,38 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute programs[map_tile_id]
     refute by_id[map_tile_id]
     assert %{ {1, 1} => %{} } = by_coord
+  end
+
+  test "gameover/3", %{instance_process: instance_process, map_instance: map_instance} do
+    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self())
+
+    map_tiles = [
+        %{character: "B", row: 1, col: 2, z_index: 0, state: "damage: 5", name: "damager"},
+        %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, state: "damage: 10", name: "player"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    player_tile_1 = Enum.at(map_tiles, 0)
+    player_tile_2 = Enum.at(map_tiles, 2)
+
+    player_location_1 = %Location{id: 555, map_tile_instance_id: player_tile_1.id}
+    player_location_2 = %Location{id: 556, map_tile_instance_id: player_tile_2.id}
+
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Instances.create_player_map_tile(state, player_tile_1, player_location_1)
+      Instances.create_player_map_tile(state, player_tile_2, player_location_2)
+    end)
+
+    %Instances{ instance_id: instance_id } = InstanceProcess.get_state(instance_process)
+
+    InstanceProcess.gameover(instance_process, false, "loss", instances_mock_mod)
+
+    assert_receive {:gameover_test, ^instance_id, false, "loss"}
+
+    # cleanup
+    :code.delete instances_mock_mod
   end
 
   test "run_with/2", %{instance_process: instance_process, map_tile_id: map_tile_id} do
