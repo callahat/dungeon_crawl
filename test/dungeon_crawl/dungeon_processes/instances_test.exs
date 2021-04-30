@@ -79,7 +79,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "get_player_location/2", %{state: state} do
-    player_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@"}
     location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
     {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
 
@@ -165,7 +165,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "create_player_map_tile/3 creates a player map tile and regsiters it" do
-    new_map_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
+    new_map_tile = %MapTile{id: 1, row: 5, col: 4, z_index: 1, character: "@"}
     location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
 
     {new_map_tile, state} = Instances.create_player_map_tile(%Instances{}, new_map_tile, location)
@@ -173,22 +173,22 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{id: 1, character: "@"} = new_map_tile
     assert %Instances{
       program_contexts: %{},
-      map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
-      map_by_coords: %{ {4, 4} => %{1 => 1} },
+      map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{entry_col: 4, entry_row: 5})},
+      map_by_coords: %{ {5, 4} => %{1 => 1} },
       player_locations: %{new_map_tile.id => location},
-      rerender_coords: %{%{col: 4, row: 4} => true}
-    } == state
+      rerender_coords: %{%{col: 4, row: 5} => true}
+    } == Map.put(state, :dirty_ids, %{})
 
     # returns the existing tile if it already exists by id, but links player location
     assert {^new_map_tile, state} = Instances.create_player_map_tile(state, Map.put(new_map_tile, :character, "O"), location)
     assert %{id: 1, character: "@"} = new_map_tile
     assert %Instances{
       program_contexts: %{},
-      map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{})},
-      map_by_coords: %{ {4, 4} => %{1 => 1} },
+      map_by_ids: %{1 =>  Map.put(new_map_tile, :parsed_state, %{entry_col: 4, entry_row: 5})},
+      map_by_coords: %{ {5, 4} => %{1 => 1} },
       player_locations: %{new_map_tile.id => location},
-      rerender_coords: %{%{col: 4, row: 4} => true}
-    } == state
+      rerender_coords: %{%{col: 4, row: 5} => true}
+    } == Map.merge(state, %{dirty_ids: %{}, dirty_player_map_tile_stats: []})
   end
 
   test "create_map_tile/2 creates a map tile" do
@@ -503,7 +503,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "is_player_tile?/2" do
-    player_tile = %{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "", script: ""}
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@"}
     other_map_tile = %MapTile{id: 998, row: 4, col: 4, z_index: 0, character: "."}
     location = %Location{user_id_hash: "dubs", map_tile_instance_id: 123}
 
@@ -603,7 +603,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "subtract/4 non health on a player tile" do
-    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30", script: ""}
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30"}
     location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
     state = %Instances{instance_id: 123}
     {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
