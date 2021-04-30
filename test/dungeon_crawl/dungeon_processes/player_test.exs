@@ -122,7 +122,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "respawn/2", %{state: state, player_map_tile: player_map_tile} do
-    player_map_tile = Map.put(player_map_tile, :parsed_state, %{entry_row: 5, entry_col: 8})
+    {player_map_tile, state} = Instances.update_map_tile_state(state, player_map_tile, %{entry_row: 5, entry_col: 8})
     state = %{ state | spawn_coordinates: [{3,7}]}
     # prefers player's entry location
     {respawned_player_map_tile, updated_state} = Player.respawn(state, player_map_tile)
@@ -157,6 +157,19 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     respawned_tile = Instances.get_map_tile(updated_state, respawned_player_map_tile)
     assert respawned_tile.row == 3
     assert respawned_tile.col == 4
+  end
+
+  test "reset/2", %{state: state, player_map_tile: player_map_tile} do
+    {player_map_tile, state} = Instances.update_map_tile_state(state, player_map_tile, %{entry_row: 5, entry_col: 8})
+
+    # prefers player's entry location; logic is the same for respawn, only reset changes just coordinates
+    {reset_player_map_tile, updated_state} = Player.reset(state, player_map_tile)
+
+    reset_tile = Instances.get_map_tile(updated_state, reset_player_map_tile)
+
+    assert Map.take(reset_tile, [:parsed_state, :character]) == Map.take(player_map_tile, [:parsed_state, :character])
+    assert reset_tile.row == 5
+    assert reset_tile.col == 8
   end
 
   test "place/3", %{player_map_tile: player_map_tile, player_location: player_location} do

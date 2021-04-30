@@ -602,6 +602,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert Enum.member? updated_state.dirty_player_map_tile_stats, player_tile.id
   end
 
+  test "subtract/4 health on a player tile when instance reset_player_when_damaged sv is true" do
+    instance = insert_stubbed_dungeon_instance(%{state_values: "reset_player_when_damaged: true"})
+    player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", map_instance_id: instance.id}
+    location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}
+    state = %Instances{map_set_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}
+    {player_tile, state} = Instances.create_player_map_tile(state, player_tile, location)
+    {player_tile, state} = Instances.update_map_tile_state(state, player_tile, %{entry_row: 1, entry_col: 9})
+
+    assert {:ok, updated_state} = Instances.subtract(state, :health, 10, player_tile.id)
+
+    player_tile = Instances.get_map_tile_by_id(updated_state, player_tile)
+    assert %{row: 1, col: 9} = player_tile
+    assert  %{%{col: 4, row: 4} => true, %{col: 9, row: 1} => true} = updated_state.rerender_coords
+  end
+
   test "subtract/4 non health on a player tile" do
     player_tile = %MapTile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30"}
     location = %Location{id: 444, user_id_hash: "dubs", map_tile_instance_id: 123}

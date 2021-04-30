@@ -197,7 +197,15 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _respawn_coordinates(state, player_tile) do
-      _relocated_coordinates(state, player_tile)
+    _relocated_coordinates(state, player_tile)
+  end
+
+  @doc """
+  Resets a player to their entry coordinates, or a spawn location if `respawn_at_entry` false.
+  """
+  def reset(%Instances{} = state, player_tile) do
+    new_coords = _respawn_coordinates(state, player_tile)
+    Instances.update_map_tile(state, player_tile, new_coords)
   end
 
   @doc """

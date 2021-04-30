@@ -572,6 +572,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
           {:ok, state}
         end
 
+      state.state_values[:reset_player_when_damaged] ->
+        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
+        {_loser, state} = Player.reset(state, loser)
+        {:ok, state}
+
       true ->
         {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
