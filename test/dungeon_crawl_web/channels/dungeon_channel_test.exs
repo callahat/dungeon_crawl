@@ -18,9 +18,19 @@ defmodule DungeonCrawl.DungeonChannelTest do
     DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
 
     message_tile = TileTemplates.create_tile_template!(
-                     Map.merge(%{name: "message", description: "test", script: "#END\n:TOUCH\nJust a tile\nwith line o text"},
-                               %{active: true, public: true}))
+                     %{name: "message",
+                       description: "test",
+                       script: "#END\n:TOUCH\nJust a tile\nwith line o text",
+                       active: true,
+                       public: true})
+    transport_tile = TileTemplates.create_tile_template!(
+                       %{name: "transport",
+                         description: "test",
+                         script: "#END\n:TOUCH\n#TRANSPORT ?sender, 1, test",
+                         active: true,
+                         public: true})
     basic_tiles = Map.put TileSeeder.basic_tiles(), "message_tile", message_tile
+    basic_tiles = Map.put basic_tiles, "transport_tile", transport_tile
 
     # set the tile north of player_loc, for testing purposes
     north_tile = basic_tiles[if(tile = config[:up_tile], do: tile, else: ".")]
@@ -29,7 +39,10 @@ defmodule DungeonCrawl.DungeonChannelTest do
         [Map.merge(%{row: @player_row-1, col: @player_col, tile_template_id: north_tile.id, z_index: 0},
                    Map.take(north_tile, [:character,:color,:background_color,:state,:script, :name])),
          Map.merge(%{row: @player_row, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0},
-                   Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script, :name]))],
+                   Map.take(basic_tiles["."], [:character,:color,:background_color,:state,:script, :name])),
+         Map.merge(%{row: @player_row+1, col: @player_col, tile_template_id: basic_tiles["."].id, z_index: 0,
+                     script: "#PASSAGE test"},
+                   Map.take(basic_tiles["."], [:character,:color,:background_color,:state, :name]))],
         []
       ])
 
@@ -163,6 +176,16 @@ defmodule DungeonCrawl.DungeonChannelTest do
         topic: ^player_channel,
         event: "message",
         payload: %{message: ["Just a tile", "with line o text"], modal: true}}
+  end
+
+  @tag up_tile: "transport_tile"
+  test "move where a touched object moves the player", %{socket: socket} do
+    push socket, "move", %{"direction" => "up"}
+
+    # up would normally move player here to row 2, however the transport_tile causes the player
+    # to move to the passage exit at 4,1; and the player stops there
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 3, rendering: "<div>.</div>"},
+                                               %{col: 1, row: 4, rendering: "<div>@</div>"}]}
   end
 
   test "message_action handles an inbound message", %{socket: socket, player_location: player_location, instance: instance} do

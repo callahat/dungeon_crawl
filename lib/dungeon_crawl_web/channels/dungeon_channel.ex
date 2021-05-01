@@ -184,12 +184,20 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       %{"direction" => direction, "action" => action},
       "Cannot #{String.downcase(action)} that",
       socket)
+    {:noreply, socket}
   end
 
   defp _motion(direction, move_func, socket) do
     direction = Direction.normalize_orthogonal(direction)
     _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
+    |> _continue_motion(direction, move_func, socket)
+  end
 
+  defp _continue_motion(:player_relocated, _direction, _move_func, socket) do
+    {:reply, :ok, socket}
+  end
+
+  defp _continue_motion(_ok, direction, move_func, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
 
     InstanceProcess.run_with(instance, fn (instance_state) ->
@@ -246,13 +254,16 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                          |> Enum.reduce(instance_state, fn(target_tile, instance_state) ->
                                Instances.send_event(instance_state, target_tile, "TOUCH", toucher)
                              end)
-
-        {:ok, instance_state}
+        toucher_after_event = Instances.get_map_tile_by_id(instance_state, player_tile)
+        if Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
+          {:ok, instance_state}
+        else
+          {:player_relocated, instance_state}
+        end
       else
         _ -> {:ok, instance_state}
       end
     end)
-    {:noreply, socket}
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
