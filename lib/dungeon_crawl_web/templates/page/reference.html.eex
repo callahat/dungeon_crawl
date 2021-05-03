@@ -13,6 +13,9 @@
                   <a class="nav-link" href="#state_values">Map Tile State Values</a>
                 </li>
                 <li class="nav-item">
+                  <a class="nav-link" href="#map_state_values">Map State Values</a>
+                </li>
+                <li class="nav-item">
                   <a class="nav-link" href="#map_set_state_values">Map Set State Values</a>
                 </li>
                 <li class="nav-item">
@@ -226,9 +229,30 @@
           </tr>
         </table>
 
+        <h5 id="map_state_values">Map State Attributes and Values</h5>
+
+        <p>There are several standard behaviors based on certain map state values. These will only
+           impact the dungeon map instance (and not any other dungeon maps in the map set).</p>
+
+        <table class="table table-sm table-bordered">
+          <tr>
+            <th>State Attribute</th>
+            <th>Standard Behavior</th>
+          </tr>
+          <tr>
+            <td>reset_player_when_damaged</td>
+            <td>Defaults as false. When this is set to true, if a player takes damage, their position will
+                be changed to the coordinates they entered the map. This can be useful when creating a puzzle
+                that has obstacles that can damage a player, and one wants to add extra challenge by requiring
+                a player make it through the course without being hit or damaged by an obstacle (be it a monster,
+                beam wall, etc).</td>
+          </tr>
+       </table>
+
         <h5 id="map_set_state_values">Map Set State Attributes and Values</h5>
 
-        <p>There are several standard behaviors based on certain map set state values.</p>
+        <p>There are several standard behaviors based on certain map set state values. These are
+           general options for the entire dungeon map set.</p>
 
         <table class="table table-sm table-bordered">
           <tr>
