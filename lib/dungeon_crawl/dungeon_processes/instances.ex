@@ -179,6 +179,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     state = if state.count_to_idle < @count_to_idle, do: %{ state | count_to_idle: @count_to_idle }, else: state
 
     {top, instance_state} = Instances.create_map_tile(state, map_tile)
+    # put here for now then reconsider when the state string goes away and replaced by "attributes" and "items"
+    {top, instance_state} = Instances.update_map_tile_state(instance_state, top, %{entry_row: top.row, entry_col: top.col})
     {top, %{ instance_state | player_locations: Map.put(player_locations, map_tile.id, location)}}
   end
 
@@ -304,11 +306,13 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   values already in the state. An existing state attribute (ie, `blocking`) that is not
   included in this map will be unaffected.
   """
+  @ignorable_state_attrs [:entry_row, :entry_col]
   def update_map_tile_state(%Instances{map_by_ids: by_id} = state, %{id: map_tile_id}, state_attributes) do
     map_tile = by_id[map_tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(map_tile.parsed_state, state_attributes))
 
-    if state.player_locations[map_tile_id] do
+    if state.player_locations[map_tile_id] &&
+       not Enum.any?(Map.keys(state_attributes), fn key -> Enum.member?(@ignorable_state_attrs, key) end) do
       dirty_stats = [ map_tile_id | state.dirty_player_map_tile_stats ]
       update_map_tile(%{ state | dirty_player_map_tile_stats: dirty_stats }, map_tile, %{state: state_str})
     else
@@ -567,6 +571,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         else
           {:ok, state}
         end
+
+      state.state_values[:reset_player_when_damaged] ->
+        {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
+        {_loser, state} = Player.reset(state, loser)
+        {:ok, state}
 
       true ->
         {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})

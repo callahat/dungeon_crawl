@@ -183,9 +183,29 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   and restore health to 100.
   """
   def respawn(%Instances{} = state, player_tile) do
-    new_coords = _relocated_coordinates(state, player_tile)
+    new_coords = _respawn_coordinates(state, player_tile)
     {player_tile, state} = Instances.update_map_tile(state, player_tile, new_coords)
     Instances.update_map_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
+  end
+
+  defp _respawn_coordinates(state, %{parsed_state: player_state} = player_tile) do
+    if state.state_values[:respawn_at_entry] != false && player_state[:entry_row] && player_state[:entry_col] do
+      _relocated_coordinates_with_z(state, %{row: player_state.entry_row, col: player_state.entry_col})
+    else
+      _relocated_coordinates(state, player_tile)
+    end
+  end
+
+  defp _respawn_coordinates(state, player_tile) do
+    _relocated_coordinates(state, player_tile)
+  end
+
+  @doc """
+  Resets a player to their entry coordinates, or a spawn location if `respawn_at_entry` false.
+  """
+  def reset(%Instances{} = state, player_tile) do
+    new_coords = _respawn_coordinates(state, player_tile)
+    Instances.update_map_tile(state, player_tile, new_coords)
   end
 
   @doc """
