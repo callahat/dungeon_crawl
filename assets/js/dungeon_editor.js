@@ -1068,6 +1068,7 @@ let DungeonEditor = {
   },
   typeCharacter(event, context){
     if(context.mode != "text") { return }
+    if(! document.getElementById("map-tab").classList.contains("active")) { return }
 
     let character = event.key
 

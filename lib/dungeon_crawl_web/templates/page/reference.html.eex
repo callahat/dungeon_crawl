@@ -247,6 +247,11 @@
                 a player make it through the course without being hit or damaged by an obstacle (be it a monster,
                 beam wall, etc).</td>
           </tr>
+          <tr>
+            <td>pacifism</td>
+            <td>Defaults as false. When this is set to true, a player may not shoot (ie, shift+direction will
+                not spawn a bullet).</td>
+          </tr>
        </table>
 
         <h5 id="map_set_state_values">Map Set State Attributes and Values</h5>
