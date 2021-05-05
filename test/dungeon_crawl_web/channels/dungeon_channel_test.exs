@@ -269,6 +269,19 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_broadcast "message", %{message: "Out of ammo"}
   end
 
+  @tag up_tile: "."
+  test "does not let the player shoot if map set to pacifism", %{socket: socket,
+                                                                 player_location: player_location,
+                                                                 instance_registry: instance_registry} do
+    {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, player_location.map_tile.map_instance_id)
+    InstanceProcess.set_state_values(instance, %{pacifism: true})
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    assert_broadcast "message", %{message: "Can't shoot here!"}
+  end
+
   @tag up_tile: ".", health: 0
   test "does not let the player shoot if dead", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
     {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, player_location.map_tile.map_instance_id)

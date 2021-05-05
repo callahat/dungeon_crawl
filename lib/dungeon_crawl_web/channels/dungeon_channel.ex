@@ -129,27 +129,34 @@ defmodule DungeonCrawlWeb.DungeonChannel do
       {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
 
-      if _shot_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) do
-        player_channel = "players:#{player_location.id}"
+      cond do
+        instance_state.state_values[:pacifism] ->
+          player_channel = "players:#{player_location.id}"
+          DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Can't shoot here!"}
+          {socket, instance_state}
 
-        updated_state = case Shoot.shoot(player_location, direction, instance_state) do
-                          {:invalid} ->
-                            instance_state
+        _shot_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) ->
+          player_channel = "players:#{player_location.id}"
 
-                          {:no_ammo} ->
-                            DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Out of ammo"}
-                            instance_state
+          updated_state = case Shoot.shoot(player_location, direction, instance_state) do
+                            {:invalid} ->
+                              instance_state
 
-                          {:ok, updated_instance} ->
-                            updated_instance
-                        end
+                            {:no_ammo} ->
+                              DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Out of ammo"}
+                              instance_state
 
-        updated_stats = Player.current_stats(updated_state, %{id: player_location.map_tile_instance_id})
-        DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
+                            {:ok, updated_instance} ->
+                              updated_instance
+                          end
 
-        {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
-      else
-        {socket, instance_state}
+          updated_stats = Player.current_stats(updated_state, %{id: player_location.map_tile_instance_id})
+          DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
+
+          {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
+
+        true ->
+          {socket, instance_state}
       end
     end)
 
