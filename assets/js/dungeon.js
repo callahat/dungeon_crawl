@@ -86,21 +86,21 @@ let Dungeon = {
       .receive("error", resp => console.log("join failed", resp))
   },
   setupWindowListeners(){
-    let suppressDefaultKeys = [37,38,39,40],
+    let suppressDefaultKeys = [13,32,37,38,39,40],
         keysPressed = {}
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
       if(this.typing){ return }
 
-      $('#messageModal').modal('hide')
-
       if(document.gameover) {
+        $('#messageModal').modal('hide')
         $('#gameoverModal').modal('show')
         return
       }
 
       if(parseInt(document.getElementById("health").innerText) <= 0) {
+        $('#messageModal').modal('hide')
         $('#respawnModal').modal('show')
         return
       }
@@ -108,6 +108,13 @@ let Dungeon = {
       let direction = e.keyCode || e.which
       if(suppressDefaultKeys.indexOf(direction) > 0) {
         e.preventDefault()
+      }
+
+      if($('#messageModal.show').length == 1 && this.textLinkPointer != null){
+        this._messageModalKeypressHandler(direction)
+        return
+      } else {
+        $('#messageModal').modal('hide')
       }
 
       keysPressed[direction] = true
@@ -152,8 +159,7 @@ let Dungeon = {
     })
   },
   move(direction, keysPressed){
-    console.log(direction)
-    console.log(shoot)
+    // console.log(direction)
     let payload = {direction: direction},
         shoot = keysPressed[16], // shift key
         pull = keysPressed[80],  // p
@@ -194,9 +200,19 @@ let Dungeon = {
     document.getElementById("sidebar_message_box").scrollTop = document.getElementById("sidebar_message_box").scrollHeight
   },
   renderMessageModal(msg){
-    let messageArea = document.getElementById("multilineMessage")
+    let messageArea = document.getElementById("multilineMessage"),
+        messageLinks
 
     messageArea.innerHTML = msg.join("<br/>")
+    this.textLinks = document.getElementsByClassName("messageLink")
+
+    if(this.textLinks.length > 0){
+      this.textLinkPointer = 0
+      this._textLinkDisplayUpdate()
+    } else {
+      this.textLinks = null
+      this.textLinkPointer = null
+    }
 
     $('#messageModal').modal('show')
   },
@@ -228,6 +244,33 @@ let Dungeon = {
                        .receive("error", resp => this.renderMessage(resp.msg) )
     this.actionMethod = this.move
   },
+  _messageModalKeypressHandler(keyPressed){
+    let linksLength = this.textLinks.length
+    switch(keyPressed){
+      case(38): // up
+      case(87):
+        this.textLinkPointer = (this.textLinkPointer + 1) % linksLength
+        this._textLinkDisplayUpdate()
+        break
+      case(40): // down
+      case(83):
+        this.textLinkPointer = (linksLength + this.textLinkPointer - 1) % linksLength
+        this._textLinkDisplayUpdate()
+        break
+      case(13):
+      case(32):
+        // "Click" current link
+        this.textLinks[this.textLinkPointer].click()
+      default:
+        this.textLinkPointer = null
+        $('#messageModal').modal('hide')
+        break;
+    }
+  },
+  _textLinkDisplayUpdate(){
+    $(".messageLink").text(function () { return $(this).text().replace(/^./, "-"); });
+    $(".messageLink").eq(this.textLinkPointer).text(function () { return $(this).text().replace(/^./, "▶"); });
+  },
   actionMethod: null,
   timestampOptions: {
          hour12 : false,
@@ -237,7 +280,9 @@ let Dungeon = {
   dungeonChannel: null,
   lastMessage: null,
   mapSetId: null,
-  typing: false
+  typing: false,
+  textLinks: null,
+  textLinkPointer: null
 }
 
 export default Dungeon
