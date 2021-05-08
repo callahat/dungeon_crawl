@@ -139,6 +139,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         state
     end
   end
+  def send_event(%Instances{program_messages: program_messages} = state, map_tile_id, event, %{} = sender) do
+    %{ state | program_messages: [ {map_tile_id, event, sender} | program_messages] }
+  end
 
   @doc """
   Sets the labels for the event sender id. This will be used when a nonstandard message

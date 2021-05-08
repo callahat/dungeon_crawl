@@ -110,7 +110,7 @@ defmodule DungeonCrawlWeb.DungeonMapController do
                               ] end)
         |> Enum.reject(fn([d,_,_]) -> is_nil(d) end)
         |> Enum.map(fn([dmt, tt, tu]) ->
-             Dungeon.update_map_tile!(dmt, %{tile_template_id: tt.id,
+             Dungeon.update_map_tile!(dmt, %{tile_template_id: tt && tt.id,
                                              character: tu["character"] || tt.character,
                                              color: tu["color"] || tt.color,
                                              background_color: tu["background_color"] || tt.background_color,

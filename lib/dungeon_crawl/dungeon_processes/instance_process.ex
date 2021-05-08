@@ -103,8 +103,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Send an event to a tile/program.
+  Send an event to a tile/program, or all running programs when no tile_id is given.
+  If a tile_id is given, the sender must be a player.
   """
+  def send_event(instance, event, sender) do
+    GenServer.cast(instance, {:send_event, {event, sender}})
+  end
+
   def send_event(instance, tile_id, event, sender) do
     GenServer.cast(instance, {:send_event, {tile_id, event, sender}})
   end
@@ -265,6 +270,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_cast({:create_spawn_coordinate, {spawn_coordinate}}, %Instances{} = state) do
     {:noreply, %{ state | spawn_coordinates: [spawn_coordinate | state.spawn_coordinates] }}
+  end
+
+  @impl true
+  def handle_cast({:send_event, {event, sender}}, %Instances{} = state) do
+    state = state.program_contexts
+            |> Enum.reduce(state, fn({po_id, _}, state) -> Instances.send_event(state, po_id, event, sender) end)
+    {:noreply, state}
   end
 
   @impl true

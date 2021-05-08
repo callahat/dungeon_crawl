@@ -1267,6 +1267,16 @@ defmodule DungeonCrawl.Scripting.Command do
       _                  -> runner_state
     end
   end
+  def send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, "global"]) do
+    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    sender = %{map_tile_id: nil, parsed_state: Map.put(object.parsed_state, :global_sender, true), name: object.name}
+
+    {:ok, map_set_instance_registry} = MapSets.instance_registry(state.map_set_instance_id)
+    InstanceRegistry.list(map_set_instance_registry)
+    |> Enum.each(fn {_id, pid} -> Logger.info("Pew" <> inspect(pid)) && InstanceProcess.send_event(pid, label, sender) end)
+
+    runner_state
+  end
   def send_message(%Runner{} = runner_state, [label, target]) do
     target = if is_binary(target), do: String.downcase(target), else: target
     _send_message(runner_state, [label, target])
