@@ -297,12 +297,10 @@ let DungeonEditor = {
     this.lastDraggedCoord = null
     this.painting = false
   },
-  updateActiveTile(target, map_tile = {getAttribute: () => {return null} }){
+  updateActiveTile(target){
     if(!target) { return }
 
-    let tag = target.tagName == "DIV" && target.parentNode.tagName != "TD" ? target.parentNode : target,
-        mc = map_tile.getAttribute("data-color"),
-        mbc = map_tile.getAttribute("data-background-color")
+    let tag = target.tagName == "DIV" && target.parentNode.tagName != "TD" ? target.parentNode : target
 
     if(target.classList.contains("placeholder") || target.classList.contains("edge")) { return }
 
@@ -314,8 +312,8 @@ let DungeonEditor = {
     this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
     this.selectedTileHtml = tag.children[0] || target
-    this.selectedTileColor = mc !== null ? mc : tag.getAttribute("data-color")
-    this.selectedTileBackgroundColor = mbc !== null ? mbc : tag.getAttribute("data-background-color")
+    this.selectedTileColor = tag.getAttribute("data-color")
+    this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
     this.selectedTileDescription = tag.getAttribute("data-tile-template-description")
     this.selectedTileSlug = tag.getAttribute("data-slug")
@@ -377,10 +375,7 @@ let DungeonEditor = {
     this.lastCoord = null
 
     if(this.mode == "tile_painting") {
-      let target = [...document.getElementsByName("paintable_tile_template")].find(
-        function(i){ return i.getAttribute("data-tile-template-id") == map_location.getAttribute("data-tile-template-id") })
-        || map_location
-      this.updateActiveTile(target, map_location)
+      this.updateActiveTile(map_location)
     } else if(this.mode == "color_painting" || this.mode == "text" || this.mode == "line_draw") {
       this.selectedBackgroundColor = document.getElementById("tile_background_color").value = map_location.getAttribute("data-background-color")
       this.selectedColor = document.getElementById("tile_color").value = map_location.getAttribute("data-color")
@@ -704,9 +699,21 @@ let DungeonEditor = {
 
       let elem = document.querySelectorAll(".tile_template_preview:hover")[0]
       if(!elem) { return }
+      let ttid = elem.getAttribute("data-tile-template-id"),
+          char = elem.getAttribute("data-character"),
+          script = elem.getAttribute("data-script"),
+          state = elem.getAttribute("data-state")
 
-      for(let element of document.querySelectorAll('div[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] div')){
-        element.classList.add("hilight");
+      for(let element of document.querySelectorAll('div[data-tile-template-id="' + ttid + '"]')){
+        if(ttid == ""){
+          if(element.getAttribute("data-character") == char &&
+             element.getAttribute("data-script") == script &&
+             element.getAttribute("data-state") == state){
+            element.querySelector("div").classList.add("hilight");
+          }
+        } else {
+          element.querySelector("div").classList.add("hilight");
+        }
       }
     }
   },
@@ -1005,8 +1012,8 @@ let DungeonEditor = {
     $("#tileEditModal").modal('hide')
   },
   tileEditorShortlistedSuccessCallback(map_tile_attrs, context){
+    context.tileEditorEditedSuccessCallback(map_tile_attrs, context)
     context.addTileToShortlist(map_tile_attrs, context)
-    $("#tileEditModal").modal('hide')
   },
   shortlistActiveTile(){
     let map_tile_attrs = {

@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.TileTemplates.TileTemplate
 
   def dungeon_as_table(dungeon, height, width) do
     _dungeon_as_table(dungeon, height, width)
@@ -167,5 +168,8 @@ defmodule DungeonCrawlWeb.SharedView do
             end)
     |> Enum.join("\n")
   end
+
+  defp _tile_template_id(%TileTemplate{id: id}), do: id
+  defp _tile_template_id(%{tile_template_id: id}), do: id
 end
 
