@@ -699,9 +699,21 @@ let DungeonEditor = {
 
       let elem = document.querySelectorAll(".tile_template_preview:hover")[0]
       if(!elem) { return }
+      let ttid = elem.getAttribute("data-tile-template-id"),
+          char = elem.getAttribute("data-character"),
+          script = elem.getAttribute("data-script"),
+          state = elem.getAttribute("data-state")
 
-      for(let element of document.querySelectorAll('div[data-tile-template-id="' + elem.getAttribute("data-tile-template-id") + '"] div')){
-        element.classList.add("hilight");
+      for(let element of document.querySelectorAll('div[data-tile-template-id="' + ttid + '"]')){
+        if(ttid == ""){
+          if(element.getAttribute("data-character") == char &&
+             element.getAttribute("data-script") == script &&
+             element.getAttribute("data-state") == state){
+            element.querySelector("div").classList.add("hilight");
+          }
+        } else {
+          element.querySelector("div").classList.add("hilight");
+        }
       }
     }
   },
