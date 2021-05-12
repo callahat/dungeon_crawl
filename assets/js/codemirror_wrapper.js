@@ -11,10 +11,15 @@ let CodemirrorWrapper = {
         this.codemirror.getDoc().setValue(textAreaEl.value)
       }
 
-      let saveTileChangesButton = document.getElementById("save_tile_changes")
+      let saveTileChangesButton = document.getElementById("save_tile_changes"),
+          shortlistTileButton = document.getElementById("tile_edit_add_to_shortlist")
       if(saveTileChangesButton) {
         saveTileChangesButton.addEventListener('mouseover', e => { this.codemirror.save() })
         saveTileChangesButton.addEventListener('focus', e => { this.codemirror.save() })
+      }
+      if(shortlistTileButton) {
+        shortlistTileButton.addEventListener('mouseover', e => { this.codemirror.save() })
+        shortlistTileButton.addEventListener('focus', e => { this.codemirror.save() })
       }
     })
 
