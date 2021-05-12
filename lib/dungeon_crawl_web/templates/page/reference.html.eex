@@ -794,8 +794,9 @@
                 The first parameter is the message to send, and the second (optional) param is the target.
                 Both the label and the name are case insensitive. Valid targets include: self (this is used
                 when no target explicitly given), all (all running scripts will be sent this message, including
-                this one), others (all other running scripts will be sent this message), a direction, or the name of
-                a tile. A direction takes priority over a tile name. The specail varialble `?sender` can be used
+                this one), others (all other running scripts will be sent this message), a direction, the name of
+                a tile, or `global` (all running scripts will be send this message, including running scripts in
+                different instances). A direction takes priority over a tile name. The specail varialble `?sender` can be used
                 to send the message to the program that sent the event. `here` can be used to send the message to all
                 the tiles at the same location as the message sender (including the message sender).</td>
           </tr>

@@ -7,7 +7,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSetRegistry, MapSetProcess, MapSets}
 
   import ExUnit.CaptureLog
 
@@ -388,8 +388,6 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                                      |> Enum.sort(fn a, b -> a.col < b.col end)
 
     [player_tile_3] = Repo.preload(instance2, :dungeon_map_tiles).dungeon_map_tiles
-
-
 
     state = %Instances{state_values: %{rows: 20, cols: 20},
                        map_set_instance_id: instance.map_set_instance_id,
@@ -1477,6 +1475,55 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["dance", "all"])
     assert state.program_messages == [{9001, "dance", stubbed_sender}, {1337, "dance", stubbed_sender}, {55, "dance", stubbed_sender}, {1, "dance", stubbed_sender}]
+  end
+
+  test "SEND message to global" do
+    stubbed_map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [
+      [
+        %MapTile{character: "a", row: 1, col: 3, script: "#end", state: "test_sender: true", name: "whosit"},
+        %MapTile{character: "b", row: 1, col: 4, script: "#end"},
+        %MapTile{character: "z", row: 5, col: 4}
+      ],
+      [
+        %MapTile{character: "x", row: 1, col: 3, script: "#end"}
+      ]])
+
+    [instance, instance2] = Repo.preload(stubbed_map_set_instance, :maps).maps
+
+    [prog1_id, prog2_id] =
+      Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles
+      |> Enum.filter(fn i -> i.script && i.script != "" end)
+      |> Enum.map(&(&1.id))
+    [prog3_id] =
+      Repo.preload(instance2, :dungeon_map_tiles).dungeon_map_tiles
+      |> Enum.filter(fn i -> i.script && i.script != "" end)
+      |> Enum.map(&(&1.id))
+
+    {:ok, instance_process_1} = MapSets.instance_process(stubbed_map_set_instance.id, instance.id)
+    {:ok, instance_process_2} = MapSets.instance_process(stubbed_map_set_instance.id, instance2.id)
+
+    InstanceProcess.run_with(instance_process_1, fn (state) ->
+      object = Instances.get_map_tile(state, %{row: 1, col: 3})
+      %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: object.id}, ["dance", "global"])
+      {:ok, state}
+    end)
+
+    expected_sender = %{
+                         map_tile_id: nil,
+                         name: "whosit",
+                         parsed_state: %{global_sender: true, test_sender: true}
+                       }
+
+    # done with a cast, so might be timing issues with these
+    assert %{program_messages: program_messages_1} = InstanceProcess.get_state(instance_process_1)
+    assert %{program_messages: program_messages_2} = InstanceProcess.get_state(instance_process_2)
+
+    assert Enum.member? program_messages_1, {prog1_id, "dance", expected_sender}
+    assert Enum.member? program_messages_1, {prog2_id, "dance", expected_sender}
+    assert Enum.member? program_messages_2, {prog3_id, "dance", expected_sender}
+
+    # cleanup
+    MapSetRegistry.remove(MapSetInstanceRegistry, stubbed_map_set_instance.id)
   end
 
   test "SEND message to tiles in a direction" do

@@ -247,13 +247,13 @@ let Dungeon = {
   _messageModalKeypressHandler(keyPressed){
     let linksLength = this.textLinks.length
     switch(keyPressed){
-      case(38): // up
-      case(87):
+      case(40): // down
+      case(83):
         this.textLinkPointer = (this.textLinkPointer + 1) % linksLength
         this._textLinkDisplayUpdate()
         break
-      case(40): // down
-      case(83):
+      case(38): // up
+      case(87):
         this.textLinkPointer = (linksLength + this.textLinkPointer - 1) % linksLength
         this._textLinkDisplayUpdate()
         break

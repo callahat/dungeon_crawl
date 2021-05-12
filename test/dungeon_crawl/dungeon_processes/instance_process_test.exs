@@ -122,7 +122,29 @@ defmodule DungeonCrawl.InstanceProcessTest do
     refute InstanceProcess.responds_to_event?(instance_process, map_tile_id-1, "ANYTHING")
   end
 
-  test "send_event", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+  test "send_event/3", %{instance_process: instance_process, map_tile_id: map_tile_id} do
+    scripted_tile_1 = %MapTile{id: 236, character: "O", row: 1, col: 2, z_index: 0, script: "#end\n:alert\n#become color: red"}
+    scripted_tile_2 = %MapTile{id: 237, character: "O", row: 1, col: 3, z_index: 0, script: "#end\n:alert\n#become color: yellow"}
+    inert_tile = %MapTile{id: 238, character: "O", row: 1, col: 3, z_index: 0, script: "#end\n:alert\n#become color: yellow"}
+
+    assert :ok = InstanceProcess.load_map(instance_process, [scripted_tile_1, scripted_tile_2, inert_tile])
+
+    sender = %{map_tile_id: nil, parsed_state: %{}, name: "global"}
+
+    %Instances{ program_contexts: program_contexts } = InstanceProcess.get_state(instance_process)
+
+    # sends the message to all running programs
+    InstanceProcess.send_event(instance_process, "TOUCH", sender)
+    %Instances{ program_contexts: ^program_contexts,
+                program_messages: program_messages } = InstanceProcess.get_state(instance_process)
+
+    assert Enum.member?(program_messages, {map_tile_id, "TOUCH", sender})
+    assert Enum.member?(program_messages, {scripted_tile_1.id, "TOUCH", sender})
+    assert Enum.member?(program_messages, {scripted_tile_2.id, "TOUCH", sender})
+    refute Enum.member?(program_messages, {inert_tile.id, "TOUCH", sender})
+  end
+
+  test "send_event/4", %{instance_process: instance_process, map_tile_id: map_tile_id} do
     player_location = %Location{id: 555}
 
     player_channel = "players:#{player_location.id}"

@@ -98,6 +98,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     refute Instances.responds_to_event?(state, %{id: 222}, "ANYTHING")
   end
 
+  test "send_event/4 but its not a player sending it", %{state: state} do
+    # doesn't run anything, just adds it to the program messages list
+    sender = %{map_tile_id: nil, parsed_state: %{}, name: "global"}
+    updated_state = Instances.send_event(state, 1337, "message", sender)
+    assert updated_state.program_messages == [ {1337, "message", sender} ]
+    assert Map.delete(updated_state, :program_messages) == Map.delete(state, :program_messages)
+  end
+
   test "send_event/4", %{state: state} do
     ms = insert_stubbed_dungeon_instance()
     player_tile = %MapTile{map_instance_id: ms.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: "health: 100, lives: 3, player: true"}
