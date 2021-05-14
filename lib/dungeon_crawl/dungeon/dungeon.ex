@@ -171,6 +171,23 @@ defmodule DungeonCrawl.Dungeon do
   end
 
   @doc """
+  Returns the title map. When no title_map_id is set, defaults to the first map.
+  """
+  def get_title_map(%MapSet{title_map_id: nil} = map_set) do
+    Repo.one(from m in Map,
+             where: m.map_set_id == ^map_set.id,
+             order_by: [asc: :id],
+             limit: 1)
+  end
+  def get_title_map(%MapSet{title_map_id: title_map_id} = map_set) do
+    Repo.one(from m in Map,
+             where: m.id == ^title_map_id,
+             where: m.map_set_id == ^map_set.id,
+             order_by: [asc: :id],
+             limit: 1)
+  end
+
+  @doc """
   Returns a boolean indicating wether or not the given map set has a next version, or is the most current one.
 
   ## Examples

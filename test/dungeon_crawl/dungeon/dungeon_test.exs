@@ -96,6 +96,16 @@ defmodule DungeonCrawl.DungeonTest do
       assert [map_set2, map_set] == Dungeon.get_map_sets(map_set.line_identifier)
     end
 
+    test "get_title_map/1" do
+      map_set = map_set_fixture()
+      refute Dungeon.get_title_map(map_set)
+      map1 = insert_stubbed_dungeon(%{map_set_id: map_set.id, number: 1})
+      map2 = insert_stubbed_dungeon(%{map_set_id: map_set.id, number: 2})
+      assert Dungeon.get_title_map(map_set).id == map1.id
+      assert Dungeon.get_title_map(Elixir.Map.put(map_set, :title_map_id, map2.id)).id == map2.id
+      refute Dungeon.get_title_map(Elixir.Map.put(map_set, :title_map_id, map1.id + map2.id))
+    end
+
     test "next_version_exists?/1 is true if the map set has a next version" do
       map_set = insert_stubbed_map_set()
       insert_stubbed_map_set(%{previous_version_id: map_set.id})
