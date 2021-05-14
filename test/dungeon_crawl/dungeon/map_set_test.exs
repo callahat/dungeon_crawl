@@ -27,4 +27,21 @@ defmodule DungeonCrawl.Dungeon.MapSetTest do
     changeset = MapSet.changeset(%MapSet{}, Elixir.Map.put(@valid_attrs, :state, "derp"))
     refute changeset.valid?
   end
+
+  test "changeset with title_map_id" do
+    map_set = insert_map_set()
+    map = insert_stubbed_dungeon(%{map_set_id: map_set.id})
+    other_map = insert_stubbed_dungeon()
+
+    changeset = MapSet.changeset(map_set, %{title_map_id: other_map.id})
+    refute changeset.valid?
+    changeset = MapSet.changeset(map_set, %{title_map_id: map.id + other_map.id}) # to ensure a nonexistant map
+    refute changeset.valid?
+    changeset = MapSet.changeset(map_set, %{title_map_id: map.id})
+    assert changeset.valid?
+    changeset = MapSet.changeset(map_set, %{title_map_id: nil})
+    assert changeset.valid?
+    changeset = MapSet.changeset(Elixir.Map.put(map_set, :title_map_id, map.id), %{title_map_id: nil})
+    assert changeset.valid?
+  end
 end
