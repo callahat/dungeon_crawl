@@ -41,4 +41,10 @@ defmodule DungeonCrawlWeb.DungeonViewTest do
              """
              } = DungeonView.adjacent_map_names(map_2)
   end
+
+  test "title_map_name/1 returns a name and number for the title map" do
+    map = insert_stubbed_dungeon(%{name: "Map", number: 2})
+    assert "<no maps>" == DungeonView.title_map_name(nil)
+    assert "2 Map" == DungeonView.title_map_name(map)
+  end
 end

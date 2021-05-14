@@ -31,6 +31,14 @@
     <%= error_tag f, :state %>
   </div>
 
+  <%= if @dungeons != [] do %>
+  <div class="form-group">
+    <%= label f, :title_map_id, class: "control-label" %>
+    <%= select f, :title_map_id, Enum.map(@dungeons, &{"#{&1.number} #{&1.name}", &1.id}), class: "form-control" %>
+    <%= error_tag f, :title_map_id %>
+  </div>
+  <% end %>
+
   <div class="form-group">
     <%= submit "Submit", class: "btn btn-primary" %>
   </div>

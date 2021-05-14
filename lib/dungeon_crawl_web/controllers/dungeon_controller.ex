@@ -50,7 +50,9 @@ defmodule DungeonCrawlWeb.DungeonController do
     top_level = Enum.at(map_set.dungeons, 0)
     top_level = if top_level, do: top_level.number, else: nil
 
-    render(conn, "show.html", map_set: map_set, owner_name: owner_name, top_level: top_level)
+    title_map = Dungeon.get_title_map(map_set)
+
+    render(conn, "show.html", map_set: map_set, owner_name: owner_name, top_level: top_level, title_map: title_map)
   end
 
   def edit(conn, %{"id" => _id}) do
