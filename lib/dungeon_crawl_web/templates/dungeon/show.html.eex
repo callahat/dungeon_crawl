@@ -1,4 +1,5 @@
 <h2><%= @map_set.name %></h2>
+<p><%= @map_set.description %></p>
 <p><b>Owner:</b> <%= @owner_name %></p>
 <p><b>Version:</b> <%= @map_set.version %> (<%= if @map_set.active, do: "A", else: "Ina" %>ctive)</p>
 <p><b>State:</b><pre class="script" style="display: inline"><%= @map_set.state %></pre></p>
