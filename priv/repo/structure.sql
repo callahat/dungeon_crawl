@@ -217,7 +217,7 @@ CREATE TABLE public.map_sets (
     default_map_width integer,
     default_map_height integer,
     line_identifier integer,
-    title_map_id bigint,
+    title_number integer,
     description character varying(1024)
 );
 
@@ -1005,14 +1005,6 @@ ALTER TABLE ONLY public.map_set_instances
 
 ALTER TABLE ONLY public.map_sets
     ADD CONSTRAINT map_sets_previous_version_id_fkey FOREIGN KEY (previous_version_id) REFERENCES public.map_sets(id) ON DELETE CASCADE;
-
-
---
--- Name: map_sets map_sets_title_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.map_sets
-    ADD CONSTRAINT map_sets_title_map_id_fkey FOREIGN KEY (title_map_id) REFERENCES public.dungeons(id) ON DELETE SET NULL;
 
 
 --

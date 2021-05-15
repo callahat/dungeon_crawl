@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Repo.Migrations.AddTitleScreenMapToMapSet do
 
   def change do
     alter table(:map_sets) do
-      add :title_map_id, references(:dungeons, on_delete: :nilify_all), null: true
+      add :title_number, :integer
     end
   end
 end

@@ -102,8 +102,8 @@ defmodule DungeonCrawl.DungeonTest do
       map1 = insert_stubbed_dungeon(%{map_set_id: map_set.id, number: 1})
       map2 = insert_stubbed_dungeon(%{map_set_id: map_set.id, number: 2})
       assert Dungeon.get_title_map(map_set).id == map1.id
-      assert Dungeon.get_title_map(Elixir.Map.put(map_set, :title_map_id, map2.id)).id == map2.id
-      refute Dungeon.get_title_map(Elixir.Map.put(map_set, :title_map_id, map1.id + map2.id))
+      assert Dungeon.get_title_map(Elixir.Map.put(map_set, :title_number, map2.number)).id == map2.id
+      refute Dungeon.get_title_map(Elixir.Map.put(map_set, :title_number, 0))
     end
 
     test "next_version_exists?/1 is true if the map set has a next version" do
@@ -127,7 +127,7 @@ defmodule DungeonCrawl.DungeonTest do
                user_id: nil,
                line_identifier: map_set.line_identifier,
                description: nil,
-               title_map_id: nil} == Dungeon.copy_map_set_fields(map_set)
+               title_number: nil} == Dungeon.copy_map_set_fields(map_set)
     end
 
     test "create_map_set/1 with valid data creates a map" do

@@ -10,7 +10,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.{MapSetRegistry, MapSetProcess}
   alias DungeonCrawl.MapGenerators.ConnectedRooms
-  alias DungeonCrawl.Scores
   alias Ecto.Multi
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
