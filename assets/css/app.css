@@ -3,6 +3,19 @@
 @import "../node_modules/font-awesome/css/font-awesome.css";
 @import "../node_modules/codemirror/lib/codemirror.css";
 
+a:not(.collapsed) svg.rotate-icon{
+  -webkit-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+
+.table-striped-double > tbody > tr:nth-of-type(4n+1), .table-striped2 > tbody > tr:nth-of-type(4n+2) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.title-map {
+  font-size: 50%;
+}
+
 .hilighted-score {
   background-color: aliceblue;
 }
@@ -32,6 +45,7 @@ pre.dungeon_preview {
 
 pre.dungeon_preview table tr td {
   overflow: hidden;
+  border: none;
 }
 
 pre.color_pallette {
@@ -82,7 +96,7 @@ pre.dungeon_preview table, pre.color_pallette table,
   user-select: none;
 }
 
-pre.dungeon_preview table tr td, pre.color_pallette table tr td {
+pre.dungeon_preview table tr td, pre.color_pallette table tr td, td.flat:first-child:not(.collapse), td.always-flat {
   margin: 0;
   padding: 0;
 }
