@@ -96,7 +96,7 @@ pre.dungeon_preview table, pre.color_pallette table,
   user-select: none;
 }
 
-pre.dungeon_preview table tr td, pre.color_pallette table tr td, td.flat:first-child:not(.collapse), td.always-flat {
+pre.dungeon_preview table tr td, pre.color_pallette table tr td, td.flat:first-child:not(.collapse) {
   margin: 0;
   padding: 0;
 }
