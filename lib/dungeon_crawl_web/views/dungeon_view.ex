@@ -28,4 +28,9 @@ defmodule DungeonCrawlWeb.DungeonView do
       """
     }
   end
+
+  def title_map_name(nil), do: "<no maps>"
+  def title_map_name(dungeon) do
+    "#{dungeon.number} #{dungeon.name}"
+  end
 end

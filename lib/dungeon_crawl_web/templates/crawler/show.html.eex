@@ -40,9 +40,10 @@
     Or join:
   </div>
   <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
-    <table class="table table-striped table-sm">
+    <table class="table table-striped-double table-sm">
       <thead>
         <tr>
+          <th></th>
           <th>Name</th>
           <th>Levels</th>
           <th></th>
@@ -53,6 +54,11 @@
       <tbody>
   <%= for map_set <- @map_sets do %>
         <tr>
+          <td>
+            <a class="collapsed" aria-controls="#collapse<%= map_set.id %>" aria-expanded="false" data-target="#collapse<%= map_set.id %>" data-toggle="collapse" href="#"><svg class="rotate-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+              <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+            </svg></a>
+          </td>
           <td><%= map_set.name %></td>
           <td><%= map_set.dungeons |> Enum.count %></td>
           <td><%= link "Scores", to: Routes.score_path(@conn, :index, %{map_set_id: map_set.id}) %></td>
@@ -83,6 +89,22 @@
             </table>
           </td>
 
+        </tr>
+        <tr>
+          <td class="flat" colspan="100%">
+            <div id="collapse<%= map_set.id %>" class="collapse">
+              <div class="row">
+              <div class="col-6">
+                <div class="mx-2"><p><%= map_set.description %></p></div>
+              </div>
+              <div class="col-6">
+                <div class="title-map">
+                <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: DungeonCrawl.Repo.preload(Dungeon.get_title_map(map_set), :dungeon_map_tiles), readonly: true) %>
+                </div>
+              </div>
+              </div>
+            </div>
+          </td>
         </tr>
   <% end %>
       </tbody>

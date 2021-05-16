@@ -26,6 +26,20 @@
   </div>
 
   <div class="form-group">
+    <%= label f, :description, class: "control-label" %>
+    <%= text_input f, :description, class: "form-control" %>
+    <%= error_tag f, :description %>
+  </div>
+
+  <%= if @dungeons != [] do %>
+  <div class="form-group">
+    <%= label f, :title_number, class: "control-label" %>
+    <%= select f, :title_number, Enum.map(@dungeons, &{"#{&1.number} #{&1.name}", &1.number}), class: "form-control" %>
+    <%= error_tag f, :title_number %>
+  </div>
+  <% end %>
+
+  <div class="form-group">
     <%= label f, :state, class: "control-label" %>
     <%= text_input f, :state, class: "form-control" %>
     <%= error_tag f, :state %>
