@@ -429,6 +429,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert_receive {:gameover_test, ^instance2_id, false, "loss"}
 
     # cleanup
+    :code.purge instances_mock_mod
     :code.delete instances_mock_mod
   end
 

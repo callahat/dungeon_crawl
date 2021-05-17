@@ -528,12 +528,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
       if new_amount <= 0 do
         {_deleted_tile, state} = Instances.delete_map_tile(state, loser)
-        loser_coords = Map.take(loser, [:row, :col])
-
-        top_tile = Instances.get_map_tile(state, loser_coords)
-        payload = %{tiles: [ Map.put(loser_coords, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile)) ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
-
         {:died, state}
       else
         {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
@@ -563,11 +557,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       new_amount <= 0 ->
         lives = if loser.parsed_state[:lives] > 0, do: loser.parsed_state[:lives] - 1, else: -1
         {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount, lives: lives})
-        {grave, state} = Player.bury(state, loser)
-        payload = %{tiles: [
-                     Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
-                    ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
+        {_grave, state} = Player.bury(state, loser)
+
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         if lives == 0 do
           {:ok, gameover(state, loser.id, false, "Dead")}

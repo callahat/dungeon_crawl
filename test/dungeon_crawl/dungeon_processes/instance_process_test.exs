@@ -330,7 +330,13 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>✝</div>"}]}}
+            payload: %{tiles: tiles}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: updated_tiles}}
+    assert Enum.member? tiles, %{row: 1, col: 3, rendering: "<div>@</div>"}
+    assert Enum.member? updated_tiles, %{row: 1, col: 3, rendering: "<div>✝</div>"}
 
     refute map_by_ids[non_prog_tile.id]
     assert map_by_ids[player_tile.id].parsed_state[:health] == 0
@@ -625,6 +631,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive {:gameover_test, ^instance_id, false, "loss"}
 
     # cleanup
+    :code.purge instances_mock_mod
     :code.delete instances_mock_mod
   end
 
