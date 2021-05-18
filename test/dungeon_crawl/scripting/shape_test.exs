@@ -33,6 +33,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.line(runner_state, "south", 3, true, true) == [{0, 2}, {1, 2}, {2, 2}, {3, 2}]
       assert Shape.line(runner_state, "south", 3, true, false) == [{0, 2}, {1, 2}]
       assert Shape.line(runner_state, "south", 3, true, "soft") == [{0, 2}, {1, 2}]
+      assert Shape.line(runner_state, "south", 4, true, "once") == [{0, 2}, {1, 2}, {2, 2}]
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
@@ -42,8 +43,8 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       {_, state} = Instances.create_map_tile(state, wall)
       runner_state = %Runner{object_id: 2, state: state}
 
-      assert Shape.line(runner_state, "south", 3, true) == [{0, 2}, {1, 2}, {2, 2}]
-      assert Shape.line(runner_state, "south", 3, true, false) == [{0, 2}, {1, 2}]
+      assert Shape.line(runner_state, "south", 4, true) == [{0, 2}, {1, 2}, {2, 2}]
+      assert Shape.line(runner_state, "south", 4, true, false) == [{0, 2}, {1, 2}]
     end
   end
 
@@ -67,6 +68,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.cone(runner_state, "south", 2, 2, true, true) == [{1, 2}, {2, 1}, {3, 0}, {3, 1}, {2, 2}, {3, 2}, {2, 3}, {3, 3}, {3, 4}]
       assert Shape.cone(runner_state, "south", 2, 2, false, false) == [{2, 1}, {3, 0}, {3, 1}, {2, 3}, {3, 3}, {3, 4}]
       assert Shape.cone(runner_state, "south", 2, 2, false, "soft") == [{2, 1}, {3, 0}, {3, 1}, {2, 3}, {3, 3}, {3, 4}]
+      assert Shape.cone(runner_state, "south", 2, 2, false, "once") == [{2, 1}, {3, 0}, {3, 1}, {2, 2}, {2, 3}, {3, 3}, {3, 4}]
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
@@ -88,7 +90,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.circle(runner_state, 1, false) == [{1, 2}, {2, 1}, {2, 3}, {3, 2}]
       assert Shape.circle(runner_state, 2) ==
                [{2, 2}, {0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
-                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4}, 
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
                         {4, 1}, {4, 2}, {4, 3}]
     end
 
@@ -109,6 +111,12 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
                [{0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
                         {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
                         {4, 1}, {4, 2}, {4, 3}]
+      assert Shape.circle(runner_state, 2, false, "once") ==
+               [{0, 1}, {0, 2}, {0, 3}, {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4},
+                        {2, 0}, {2, 1}, {2, 3}, {2, 4}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4},
+                        {4, 1}, {4, 2}, {4, 3}]
+      tile_202 = Instances.get_map_tile_by_id(state, %{id: 202})
+      assert Shape.circle(%{state: state, object_id: 202}, 2) == Shape.circle(%{state: state, origin: tile_202}, 2)
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
@@ -153,6 +161,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.blob(runner_state, 2, true, true) == [{2, 0}, {1, 1}, {0, 2}, {1, 0}, {0, 1}, {0, 0}]
       assert Shape.blob(runner_state, 2, false, false) == [{0, 2}, {0, 0}, {0, 1}]
       assert Shape.blob(runner_state, 2, false, "soft") == [{0, 2}, {0, 0}, {0, 1}]
+      assert Shape.blob(runner_state, 2, false, "once") == [{0, 2}, {0, 0}, {0, 1}]
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do

@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.Scripting.Shape do
   @moduledoc """
-  The various functions relating to returning shapes (in terms of either coordinates or 
+  The various functions relating to returning shapes (in terms of either coordinates or
   map tile ids). When determining coordinates in the shape, coordinates moving out
   from the origin up to the range away are considered.
 
@@ -52,11 +52,16 @@ defmodule DungeonCrawl.Scripting.Shape do
   defp _coords_between(state, origin, delta, step, steps, bypass_blocking, coords, est) do
     {row, col} = coord = _calc_coord(origin, delta, step, steps, est)
     next_map_tile = Instances.get_map_tile(state, %{row: row, col: col})
-    if is_nil(next_map_tile) ||
-       (next_map_tile.parsed_state[:blocking] && ! (next_map_tile.parsed_state[:soft] && bypass_blocking == "soft")) do
-      coords
-    else
-      _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [ coord | coords], est)
+    cond do
+      is_nil(next_map_tile) ->
+        coords
+      !next_map_tile.parsed_state[:blocking] ||
+          (next_map_tile.parsed_state[:soft] && bypass_blocking == "soft") ->
+        _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [coord | coords], est)
+      bypass_blocking == "once" ->
+        [coord | coords]
+      true ->
+        coords
     end
   end
 
@@ -93,9 +98,16 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns map tile ids that from a circle around the origin out to the range.
   Origin is included by default, and bypass blocking defaults to soft.
   """
-  def circle(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
+  def circle(_environment, _range, include_origin \\ true, bypass_blocking \\ "soft")
+  def circle(%{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
+    _circle(state, origin, range, include_origin, bypass_blocking)
+  end
+  def circle(%{state: state, origin: origin}, range, include_origin, bypass_blocking) do
+    _circle(state, origin, range, include_origin, bypass_blocking)
+  end
 
+  defp _circle(state, origin, range, include_origin, bypass_blocking) do
     vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}]
               |> _circle_rim_coordinates(%{row: 0, col: 0}, 1- range, 1, -2 * range, 0, range)
 
