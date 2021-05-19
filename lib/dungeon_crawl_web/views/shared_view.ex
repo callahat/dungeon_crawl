@@ -6,8 +6,22 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  # todo: pass in if its foggy instead maybe
+  def dungeon_as_table(%Instances{state_values: state_values} = dungeon, height, width) do
+    if state_values[:fog] do
+      rows(%{}, height, width, &fog_cells/3)
+    else
+      _dungeon_as_table(dungeon, height, width)
+    end
+  end
+
   def dungeon_as_table(dungeon, height, width) do
-    _dungeon_as_table(dungeon, height, width)
+    if dungeon.state && Regex.match?(~r/fog:\s*true/, dungeon.state) do
+      # because it renders from the DB table first
+      rows(%{}, height, width, &fog_cells/3)
+    else
+      _dungeon_as_table(dungeon, height, width)
+    end
   end
 
   def editor_dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
@@ -99,6 +113,12 @@ defmodule DungeonCrawlWeb.SharedView do
   defp _lower_editor_cells([ cell | cells ]) do
     "<div class='hidden#{animate_class(cell)}' data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
     <> _lower_editor_cells(cells)
+  end
+
+  defp fog_cells(_, row, width) do
+    Enum.to_list(0..width-1)
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'><div style='background-color: darkgray'>░</div></td>" end )
+    |> Enum.join("")
   end
 
   defp data_attributes(nil) do

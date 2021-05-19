@@ -10,7 +10,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Scripting.{Program, Shape}
   alias DungeonCrawl.StateValue
 
   ## Client API
@@ -445,7 +445,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     _broadcast_stat_updates(pmt_ids, state)
   end
 
-
+  # TODO: how to make the admin instance view not foggy? A different dungeon channel for admins?
+  defp _rerender_tiles(%{state_values: %{fog: true}} = state) do
+    # when foggy, players vision is relative to their position so each gets their own render
+    state.player_locations
+    |> Enum.each(fn {player_tile_id, location} ->
+         _visible_tiles_for_player(state, player_tile_id, location.id)
+       end)
+    %{state | rerender_coords: %{}}
+  end
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
@@ -467,6 +475,20 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
 
     %{ state | rerender_coords: %{} }
+  end
+
+  defp _visible_tiles_for_player(state, player_tile_id, location_id) do
+    player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
+
+    range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
+    visible_tiles = \
+      Shape.circle(%{state: state, origin: player_tile}, range, true, "once")
+      |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
+      |> Enum.map(fn coord ->
+           tile = Instances.get_map_tile(state, coord)
+           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+         end)
+    DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles})
   end
 
   defp _check_for_players(state) do

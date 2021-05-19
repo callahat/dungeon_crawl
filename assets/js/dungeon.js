@@ -26,18 +26,10 @@ let Dungeon = {
   },
   handleDungeonChange: null,
   tuneInToChannel(socket, dungeonId) {
-
-    this.dungeonChannel   = socket.channel("dungeons:" + this.mapSetId + ":" + dungeonId)
+    this.dungeonChannel = socket.channel("dungeons:" + this.mapSetId + ":" + dungeonId)
 
     this.dungeonChannel.on("tile_changes", (resp) => {
-      let location, tdEl;
-      for(let tile of resp.tiles){
-        tdEl = document.getElementById(tile.row + "_" + tile.col)
-        tdEl.innerHTML = tile.rendering
-        if(tdEl.children[0].classList.contains("animate")){
-          window.TileAnimation.renderTile(window.TileAnimation, tdEl.children[0])
-        }
-      }
+      this.tileChanges(resp.tiles)
     })
 
     this.dungeonChannel.on("full_render", (msg) => {
@@ -233,6 +225,23 @@ let Dungeon = {
                        } )
     } else {
       document.getElementById("message_field").value = ""
+    }
+  },
+  tileFogger(){
+    for(let tileEl of document.querySelectorAll("#dungeon_instance td:not(.fog)")){
+      tileEl.classList.add("fog")
+      tileEl.innerHTML = "<div style='background-color: darkgray'>░</div>"
+    }
+  },
+  tileChanges(tiles){
+    let location, tdEl;
+    for(let tile of tiles){
+      tdEl = document.getElementById(tile.row + "_" + tile.col)
+      tdEl.classList.remove("fog")
+      tdEl.innerHTML = tile.rendering
+      if(tdEl.children[0].classList.contains("animate")){
+        window.TileAnimation.renderTile(window.TileAnimation, tdEl.children[0])
+      }
     }
   },
   _messageTimestamp(){

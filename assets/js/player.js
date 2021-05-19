@@ -9,6 +9,11 @@ let Player = {
       dungeonJs.handleDungeonChange(msg)
     })
 
+    playerChannel.on("visible_tiles", (msg) => {
+      dungeonJs.tileFogger()
+      dungeonJs.tileChanges(msg.tiles)
+    })
+
     playerChannel.on("message", (resp) => {
       if(!resp.modal) {
         dungeonJs.renderMessage(resp.message)

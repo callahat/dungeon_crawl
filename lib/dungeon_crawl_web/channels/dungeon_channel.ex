@@ -262,7 +262,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                                Instances.send_event(instance_state, target_tile, "TOUCH", toucher)
                              end)
         toucher_after_event = Instances.get_map_tile_by_id(instance_state, player_tile)
-        if Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
+        if toucher_after_event && Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
           {:ok, instance_state}
         else
           {:player_relocated, instance_state}
