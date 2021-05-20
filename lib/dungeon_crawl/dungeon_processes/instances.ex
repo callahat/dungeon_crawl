@@ -27,7 +27,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
             tile_template_slug_cache: %{},
-            inactive_players: %{}
+            inactive_players: %{},
+            players_visible_coords: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile

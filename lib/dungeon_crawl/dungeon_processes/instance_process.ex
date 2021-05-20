@@ -448,11 +448,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   # TODO: how to make the admin instance view not foggy? A different dungeon channel for admins?
   defp _rerender_tiles(%{state_values: %{fog: true}} = state) do
     # when foggy, players vision is relative to their position so each gets their own render
-    state.player_locations
-    |> Enum.each(fn {player_tile_id, location} ->
-         _visible_tiles_for_player(state, player_tile_id, location.id)
-       end)
-    %{state | rerender_coords: %{}}
+    players_visible_coords = \
+      state.player_locations
+      |> Enum.reduce(%{}, fn {player_tile_id, location}, acc ->
+           Map.put acc, player_tile_id, _visible_tiles_for_player(state, player_tile_id, location.id)
+         end)
+    %{state | players_visible_coords: players_visible_coords, rerender_coords: %{}}
   end
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
@@ -478,17 +479,31 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _visible_tiles_for_player(state, player_tile_id, location_id) do
-    player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
+    visible_coords = state.players_visible_coords[player_tile_id] || %{}
 
-    range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
-    visible_tiles = \
-      Shape.circle(%{state: state, origin: player_tile}, range, true, "once")
-      |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
-      |> Enum.map(fn coord ->
-           tile = Instances.get_map_tile(state, coord)
-           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-         end)
-    DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles})
+    if _should_update_visible_tiles(visible_coords, state.rerender_coords) do
+      player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
+
+      range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
+      visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
+                       |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
+      visible_tiles = visible_coords
+                      |> Enum.map(fn coord ->
+                           tile = Instances.get_map_tile(state, coord)
+                           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+                         end)
+      DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles})
+      visible_coords
+    else
+      visible_coords
+    end
+  end
+
+  # works on initial load as the players visible tiles will be nil/%{}
+  defp _should_update_visible_tiles(%{}, _rerender_coords), do: true
+  defp _should_update_visible_tiles(visible_coords, rerender_coords) do
+    Map.keys(rerender_coords)
+    |> Enum.any?(fn coord -> Enum.member?(visible_coords, coord) end)
   end
 
   defp _check_for_players(state) do

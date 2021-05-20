@@ -15,6 +15,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
                |> assign(:location_id, location_id)
                |> assign(:map_instance_id, location.map_tile.map_instance_id)
                |> assign(:map_set_instance_id, location.map_tile.dungeon.map_set_instance_id)
+               |> assign(:player_map_tile_id, location.map_tile.id)
 
       {:ok, %{location_id: location_id}, socket}
     else
@@ -30,6 +31,19 @@ defmodule DungeonCrawlWeb.PlayerChannel do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
                                        "change_dungeon",
                                        %{dungeon_id: socket.assigns.map_instance_id, dungeon_render: dungeon_table}
+
+    if state.state_values[:fog] do
+      InstanceProcess.run_with(instance_process, fn(%{players_visible_coords: pvcs} = instance_state) ->
+        # will force an update of the players visible tiles
+        instance_state = %{ instance_state | players_visible_coords: Map.put(pvcs, socket.assigns.player_map_tile_id, %{})}
+        {:ok, instance_state}
+      end)
+    else
+    dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
+                                       "change_dungeon",
+                                       %{dungeon_id: socket.assigns.map_instance_id, dungeon_render: dungeon_table}
+    end
 
     {:noreply, socket}
   end

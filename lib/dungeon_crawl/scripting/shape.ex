@@ -97,24 +97,26 @@ defmodule DungeonCrawl.Scripting.Shape do
   @doc """
   Returns map tile ids that from a circle around the origin out to the range.
   Origin is included by default, and bypass blocking defaults to soft.
+  coeff is useful for increasing the resolution of the circle, 1 to a lower fraction,
+  but it shouldn't go too low as it will increase the number of "rays" send out to find valid circle coordinates.
   """
-  def circle(_environment, _range, include_origin \\ true, bypass_blocking \\ "soft")
-  def circle(%{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do
+  def circle(_environment, _range, include_origin \\ true, bypass_blocking \\ "soft", coeff \\ 0.5)
+  def circle(%{state: state, object_id: object_id}, range, include_origin, bypass_blocking, coeff) do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
-    _circle(state, origin, range, include_origin, bypass_blocking)
+    _circle(state, origin, range, include_origin, bypass_blocking, coeff)
   end
-  def circle(%{state: state, origin: origin}, range, include_origin, bypass_blocking) do
-    _circle(state, origin, range, include_origin, bypass_blocking)
+  def circle(%{state: state, origin: origin}, range, include_origin, bypass_blocking, coeff) do
+    _circle(state, origin, range, include_origin, bypass_blocking, coeff)
   end
 
-  defp _circle(state, origin, range, include_origin, bypass_blocking) do
+  defp _circle(state, origin, range, include_origin, bypass_blocking, coeff) do
     vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}]
-              |> _circle_rim_coordinates(%{row: 0, col: 0}, 1- range, 1, -2 * range, 0, range)
+              |> _circle_rim_coordinates(%{row: 0, col: 0}, 1- range, 1, -2 * range, 0, range, coeff)
 
     range_coords = vectors
                    |> Enum.flat_map(fn {vr, vc} ->
-                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &floor/1) ++
-                        _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &ceil/1)
+                       # 0.5 default coef is equivalent to running the below twice, but taking the floor and then ceil
+                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &round/1)
                       end)
                    |> Enum.uniq
                    |> Enum.sort
@@ -123,11 +125,13 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   # using midpoint circle algorithm
-  defp _circle_rim_coordinates(coords, _origin, _f, _ddf_x, _ddf_y, x, y) when x >= y, do: coords
-  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y) do
-    {y, ddf_y, f} = if f >= 0, do: {y - 1, ddf_y + 2, f + ddf_y + 2}, else: {y, ddf_y, f}
-    x = x + 1
-    ddf_x = ddf_x + 2
+  defp _circle_rim_coordinates(coords, _origin, _f, _ddf_x, _ddf_y, x, y, _coeff) when x >= y, do: coords
+  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y, coeff) do
+    ycoeff = 2 * coeff
+    xcoeff = 1 * coeff
+    {y, ddf_y, f} = if f >= 0, do: {y - xcoeff, ddf_y + ycoeff, f + ddf_y + ycoeff}, else: {y, ddf_y, f}
+    x = x + xcoeff
+    ddf_x = ddf_x + ycoeff
     f = f + ddf_x
 
     [ {origin.col + x, origin.row + y},
@@ -139,7 +143,7 @@ defmodule DungeonCrawl.Scripting.Shape do
       {origin.col + y, origin.row - x},
       {origin.col - y, origin.row - x}
       | coords ]
-    |> _circle_rim_coordinates(origin, f, ddf_x, ddf_y, x, y)
+    |> _circle_rim_coordinates(origin, f, ddf_x, ddf_y, x, y, coeff)
   end
 
   @doc """
