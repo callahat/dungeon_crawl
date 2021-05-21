@@ -16,12 +16,7 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   def dungeon_as_table(dungeon, height, width) do
-    if dungeon.state && Regex.match?(~r/fog:\s*true/, dungeon.state) do
-      # because it renders from the DB table first
-      rows(%{}, height, width, &fog_cells/3)
-    else
-      _dungeon_as_table(dungeon, height, width)
-    end
+    _dungeon_as_table(dungeon, height, width)
   end
 
   def editor_dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
