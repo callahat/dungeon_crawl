@@ -3,14 +3,14 @@ let Player = {
     let playerUserIdHash = element.getAttribute("data-location-id")
     socket.connect()
 
-    let playerChannel   = socket.channel("players:" + playerUserIdHash)
+    let playerChannel = socket.channel("players:" + playerUserIdHash)
 
     playerChannel.on("change_dungeon", (msg) => {
       dungeonJs.handleDungeonChange(msg)
     })
 
     playerChannel.on("visible_tiles", (msg) => {
-      dungeonJs.tileFogger()
+      dungeonJs.tileFogger(msg.fog)
       dungeonJs.tileChanges(msg.tiles)
     })
 

@@ -224,14 +224,16 @@ let Dungeon = {
       document.getElementById("message_field").value = ""
     }
   },
-  tileFogger(){
-    for(let tileEl of document.querySelectorAll("#dungeon_instance td:not(.fog)")){
-      tileEl.classList.add("fog")
-      tileEl.innerHTML = "<div style='background-color: darkgray'>░</div>"
+  tileFogger(tiles){
+    let tdEl;
+    for(let tile of tiles){
+      tdEl = document.getElementById(tile.row + "_" + tile.col)
+      tdEl.classList.add("fog")
+      tdEl.innerHTML = "<div style='background-color: darkgray'>░</div>"
     }
   },
   tileChanges(tiles){
-    let location, tdEl;
+    let tdEl;
     for(let tile of tiles){
       tdEl = document.getElementById(tile.row + "_" + tile.col)
       tdEl.classList.remove("fog")

@@ -455,7 +455,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
 
     player_location = %Location{id: player_tile.id, map_tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
     InstanceProcess.run_with(instance_process, fn(state) ->
-      Instances.create_player_map_tile(state, player_tile, player_location)
+      {_, state} = Instances.create_player_map_tile(state, player_tile, player_location)
+      {:ok, %{ state | players_visible_coords: %{player_tile.id => [%{row: 1, col: 10}]}}}
     end)
 
     # subscribe
@@ -477,9 +478,10 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
             event: "visible_tiles",
-            payload: %{tiles: [%{col: 3, rendering: "<div>@</div>", row: 2},
-                               %{col: 1, rendering: "<div>O</div>", row: 1},
-                               %{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
+            payload: %{fog: [%{col: 10, row: 1}],
+                       tiles: [%{col: 1, rendering: "<div>O</div>", row: 1},
+                               %{col: 2, rendering: "<div>◦</div>", row: 1},
+                               %{col: 3, rendering: "<div>@</div>", row: 2},
                                %{col: 4, rendering: "<div>.</div>", row: 1}]}}
   end
 

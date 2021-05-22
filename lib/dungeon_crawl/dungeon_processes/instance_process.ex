@@ -506,29 +506,35 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end)
   end
 
-  defp _visible_tiles_for_player(state, player_tile_id, location_id) do
-    visible_coords = state.players_visible_coords[player_tile_id] || %{}
+  # TODO: Move the rendering stuff to its own module, its gotten complicated enough and gets used outside the instance process - ie player_channel
+  def _visible_tiles_for_player(state, player_tile_id, location_id) do
+    visible_coords = state.players_visible_coords[player_tile_id] || []
 
     if _should_update_visible_tiles(visible_coords, state.rerender_coords) do
       player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
 
       range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
-      visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
-                       |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
-      visible_tiles = visible_coords
+      current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
+                               |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
+      fogged_coords = visible_coords -- current_visible_coords
+      newly_visible_coords = current_visible_coords -- visible_coords
+      rerender_coords = Map.keys(state.rerender_coords)
+      renderable_coords = rerender_coords -- (rerender_coords -- current_visible_coords)
+      visible_tiles = (renderable_coords ++ newly_visible_coords)
+                      |> Enum.uniq()
                       |> Enum.map(fn coord ->
                            tile = Instances.get_map_tile(state, coord)
                            Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
                          end)
-      DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles})
-      visible_coords
+      DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles, fog: fogged_coords})
+      current_visible_coords
     else
       visible_coords
     end
   end
 
   # works on initial load as the players visible tiles will be nil/%{}
-  defp _should_update_visible_tiles(%{}, _rerender_coords), do: true
+  defp _should_update_visible_tiles([], _rerender_coords), do: true
   defp _should_update_visible_tiles(visible_coords, rerender_coords) do
     Map.keys(rerender_coords)
     |> Enum.any?(fn coord -> Enum.member?(visible_coords, coord) end)

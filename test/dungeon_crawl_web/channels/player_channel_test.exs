@@ -40,7 +40,6 @@ defmodule DungeonCrawl.PlayerChannelTest do
     assert_broadcast "change_dungeon", %{dungeon_id: ^instance_id, dungeon_render: _html}
     {:ok, instance_process} = MapSets.instance_process(map_instance.map_set_instance_id, instance_id)
     assert %{players_visible_coords: pvcs} = InstanceProcess.get_state(instance_process)
-    assert %{location.map_tile.id => %{}} == pvcs
   end
 
   test "ping replies with status ok", %{socket: socket} do
