@@ -106,10 +106,6 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
         death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
 
-        payload = %{tiles: [
-                     Map.put(Map.take(player_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(player_tile))
-                    ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{instance_state.map_set_instance_id}:#{instance_state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(instance_state, player_tile)}
 
@@ -223,14 +219,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
         destination ->
           case move_func.(player_tile, destination, instance_state) do
-            {:ok, tile_changes, instance_state} ->
-              broadcast socket,
-                        "tile_changes",
-                        %{tiles: tile_changes
-                                  |> Map.to_list
-                                  |> Enum.map(fn({_coords, tile}) ->
-                                    Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                                  end)}
+            {:ok, _tile_changes, instance_state} ->
               {:ok, instance_state}
 
             {:invalid} ->

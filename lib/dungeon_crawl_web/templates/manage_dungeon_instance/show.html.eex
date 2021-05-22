@@ -15,11 +15,10 @@
   <div class="text-center row no-gutters" id="dungeon_instance_overview">
     <div class="col-9 text-left">
       <%= render(DungeonCrawlWeb.SharedView,
-                 "dungeon_instance.html",
+                 "dungeon_admin.html",
                  dungeon: Map.put(@instance_state, :id, @instance_state.instance_id),
                  width: @instance_state.state_values[:cols],
-                 height: @instance_state.state_values[:rows],
-                 readonly: true) %>
+                 height: @instance_state.state_values[:rows]) %>
     </div>
   </div>
 <% end %>

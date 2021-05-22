@@ -58,11 +58,10 @@
         <%= for map <- Enum.filter(@map_set_instance.maps, fn(map) -> map.number == @level end) do %>
           <div id="level<%= map.number %>" aria-labelledby="level<%= map.number %>-tab">
             <%= render(DungeonCrawlWeb.SharedView,
-                       "dungeon_instance.html",
+                       "dungeon_admin.html",
                        dungeon: map,
                        width: map.width,
-                       height: map.height,
-                       readonly: true) %>
+                       height: map.height) %>
           </div>
         <% end %>
       </div>
@@ -95,8 +94,7 @@
                      "dungeon.html",
                      dungeon: dungeon,
                      width: dungeon.width,
-                     height: dungeon.height,
-                     readonly: true) %>
+                     height: dungeon.height) %>
         </div>
       <% end %>
       </div>

@@ -35,7 +35,7 @@
           <%= link "Edit Level", to: Routes.dungeon_map_path(@conn, :edit, @map_set, dungeon), class: "btn btn-secondary btn-sm" %> |
           <%= link "Delete Level", to: Routes.dungeon_map_path(@conn, :delete, @map_set, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/>
           <%= adjacent_map_names(dungeon) %>
-          <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: dungeon, readonly: true) %>
+          <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: dungeon) %>
           <br/>
           <%= link "Edit Level", to: Routes.dungeon_map_path(@conn, :edit, @map_set, dungeon), class: "btn btn-secondary btn-sm" %> |
           <%= link "Delete Level", to: Routes.dungeon_map_path(@conn, :delete, @map_set, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/><br/>

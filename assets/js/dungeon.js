@@ -1,13 +1,10 @@
 let Dungeon = {
   init(socket, element){ if(!element){ return }
     let dungeonId = element.getAttribute("data-instance-id")
-    let readonly = element.getAttribute("data-readonly") == "true"
     this.mapSetId = element.getAttribute("data-map-set-id")
     socket.connect()
 
-    if(!readonly){
-      this.setupWindowListeners()
-    }
+    this.setupWindowListeners()
 
     this.tuneInToChannel(socket, dungeonId)
 

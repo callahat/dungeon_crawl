@@ -8,7 +8,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
-  alias DungeonCrawl.DungeonProcesses.{MapSetRegistry, MapSetProcess}
+  alias DungeonCrawl.DungeonProcesses.{MapSetRegistry, MapSetProcess, MapSets, InstanceProcess}
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias Ecto.Multi
 
@@ -36,13 +36,16 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     scorable = _scorable_map_set(map_set)
 
-    player_stats = if player_location do
-                     PlayerInstance.current_stats(player_location.user_id_hash)
+    {player_stats, dungeon} = if player_location do
+                     {:ok, instance_process} = MapSets.instance_process(player_location.map_tile.dungeon.map_set_instance_id,
+                                                                        player_location.map_tile.dungeon.id)
+                     dungeon = Map.put(InstanceProcess.get_state(instance_process), :id, player_location.map_tile.dungeon.id)
+                     {PlayerInstance.current_stats(player_location.user_id_hash), dungeon}
                    else
-                     %{}
+                     {%{}, nil}
                    end
 
-    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats, map_set: map_set, scorable: scorable)
+    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats, map_set: map_set, scorable: scorable, dungeon: dungeon)
   end
 
   def _scorable_map_set(nil), do: false

@@ -318,6 +318,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     state = _cycle_programs(%{state | new_pids: []})
             |> _broadcast_stat_updates()
             |> _rerender_tiles()
+            |> _rerender_tiles_for_admin()
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
@@ -445,7 +446,6 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     _broadcast_stat_updates(pmt_ids, state)
   end
 
-  # TODO: how to make the admin instance view not foggy? A different dungeon channel for admins?
   defp _rerender_tiles(%{state_values: %{fog: true}} = state) do
     # when foggy, players vision is relative to their position so each gets their own render
     players_visible_coords = \
@@ -453,16 +453,46 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       |> Enum.reduce(%{}, fn {player_tile_id, location}, acc ->
            Map.put acc, player_tile_id, _visible_tiles_for_player(state, player_tile_id, location.id)
          end)
-    %{state | players_visible_coords: players_visible_coords, rerender_coords: %{}}
+    %{state | players_visible_coords: players_visible_coords}
   end
   defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
   defp _rerender_tiles(state) do
+    # its not foggy, so admin and normal get the full updates
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
-      dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
+      _full_rerender(state, ["dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
+                             "dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
+    else
+      _partial_rerender(state, ["dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
+                                "dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
+    end
+
+    state
+  end
+
+  # If its not foggy, then
+  defp _rerender_tiles_for_admin(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
+  defp _rerender_tiles_for_admin(%{state_values: %{fog: true}} = state) do
+    # if it was foggy, so make sure an admin observing can still get updates, otherwise nothing to do
+    if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
+      _full_rerender(state, ["dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
+    else
+      _partial_rerender(state, ["dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
+    end
+
+    %{ state | rerender_coords: %{} }
+  end
+  defp _rerender_tiles_for_admin(state), do: %{ state | rerender_coords: %{} }
+
+  defp _full_rerender(state, channels) do
+    dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
+    Enum.each(channels, fn channel ->
+      DungeonCrawlWeb.Endpoint.broadcast channel,
                                          "full_render",
                                          %{dungeon_render: dungeon_table}
-    else
+    end)
+  end
+
+  defp _partial_rerender(state, channels) do
       tile_changes = \
       state.rerender_coords
       |> Map.keys
@@ -471,11 +501,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
            Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
          end)
       payload = %{tiles: tile_changes}
-
-      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload)
-    end
-
-    %{ state | rerender_coords: %{} }
+    Enum.each(channels, fn channel ->
+      DungeonCrawlWeb.Endpoint.broadcast(channel, "tile_changes", payload)
+    end)
   end
 
   defp _visible_tiles_for_player(state, player_tile_id, location_id) do

@@ -31,6 +31,7 @@ import 'codemirror/addon/mode/simple.js';
 
 import socket from "./socket"
 import Dungeon from "./dungeon"
+import DungeonAdmin from "./dungeon_admin"
 import Player from "./player"
 import TileTemplatePreview from "./tile_template_preview"
 import DungeonEditor from "./dungeon_editor"
@@ -40,6 +41,7 @@ import TileAnimation from "./tile_animation"
 import AvatarPreview from "./avatar_preview"
 
 Dungeon.init(socket, document.getElementById("dungeon_instance"))
+DungeonAdmin.init(socket, document.getElementById("dungeon_admin"))
 Player.init(socket, Dungeon, document.getElementById("player"))
 TileTemplatePreview.init(document.getElementById("character_preview"))
 TileTemplatePreview.init(document.getElementById("character_preview_small"))

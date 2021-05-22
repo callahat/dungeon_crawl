@@ -132,7 +132,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
     {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, map_tile.map_instance_id)
     InstanceProcess.delete_tile(instance, map_tile.id)
     push socket, "move", %{"direction" => "up"}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div></div>"}]}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div> </div>"}]}
   end
 
   @tag up_tile: "."

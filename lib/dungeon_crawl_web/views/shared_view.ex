@@ -7,15 +7,16 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   # todo: pass in if its foggy instead maybe
-  def dungeon_as_table(%Instances{state_values: state_values} = dungeon, height, width) do
-    if state_values[:fog] do
+  def dungeon_as_table(dungeon, height, width, admin \\ false)
+  def dungeon_as_table(%Instances{state_values: state_values} = dungeon, height, width, admin) do
+    if state_values[:fog] && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
       _dungeon_as_table(dungeon, height, width)
     end
   end
 
-  def dungeon_as_table(dungeon, height, width) do
+  def dungeon_as_table(dungeon, height, width, _admin) do
     _dungeon_as_table(dungeon, height, width)
   end
 

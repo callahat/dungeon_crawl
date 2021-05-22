@@ -10,10 +10,9 @@
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />
     <%= render(DungeonCrawlWeb.SharedView,
                "dungeon_instance.html",
-               dungeon: @player_location.map_tile.dungeon, # Make this the instance
+               dungeon: @dungeon, # Make this the instance
                height: @player_location.map_tile.dungeon.height,
-               width: @player_location.map_tile.dungeon.width,
-               readonly: false) %>
+               width: @player_location.map_tile.dungeon.width) %>
     <br/>
     <%= link "Leave Dungeon", to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-sm" %>
     <br/>
@@ -99,7 +98,7 @@
               </div>
               <div class="col-6">
                 <div class="title-map">
-                <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: DungeonCrawl.Repo.preload(Dungeon.get_title_map(map_set), :dungeon_map_tiles), readonly: true) %>
+                <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: DungeonCrawl.Repo.preload(Dungeon.get_title_map(map_set), :dungeon_map_tiles)) %>
                 </div>
               </div>
               </div>
