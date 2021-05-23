@@ -3,14 +3,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   require Logger
 
-  alias DungeonCrawl.Admin
   alias DungeonCrawl.Account
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.DungeonProcesses.Render
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.Scripting.{Program, Shape}
+  alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
 
   ## Client API
@@ -317,8 +317,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
             |> _broadcast_stat_updates()
-            |> _rerender_tiles()
-            |> _rerender_tiles_for_admin()
+            |> Render.rerender_tiles()
+            |> Render.rerender_tiles_for_admin()
+            |> Map.put(:rerender_coords, %{})
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
@@ -446,113 +447,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     _broadcast_stat_updates(pmt_ids, state)
   end
 
-  defp _rerender_tiles(%{state_values: %{fog: true}} = state) do
-    # when foggy, players vision is relative to their position so each gets their own render
-    players_visible_coords = \
-      state.player_locations
-      |> Enum.reduce(%{}, fn {player_tile_id, location}, acc ->
-           Map.put acc, player_tile_id, _visible_tiles_for_player(state, player_tile_id, location.id)
-         end)
-    %{state | players_visible_coords: players_visible_coords}
-  end
-  defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
-  defp _rerender_tiles(state) do
-    # its not foggy, so admin and normal get the full updates
-    if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
-      _full_rerender(state, ["dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
-                             "dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
-    else
-      _partial_rerender(state, ["dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
-                                "dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
-    end
-
-    state
-  end
-
-  # If its not foggy, then
-  defp _rerender_tiles_for_admin(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
-  defp _rerender_tiles_for_admin(%{state_values: %{fog: true}} = state) do
-    # if it was foggy, so make sure an admin observing can still get updates, otherwise nothing to do
-    if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
-      _full_rerender(state, ["dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
-    else
-      _partial_rerender(state, ["dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
-    end
-
-    %{ state | rerender_coords: %{} }
-  end
-  defp _rerender_tiles_for_admin(state), do: %{ state | rerender_coords: %{} }
-
-  defp _full_rerender(state, channels) do
-    dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
-    Enum.each(channels, fn channel ->
-      DungeonCrawlWeb.Endpoint.broadcast channel,
-                                         "full_render",
-                                         %{dungeon_render: dungeon_table}
-    end)
-  end
-
-  defp _partial_rerender(state, channels) do
-      tile_changes = \
-      state.rerender_coords
-      |> Map.keys
-      |> Enum.map(fn coord ->
-           tile = Instances.get_map_tile(state, coord)
-           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-         end)
-      payload = %{tiles: tile_changes}
-    Enum.each(channels, fn channel ->
-      DungeonCrawlWeb.Endpoint.broadcast(channel, "tile_changes", payload)
-    end)
-  end
-
-  # TODO: Move the rendering stuff to its own module, its gotten complicated enough and gets used outside the instance process - ie player_channel
-  def _visible_tiles_for_player(state, player_tile_id, location_id) do
-    visible_coords = state.players_visible_coords[player_tile_id] || []
-
-    if _should_update_visible_tiles(visible_coords, state.rerender_coords) do
-      player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
-
-      range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
-      current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
-                               |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
-      fogged_coords = visible_coords -- current_visible_coords
-      newly_visible_coords = current_visible_coords -- visible_coords
-      rerender_coords = Map.keys(state.rerender_coords)
-      renderable_coords = rerender_coords -- (rerender_coords -- current_visible_coords)
-      visible_tiles = (renderable_coords ++ newly_visible_coords)
-                      |> Enum.uniq()
-                      |> Enum.map(fn coord ->
-                           tile = Instances.get_map_tile(state, coord)
-                           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                         end)
-      DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles, fog: fogged_coords})
-      current_visible_coords
-    else
-      visible_coords
-    end
-  end
-
-  # works on initial load as the players visible tiles will be nil/%{}
-  defp _should_update_visible_tiles([], _rerender_coords), do: true
-  defp _should_update_visible_tiles(visible_coords, rerender_coords) do
-    Map.keys(rerender_coords)
-    |> Enum.any?(fn coord -> Enum.member?(visible_coords, coord) end)
-  end
 
   defp _check_for_players(state) do
     if state.player_locations != %{}, do:   state,
                                       else: %{ state | count_to_idle: state.count_to_idle - 1 }
-  end
-
-  defp _full_rerender_threshold() do
-    if threshold = Application.get_env(:dungeon_crawl, :full_rerender_threshold) do
-      threshold
-    else
-      threshold = Admin.get_setting().full_rerender_threshold || 50
-      Application.put_env(:dungeon_crawl, :full_rerender_threshold, threshold)
-      threshold
-    end
   end
 
   defp _message_programs(state) do

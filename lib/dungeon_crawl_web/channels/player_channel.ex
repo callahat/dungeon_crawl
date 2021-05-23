@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.DungeonProcesses.{InstanceProcess, MapSets}
+  alias DungeonCrawl.DungeonProcesses.Render
 
   def join("players:" <> location_id, _payload, socket) do
     # TODO: verify the player joining the channel is the player
@@ -34,7 +35,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
     if state.state_values[:fog] do
       InstanceProcess.run_with(instance_process, fn (instance_state) ->
-        InstanceProcess._visible_tiles_for_player(instance_state, socket.assigns.player_map_tile_id, socket.assigns.location_id)
+        Render.visible_tiles_for_player(instance_state, socket.assigns.player_map_tile_id, socket.assigns.location_id)
         {:ok, instance_state}
       end)
     end
