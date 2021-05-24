@@ -109,10 +109,9 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   """
   def visible_tiles_for_player(%Instances{state_values: %{fog: true}} = state, player_tile_id, location_id) do
     visible_coords = state.players_visible_coords[player_tile_id] || []
+    player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
 
-    if _should_update_visible_tiles(visible_coords, state.rerender_coords) do
-      player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
-
+    if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
       range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
       current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)

@@ -391,7 +391,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   However, in the case of a player map tile that moves from one instance to another, that map tile will still be persisted
   but will be associated with another instance, so removing it from the instance process is sufficient.
   """
-  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations, passage_exits: passage_exits} = state, %{id: map_tile_id}, mark_as_dirty \\ true) do
+  def delete_map_tile(%Instances{program_contexts: program_contexts,
+                                 map_by_ids: by_id,
+                                 map_by_coords: by_coords,
+                                 player_locations: player_locations,
+                                 players_visible_coords: players_visible_coords,
+                                 passage_exits: passage_exits} = state,
+                      %{id: map_tile_id},
+                      mark_as_dirty \\ true) do
     program_contexts = Map.delete(program_contexts, map_tile_id)
     passage_exits = Enum.reject(passage_exits, fn({id, _}) -> id == map_tile_id end)
     dirty_ids = if mark_as_dirty, do: Map.put(state.dirty_ids, map_tile_id, :deleted), else: state.dirty_ids
@@ -403,6 +410,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
       player_locations = Map.delete(player_locations, map_tile_id)
+      players_visible_coords = Map.delete(players_visible_coords, map_tile_id)
       {map_tile, %Instances{ state |
                              program_contexts: program_contexts,
                              passage_exits: passage_exits,
@@ -410,6 +418,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                              map_by_coords: by_coords,
                              dirty_ids: dirty_ids,
                              player_locations: player_locations,
+                             players_visible_coords: players_visible_coords,
                              rerender_coords: rerender_coords,
                              new_ids: Map.delete(state.new_ids, map_tile_id) }}
     else

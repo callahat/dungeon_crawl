@@ -7,6 +7,9 @@ let Player = {
 
     playerChannel.on("change_dungeon", (msg) => {
       dungeonJs.handleDungeonChange(msg)
+
+      playerChannel.push("update_visible", {})
+                   .receive("error", e => console.log(e))
     })
 
     playerChannel.on("visible_tiles", (msg) => {

@@ -4,7 +4,6 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.DungeonProcesses.{InstanceProcess, MapSets}
-  alias DungeonCrawl.DungeonProcesses.Render
 
   def join("players:" <> location_id, _payload, socket) do
     # TODO: verify the player joining the channel is the player
@@ -33,12 +32,15 @@ defmodule DungeonCrawlWeb.PlayerChannel do
                                        "change_dungeon",
                                        %{dungeon_id: socket.assigns.map_instance_id, dungeon_render: dungeon_table}
 
-    if state.state_values[:fog] do
-      InstanceProcess.run_with(instance_process, fn (instance_state) ->
-        Render.visible_tiles_for_player(instance_state, socket.assigns.player_map_tile_id, socket.assigns.location_id)
-        {:ok, instance_state}
-      end)
-    end
+    {:noreply, socket}
+  end
+
+  def handle_in("update_visible", _, socket) do
+    {:ok, instance_process} = MapSets.instance_process(socket.assigns.map_set_instance_id, socket.assigns.map_instance_id)
+
+    InstanceProcess.run_with(instance_process, fn (state) ->
+      {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_map_tile_id)}}
+    end)
 
     {:noreply, socket}
   end
