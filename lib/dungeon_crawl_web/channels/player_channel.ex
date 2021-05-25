@@ -6,11 +6,11 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   alias DungeonCrawl.DungeonProcesses.{InstanceProcess, MapSets}
 
   def join("players:" <> location_id, _payload, socket) do
-    # TODO: verify the player joining the channel is the player
-    location = Player.get_location(%{id: location_id})
-               |> Repo.preload([map_tile: :dungeon])
+    user_id_hash = socket.assigns.user_id_hash
 
-    if location && location.map_tile do
+    with location when not is_nil(location) <- Repo.preload(Player.get_location(%{id: location_id}), [map_tile: :dungeon]),
+         true <- not is_nil(location.map_tile),
+         %{user_id_hash: ^user_id_hash} <- location do
       socket = socket
                |> assign(:location_id, location_id)
                |> assign(:map_instance_id, location.map_tile.map_instance_id)
@@ -19,7 +19,10 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
       {:ok, %{location_id: location_id}, socket}
     else
-      {:error, %{message: "Not found", reload: true}}
+      %{user_id_hash: _} ->
+        {:error, %{message: "Could not join channel"}}
+      _ ->
+        {:error, %{message: "Not found", reload: true}}
     end
   end
 

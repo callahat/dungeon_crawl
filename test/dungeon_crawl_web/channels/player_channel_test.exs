@@ -20,10 +20,25 @@ defmodule DungeonCrawl.PlayerChannelTest do
     {:ok, socket: socket, location: player_location, map_instance: map_instance}
   end
 
+  test "with the wrong player", %{location: player_location} do
+    bad_user = insert_user(%{is_admin: false, user_id_hash: "hackerman"})
+
+    assert {:error, %{message: "Could not join channel"}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: bad_user.user_id_hash})
+      |> subscribe_and_join(PlayerChannel, "players:#{player_location.id}")
+  end
+
   test "with a bad location" do
     assert {:error, %{message: "Not found", reload: true}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "user_id_hash"})
       |> subscribe_and_join(PlayerChannel, "players:12345")
+  end
+
+  test "with a location with bad map tile", %{location: player_location} do
+    DungeonCrawl.Repo.preload(player_location, :map_tile).map_tile |> DungeonCrawl.Repo.delete!
+    assert {:error, %{message: "Not found", reload: true}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
+      |> subscribe_and_join(PlayerChannel, "players:#{player_location.id}")
   end
 
   test "refresh_dungeon triggers the change_dungeon message to rerender the current map", %{socket: socket, location: location} do
