@@ -124,6 +124,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_reply ref, :ok, %{}
   end
 
+  # move itself does not broadcast anymore, but the broadcast is sent from the instance_process for tiles that have changed since
+  # the last cycle
   @tag up_tile: "."
   test "move broadcasts a tile_update if its a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
@@ -139,8 +141,9 @@ defmodule DungeonCrawl.DungeonChannelTest do
     end)
 
     push socket, "move", %{"direction" => "up"}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 19, rendering: "<div>@</div>"}]}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 0, rendering: "<div> </div>"}]}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div> </div>", row: 0},
+                                               %{col: 1, rendering: "<div>.</div>", row: 3},
+                                               %{col: 1, rendering: "<div>@</div>", row: 19}]}
   end
 
   @tag up_tile: ".", health: 0
