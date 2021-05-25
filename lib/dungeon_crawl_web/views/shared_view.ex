@@ -9,7 +9,7 @@ defmodule DungeonCrawlWeb.SharedView do
   # todo: pass in if its foggy instead maybe
   def dungeon_as_table(dungeon, height, width, admin \\ false)
   def dungeon_as_table(%Instances{state_values: state_values} = dungeon, height, width, admin) do
-    if state_values[:fog] && not admin do
+    if state_values[:visibility] == "fog" && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
       _dungeon_as_table(dungeon, height, width)
@@ -121,7 +121,6 @@ defmodule DungeonCrawlWeb.SharedView do
     ~s(data-color='' data-background-color='' data-tile-template-id='' data-name='' data-character=' ' data-state='' data-script='' data-name='')
   end
   defp data_attributes(mt) do
-    # TODO: add name when its supported
     "data-color='#{mt.color}' " <>
     "data-background-color='#{mt.background_color}' " <>
     "data-tile-template-id='#{mt.tile_template_id}' " <>

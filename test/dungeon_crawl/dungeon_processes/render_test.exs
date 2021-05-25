@@ -49,7 +49,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                                                               dungeon_admin_channel: dungeon_admin_channel,
                                                               player_channel: player_channel,
                                                               state: state} do
-      state = %{state | state_values: Map.put(state.state_values, :fog, true), rerender_coords: %{%{col: 10, row: 1} => true}}
+      state = %{state | state_values: Map.put(state.state_values, :visibility, "fog"), rerender_coords: %{%{col: 10, row: 1} => true}}
       assert updated_state = Render.rerender_tiles(state)
       assert Map.delete(updated_state, :players_visible_coords) == Map.delete(state, :players_visible_coords)
       assert updated_state.players_visible_coords != state.players_visible_coords
@@ -122,7 +122,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     test "broadcasts to the dungeon_admin channel only", %{state: state,
                                                            dungeon_channel: dungeon_channel,
                                                            dungeon_admin_channel: dungeon_admin_channel} do
-      state = %{ state | state_values: Map.put(state.state_values, :fog, true),
+      state = %{ state | state_values: Map.put(state.state_values, :visibility, "fog"),
                          rerender_coords: %{%{col: 10, row: 1} => true, %{col: 10, row: 2} => true}}
       assert state == Render.rerender_tiles_for_admin(state)
 
@@ -218,7 +218,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
 
     test "when it is foggy", %{state: state, player_location: player_location, player_channel: player_channel} do
       # no rerender_coords, so nothing to do
-      state = %{state | state_values: Map.put(state.state_values, :fog, true)}
+      state = %{state | state_values: Map.put(state.state_values, :visibility, "fog")}
       assert state == Render.visible_tiles_for_player(state, player_location.map_tile_instance_id, player_location.id)
       refute_receive %Phoenix.Socket.Broadcast{}
 

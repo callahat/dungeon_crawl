@@ -13,7 +13,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
   There are three main scenarios this function handles.
 
-  1. When the level has `fog` set, it will handle updating the visible area for each player
+  1. When the level has `visibility: fog` set, it will handle updating the visible area for each player
      and broadcasting to the player's channel tile updates which include tiles that may
      no longer be visible (ie, returned to fog) as well as those that have changed within
      their sight. This will update the %Instances{} player_visible_coords value.
@@ -22,8 +22,9 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
      is past a threshold) or partial rerender (when only the changed tiles need updated) will occur.
      The new tiles to be displayed on the client will be broadcast via both the dungeon channel
      and the dungeon_admin channel.
+  4. Fog range defaults to 6 tiles. It can be set to something else via the `fog_range` state value.
   """
-  def rerender_tiles(%Instances{state_values: %{fog: true}} = state) do
+  def rerender_tiles(%Instances{state_values: %{visibility: "fog"}} = state) do
     state.player_locations
     |> Enum.reduce(state, fn {player_tile_id, location}, state ->
          visible_tiles_for_player(state, player_tile_id, location.id)
@@ -61,7 +62,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   only will broadcast to the dungeon_admin channel.
   """
   def rerender_tiles_for_admin(%Instances{rerender_coords: coords} = state ) when coords == %{}, do: state
-  def rerender_tiles_for_admin(%Instances{state_values: %{fog: true}} = state) do
+  def rerender_tiles_for_admin(%Instances{state_values: %{visibility: "fog"}} = state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
       full_rerender(state, ["dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
     else
@@ -107,12 +108,12 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   Additionally, it updates the player's visible coordinates and adds that update to the returned instance
   state struct.
   """
-  def visible_tiles_for_player(%Instances{state_values: %{fog: true}} = state, player_tile_id, location_id) do
+  def visible_tiles_for_player(%Instances{state_values: %{visibility: "fog"}} = state, player_tile_id, location_id) do
     visible_coords = state.players_visible_coords[player_tile_id] || []
     player_tile = Instances.get_map_tile_by_id(state, %{id: player_tile_id})
 
     if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
-      range = if player_tile.parsed_state[:buried] == true, do: 0, else: 6 # get this from the player?
+      range = if player_tile.parsed_state[:buried] == true, do: 0, else: state.state_values[:fog_range] || 6 # get this from the player?
       current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
       fogged_coords = visible_coords -- current_visible_coords

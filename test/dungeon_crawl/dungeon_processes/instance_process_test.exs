@@ -444,7 +444,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
 
     assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
-    assert :ok = InstanceProcess.set_state_values(instance_process, %{fog: true})
+    assert :ok = InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
 
     player_tile = DungeonInstances.create_map_tile!(
                     %{character: "@",

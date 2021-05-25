@@ -102,12 +102,12 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
     {:ok, instance_process} = InstanceProcess.start_link([])
 
-    instance = insert_stubbed_dungeon_instance(%{state: "fog: true"},
+    instance = insert_stubbed_dungeon_instance(%{state: "visibility: fog"},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
-    InstanceProcess.set_state_values(instance_process, %{fog: true})
+    InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
     InstanceProcess.set_instance_id(instance_process, instance.id)
     InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
 
