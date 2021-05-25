@@ -14,8 +14,6 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   import Phoenix.HTML, only: [html_escape: 1]
 
-  # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
-  # and evesdrop on broadcasts?
   def join("dungeons:" <> map_set_instance_id_and_instance_id, _payload, socket) do
     [map_set_instance_id, instance_id] = map_set_instance_id_and_instance_id
                                          |> String.split(":")
@@ -28,19 +26,23 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     # remove the player from the inactive map
     InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
-      {_, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      if player_tile do
-        {:ok, %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }}
+      if player_location && player_location.user_id_hash == socket.assigns.user_id_hash do
+        socket = assign(socket, :instance_id, instance_id)
+                 |> assign(:instance_registry, instance_registry)
+                 |> assign(:last_action_at, 0)
+        {
+          {:ok, %{instance_id: instance_id}, socket},
+          %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }
+        }
       else
-        {:ok, instance_state}
+        {
+          {:error, %{message: "Could not join channel"}},
+          instance_state
+        }
       end
     end)
-
-    socket = assign(socket, :instance_id, instance_id)
-             |> assign(:instance_registry, instance_registry)
-             |> assign(:last_action_at, 0)
-    {:ok, %{instance_id: instance_id}, socket}
   end
 
   def terminate(_reason, socket) do
