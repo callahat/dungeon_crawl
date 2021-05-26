@@ -45,6 +45,22 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   end
 
   describe "rerender_tiles/1" do
+    test "when full_rerender is true, it does a full rerender of the dungeon", %{dungeon_channel: dungeon_channel,
+                                                                                 dungeon_admin_channel: dungeon_admin_channel,
+                                                                                 state: state} do
+      state = %{state | full_rerender: true}
+      assert updated_state = Render.rerender_tiles(state)
+
+      assert_receive %Phoenix.Socket.Broadcast{
+              topic: ^dungeon_channel,
+              event: "full_render",
+              payload: %{dungeon_render: _}}
+      assert_receive %Phoenix.Socket.Broadcast{
+              topic: ^dungeon_admin_channel,
+              event: "full_render",
+              payload: %{dungeon_render: _}}
+    end
+
     test "when foggy sends updates to the player channels", %{dungeon_channel: dungeon_channel,
                                                               dungeon_admin_channel: dungeon_admin_channel,
                                                               player_channel: player_channel,

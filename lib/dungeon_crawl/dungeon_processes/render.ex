@@ -24,6 +24,11 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
      and the dungeon_admin channel.
   4. Fog range defaults to 6 tiles. It can be set to something else via the `fog_range` state value.
   """
+  def rerender_tiles(%Instances{full_rerender: true} = state) do
+    full_rerender(state, ["dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
+                          "dungeon_admin:#{state.map_set_instance_id}:#{state.instance_id}"])
+    rerender_tiles(%{state | full_rerender: false})
+  end
   def rerender_tiles(%Instances{state_values: %{visibility: "fog"}} = state) do
     state.player_locations
     |> Enum.reduce(state, fn {player_tile_id, location}, state ->
