@@ -4,16 +4,14 @@ defmodule DungeonCrawl.Application do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    import Supervisor.Spec
-
     # Define workers and child supervisors to be supervised
     children = [
       # Start the PubSub system
       {Phoenix.PubSub, name: DungeonCrawl.PubSub},
       # Start the Ecto repository
-      supervisor(DungeonCrawl.Repo, []),
+      DungeonCrawl.Repo,
       # Start the endpoint when the application starts
-      supervisor(DungeonCrawlWeb.Endpoint, []),
+      DungeonCrawlWeb.Endpoint,
       # Start your own worker by calling: DungeonCrawlWeb.Worker.start_link(arg1, arg2, arg3)
       # worker(DungeonCrawlWeb.Worker, [arg1, arg2, arg3]),
       {DungeonCrawl.DungeonProcesses.MapSetRegistry, name: MapSetInstanceRegistry},
