@@ -252,6 +252,18 @@
             <td>Defaults as false. When this is set to true, a player may not shoot (ie, shift+direction will
                 not spawn a bullet).</td>
           </tr>
+          <tr>
+            <td>visibility</td>
+            <td>This sets what the player can see of the dungeon. By default, the top down view of the current
+                level is seen entirely. When it is set to "fog", then the players vision is restricted to line of
+                sight up to a certain number of tiles away. Blocking tiles can also cast a shadow unless the
+                blocking tile is also "low".</td>
+          </tr>
+          <tr>
+            <td>fog_range</td>
+            <td>Optionally, when visibility is set to "fog", this sets the number of tiles away that a player can see.
+                When not set, the player can see up to six tiles away.</td>
+          </tr>
        </table>
 
         <h5 id="map_set_state_values">Map Set State Attributes and Values</h5>

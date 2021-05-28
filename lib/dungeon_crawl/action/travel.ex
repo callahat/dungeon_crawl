@@ -45,10 +45,7 @@ defmodule DungeonCrawl.Action.Travel do
         {:ok, state}
 
       player_map_tile.map_instance_id == target_map.id ->
-        old_coords = Elixir.Map.take(player_map_tile, [:row, :col])
-        {player_map_tile, state} = Player.place(state, player_map_tile, player_location, passage)
-        _broadcast_tile_change(state, old_coords)
-        _broadcast_tile_change(state, player_map_tile)
+        {_player_map_tile, state} = Player.place(state, player_map_tile, player_location, passage)
         {:ok, state}
 
       true ->
@@ -66,24 +63,12 @@ defmodule DungeonCrawl.Action.Travel do
 
           DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
 
-          _broadcast_tile_change(other_instance_state, %{row: updated_tile.row, col: updated_tile.col}) # draw
-
           {:ok, other_instance_state}
         end)
 
         {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
 
-        _broadcast_tile_change(state, player_map_tile) # erase
-
         {:ok, state}
     end
-  end
-
-  defp _broadcast_tile_change(state, coord) do
-    top_tile = Instances.get_map_tile(state, coord)
-    payload = Elixir.Map.put(Elixir.Map.take(coord, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-    DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
-                                       "tile_changes",
-                                       %{tiles: [payload]}
   end
 end

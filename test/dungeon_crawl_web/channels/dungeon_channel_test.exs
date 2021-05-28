@@ -66,11 +66,46 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     on_exit(fn -> MapSetRegistry.remove(MapSetInstanceRegistry, map_set_instance.id) end)
 
-    {:ok, socket: socket, player_location: player_location, basic_tiles: basic_tiles, instance: instance, instance_registry: instance_registry}
+    {:ok, socket: socket,
+          player_location: player_location,
+          basic_tiles: basic_tiles,
+          instance: instance,
+          instance_registry: instance_registry,
+          map_set_instance_id: map_set_instance.id,
+          map_instance_id: map_instance.id}
   end
 
   defp _player_location_north(player_location) do
     %{map_instance_id: player_location.map_tile.map_instance_id, row: player_location.map_tile.row-1, col: player_location.map_tile.col}
+  end
+
+  test "with the wrong player", %{map_set_instance_id: map_set_instance_id,
+                                  map_instance_id: map_instance_id} do
+    bad_user = insert_user(%{is_admin: false, user_id_hash: "hackerman"})
+
+    assert {:error, %{message: "Could not join channel"}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: bad_user.user_id_hash})
+      |> subscribe_and_join(DungeonChannel, "dungeons:#{map_set_instance_id}:#{map_instance_id}")
+  end
+
+  test "with a bad location" do
+    assert {:error, %{reason: "join crashed"}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "user_id_hash"})
+      |> subscribe_and_join(DungeonChannel, "dungeons:0:0")
+  end
+
+  test "with a location with bad map tile", %{instance: instance,
+                                              player_location: player_location,
+                                              map_set_instance_id: map_set_instance_id,
+                                              map_instance_id: map_instance_id} do
+    InstanceProcess.run_with(instance, fn (instance_state) ->
+      {_, state} = Instances.delete_map_tile(instance_state, player_location.map_tile)
+      {:ok, state}
+    end)
+
+    assert {:error, %{message: "Could not join channel"}} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
+      |> subscribe_and_join(DungeonChannel, "dungeons:#{map_set_instance_id}:#{map_instance_id}")
   end
 
   test "shout broadcasts to dungeon:lobby", %{socket: socket} do
@@ -89,6 +124,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
     assert_reply ref, :ok, %{}
   end
 
+  # move itself does not broadcast anymore, but the broadcast is sent from the instance_process for tiles that have changed since
+  # the last cycle
   @tag up_tile: "."
   test "move broadcasts a tile_update if its a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
@@ -104,8 +141,9 @@ defmodule DungeonCrawl.DungeonChannelTest do
     end)
 
     push socket, "move", %{"direction" => "up"}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 19, rendering: "<div>@</div>"}]}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 0, rendering: "<div> </div>"}]}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div> </div>", row: 0},
+                                               %{col: 1, rendering: "<div>.</div>", row: 3},
+                                               %{col: 1, rendering: "<div>@</div>", row: 19}]}
   end
 
   @tag up_tile: ".", health: 0
@@ -132,7 +170,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
     {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, map_tile.map_instance_id)
     InstanceProcess.delete_tile(instance, map_tile.id)
     push socket, "move", %{"direction" => "up"}
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div></div>"}]}
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div> </div>"}]}
   end
 
   @tag up_tile: "."

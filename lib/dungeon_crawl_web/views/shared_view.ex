@@ -6,7 +6,17 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
 
-  def dungeon_as_table(dungeon, height, width) do
+  # todo: pass in if its foggy instead maybe
+  def dungeon_as_table(dungeon, height, width, admin \\ false)
+  def dungeon_as_table(%Instances{state_values: state_values} = dungeon, height, width, admin) do
+    if state_values[:visibility] == "fog" && not admin do
+      rows(%{}, height, width, &fog_cells/3)
+    else
+      _dungeon_as_table(dungeon, height, width)
+    end
+  end
+
+  def dungeon_as_table(dungeon, height, width, _admin) do
     _dungeon_as_table(dungeon, height, width)
   end
 
@@ -101,11 +111,16 @@ defmodule DungeonCrawlWeb.SharedView do
     <> _lower_editor_cells(cells)
   end
 
+  defp fog_cells(_, row, width) do
+    Enum.to_list(0..width-1)
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'><div style='background-color: darkgray'>░</div></td>" end )
+    |> Enum.join("")
+  end
+
   defp data_attributes(nil) do
     ~s(data-color='' data-background-color='' data-tile-template-id='' data-name='' data-character=' ' data-state='' data-script='' data-name='')
   end
   defp data_attributes(mt) do
-    # TODO: add name when its supported
     "data-color='#{mt.color}' " <>
     "data-background-color='#{mt.background_color}' " <>
     "data-tile-template-id='#{mt.tile_template_id}' " <>

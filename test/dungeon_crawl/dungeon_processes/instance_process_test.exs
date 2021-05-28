@@ -330,7 +330,13 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 3, rendering: "<div>✝</div>"}]}}
+            payload: %{tiles: tiles}}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel,
+            event: "tile_changes",
+            payload: %{tiles: updated_tiles}}
+    assert Enum.member? tiles, %{row: 1, col: 3, rendering: "<div>@</div>"}
+    assert Enum.member? updated_tiles, %{row: 1, col: 3, rendering: "<div>✝</div>"}
 
     refute map_by_ids[non_prog_tile.id]
     assert map_by_ids[player_tile.id].parsed_state[:health] == 0
@@ -426,6 +432,57 @@ defmodule DungeonCrawl.InstanceProcessTest do
             topic: ^player_channel,
             event: "stat_update",
             payload: %{stats: %{score: 14}}}
+  end
+
+  test "perform_actions rendering when map has fog", %{instance_process: instance_process, map_instance: map_instance} do
+    map_tiles = [
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
+        %{character: "O", row: 1, col: 10, z_index: 0, script: "#BECOME character: M\n#BECOME color: white"},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "#BECOME character: .\n#TERMINATE"}
+      ]
+      |> Enum.map(fn(mt) -> Map.merge(mt, %{map_instance_id: map_instance.id}) end)
+      |> Enum.map(fn(mt) -> DungeonInstances.create_map_tile!(mt) end)
+
+    assert :ok = InstanceProcess.load_map(instance_process, map_tiles)
+    assert :ok = InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
+
+    player_tile = DungeonInstances.create_map_tile!(
+                    %{character: "@",
+                      row: 2,
+                      col: 3,
+                      name: "player",
+                      map_instance_id: map_instance.id})
+
+    player_location = %Location{id: player_tile.id, map_tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Instances.create_player_map_tile(state, player_tile, player_location)
+      {:ok, %{ state | players_visible_coords: %{player_tile.id => [%{row: 1, col: 10}]}}}
+    end)
+
+    # subscribe
+    dungeon_channel = "dungeons:#{map_instance.map_set_instance_id}:#{map_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    # should have nothing until after sending :perform_actions
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel}
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel}
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    refute_receive %Phoenix.Socket.Broadcast{
+            topic: ^dungeon_channel}
+    assert_receive %Phoenix.Socket.Broadcast{
+            topic: ^player_channel,
+            event: "visible_tiles",
+            payload: %{fog: [%{col: 10, row: 1}],
+                       tiles: [%{col: 1, rendering: "<div>O</div>", row: 1},
+                               %{col: 2, rendering: "<div>◦</div>", row: 1},
+                               %{col: 3, rendering: "<div>@</div>", row: 2},
+                               %{col: 4, rendering: "<div>.</div>", row: 1}]}}
   end
 
   test "check_on_inactive_players", %{instance_process: instance_process, map_instance: map_instance} do
@@ -625,6 +682,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert_receive {:gameover_test, ^instance_id, false, "loss"}
 
     # cleanup
+    :code.purge instances_mock_mod
     :code.delete instances_mock_mod
   end
 

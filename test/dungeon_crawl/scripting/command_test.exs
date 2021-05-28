@@ -213,6 +213,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state.state_values == %{add: 8, new: 1, one: 100}
     %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: updated_state}, [:new, "+=", {:instance_state_variable, :one}])
     assert updated_state.state_values == %{add: 8, new: 101, one: 100}
+    # special instance states that have side effects
+    assert %Runner{state: %{state_values: %{visibility: "fog"}, players_visible_coords: %{}, full_rerender: true}} =
+      Command.change_instance_state(%Runner{state: state}, [:visibility, "=", "fog"])
+    assert %Runner{state: %{state_values: %{fog_range: 2}, players_visible_coords: %{}, full_rerender: true}} =
+      Command.change_instance_state(%Runner{state: state}, [:fog_range, "=", 2])
   end
 
   test "CHANGE_MAP_SET_INSTANCE_STATE" do
@@ -429,6 +434,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert_receive {:gameover_test, ^instance2_id, false, "loss"}
 
     # cleanup
+    :code.purge instances_mock_mod
     :code.delete instances_mock_mod
   end
 

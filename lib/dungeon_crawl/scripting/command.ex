@@ -197,8 +197,15 @@ defmodule DungeonCrawl.Scripting.Command do
     %Runner{program: program,
             state: %Instances{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
   """
-  def change_instance_state(%Runner{state: state} = runner_state, params) do
-    [var, op, value] = params
+  def change_instance_state(%Runner{state: state} = runner_state, [var, _op, _value] = params)
+      when var in [:visibility, :fog_range] do
+    runner_state = %{ runner_state | state: %{ state | full_rerender: true, players_visible_coords: %{} } }
+    _change_instance_state(runner_state, params)
+  end
+  def change_instance_state(%Runner{} = runner_state, params) do
+    _change_instance_state(runner_state, params)
+  end
+  def _change_instance_state(%Runner{state: state} = runner_state, [var, op, value]) do
     value = resolve_variable(runner_state, value)
 
     state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))

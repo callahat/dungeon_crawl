@@ -28,13 +28,9 @@ defmodule DungeonCrawl.Action.TravelTest do
     %{player_location: player_location, level_1: level_1, level_2: level_2, instance_registry: instance_registry}
   end
 
-  test "passage/4 same instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2, instance_registry: instance_registry} do
+  test "passage/4 same instance or level", %{player_location: player_location, level_1: level_1, instance_registry: instance_registry} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    dungeon_1_channel = "dungeons:#{level_1.map_set_instance_id}:#{level_1.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_1_channel)
-    dungeon_2_channel = "dungeons:#{level_2.map_set_instance_id}:#{level_2.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_2_channel)
 
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(instance_registry, level_1.id)
@@ -45,25 +41,12 @@ defmodule DungeonCrawl.Action.TravelTest do
       {:ok, state}
     end)
 
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_1_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 1, rendering: "<div> </div>", row: 3}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_1_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 9, rendering: "<div>@</div>", row: 6}]}}
-    refute_receive %Phoenix.Socket.Broadcast{topic: ^dungeon_2_channel}
     refute_receive %Phoenix.Socket.Broadcast{topic: ^player_channel}
   end
 
   test "passage/4 different instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2, instance_registry: instance_registry} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    dungeon_1_channel = "dungeons:#{level_1.map_set_instance_id}:#{level_1.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_1_channel)
-    dungeon_2_channel = "dungeons:#{level_2.map_set_instance_id}:#{level_2.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_2_channel)
 
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(instance_registry, level_1.id)
@@ -81,14 +64,6 @@ defmodule DungeonCrawl.Action.TravelTest do
     end)
 
     assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_1_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 1, rendering: "<div> </div>", row: 3}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_2_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 5, rendering: "<div>@</div>", row: 1}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "change_dungeon",
         payload: %{dungeon_id: ^level_2_id, dungeon_render: _rendered_dungeon}}
@@ -104,13 +79,9 @@ defmodule DungeonCrawl.Action.TravelTest do
     end)
   end
 
-  test "passage/3 same instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2, instance_registry: instance_registry} do
+  test "passage/3 same instance or level", %{player_location: player_location, level_1: level_1, instance_registry: instance_registry} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    dungeon_1_channel = "dungeons:#{level_1.map_set_instance_id}:#{level_1.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_1_channel)
-    dungeon_2_channel = "dungeons:#{level_2.map_set_instance_id}:#{level_2.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_2_channel)
 
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(instance_registry, level_1.id)
@@ -121,25 +92,12 @@ defmodule DungeonCrawl.Action.TravelTest do
       {:ok, state}
     end)
 
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_1_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 1, rendering: "<div> </div>", row: 3}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_1_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 1, rendering: "<div>@</div>", row: 19}]}}
-    refute_receive %Phoenix.Socket.Broadcast{topic: ^dungeon_2_channel}
     refute_receive %Phoenix.Socket.Broadcast{topic: ^player_channel}
   end
 
   test "passage/3 different instance or level", %{player_location: player_location, level_1: level_1, level_2: level_2, instance_registry: instance_registry} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    dungeon_1_channel = "dungeons:#{level_1.map_set_instance_id}:#{level_1.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_1_channel)
-    dungeon_2_channel = "dungeons:#{level_2.map_set_instance_id}:#{level_2.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_2_channel)
 
     # travel to floor 1 from floor 1 takes player map tile to a spawn coordinate
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(instance_registry, level_1.id)
@@ -156,14 +114,6 @@ defmodule DungeonCrawl.Action.TravelTest do
       {:ok, state}
     end)
 
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_1_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 1, rendering: "<div> </div>", row: 3}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-        topic: ^dungeon_2_channel,
-        event: "tile_changes",
-        payload: %{tiles: [%{col: 0, rendering: "<div>@</div>", row: 3}]}}
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "change_dungeon",

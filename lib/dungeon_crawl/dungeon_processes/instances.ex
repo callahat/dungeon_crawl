@@ -27,7 +27,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
             tile_template_slug_cache: %{},
-            inactive_players: %{}
+            inactive_players: %{},
+            players_visible_coords: %{},
+            full_rerender: false
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -390,7 +392,14 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   However, in the case of a player map tile that moves from one instance to another, that map tile will still be persisted
   but will be associated with another instance, so removing it from the instance process is sufficient.
   """
-  def delete_map_tile(%Instances{program_contexts: program_contexts, map_by_ids: by_id, map_by_coords: by_coords, player_locations: player_locations, passage_exits: passage_exits} = state, %{id: map_tile_id}, mark_as_dirty \\ true) do
+  def delete_map_tile(%Instances{program_contexts: program_contexts,
+                                 map_by_ids: by_id,
+                                 map_by_coords: by_coords,
+                                 player_locations: player_locations,
+                                 players_visible_coords: players_visible_coords,
+                                 passage_exits: passage_exits} = state,
+                      %{id: map_tile_id},
+                      mark_as_dirty \\ true) do
     program_contexts = Map.delete(program_contexts, map_tile_id)
     passage_exits = Enum.reject(passage_exits, fn({id, _}) -> id == map_tile_id end)
     dirty_ids = if mark_as_dirty, do: Map.put(state.dirty_ids, map_tile_id, :deleted), else: state.dirty_ids
@@ -402,6 +411,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       by_coords = _remove_coord(by_coords, Map.take(map_tile, [:row, :col, :z_index]))
       by_id = Map.delete(by_id, map_tile_id)
       player_locations = Map.delete(player_locations, map_tile_id)
+      players_visible_coords = Map.delete(players_visible_coords, map_tile_id)
       {map_tile, %Instances{ state |
                              program_contexts: program_contexts,
                              passage_exits: passage_exits,
@@ -409,6 +419,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                              map_by_coords: by_coords,
                              dirty_ids: dirty_ids,
                              player_locations: player_locations,
+                             players_visible_coords: players_visible_coords,
                              rerender_coords: rerender_coords,
                              new_ids: Map.delete(state.new_ids, map_tile_id) }}
     else
@@ -528,12 +539,6 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
       if new_amount <= 0 do
         {_deleted_tile, state} = Instances.delete_map_tile(state, loser)
-        loser_coords = Map.take(loser, [:row, :col])
-
-        top_tile = Instances.get_map_tile(state, loser_coords)
-        payload = %{tiles: [ Map.put(loser_coords, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile)) ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
-
         {:died, state}
       else
         {_loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount})
@@ -563,11 +568,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       new_amount <= 0 ->
         lives = if loser.parsed_state[:lives] > 0, do: loser.parsed_state[:lives] - 1, else: -1
         {loser, state} = Instances.update_map_tile_state(state, loser, %{health: new_amount, lives: lives})
-        {grave, state} = Player.bury(state, loser)
-        payload = %{tiles: [
-                     Map.put(Map.take(grave, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(grave))
-                    ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
+        {_grave, state} = Player.bury(state, loser)
+
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
         if lives == 0 do
           {:ok, gameover(state, loser.id, false, "Dead")}

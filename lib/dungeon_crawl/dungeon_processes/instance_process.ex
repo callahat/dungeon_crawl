@@ -3,12 +3,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   require Logger
 
-  alias DungeonCrawl.Admin
   alias DungeonCrawl.Account
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.DungeonProcesses.Render
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -317,7 +317,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
             |> _broadcast_stat_updates()
-            |> _rerender_tiles()
+            |> Render.rerender_tiles()
+            |> Render.rerender_tiles_for_admin()
+            |> Map.put(:rerender_coords, %{})
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
@@ -446,42 +448,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
 
-  defp _rerender_tiles(%{ rerender_coords: coords } = state ) when coords == %{}, do: state
-  defp _rerender_tiles(state) do
-    if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
-      dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}",
-                                         "full_render",
-                                         %{dungeon_render: dungeon_table}
-    else
-      tile_changes = \
-      state.rerender_coords
-      |> Map.keys
-      |> Enum.map(fn coord ->
-           tile = Instances.get_map_tile(state, coord)
-           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-         end)
-      payload = %{tiles: tile_changes}
-
-      DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload)
-    end
-
-    %{ state | rerender_coords: %{} }
-  end
-
   defp _check_for_players(state) do
     if state.player_locations != %{}, do:   state,
                                       else: %{ state | count_to_idle: state.count_to_idle - 1 }
-  end
-
-  defp _full_rerender_threshold() do
-    if threshold = Application.get_env(:dungeon_crawl, :full_rerender_threshold) do
-      threshold
-    else
-      threshold = Admin.get_setting().full_rerender_threshold || 50
-      Application.put_env(:dungeon_crawl, :full_rerender_threshold, threshold)
-      threshold
-    end
   end
 
   defp _message_programs(state) do

@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.UserSocket do
 
   ## Channels
   # channel "room:*", DungeonCrawlWeb.RoomChannel
+  channel "dungeon_admin:*", DungeonCrawlWeb.DungeonAdminChannel
   channel "dungeons:*", DungeonCrawlWeb.DungeonChannel
   channel "players:*", DungeonCrawlWeb.PlayerChannel
 

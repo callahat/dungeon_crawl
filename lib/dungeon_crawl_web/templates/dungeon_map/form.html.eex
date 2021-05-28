@@ -80,7 +80,7 @@
       <div class="tab-pane <%= if @dungeon, do: 'show active', else: 'disabled' %>" id="dungeon-map" role="tabpanel" aria-labelledby="map-tab">
       <%= if @dungeon do %>
       <div class="text-center" id="dungeon_editor" data-map-set-id="<%= @dungeon.map_set_id %>" data-map-id="<%= @dungeon.id %>">
-        <%= render(DungeonCrawlWeb.SharedView, "editor_dungeon.html", dungeon: @dungeon, readonly: true) %>
+        <%= render(DungeonCrawlWeb.SharedView, "editor_dungeon.html", dungeon: @dungeon) %>
       </div>
       <% end %>
     </div>

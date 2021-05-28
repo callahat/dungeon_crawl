@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.Scripting.Shape do
   @moduledoc """
-  The various functions relating to returning shapes (in terms of either coordinates or 
+  The various functions relating to returning shapes (in terms of either coordinates or
   map tile ids). When determining coordinates in the shape, coordinates moving out
   from the origin up to the range away are considered.
 
@@ -52,11 +52,17 @@ defmodule DungeonCrawl.Scripting.Shape do
   defp _coords_between(state, origin, delta, step, steps, bypass_blocking, coords, est) do
     {row, col} = coord = _calc_coord(origin, delta, step, steps, est)
     next_map_tile = Instances.get_map_tile(state, %{row: row, col: col})
-    if is_nil(next_map_tile) ||
-       (next_map_tile.parsed_state[:blocking] && ! (next_map_tile.parsed_state[:soft] && bypass_blocking == "soft")) do
-      coords
-    else
-      _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [ coord | coords], est)
+    cond do
+      is_nil(next_map_tile) ->
+        coords
+      !next_map_tile.parsed_state[:blocking] ||
+          (next_map_tile.parsed_state[:soft] && bypass_blocking == "soft") ||
+          (next_map_tile.parsed_state[:low] && bypass_blocking == "once") ->
+        _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [coord | coords], est)
+      bypass_blocking == "once" ->
+        [coord | coords]
+      true ->
+        coords
     end
   end
 
@@ -92,17 +98,26 @@ defmodule DungeonCrawl.Scripting.Shape do
   @doc """
   Returns map tile ids that from a circle around the origin out to the range.
   Origin is included by default, and bypass blocking defaults to soft.
+  coeff is useful for increasing the resolution of the circle, 1 to a lower fraction,
+  but it shouldn't go too low as it will increase the number of "rays" send out to find valid circle coordinates.
   """
-  def circle(%Runner{state: state, object_id: object_id}, range, include_origin \\ true, bypass_blocking \\ "soft") do
+  def circle(_environment, _range, include_origin \\ true, bypass_blocking \\ "soft", coeff \\ 0.5)
+  def circle(%{state: state, object_id: object_id}, range, include_origin, bypass_blocking, coeff) do
     origin = Instances.get_map_tile_by_id(state, %{id: object_id})
+    _circle(state, origin, range, include_origin, bypass_blocking, coeff)
+  end
+  def circle(%{state: state, origin: origin}, range, include_origin, bypass_blocking, coeff) do
+    _circle(state, origin, range, include_origin, bypass_blocking, coeff)
+  end
 
+  defp _circle(state, origin, range, include_origin, bypass_blocking, coeff) do
     vectors = [{range, 0}, {-range, 0}, {0, range}, {0, -range}]
-              |> _circle_rim_coordinates(%{row: 0, col: 0}, 1- range, 1, -2 * range, 0, range)
+              |> _circle_rim_coordinates(%{row: 0, col: 0}, 1- range, 1, -2 * range, 0, range, coeff)
 
     range_coords = vectors
                    |> Enum.flat_map(fn {vr, vc} ->
-                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &floor/1) ++
-                        _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &ceil/1)
+                       # 0.5 default coef is equivalent to running the below twice, but taking the floor and then ceil
+                       _coords_between(state, origin, %{row: origin.row + vr, col: origin.col + vc}, bypass_blocking, &round/1)
                       end)
                    |> Enum.uniq
                    |> Enum.sort
@@ -111,11 +126,13 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   # using midpoint circle algorithm
-  defp _circle_rim_coordinates(coords, _origin, _f, _ddf_x, _ddf_y, x, y) when x >= y, do: coords
-  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y) do
-    {y, ddf_y, f} = if f >= 0, do: {y - 1, ddf_y + 2, f + ddf_y + 2}, else: {y, ddf_y, f}
-    x = x + 1
-    ddf_x = ddf_x + 2
+  defp _circle_rim_coordinates(coords, _origin, _f, _ddf_x, _ddf_y, x, y, _coeff) when x >= y, do: coords
+  defp _circle_rim_coordinates(coords, origin, f, ddf_x, ddf_y, x, y, coeff) do
+    ycoeff = 2 * coeff
+    xcoeff = 1 * coeff
+    {y, ddf_y, f} = if f >= 0, do: {y - xcoeff, ddf_y + ycoeff, f + ddf_y + ycoeff}, else: {y, ddf_y, f}
+    x = x + xcoeff
+    ddf_x = ddf_x + ycoeff
     f = f + ddf_x
 
     [ {origin.col + x, origin.row + y},
@@ -127,7 +144,7 @@ defmodule DungeonCrawl.Scripting.Shape do
       {origin.col + y, origin.row - x},
       {origin.col - y, origin.row - x}
       | coords ]
-    |> _circle_rim_coordinates(origin, f, ddf_x, ddf_y, x, y)
+    |> _circle_rim_coordinates(origin, f, ddf_x, ddf_y, x, y, coeff)
   end
 
   @doc """
@@ -151,11 +168,20 @@ defmodule DungeonCrawl.Scripting.Shape do
                       candidate_tile = Instances.get_map_tile(state, %{row: row, col: col})
                       candidate_tile &&
                         (bypass_blocking == true ||
+                           bypass_blocking == "once" ||
                            !candidate_tile.parsed_state[:blocking] ||
                            (candidate_tile.parsed_state[:soft] && bypass_blocking == "soft"))
                     end)
                  |> Enum.uniq
     new_frontier = new_coords
+                   |> Enum.reject(fn({row, col}) ->
+                        # not eligible for fronier if it was a bypass once and this tile is not low but blocking
+                        candidate_tile = Instances.get_map_tile(state, %{row: row, col: col})
+                        is_nil(candidate_tile) ||
+                          (candidate_tile.parsed_state[:blocking] &&
+                           bypass_blocking == "once" &&
+                           !candidate_tile.parsed_state[:low])
+                      end)
                    |> Enum.flat_map(fn({row, col}) ->
                         [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}]
                       end)

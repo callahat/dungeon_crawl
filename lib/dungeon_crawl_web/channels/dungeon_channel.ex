@@ -14,8 +14,6 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   import Phoenix.HTML, only: [html_escape: 1]
 
-  # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
-  # and evesdrop on broadcasts?
   def join("dungeons:" <> map_set_instance_id_and_instance_id, _payload, socket) do
     [map_set_instance_id, instance_id] = map_set_instance_id_and_instance_id
                                          |> String.split(":")
@@ -28,19 +26,23 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     # remove the player from the inactive map
     InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
-      {_, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
 
-      if player_tile do
-        {:ok, %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }}
+      if player_location && player_location.user_id_hash == socket.assigns.user_id_hash do
+        socket = assign(socket, :instance_id, instance_id)
+                 |> assign(:instance_registry, instance_registry)
+                 |> assign(:last_action_at, 0)
+        {
+          {:ok, %{instance_id: instance_id}, socket},
+          %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }
+        }
       else
-        {:ok, instance_state}
+        {
+          {:error, %{message: "Could not join channel"}},
+          instance_state
+        }
       end
     end)
-
-    socket = assign(socket, :instance_id, instance_id)
-             |> assign(:instance_registry, instance_registry)
-             |> assign(:last_action_at, 0)
-    {:ok, %{instance_id: instance_id}, socket}
   end
 
   def terminate(_reason, socket) do
@@ -106,10 +108,6 @@ defmodule DungeonCrawlWeb.DungeonChannel do
         {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
         death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
 
-        payload = %{tiles: [
-                     Map.put(Map.take(player_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(player_tile))
-                    ]}
-        DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{instance_state.map_set_instance_id}:#{instance_state.instance_id}", "tile_changes", payload
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(instance_state, player_tile)}
 
@@ -223,14 +221,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
         destination ->
           case move_func.(player_tile, destination, instance_state) do
-            {:ok, tile_changes, instance_state} ->
-              broadcast socket,
-                        "tile_changes",
-                        %{tiles: tile_changes
-                                  |> Map.to_list
-                                  |> Enum.map(fn({_coords, tile}) ->
-                                    Map.put(Map.take(tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                                  end)}
+            {:ok, _tile_changes, instance_state} ->
               {:ok, instance_state}
 
             {:invalid} ->
@@ -262,7 +253,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                                Instances.send_event(instance_state, target_tile, "TOUCH", toucher)
                              end)
         toucher_after_event = Instances.get_map_tile_by_id(instance_state, player_tile)
-        if Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
+        if toucher_after_event && Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
           {:ok, instance_state}
         else
           {:player_relocated, instance_state}

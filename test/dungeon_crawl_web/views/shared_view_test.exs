@@ -91,6 +91,44 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
+
+    # cleanup
+    Process.exit(instance_process, :kill)
+  end
+
+  test "dungeon_as_table/3 returns table rows of the dungeon instance when its foggy" do
+    tile_a = insert_tile_template(%{character: "A"})
+    tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
+
+    {:ok, instance_process} = InstanceProcess.start_link([])
+
+    instance = insert_stubbed_dungeon_instance(%{state: "visibility: fog"},
+                 [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+                  Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+                  Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
+                  Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
+    InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
+    InstanceProcess.set_instance_id(instance_process, instance.id)
+    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+
+    # The DB record won't have parsed state_values, so it will appear normal/not foggy.
+    rows = dungeon_as_table(instance, instance.width, instance.height)
+
+    assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
+    assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
+    assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
+
+    # Also can be given the instance state object as well if thats available
+    instance_state = InstanceProcess.get_state(instance_process)
+
+    rows = dungeon_as_table(instance_state, instance.width, instance.height)
+
+    assert rows =~ ~r{<td id='1_1'><div style='background-color: darkgray'>░</div></td>}
+    assert rows =~ ~r{<td id='1_2'><div style='background-color: darkgray'>░</div></td>}
+    assert rows =~ ~r{<td id='1_3'><div style='background-color: darkgray'>░</div></td>}
+
+    # cleanup
+    Process.exit(instance_process, :kill)
   end
 
   test "editor_dungeon_as_table/3 returns table rows of the dungeon including the data attributes" do
