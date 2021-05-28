@@ -4,7 +4,7 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.9",
+     elixir: "~> 1.10",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
      build_embedded: Mix.env == :prod,
@@ -38,7 +38,7 @@ defmodule DungeonCrawl.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.4.10"},
+    [{:phoenix, "~> 1.4"},
      {:phoenix_pubsub, "~> 1.1"},
      {:phoenix_ecto, "~> 4.0"},
      {:ecto_sql, "~> 3.0"},
