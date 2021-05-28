@@ -138,12 +138,11 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                    |> Map.to_list
                    |> Enum.concat(_door_keys(original_state))
                    |> Enum.reject(fn {_, count} -> count <= 0 end)
-                   |> Enum.map(fn {item, count} ->
-                        """
-                        Found #{count} #{item}
-                        #GIVE #{item}, #{count}, ?sender
-                        """
+                   |> Enum.reduce([[], []], fn {item, count}, [words, gives] ->
+                        [ ["Found #{count} #{item}" | words],
+                          ["#GIVE #{item}, #{count}, ?sender" | gives] ]
                       end)
+                   |> Enum.flat_map(&(&1))
                    |> Enum.join("\n")
 
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
