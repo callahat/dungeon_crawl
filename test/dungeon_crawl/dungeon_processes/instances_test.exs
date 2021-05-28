@@ -226,7 +226,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # Does not load a corrupt script (edge case - corrupt script shouldnt even get into the DB, and logs a warning
     map_tile_bad_script = %MapTile{row: 1, col: 4, id: 123, script: "#NOT_A_REAL_COMMAND"}
     assert capture_log(fn ->
-             assert {map_tile, updated_state} = Instances.create_map_tile(state, map_tile_bad_script)
+             assert {_map_tile, updated_state} = Instances.create_map_tile(state, map_tile_bad_script)
              assert %Instances{ program_contexts: %{},
                                 map_by_ids: %{1 => Map.put(new_map_tile, :parsed_state, %{}),
                                               123 => Map.put(map_tile_bad_script, :parsed_state, %{})},
@@ -305,7 +305,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert map_tile.parsed_state[:hamburders] == 4
     assert map_tile.state == "hamburders: 4"
 
-    assert {map_tile, state} = Instances.update_map_tile_state(state, map_tile, %{coffee: 2})
+    assert {map_tile, _state} = Instances.update_map_tile_state(state, map_tile, %{coffee: 2})
     assert map_tile.parsed_state[:hamburders] == 4
     assert map_tile.parsed_state[:coffee] == 2
     assert map_tile.state == "coffee: 2, hamburders: 4"
@@ -323,13 +323,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
   test "update_tile/3", %{state: state} do
     map_tile_id = 999
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{id: 11111, character: "X", row: 1, col: 1})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{id: 11111, character: "X", row: 1, col: 1})
     assert %{id: ^map_tile_id, character: "X", row: 1, col: 1} = state.map_by_ids[map_tile_id]
     assert %{dirty_ids: %{999 => changeset}} = state
     assert changeset.changes == MapTile.changeset(%MapTile{},%{character: "X", col: 1}).changes
 
     # Move to an empty space
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 2, col: 3})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 2, col: 3})
     assert %{id: ^map_tile_id, character: "X", row: 2, col: 3} = state.map_by_ids[map_tile_id]
     assert %{dirty_ids: %{999 => changeset}} = state
     assert changeset.changes == MapTile.changeset(%MapTile{},%{character: "X", row: 2, col: 3}).changes
@@ -339,21 +339,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     {_another_map_tile, state} = Instances.create_map_tile(state, another_map_tile)
 
     # Won't move to the same z_index
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 5, col: 6})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 5, col: 6})
     assert %MapTile{id: ^map_tile_id, character: "X", row: 2, col: 3, z_index: 0} = state.map_by_ids[map_tile_id]
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 5, col: 6, z_index: 1})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: map_tile_id}, %{row: 5, col: 6, z_index: 1})
     assert %MapTile{id: ^map_tile_id, character: "X", row: 5, col: 6, z_index: 1} = state.map_by_ids[map_tile_id]
     assert %MapTile{id: -3, character: "O", row: 5, col: 6, z_index: 0} = state.map_by_ids[-3]
 
     # Move the new tile
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{character: "M"})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{character: "M"})
     assert %{dirty_ids: %{999 => changeset_999, -3 => changeset_neg_3}} = state
     assert changeset_999.changes == MapTile.changeset(%MapTile{},%{character: "X", row: 5, col: 6, z_index: 1}).changes
     assert changeset_neg_3.changes == MapTile.changeset(%MapTile{},%{character: "M"}).changes
 
     # Adds a program
     refute state.program_contexts[-3]
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{script: "#END\n:TOUCH\n?s"})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: -3}, %{script: "#END\n:TOUCH\n?s"})
     assert %{-3 => %{program: program, object_id: -3}} = state.program_contexts
     assert %{map_by_ids: %{-3 => %MapTile{script: "#END\n:TOUCH\n?s"}}} = state
     assert %DungeonCrawl.Scripting.Program{
@@ -376,7 +376,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # Adds a different program to something with one already
     assert state.program_contexts[999]
     assert state.program_contexts[999].program.status == :alive
-    assert {updated_tile, state} = Instances.update_map_tile(state, %{id: 999}, %{script: "?n"})
+    assert {_updated_tile, state} = Instances.update_map_tile(state, %{id: 999}, %{script: "?n"})
     assert %{999 => %{program: program, object_id: 999}} = state.program_contexts
     assert %{map_by_ids: %{999 => %MapTile{script: "?n"}}} = state
     assert %DungeonCrawl.Scripting.Program{
@@ -405,7 +405,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert by_id[map_tile.id]
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
 
-    assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
+    assert {_deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
     refute state.map_by_ids[map_tile_id]
     refute state.player_locations[map_tile_id]
     %Instances{ program_contexts: programs,
@@ -431,7 +431,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert by_id[map_tile.id]
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
 
-    assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile, false) # false parameter
+    assert {_deleted_tile, state} = Instances.delete_map_tile(state, map_tile, false) # false parameter
     refute state.map_by_ids[map_tile_id]
     refute state.player_locations[map_tile_id]
     %Instances{ program_contexts: programs,
@@ -459,7 +459,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert %{ {1, 2} => %{ 0 => ^map_tile_id} } = by_coord
     assert passage_exits == [{map_tile_id, "tunnel_a"}]
 
-    assert {deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
+    assert {_deleted_tile, state} = Instances.delete_map_tile(state, map_tile)
     refute state.map_by_ids[map_tile_id]
     %Instances{ program_contexts: programs,
                 map_by_ids: by_id,
@@ -533,7 +533,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
   end
 
   test "subtract/4 when loser does not exist" do
-    assert {:no_loser, state} = Instances.subtract(%Instances{}, :anything, 2, 12345)
+    assert {:no_loser, _state} = Instances.subtract(%Instances{}, :anything, 2, 12345)
   end
 
   test "subtract/4 health on a maptile" do

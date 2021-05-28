@@ -17,7 +17,7 @@ defmodule DungeonCrawl.MapSetRegistryTest do
 
     MapSetRegistry.create(map_set_registry, msi.id)
 
-    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert {:ok, _msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
   end
 
   test "lookup_or_create", %{map_set_registry: map_set_registry} do
@@ -59,7 +59,7 @@ defmodule DungeonCrawl.MapSetRegistryTest do
   test "remove", %{map_set_registry: map_set_registry} do
     msi = insert_stubbed_map_set_instance()
     MapSetRegistry.create(map_set_registry, msi.id)
-    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert {:ok, _msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
 
     # seems to take a quick micro second for the cast to be done
     MapSetRegistry.remove(map_set_registry, msi.id)

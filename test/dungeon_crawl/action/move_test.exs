@@ -108,7 +108,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     ball = %MapTile{id: 800, row: 1, col: 1, z_index: 1, character: "o", state: "blocking: true, pushable: true"}
     {ball, state} =       Instances.create_map_tile(state, ball)
 
-    assert {:ok, %{{1, 1} => new_location, {1, 0} => old_location, {1, 3} => pushed_location}, updated_state} =
+    assert {:ok, %{{1, 1} => new_location, {1, 0} => _old_location, {1, 3} => pushed_location}, updated_state} =
       Move.go(player_location, ball, state)
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 0}) == []
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 1}) == [new_location,
@@ -202,7 +202,7 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     # squishable object is gone
     assert {:ok, %{{1, 2} => new_location,
-                   {1, 3} => old_location},
+                   {1, 3} => _old_location},
             updated_state} = Move.go(player_location, balloon, state)
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
@@ -213,7 +213,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     {bullet_location, state} = Instances.create_map_tile(state, bullet_location)
 
     assert {:ok, %{{1, 2} => new_bullet_location,
-                   {1, 3} => old_bullet_location},
+                   {1, 3} => _old_bullet_location},
             updated_state} = Move.go(bullet_location, balloon, state)
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_bullet_location, balloon]
   end
@@ -229,7 +229,7 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     assert {:ok, %{{1, 1} => new_balloon_location,
                    {1, 2} => new_location,
-                   {1, 3} => old_location},
+                   {1, 3} => _old_location},
             updated_state} = Move.go(player_location, balloon, state)
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == [new_location]
@@ -237,7 +237,7 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     # with no place to be pushed, the object is squashed (deleted)
     assert {:ok, %{{1, 1} => new_location,
-                   {1, 2} => old_location},
+                   {1, 2} => _old_location},
             updated_state} = Move.go(new_location, new_balloon_location, updated_state)
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 3}) == []
     assert Instances.get_map_tiles(updated_state, %{row: 1, col: 2}) == []

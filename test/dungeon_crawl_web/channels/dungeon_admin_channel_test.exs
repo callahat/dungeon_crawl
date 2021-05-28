@@ -18,7 +18,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
   test "admin can subscribe", %{map_set_instance: map_set_instance, map_instance: map_instance} do
     user = insert_user(%{is_admin: true, user_id_hash: "user_id_hash"})
 
-    assert {:ok, _, socket} =
+    assert {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
       |> subscribe_and_join(DungeonAdminChannel, "dungeon_admin:#{map_set_instance.id}:#{map_instance.id}")
   end
