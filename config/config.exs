@@ -17,7 +17,8 @@ config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "uAZt6ZmV0dMClEWZB0FaHEiFnrOJvA487Lw6QxTGuTPsJ0U1EJgslK7+pbdTIzZW",
   render_errors: [view: DungeonCrawlWeb.ErrorView, accepts: ~w(html json)],
-  pubsub_server: DungeonCrawl.PubSub
+  pubsub_server: DungeonCrawl.PubSub,
+  live_view: [signing_salt: "SECRET_SALT"]
 
 # Configures Elixir's Logger
 config :logger, :console,
