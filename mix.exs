@@ -27,7 +27,7 @@ defmodule DungeonCrawl.Mixfile do
     [mod: {DungeonCrawl.Application, []},
 #     applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
 #                    :phoenix_ecto, :postgrex, :comeonin]]
-      extra_applications: [:logger, :runtime_tools]]
+      extra_applications: [:logger, :runtime_tools, :os_mon]]
   end
 
   # Specifies which paths to compile per environment.
@@ -41,6 +41,7 @@ defmodule DungeonCrawl.Mixfile do
     [{:phoenix, "~> 1.5"},
      {:phoenix_ecto, "~> 4.0"},
      {:ecto_sql, "~> 3.0"},
+     {:ecto_psql_extras, "~> 0.2"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.11"},
      {:phoenix_live_reload, "~> 1.2", only: :dev},

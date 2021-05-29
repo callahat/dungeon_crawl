@@ -10,6 +10,8 @@ defmodule DungeonCrawl.Application do
       {Phoenix.PubSub, name: DungeonCrawl.PubSub},
       # Start the Ecto repository
       DungeonCrawl.Repo,
+      # Start the telemetry
+      DungeonCrawlWeb.Telemetry,
       # Start the endpoint when the application starts
       DungeonCrawlWeb.Endpoint,
       # Start your own worker by calling: DungeonCrawlWeb.Worker.start_link(arg1, arg2, arg3)

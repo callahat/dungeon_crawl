@@ -59,7 +59,8 @@ defmodule DungeonCrawlWeb.Router do
        get    "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :show
        delete "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :delete
 
-    live_dashboard "/dashboard"
+    live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
+
 #    resources "/tile_templates", ManageTileTemplateController
 #      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
 #      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
