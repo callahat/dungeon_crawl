@@ -23,25 +23,39 @@
         </ul>
         <ul class="navbar-nav mr-0">
           <%= if @current_user do %>
-            <li class="nav-item"><%= link @current_user.username, to: Routes.user_path(@conn, :show), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Scores", to: Routes.score_path(@conn, :index), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Reference", to: Routes.page_path(@conn, :reference), class: "nav-link" %></li>
-            <%= if user_can_edit_dungeons(@current_user) do %>
-            <li class="nav-item"><%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %></li>
-            <% end %>
-            <li class="nav-item"><%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index), class: "nav-link" %></li>
-            <%= if @current_user.is_admin do %>
-            <li class="nav-item"><%= link "Users", to: Routes.manage_user_path(@conn, :index), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Dungeons", to: Routes.manage_dungeon_path(@conn, :index), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Instances", to: Routes.manage_map_set_instance_path(@conn, :index), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Settings", to: Routes.setting_path(@conn, :edit), class: "nav-link" %></li>
-            <% end %>
-            <li class="nav-item"><%= link "Log out", to: Routes.session_path(@conn, :delete, @current_user), method: "delete", class: "nav-link" %></li>
+          <li class="nav-item"><%= link @current_user.username, to: Routes.user_path(@conn, :show), class: "nav-link" %></li>
+          <%=   if @current_user.is_admin do %>
+          <li class="nav-item">
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="adminMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Admin
+              </a>
+
+              <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
+                <%= link "Users", to: Routes.manage_user_path(@conn, :index), class: "nav-link" %>
+                <%= link "Dungeons", to: Routes.manage_dungeon_path(@conn, :index), class: "nav-link" %>
+                <%= link "Instances", to: Routes.manage_map_set_instance_path(@conn, :index), class: "nav-link" %>
+                <%= link "Settings", to: Routes.setting_path(@conn, :edit), class: "nav-link" %>
+                <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "nav-link" %>
+              </div>
+            </div>
+          </li>
+          <%   end %>
+
+          <%=  if user_can_edit_dungeons(@current_user) do %>
+          <li class="nav-item"><%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %></li>
+          <%   end %>
+          <li class="nav-item"><%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index), class: "nav-link" %></li>
+          <% end %>
+
+          <li class="nav-item"><%= link "Scores", to: Routes.score_path(@conn, :index), class: "nav-link" %></li>
+          <li class="nav-item"><%= link "Reference", to: Routes.page_path(@conn, :reference), class: "nav-link" %></li>
+
+          <%= if @current_user do %>
+          <li class="nav-item"><%= link "Log out", to: Routes.session_path(@conn, :delete, @current_user), method: "delete", class: "nav-link" %></li>
           <% else %>
-            <li class="nav-item"><%= link "Scores", to: Routes.score_path(@conn, :index), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Reference", to: Routes.page_path(@conn, :reference), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Register", to: Routes.user_path(@conn, :new), class: "nav-link" %></li>
-            <li class="nav-item"><%= link "Log in", to: Routes.session_path(@conn, :new), class: "nav-link" %></li>
+          <li class="nav-item"><%= link "Register", to: Routes.user_path(@conn, :new), class: "nav-link" %></li>
+          <li class="nav-item"><%= link "Log in", to: Routes.session_path(@conn, :new), class: "nav-link" %></li>
           <% end %>
         </ul>
       </div>

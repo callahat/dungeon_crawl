@@ -296,6 +296,10 @@ input#tile_template_character {
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
 }
 
+.navbar-dark .navbar-nav .show .nav-link {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /*
  * Stat sidebar
  */
