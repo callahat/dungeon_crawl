@@ -22,7 +22,7 @@ config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
 
 # Configures Elixir's Logger
 config :logger, :console,
-  format: "$date $time $metadata [$level] $message\n",
+  format: "$date $time [$level] <$metadata> $message\n",
   metadata: [:request_id]
 
 # Import environment specific config. This must remain at the bottom
