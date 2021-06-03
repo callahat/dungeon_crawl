@@ -379,7 +379,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                  locked: false,
                                  broadcasts: [],
                                  responses: []}
-      assert {:error, "Invalid shorthand movement: @i", program = %Program{}} = Parser.parse("/w@i")
+      assert {:error, "Invalid shorthand movement: @i", _program = %Program{}} = Parser.parse("/w@i")
     end
   end
 end

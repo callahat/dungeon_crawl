@@ -23,5 +23,3 @@ config :comeonin, :pbkdf2_rounds, 1
 
 config :dungeon_crawl, :generator, DungeonCrawl.MapGenerators.TestRooms
 
-# It might just be all the puts debugging console statements slowing things, try removing this when those are out
-config :ex_unit, :assert_receive_timeout, 300

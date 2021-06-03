@@ -1,5 +1,6 @@
 defmodule DungeonCrawlWeb.Router do
   use DungeonCrawl.Web, :router
+  import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -57,6 +58,8 @@ defmodule DungeonCrawlWeb.Router do
     resources "/map_sets", ManageMapSetInstanceController, only: [:index, :show, :delete]
        get    "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :show
        delete "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :delete
+
+    live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
 
 #    resources "/tile_templates", ManageTileTemplateController
 #      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version

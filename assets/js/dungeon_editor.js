@@ -207,7 +207,7 @@ let DungeonEditor = {
     }
 
     // Submit is overridden to build the JSON that updates the dungeon map tiles
-    var dungeonForm = document.getElementById("dungeon_form");
+    var dungeonForm = document.getElementById("map");
     if(dungeonForm.addEventListener){
       dungeonForm.addEventListener("submit", ((event) => this.submitForm(event, this)), false);  //Modern browsers
     }else if(dungeonForm.attachEvent){

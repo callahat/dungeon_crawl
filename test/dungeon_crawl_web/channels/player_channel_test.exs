@@ -54,7 +54,7 @@ defmodule DungeonCrawl.PlayerChannelTest do
     push socket, "refresh_dungeon", %{}
     assert_broadcast "change_dungeon", %{dungeon_id: ^instance_id, dungeon_render: _html}
     {:ok, instance_process} = MapSets.instance_process(map_instance.map_set_instance_id, instance_id)
-    assert %{players_visible_coords: pvcs} = InstanceProcess.get_state(instance_process)
+    assert %{players_visible_coords: _pvcs} = InstanceProcess.get_state(instance_process)
   end
 
   test "ping replies with status ok", %{socket: socket} do

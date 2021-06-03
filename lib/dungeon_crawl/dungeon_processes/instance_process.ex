@@ -339,7 +339,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
                                 |> Enum.split_with(fn {_, count} -> count > 5 end)
 
     inactive_players = Enum.into(inactive_players, %{})
-    stone = Keyword.keys(stone)
+    stone = Enum.map(stone, fn {stone_id, _} -> stone_id end)
 
     Process.send_after(self(), :check_on_inactive_players, @inactive_player_timeout)
 

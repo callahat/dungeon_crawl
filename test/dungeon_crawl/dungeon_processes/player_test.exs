@@ -60,10 +60,17 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              character: "✝"} == Map.take(grave, [:z_index, :row, :col, :character])
     assert grave.z_index == 1
 
-    assert grave.script =~ ~r/#GIVE ammo, 4, \?sender/i
-    assert grave.script =~ ~r/#GIVE cash, 420, \?sender/i
-    assert grave.script =~ ~r/#GIVE gems, 1, \?sender/i
-    assert grave.script =~ ~r/#GIVE red_key, 1, \?sender/i
+    assert String.contains? grave.script, """
+                                          You defile the grave
+                                          Found 1 red_key
+                                          Found 1 gems
+                                          Found 420 cash
+                                          Found 4 ammo
+                                          #GIVE red_key, 1, ?sender
+                                          #GIVE gems, 1, ?sender
+                                          #GIVE cash, 420, ?sender
+                                          #GIVE ammo, 4, ?sender
+                                          """
 
     assert 0 = state.map_by_ids[player_map_tile.id].z_index
     assert 0 = state.map_by_ids[player_map_tile.id].parsed_state[:health]

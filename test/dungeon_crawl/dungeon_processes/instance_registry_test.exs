@@ -19,7 +19,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
     InstanceRegistry.create(instance_registry, instance.id)
 
-    assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
+    assert {:ok, _instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
   end
 
   test "lookup_or_create", %{instance_registry: instance_registry} do
@@ -100,9 +100,9 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert instance_id = InstanceRegistry.create(instance_registry, nil, dungeon_map_tiles)
     refute instance_id == map_tile.map_instance_id
     assert {:ok, instance_process2} = InstanceRegistry.lookup(instance_registry, instance_id)
-    assert %Instances{program_contexts: programs,
+    assert %Instances{program_contexts: _programs,
                       map_by_ids: by_ids,
-                      map_by_coords: by_coords,
+                      map_by_coords: _by_coords,
                       state_values: %{}} = InstanceProcess.get_state(instance_process2)
     assert by_ids == %{map_tile.id => Map.merge(map_tile, %{map_instance_id: instance_id, parsed_state: %{}})}
   end
@@ -119,7 +119,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
   test "remove", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
     InstanceRegistry.create(instance_registry, instance.id)
-    assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
+    assert {:ok, _instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
 
     # seems to take a quick micro second for the cast to be done
     InstanceRegistry.remove(instance_registry, instance.id)

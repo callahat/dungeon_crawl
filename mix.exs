@@ -4,7 +4,7 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.9",
+     elixir: "~> 1.10",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
      build_embedded: Mix.env == :prod,
@@ -27,7 +27,7 @@ defmodule DungeonCrawl.Mixfile do
     [mod: {DungeonCrawl.Application, []},
 #     applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
 #                    :phoenix_ecto, :postgrex, :comeonin]]
-      extra_applications: [:logger, :runtime_tools]]
+      extra_applications: [:logger, :runtime_tools, :os_mon]]
   end
 
   # Specifies which paths to compile per environment.
@@ -38,16 +38,19 @@ defmodule DungeonCrawl.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.4.10"},
-     {:phoenix_pubsub, "~> 1.1"},
+    [{:phoenix, "~> 1.5"},
      {:phoenix_ecto, "~> 4.0"},
      {:ecto_sql, "~> 3.0"},
+     {:ecto_psql_extras, "~> 0.2"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 2.11"},
      {:phoenix_live_reload, "~> 1.2", only: :dev},
+     {:phoenix_live_dashboard, "~> 0.4"},
+     {:telemetry_metrics, "~> 0.4"},
+     {:telemetry_poller, "~> 0.4"},
      {:gettext, "~> 0.11"},
      {:jason, "~> 1.0"},
-     {:plug_cowboy, "~> 2.0"},
+     {:plug_cowboy, "~> 2.1"},
      {:comeonin, "~> 2.0"},
      {:excoveralls, "~> 0.10", only: :test}
     ]

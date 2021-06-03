@@ -49,7 +49,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                                                                                  dungeon_admin_channel: dungeon_admin_channel,
                                                                                  state: state} do
       state = %{state | full_rerender: true}
-      assert updated_state = Render.rerender_tiles(state)
+      Render.rerender_tiles(state)
 
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_channel,
