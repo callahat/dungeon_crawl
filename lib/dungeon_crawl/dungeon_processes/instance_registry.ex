@@ -68,8 +68,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   If instance_id is nil, an available one will be assigned, and injected into
   all the `dungeon_map_tiles`. Returns the `instance_id`.
   """
-  def create(server, instance_id, dungeon_map_tiles, spawn_coordinates \\ [], state_values \\ %{}, msiid \\ nil, number \\ nil, adjacent \\ %{}) do
-    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent})
+  def create(server, instance_id, dungeon_map_tiles, spawn_coordinates \\ [], state_values \\ %{}, msiid \\ nil, number \\ nil, adjacent \\ %{}, author \\ nil) do
+    GenServer.call(server, {:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author})
   end
 
   @doc """
@@ -112,18 +112,18 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
 
   # These first two are really to make test setup more convenient
   @impl true
-  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs, map_set_process}) do
+  def handle_call({:create, nil, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author}, _from, {instance_ids, refs, map_set_process}) do
     instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
     dungeon_map_tiles = Enum.map(dungeon_map_tiles, fn(dmt) -> Map.put(dmt, :map_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process})}
+    {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author, {instance_ids, refs, map_set_process})}
   end
 
   @impl true
-  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent}, _from, {instance_ids, refs, map_set_process}) do
+  def handle_call({:create, instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author}, _from, {instance_ids, refs, map_set_process}) do
     if Map.has_key?(instance_ids, instance_id) do
       {:noreply, {instance_ids, refs, map_set_process}}
     else
-      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process})}
+      {:reply, instance_id, _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author, {instance_ids, refs, map_set_process})}
     end
   end
 
@@ -140,7 +140,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
       spawn_locations = Repo.preload(dungeon_instance, :spawn_locations).spawn_locations
       spawn_coordinates = _spawn_coordinates(dungeon_map_tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
       adjacent = DungeonInstances.get_adjacent_maps(dungeon_instance)
-      {:reply, :ok, _create_instance(dungeon_instance.id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process})}
+      author = Repo.preload(dungeon_instance, [map_set: [map_set: :user]]).map_set.map_set.user
+      {:reply, :ok, _create_instance(dungeon_instance.id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author, {instance_ids, refs, map_set_process})}
     end
   end
 
@@ -185,11 +186,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     {:noreply, state}
   end
 
-  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, {instance_ids, refs, map_set_process}) do
+  defp _create_instance(instance_id, dungeon_map_tiles, spawn_coordinates, state_values, msiid, number, adjacent, author, {instance_ids, refs, map_set_process}) do
     {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
     InstanceProcess.set_instance_id(instance_process, instance_id)
     InstanceProcess.set_map_set_instance_id(instance_process, msiid)
     InstanceProcess.set_level_number(instance_process, number)
+    InstanceProcess.set_author(instance_process, author)
     InstanceProcess.set_state_values(instance_process, state_values)
     InstanceProcess.load_map(instance_process, dungeon_map_tiles)
     InstanceProcess.load_spawn_coordinates(instance_process, spawn_coordinates)

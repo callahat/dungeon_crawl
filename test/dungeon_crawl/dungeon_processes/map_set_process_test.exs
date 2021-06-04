@@ -46,7 +46,7 @@ defmodule DungeonCrawl.MapSetProcessTest do
   test "get_author/1", %{map_set_process: map_set_process} do
     user = %User{id: 123}
     MapSetProcess.set_author(map_set_process, user)
-    assert  user == MapSetProcess.get_author(map_set_process)
+    assert user == MapSetProcess.get_author(map_set_process)
   end
 
   test "set_map_set", %{map_set_process: map_set_process, map_set_instance: map_set_instance} do

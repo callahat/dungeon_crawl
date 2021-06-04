@@ -653,8 +653,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     # finds it in the cache and returns it
     assert {^bullet, ^updated_state, :exists} = Instances.get_tile_template("bullet", updated_state)
 
-    # an id is given instead
+    # an id is given instead / template not found
     assert {nil, ^updated_state, :not_found} = Instances.get_tile_template(bullet.id, updated_state)
+
+    # template cannot be since map set has author whom is not an admin nor owner of the non public slug
+    state = %{state | author: %{id: 1, is_admin: false}}
+    assert {nil, ^state, :not_found} = Instances.get_tile_template("bullet", state)
   end
 
   test "gameover/3 - ends game for all players in instance" do
