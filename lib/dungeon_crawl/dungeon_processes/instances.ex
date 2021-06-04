@@ -611,7 +611,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       {tile_template, state, :exists}
     else
       with tile_template when not is_nil(tile_template) <- DungeonCrawl.TileTemplates.get_tile_template_by_slug(slug),
-           true <- is_nil(author) || tile_template.public || author.is_admin || author.id == tile_template.user_id do
+           true <- is_nil(author) ||
+                   is_nil(tile_template.user_id) ||
+                   tile_template.public ||
+                   author.is_admin ||
+                   author.id == tile_template.user_id do
         {tile_template, %{ state | tile_template_slug_cache: Map.put(cache, slug, tile_template) }, :created}
       else
         _ -> {nil, state, :not_found}

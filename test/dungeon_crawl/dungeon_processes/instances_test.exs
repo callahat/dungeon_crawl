@@ -657,6 +657,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     assert {nil, ^updated_state, :not_found} = Instances.get_tile_template(bullet.id, updated_state)
 
     # template cannot be since map set has author whom is not an admin nor owner of the non public slug
+    DungeonCrawl.TileTemplates.update_tile_template(bullet, %{user_id: insert_user().id})
     state = %{state | author: %{id: 1, is_admin: false}}
     assert {nil, ^state, :not_found} = Instances.get_tile_template("bullet", state)
   end
