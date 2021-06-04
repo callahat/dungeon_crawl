@@ -11,7 +11,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   @doc """
   Validates the commands and their inputs of a program. User is used to validate a given tile template id
-  can be used for that user. A normal user will only be able to use a TTID for a template that they own and
+  can be used for that user. A normal user will only be able to use a slug for a template that they own and
   is active.
 
   ## Examples
@@ -40,9 +40,6 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate(program, [], errors, _user), do: {:error, errors, program}
 
   # only definind specific _validate b/c not all commands will have input that could be invalid if it gets past the parser
-  defp _validate(program, [ {line_no, [ :become, [{:ttid, ttid}]]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: BECOME command has deprecated param `TTID:#{ttid}`" | errors], user)
-  end
   defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
     _validate_map_tile_kwargs(line_no, "BECOME", params, program, instructions, errors, user)
   end
@@ -402,7 +399,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       is_nil(tt) ->
         ["Line #{line_no}: #{command} command references a SLUG that does not match a template `#{params[:slug]}`" | errors]
 
-      user.is_admin || (user.id == tt.user_id) ->
+      tt.public || user.is_admin || (user.id == tt.user_id) ->
         errors
 
       true ->

@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.UserControllerTest do
   use DungeonCrawlWeb.ConnCase
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.TileShortlists
+  alias DungeonCrawl.TileTemplates.TileSeeder
 
   import Plug.Conn, only: [assign: 3, get_session: 2]
 
@@ -9,6 +10,8 @@ defmodule DungeonCrawlWeb.UserControllerTest do
   @invalid_attrs %{name: ""}
 
   setup %{conn: conn} = config do
+    TileSeeder.explosion()
+
     if username = config[:login_as] do
       user = insert_user(%{username: username})
       conn = assign(build_conn(), :current_user, user)
@@ -27,7 +30,7 @@ defmodule DungeonCrawlWeb.UserControllerTest do
     conn = post conn, user_path(conn, :create), user: @valid_attrs
     assert redirected_to(conn) == page_path(conn, :index)
     assert user = Repo.get_by(User, Map.delete(@valid_attrs, :password))
-    assert length(TileShortlists.list_tiles(user)) == 16
+    assert length(TileShortlists.list_tiles(user)) == 20
   end
 
   test "generates the user_id_hash from the session", %{conn: conn} do

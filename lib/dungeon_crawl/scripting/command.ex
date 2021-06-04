@@ -100,19 +100,17 @@ defmodule DungeonCrawl.Scripting.Command do
             object_id: object_id,
             state: updated_state }
   """
-  def become(%Runner{} = runner_state, [{:ttid, ttid}]) do
-    tile_template = TileTemplates.get_tile_template!(ttid)
-    Logger.warn "DEPRECATION - BECOME command used `TTID:#{ttid}`, replace this with `slug: #{tile_template.slug}`"
-    new_attrs = TileTemplates.copy_fields(tile_template)
-    _become(runner_state, new_attrs, %{})
-  end
   def become(%Runner{} = runner_state, [params]) do
     {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
+
     new_attrs = TileTemplates.copy_fields(slug_tile)
                 |> Map.merge(Map.take(params, [:name, :character, :color, :background_color]))
+
     new_state_attrs = Map.take(params, Map.keys(params) -- Map.keys(%TileTemplates.TileTemplate{}))
+
     _become(runner_state, new_attrs, new_state_attrs)
   end
+  def _become(runner_state, new_attrs, new_state_attrs) when new_attrs == %{} and new_state_attrs == %{}, do: runner_state
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
     new_attrs = resolve_variables(runner_state, new_attrs)
     new_state_attrs = resolve_variables(runner_state, new_state_attrs)

@@ -3,6 +3,7 @@ defmodule DungeonCrawl.TileShortlistsTest do
 
   alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileShortlists.TileShortlist
+  alias DungeonCrawl.TileTemplates.TileSeeder
 
   describe "tile_shortlist" do
     def tile_shortlist_fixture(user_id, attrs \\ %{}) do
@@ -13,6 +14,8 @@ defmodule DungeonCrawl.TileShortlistsTest do
     end
 
     setup do
+      TileSeeder.explosion()
+
       user1 = insert_user(%{name: "one"})
       user2 = insert_user(%{name: "two"})
 
@@ -103,7 +106,7 @@ defmodule DungeonCrawl.TileShortlistsTest do
       assert :ok = TileShortlists.seed_shortlist(config.user1)
       assert [tile1a, tile2a | seeded_tiles] = TileShortlists.list_tiles(config.user1)
 
-      assert length(seeded_tiles) == 16
+      assert length(seeded_tiles) == 20
       refute Enum.member?(seeded_tiles, tile1)
       refute Enum.member?(seeded_tiles, tile2)
 

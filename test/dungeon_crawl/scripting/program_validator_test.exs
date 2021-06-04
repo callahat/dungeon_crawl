@@ -33,7 +33,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     """
   end
 
-  def script_with_bad_command_params(slug \\ "", ttid2 \\ 1) do
+  def script_with_bad_command_params(slug \\ "") do
     """
     #END
     :TOUCH
@@ -41,7 +41,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     You touched it
     #IF @thing, NOLABEL
     #BECOME slug: #{slug}
-    #BECOME TTID:#{ttid2}
+    @color = green
     #BECOME character:  , color:red
     #MOVE bananadyne, true
     #MOVE north, false
@@ -142,14 +142,12 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
       user = insert_user()
       admin = insert_user(%{is_admin: true})
       tt = insert_tile_template(%{name: "Original Floor", active: true, user_id: admin.id})
-      tt2 = insert_tile_template(%{user_id: user.id, active: true})
 
-      {:ok, program} = Parser.parse(script_with_bad_command_params(tt.slug, tt2.id))
+      {:ok, program} = Parser.parse(script_with_bad_command_params(tt.slug))
       assert {:error,
               ["Line 3: BECOME command has errors: `color - has invalid format`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
                "Line 6: BECOME command references a SLUG that you can't use `#{tt.slug}`",
-               "Line 7: BECOME command has deprecated param `TTID:#{tt2.id}`",
                "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`",
                "Line 9: MOVE command references invalid direction `bananadyne`",
                "Line 12: MOVE command references invalid direction `sooth`",
@@ -207,7 +205,6 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
       assert {:error,
               ["Line 3: BECOME command has errors: `color - has invalid format`",
                "Line 5: IF command references nonexistant label `NOLABEL`",
-               "Line 7: BECOME command has deprecated param `TTID:#{tt2.id}`",
                "Line 8: BECOME command params not being detected as kwargs `[\"character:\", \"color:red\"]`",
                "Line 9: MOVE command references invalid direction `bananadyne`",
                "Line 12: MOVE command references invalid direction `sooth`",
