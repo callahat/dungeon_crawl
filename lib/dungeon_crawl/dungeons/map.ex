@@ -1,8 +1,10 @@
-defmodule DungeonCrawl.Dungeon.Map do
+defmodule DungeonCrawl.Dungeons.Map do
   use Ecto.Schema
   import Ecto.Changeset
 
   alias DungeonCrawl.Admin
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
   # TODO: remove some of these fields that have been moved to map_sets, rename dungeons to map to standardize
   schema "dungeons" do
@@ -18,11 +20,11 @@ defmodule DungeonCrawl.Dungeon.Map do
     field :number_east, :integer
     field :number_west, :integer
 
-    has_many :map_instances, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_id
-    has_many :dungeon_map_tiles, DungeonCrawl.Dungeon.MapTile, foreign_key: :dungeon_id, on_delete: :delete_all
-    has_many :spawn_locations, DungeonCrawl.Dungeon.SpawnLocation, foreign_key: :dungeon_id, on_delete: :delete_all
+    has_many :map_instances, DungeonInstances.Map, foreign_key: :map_id
+    has_many :dungeon_map_tiles, Dungeons.MapTile, foreign_key: :dungeon_id, on_delete: :delete_all
+    has_many :spawn_locations, Dungeons.SpawnLocation, foreign_key: :dungeon_id, on_delete: :delete_all
     has_many :locations, through: [:map_instances, :locations], on_delete: :delete_all
-    belongs_to :map_set, DungeonCrawl.Dungeon.MapSet
+    belongs_to :map_set, Dungeons.MapSet
 
     timestamps()
   end

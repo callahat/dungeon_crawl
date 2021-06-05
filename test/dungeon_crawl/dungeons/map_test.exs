@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.Dungeon.MapTest do
+defmodule DungeonCrawl.Dungeons.MapTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.Dungeon.Map
+  alias DungeonCrawl.Dungeons.Map
 
   @valid_attrs %{name: "BobDungeon", width: 42, height: 40, map_set_id: 1}
   @invalid_attrs %{}

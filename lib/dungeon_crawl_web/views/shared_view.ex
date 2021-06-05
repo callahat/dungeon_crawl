@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
 
@@ -20,7 +20,7 @@ defmodule DungeonCrawlWeb.SharedView do
     _dungeon_as_table(dungeon, height, width)
   end
 
-  def editor_dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
+  def editor_dungeon_as_table(%Dungeons.Map{} = dungeon, height, width) do
     _edge(width, "north") <>
     _editor_dungeon_table(dungeon.dungeon_map_tiles, height, width) <>
     _edge(width, "south")
@@ -31,7 +31,7 @@ defmodule DungeonCrawlWeb.SharedView do
     "<tr><td class='edge'></td>#{ incells }<td class='edge'></td></tr>"
   end
 
-  defp _dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
+  defp _dungeon_as_table(%Dungeons.Map{} = dungeon, height, width) do
     dungeon.dungeon_map_tiles
     |> _dungeon_table(height, width)
   end

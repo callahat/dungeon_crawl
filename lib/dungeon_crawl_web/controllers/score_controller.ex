@@ -2,12 +2,12 @@ defmodule DungeonCrawlWeb.ScoreController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Scores
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Account
 
   def index(conn, %{"map_set_id" => map_set_id, "score_id" => score_id}) do
-    map_set = Dungeon.get_map_set(map_set_id)
-    other_map_sets = Dungeon.get_map_sets(map_set.line_identifier)
+    map_set = Dungeons.get_map_set(map_set_id)
+    other_map_sets = Dungeons.get_map_sets(map_set.line_identifier)
     scores = Scores.top_scores_for_map_set(map_set_id)
     score = Repo.preload(Scores.get_ranked_score(map_set_id, score_id), :map_set)
     render(conn, "index.html", scores: scores, details: %{who: map_set.name,
@@ -17,8 +17,8 @@ defmodule DungeonCrawlWeb.ScoreController do
   end
 
   def index(conn, %{"map_set_id" => map_set_id}) do
-    map_set = Dungeon.get_map_set(map_set_id)
-    other_map_sets = Dungeon.get_map_sets(map_set.line_identifier)
+    map_set = Dungeons.get_map_set(map_set_id)
+    other_map_sets = Dungeons.get_map_sets(map_set.line_identifier)
     scores = Scores.top_scores_for_map_set(map_set_id)
     render(conn, "index.html", scores: scores, details: %{who: map_set.name,
                                                           other_map_sets: other_map_sets,

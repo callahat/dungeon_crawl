@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.Dungeon do
+defmodule DungeonCrawl.Dungeons do
   alias Ecto.Multi
 
   @moduledoc """
@@ -8,10 +8,14 @@ defmodule DungeonCrawl.Dungeon do
   import Ecto.Query, warn: false
   alias DungeonCrawl.Repo
 
-  alias DungeonCrawl.Dungeon.MapSet
-  alias DungeonCrawl.Dungeon.Map
-  alias DungeonCrawl.Dungeon.MapTile
-  alias DungeonCrawl.Dungeon.SpawnLocation
+  alias DungeonCrawl.Account.User
+
+  alias DungeonCrawl.Dungeons.MapSet
+  alias DungeonCrawl.Dungeons.Map
+  alias DungeonCrawl.Dungeons.MapTile
+  alias DungeonCrawl.Dungeons.SpawnLocation
+
+  alias DungeonCrawl.DungeonInstances
 
   alias DungeonCrawl.Scores.Score
 
@@ -69,7 +73,7 @@ defmodule DungeonCrawl.Dungeon do
       [%MapSet{}, ...]
 
   """
-  def list_map_sets(%DungeonCrawl.Account.User{} = user) do
+  def list_map_sets(%User{} = user) do
     Repo.all(from ms in MapSet,
              where: ms.user_id == ^user.id,
              where: is_nil(ms.deleted_at))
@@ -138,7 +142,7 @@ defmodule DungeonCrawl.Dungeon do
   """
   def instance_count(%MapSet{id: map_set_id}), do: instance_count(map_set_id)
   def instance_count(map_set_id) do
-    Repo.one(from instance in DungeonCrawl.DungeonInstances.MapSet,
+    Repo.one(from instance in DungeonInstances.MapSet,
                where: instance.map_set_id == ^map_set_id,
                group_by: instance.map_set_id,
                select: count(instance.map_set_id)) || 0

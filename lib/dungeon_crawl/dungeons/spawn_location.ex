@@ -1,11 +1,13 @@
-defmodule DungeonCrawl.Dungeon.SpawnLocation do
+defmodule DungeonCrawl.Dungeons.SpawnLocation do
   use Ecto.Schema
   import Ecto.Changeset
+
+  alias DungeonCrawl.Dungeons.Map
 
   schema "spawn_locations" do
     field :col, :integer
     field :row, :integer
-    belongs_to :dungeon, DungeonCrawl.Dungeon.Map
+    belongs_to :dungeon, Map
   end
 
   @doc false

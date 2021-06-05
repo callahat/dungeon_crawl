@@ -11,7 +11,7 @@ defmodule DungeonCrawl.DungeonInstances.MapSet do
     field :passcode, :string
     field :is_private, :boolean, default: false
 
-    belongs_to :map_set, DungeonCrawl.Dungeon.MapSet
+    belongs_to :map_set, DungeonCrawl.Dungeons.MapSet
     has_many :maps, DungeonCrawl.DungeonInstances.Map, foreign_key: :map_set_instance_id, on_delete: :delete_all
     has_many :locations, through: [:maps, :dungeon_map_tiles, :player_location], on_delete: :delete_all
 

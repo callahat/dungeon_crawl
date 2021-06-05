@@ -1,5 +1,5 @@
 defmodule DungeonCrawlWeb.Crawler do
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Instances
@@ -30,7 +30,7 @@ defmodule DungeonCrawlWeb.Crawler do
      {where.id, location}
   end
 
-  def join_and_broadcast(%Dungeon.MapSet{} = where, user_id_hash, user_avatar, is_private) do
+  def join_and_broadcast(%Dungeons.MapSet{} = where, user_id_hash, user_avatar, is_private) do
     {:ok, %{map_set: map_set_instance}} = DungeonInstances.create_map_set(where, is_private)
 
     # ensure all map instances are running

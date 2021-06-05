@@ -98,7 +98,7 @@
               </div>
               <div class="col-6">
                 <div class="title-map">
-                <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", dungeon: DungeonCrawl.Repo.preload(Dungeon.get_title_map(map_set), :dungeon_map_tiles)) %>
+                <%= render(SharedView, "dungeon.html", dungeon: Repo.preload(Dungeons.get_title_map(map_set), :dungeon_map_tiles)) %>
                 </div>
               </div>
               </div>

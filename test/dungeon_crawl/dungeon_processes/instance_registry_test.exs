@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.InstanceRegistryTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonProcesses.{InstanceRegistry,InstanceProcess,Instances}
   alias DungeonCrawl.Scripting.Program
 
@@ -24,7 +25,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
   test "lookup_or_create", %{instance_registry: instance_registry} do
     instance = insert_stubbed_dungeon_instance()
-    DungeonCrawl.Dungeon.set_spawn_locations(instance.map_id, [{1,1}])
+    Dungeons.set_spawn_locations(instance.map_id, [{1,1}])
 
     assert {:ok, instance_process} = InstanceRegistry.lookup_or_create(instance_registry, instance.id)
     # Finds the already existing one
@@ -44,7 +45,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     map_tile = Repo.get_by(DungeonCrawl.DungeonInstances.MapTile, %{map_instance_id: instance.id, row: 1, col: 2})
 
     Repo.preload(instance, [map_set: :map_set]).map_set.map_set
-    |> DungeonCrawl.Dungeon.update_map_set(%{user_id: user.id})
+    |> Dungeons.update_map_set(%{user_id: user.id})
 
     assert :ok = InstanceRegistry.create(instance_registry, instance.id)
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)

@@ -38,8 +38,8 @@
           <td><%= tile_template.slug %></td>
           <td><%= tile_template.name %></td>
           <td><%= tile_template.group_name %></td>
-          <td><pre class="tile_template_preview"><%= DungeonCrawlWeb.SharedView.tile_and_style(tile_template, :safe) %></pre></td>
-          <td><%= DungeonCrawl.Dungeon.tile_template_reference_count(tile_template) %></td>
+          <td><pre class="tile_template_preview"><%= SharedView.tile_and_style(tile_template, :safe) %></pre></td>
+          <td><%= Dungeons.tile_template_reference_count(tile_template) %></td>
           <td><%= if tile_template.public, do: "Y", else: "N" %></td>
           <td><%= if tile_template.active, do: "Y", else: "N" %></td>
           <td><%= tile_template.version %></td>

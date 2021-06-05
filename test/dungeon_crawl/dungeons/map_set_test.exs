@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.Dungeon.MapSetTest do
+defmodule DungeonCrawl.Dungeons.MapSetTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.Dungeon.MapSet
+  alias DungeonCrawl.Dungeons.MapSet
 
   @valid_attrs %{name: "BobDungeon", version: 1}
   @invalid_attrs %{}

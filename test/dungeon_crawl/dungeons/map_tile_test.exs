@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.Dungeon.MapTileTest do
+defmodule DungeonCrawl.Dungeons.MapTileTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.Dungeon.MapTile
+  alias DungeonCrawl.Dungeons.MapTile
 
   @valid_attrs %{row: 42, col: 42, tile_template_id: 2, dungeon_id: 1}
   @invalid_attrs %{}

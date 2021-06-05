@@ -2,9 +2,9 @@ defmodule DungeonCrawl.DungeonInstances.MapTileTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Player.Location
-  alias DungeonCrawl.Dungeon.MapTile
+  alias DungeonCrawl.DungeonInstances.MapTile
 
-  @valid_attrs %{row: 42, col: 42, z_index: 1, tile_template_id: 2, dungeon_id: 1}
+  @valid_attrs %{row: 42, col: 42, z_index: 1, tile_template_id: 2, map_instance_id: 1}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

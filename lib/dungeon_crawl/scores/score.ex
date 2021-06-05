@@ -14,7 +14,7 @@ defmodule DungeonCrawl.Scores.Score do
     field :user, :map, virtual: true
     field :place, :integer, virtual: true
 
-    belongs_to :map_set, DungeonCrawl.Dungeon.MapSet, foreign_key: :map_set_id
+    belongs_to :map_set, DungeonCrawl.Dungeons.MapSet, foreign_key: :map_set_id
 
     timestamps()
   end

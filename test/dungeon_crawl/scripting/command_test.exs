@@ -374,7 +374,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "GAMEOVER" do
-    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self())
+    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self(), DungeonCrawl.GameoverCommand.InstanceMock)
 
     stubbed_map_set_instance = insert_stubbed_map_set_instance(%{}, %{}, [
       [

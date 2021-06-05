@@ -1,7 +1,8 @@
-defmodule DungeonCrawl.Dungeon.MapTile do
+defmodule DungeonCrawl.Dungeons.MapTile do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias DungeonCrawl.Dungeons.Map
   # This is where the validations for color, background_color, and character live for now.
   alias DungeonCrawl.TileTemplates.TileTemplate
 
@@ -25,8 +26,8 @@ defmodule DungeonCrawl.Dungeon.MapTile do
     field :animate_characters, :string
     field :animate_period, :integer
 
-    belongs_to :dungeon, DungeonCrawl.Dungeon.Map
-    belongs_to :tile_template, DungeonCrawl.TileTemplates.TileTemplate
+    belongs_to :dungeon, Map
+    belongs_to :tile_template, TileTemplate
   end
 
   @doc false

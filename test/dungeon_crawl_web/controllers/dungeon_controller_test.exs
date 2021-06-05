@@ -2,14 +2,15 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.Admin
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.Dungeons.{MapSet, MapTile}
   alias DungeonCrawl.Player
   @create_attrs %{name: "some name"}
   @update_attrs %{name: "new name"}
   @invalid_attrs %{name: ""}
 
   def fixture(:map_set, user_id) do
-    {:ok, map_set} = Dungeon.create_map_set(Map.put(@create_attrs, :user_id, user_id))
+    {:ok, map_set} = Dungeons.create_map_set(Map.put(@create_attrs, :user_id, user_id))
     map_set
   end
 
@@ -154,7 +155,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
 
     test "cannot edit active dungeon", %{conn: conn, map_set: map_set} do
-      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      {:ok, map_set} = Dungeons.update_map_set(map_set, %{active: true})
       conn = get conn, dungeon_path(conn, :edit, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
@@ -176,7 +177,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
 
     test "cannot update active dungeon", %{conn: conn, map_set: map_set} do
-      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      {:ok, map_set} = Dungeons.update_map_set(map_set, %{active: true})
       conn = put conn, dungeon_path(conn, :update, map_set), map_set: @update_attrs
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
@@ -189,7 +190,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "soft deletes chosen dungeon", %{conn: conn, map_set: map_set} do
       conn = delete conn, dungeon_path(conn, :delete, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :index)
-      refute Repo.get!(Dungeon.MapSet, map_set.id).deleted_at == nil
+      refute Repo.get!(MapSet, map_set.id).deleted_at == nil
     end
   end
 
@@ -199,13 +200,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "activtes chosen dungeon", %{conn: conn, map_set: map_set} do
       conn = put conn, dungeon_activate_path(conn, :activate, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
-      assert Repo.get!(Dungeon.MapSet, map_set.id).active
+      assert Repo.get!(MapSet, map_set.id).active
     end
 
     test "problem activating chosen dungeon", %{conn: conn, map_set: map_set} do
       dungeon = insert_stubbed_dungeon %{map_set_id: map_set.id, width: 40, height: 40}
       inactive_tile_template = insert_tile_template(%{name: "INT", active: false})
-      Repo.insert_all(Dungeon.MapTile, [%{dungeon_id: dungeon.id, row: 1, col: 1, tile_template_id: inactive_tile_template.id, z_index: 0}] )
+      Repo.insert_all(MapTile, [%{dungeon_id: dungeon.id, row: 1, col: 1, tile_template_id: inactive_tile_template.id, z_index: 0}] )
       conn = put conn, dungeon_activate_path(conn, :activate, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
       assert get_flash(conn, :error) == "Inactive tiles: INT (id: #{inactive_tile_template.id}) 1 times"
@@ -215,8 +216,8 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       new_map_set = insert_stubbed_map_set(%{previous_version_id: map_set.id, user_id: conn.assigns[:current_user].id})
       conn = put conn, dungeon_activate_path(conn, :activate, new_map_set)
       assert redirected_to(conn) == dungeon_path(conn, :show, new_map_set)
-      assert Repo.get!(Dungeon.MapSet, map_set.id).deleted_at
-      assert Repo.get!(Dungeon.MapSet, new_map_set.id).active
+      assert Repo.get!(MapSet, map_set.id).deleted_at
+      assert Repo.get!(MapSet, new_map_set.id).active
     end
   end
 
@@ -230,7 +231,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
 
     test "does not create a new version if dungeon already has a next version", %{conn: conn, map_set: map_set} do
-      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      {:ok, map_set} = Dungeons.update_map_set(map_set, %{active: true})
       _new_map_set = insert_stubbed_map_set(%{previous_version_id: map_set.id, user_id: conn.assigns[:current_user].id})
       conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
       assert redirected_to(conn) == dungeon_path(conn, :show, map_set)
@@ -239,7 +240,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "does not create a new version if dungeon fails validation", %{conn: conn, map_set: map_set} do
       insert_stubbed_dungeon(%{map_set_id: map_set.id, height: 40, width: 40})
-      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      {:ok, map_set} = Dungeons.update_map_set(map_set, %{active: true})
       Admin.update_setting(%{autogen_height: 20, autogen_width: 20, max_width: 20, max_height: 20})
       conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
       assert get_flash(conn, :error) == "Cannot create new version; dimensions restricted?"
@@ -247,12 +248,12 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
 
     test "creates a new version", %{conn: conn, map_set: map_set} do
-      {:ok, map_set} = Dungeon.update_map_set(map_set, %{active: true})
+      {:ok, map_set} = Dungeons.update_map_set(map_set, %{active: true})
       conn = post conn, dungeon_new_version_path(conn, :new_version, map_set)
-      new_version = Repo.get_by!(Dungeon.MapSet, %{previous_version_id: map_set.id})
+      new_version = Repo.get_by!(MapSet, %{previous_version_id: map_set.id})
       assert redirected_to(conn) == dungeon_path(conn, :show, new_version)
-      refute Repo.get!(Dungeon.MapSet, map_set.id).deleted_at
-      refute Repo.get!(Dungeon.MapSet, new_version.id).active
+      refute Repo.get!(MapSet, map_set.id).deleted_at
+      refute Repo.get!(MapSet, new_version.id).active
     end
   end
 

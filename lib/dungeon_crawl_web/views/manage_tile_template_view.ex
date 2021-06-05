@@ -1,8 +1,10 @@
 defmodule DungeonCrawlWeb.ManageTileTemplateView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawlWeb.SharedView
 
   def activate_or_new_version_button(conn, tile_template) do
     if tile_template.active do

@@ -8,8 +8,6 @@ defmodule DungeonCrawl.InstanceProcessTest do
   alias DungeonCrawl.DungeonInstances.MapTile
   alias DungeonCrawl.Player.Location
 
-  require DungeonCrawl.InstancesMockFactory
-
   # A lot of these tests are semi redundant, as the code that actually modifies the state lives
   # in the Instances module. Testing this also effectively hits the Instances code,
   # which also has its own set of similar tests.
@@ -661,7 +659,7 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "gameover/3", %{instance_process: instance_process, map_instance: map_instance} do
-    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self())
+    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self(), DungeonCrawl.Gameover3.InstanceMock)
 
     map_tiles = [
         %{character: "B", row: 1, col: 2, z_index: 0, state: "damage: 5", name: "damager"},

@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.Dungeon.SpawnLocationTest do
+defmodule DungeonCrawl.Dungeons.SpawnLocationTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.Dungeon.SpawnLocation
+  alias DungeonCrawl.Dungeons.SpawnLocation
 
   @valid_attrs %{row: 19, col: 39, dungeon_id: 1}
   @invalid_attrs %{}

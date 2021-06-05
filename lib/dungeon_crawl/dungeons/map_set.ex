@@ -1,9 +1,13 @@
-defmodule DungeonCrawl.Dungeon.MapSet do
+defmodule DungeonCrawl.Dungeons.MapSet do
   use Ecto.Schema
   import Ecto.Changeset
 
   alias DungeonCrawl.Admin
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.Account.User
+  alias DungeonCrawl.Scores.Score
 
   schema "map_sets" do
     field :name, :string
@@ -19,15 +23,15 @@ defmodule DungeonCrawl.Dungeon.MapSet do
     field :score_count, :integer, virtual: true, default: 0
     field :title_number, :integer
 
-    has_many :map_set_instances, DungeonCrawl.DungeonInstances.MapSet, foreign_key: :map_set_id, on_delete: :delete_all
-    has_many :dungeons, DungeonCrawl.Dungeon.Map, foreign_key: :map_set_id, on_delete: :delete_all
+    has_many :map_set_instances, DungeonInstances.MapSet, foreign_key: :map_set_id, on_delete: :delete_all
+    has_many :dungeons, Dungeons.Map, foreign_key: :map_set_id, on_delete: :delete_all
     has_many :spawn_locations, through: [:dungeons, :spawn_locations], on_delete: :delete_all
     has_many :locations, through: [:map_set_instances, :locations], on_delete: :delete_all
-    has_many :next_versions, DungeonCrawl.Dungeon.MapSet, foreign_key: :previous_version_id, on_delete: :nilify_all
-    has_many :scores, DungeonCrawl.Scores.Score, foreign_key: :map_set_id, on_delete: :delete_all
+    has_many :next_versions, Dungeons.MapSet, foreign_key: :previous_version_id, on_delete: :nilify_all
+    has_many :scores, Score, foreign_key: :map_set_id, on_delete: :delete_all
 
-    belongs_to :previous_version, DungeonCrawl.Dungeon.MapSet, foreign_key: :previous_version_id
-    belongs_to :user, DungeonCrawl.Account.User
+    belongs_to :previous_version, Dungeons.MapSet, foreign_key: :previous_version_id
+    belongs_to :user, User
 
     timestamps()
   end

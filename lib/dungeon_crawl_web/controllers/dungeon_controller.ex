@@ -2,8 +2,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Admin
-  alias DungeonCrawl.Dungeon
-  alias DungeonCrawl.Dungeon.MapSet
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.Dungeons.MapSet
   alias DungeonCrawl.Player
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
@@ -15,13 +15,13 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
-    map_sets = Dungeon.list_map_sets(conn.assigns.current_user)
+    map_sets = Dungeons.list_map_sets(conn.assigns.current_user)
                |> Repo.preload(:dungeons)
     render(conn, "index.html", map_sets: map_sets)
   end
 
   def new(conn, _params) do
-    changeset = Dungeon.change_map_set(%MapSet{})
+    changeset = Dungeons.change_map_set(%MapSet{})
     render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
   end
 
@@ -31,7 +31,7 @@ defmodule DungeonCrawlWeb.DungeonController do
         {key, value}, acc when is_binary(key) -> Elixir.Map.put(acc, String.to_existing_atom(key), value)
        end)
 
-    case Dungeon.create_map_set(Elixir.Map.put(atomized_dungeon_params, :user_id, conn.assigns.current_user.id)) do
+    case Dungeons.create_map_set(Elixir.Map.put(atomized_dungeon_params, :user_id, conn.assigns.current_user.id)) do
       {:ok, map_set} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
@@ -50,7 +50,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     top_level = Enum.at(map_set.dungeons, 0)
     top_level = if top_level, do: top_level.number, else: nil
 
-    title_map = Dungeon.get_title_map(map_set)
+    title_map = Dungeons.get_title_map(map_set)
 
     render(conn, "show.html", map_set: map_set, owner_name: owner_name, top_level: top_level, title_map: title_map)
   end
@@ -58,7 +58,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   def edit(conn, %{"id" => _id}) do
     map_set = conn.assigns.map_set
 
-    changeset = Dungeon.change_map_set(map_set)
+    changeset = Dungeons.change_map_set(map_set)
 
     render(conn, "edit.html", map_set: map_set, changeset: changeset, max_dimensions: _max_dimensions())
   end
@@ -66,7 +66,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   def update(conn, %{"id" => _id, "map_set" => map_set_params}) do
     map_set = conn.assigns.map_set
 
-    case Dungeon.update_map_set(map_set, map_set_params) do
+    case Dungeons.update_map_set(map_set, map_set_params) do
       {:ok, map_set} ->
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
@@ -78,9 +78,9 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def delete(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set #Dungeon.get_map!(id)
+    map_set = conn.assigns.map_set
 
-    Dungeon.delete_map_set!(map_set)
+    Dungeons.delete_map_set!(map_set)
 
     conn
     |> put_flash(:info, "Dungeon deleted successfully.")
@@ -90,7 +90,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   def activate(conn, %{"id" => _id}) do
     map_set = conn.assigns.map_set
 
-    case Dungeon.activate_map_set(map_set) do
+    case Dungeons.activate_map_set(map_set) do
       {:ok, active_map_set} ->
         conn
         |> put_flash(:info, "Dungeon activated.")
@@ -106,7 +106,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   def new_version(conn, %{"id" => _id}) do
     map_set = conn.assigns.map_set
 
-    case Dungeon.create_new_map_set_version(map_set) do
+    case Dungeons.create_new_map_set_version(map_set) do
       {:ok, new_map_set_version} ->
         conn
         |> put_flash(:info, "New dungeon version created successfully.")
@@ -157,7 +157,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   defp assign_map_set(conn, _opts) do
-    map_set =  Dungeon.get_map_set!(conn.params["id"] || conn.params["map_set_id"])
+    map_set =  Dungeons.get_map_set!(conn.params["id"] || conn.params["map_set_id"])
 
     if map_set.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
       conn

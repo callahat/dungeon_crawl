@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   use DungeonCrawlWeb.ConnCase#, async: true
 
   import DungeonCrawlWeb.SharedView
-  alias DungeonCrawl.Dungeon.MapTile
+  alias DungeonCrawl.Dungeons.MapTile
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
 
   @copyable_attrs [:character, :color, :background_color, :state, :script]

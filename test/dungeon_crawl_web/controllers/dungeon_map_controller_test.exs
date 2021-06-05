@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.Admin
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
   @create_attrs %{name: "some name", height: 40, width: 80}
   @update_attrs %{name: "new name", height: 40, width: 40}
   @invalid_attrs %{height: 1}
@@ -22,10 +22,10 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
 
   def fixture(:dungeon, user_id) do
     map_set = fixture(:map_set, user_id)
-    {:ok, dungeon} = Dungeon.create_map(Map.merge(@create_attrs, %{user_id: user_id, map_set_id: map_set.id}))
+    {:ok, dungeon} = Dungeons.create_map(Map.merge(@create_attrs, %{user_id: user_id, map_set_id: map_set.id}))
     space = insert_tile_template(%{active: true})
-    Dungeon.create_map_tile(%{dungeon_id: dungeon.id, row: 1, col: 1, character: ".", tile_template_id: space.id})
-    Dungeon.set_spawn_locations(dungeon.id, [{1,1,}])
+    Dungeons.create_map_tile(%{dungeon_id: dungeon.id, row: 1, col: 1, character: ".", tile_template_id: space.id})
+    Dungeons.set_spawn_locations(dungeon.id, [{1,1,}])
     dungeon
   end
 
@@ -158,7 +158,7 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
     end
 
     test "cannot edit active dungeon", %{conn: conn, dungeon: dungeon} do
-      {:ok, _map_set} = Dungeon.update_map_set(Repo.preload(dungeon, :map_set).map_set, %{active: true})
+      {:ok, _map_set} = Dungeons.update_map_set(Repo.preload(dungeon, :map_set).map_set, %{active: true})
       conn = get conn, dungeon_map_path(conn, :edit, dungeon.map_set_id, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon.map_set_id)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
@@ -166,7 +166,7 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
 
     test "dungeon is in a map set belonging to someone else", %{conn: conn, dungeon: dungeon} do
       other_user = insert_user()
-      {:ok, _map_set} = Dungeon.update_map_set(Repo.preload(dungeon, :map_set).map_set, %{user_id: other_user.id})
+      {:ok, _map_set} = Dungeons.update_map_set(Repo.preload(dungeon, :map_set).map_set, %{user_id: other_user.id})
       conn = get conn, dungeon_map_path(conn, :edit, dungeon.map_set_id, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
@@ -191,8 +191,8 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
 
     test "redirects when data is valid", %{conn: conn, dungeon: dungeon} do
       tile_template = insert_tile_template(%{character: "X", color: "white", background_color: "blue"})
-      dmt_attrs = Map.take(Dungeon.get_map_tile(dungeon.id, 1, 1), [:dungeon_id, :row, :col, :tile_template_id, :character, :color, :background_color])
-      {:ok, other_tile} = Dungeon.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
+      dmt_attrs = Map.take(Dungeons.get_map_tile(dungeon.id, 1, 1), [:dungeon_id, :row, :col, :tile_template_id, :character, :color, :background_color])
+      {:ok, other_tile} = Dungeons.create_map_tile(Map.put(dmt_attrs, :z_index, -1))
 
       tile_data = %{tile_changes: "[{\"row\": 1, \"col\": 1, \"z_index\": 0, \"tile_template_id\": #{tile_template.id}, \"color\": \"red\"}]",
                     tile_additions: "[{\"row\": 1, \"col\": 1, \"z_index\": 1, \"tile_template_id\": #{tile_template.id}, \"color\": \"blue\"},{\"row\": 1, \"col\": 2, \"z_index\": 1, \"character\": \"#{tile_template.character}\", \"color\": \"gold\", \"tile_template_id\": #{tile_template.id + 30}}]",
@@ -202,24 +202,24 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
       conn = put conn, dungeon_map_path(conn, :update, dungeon.map_set_id, dungeon),
                    map: Elixir.Map.merge(@update_attrs, tile_data)
 
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).character == tile_template.character
-      refute Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == tile_template.color
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).color == "red"
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 0).background_color == tile_template.background_color
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, 0).character == tile_template.character
+      refute Dungeons.get_map_tile(dungeon.id, 1, 1, 0).color == tile_template.color
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, 0).color == "red"
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, 0).background_color == tile_template.background_color
 
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).character == other_tile.character
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).color == other_tile.color
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, -1).background_color == other_tile.background_color
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, -1).character == other_tile.character
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, -1).color == other_tile.color
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, -1).background_color == other_tile.background_color
 
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).character == tile_template.character
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).color == "blue"
-      assert Dungeon.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, 1).character == tile_template.character
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, 1).color == "blue"
+      assert Dungeons.get_map_tile(dungeon.id, 1, 1, 1).background_color == tile_template.background_color
 
-      assert tile_without_valid_template = Dungeon.get_map_tile(dungeon.id, 1, 2, 1)
+      assert tile_without_valid_template = Dungeons.get_map_tile(dungeon.id, 1, 2, 1)
       assert tile_without_valid_template.character == tile_template.character
       assert tile_without_valid_template.color == "gold"
 
-      refute Dungeon.get_map_tile(dungeon.id, 0, 1, 1)
+      refute Dungeons.get_map_tile(dungeon.id, 0, 1, 1)
 
       spawn_locations = DungeonCrawl.Repo.preload(dungeon, :spawn_locations).spawn_locations
       assert [%{row: 4, col: 1}, %{row: 4, col: 2}, %{row: 4, col: 3}] = spawn_locations
@@ -233,7 +233,7 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
     end
 
     test "cannot update active dungeon", %{conn: conn, dungeon: dungeon} do
-      {:ok, _map_set} = Dungeon.update_map_set(Repo.preload(dungeon, :map_set).map_set, %{active: true})
+      {:ok, _map_set} = Dungeons.update_map_set(Repo.preload(dungeon, :map_set).map_set, %{active: true})
       conn = put conn, dungeon_map_path(conn, :update, dungeon.map_set_id, dungeon), map: @update_attrs
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon.map_set_id)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
@@ -246,7 +246,7 @@ defmodule DungeonCrawlWeb.DungeonMapControllerTest do
     test "deletes the dungeon", %{conn: conn, dungeon: dungeon} do
       conn = delete conn, dungeon_map_path(conn, :delete, dungeon.map_set_id, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :show, dungeon.map_set_id)
-      refute Repo.get(Dungeon.Map, dungeon.id)
+      refute Repo.get(Dungeons.Map, dungeon.id)
     end
   end
 
