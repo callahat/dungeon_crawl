@@ -55,6 +55,13 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert %{ number: ^number } = InstanceProcess.get_state(instance_process)
   end
 
+  test "set_author" do
+    {:ok, instance_process} = InstanceProcess.start_link([])
+    author = %{is_admin: false, id: 23}
+    InstanceProcess.set_author(instance_process, author)
+    assert %{ author: ^author } = InstanceProcess.get_state(instance_process)
+  end
+
   test "set_adjacent_map_id" do
     {:ok, instance_process} = InstanceProcess.start_link([])
     InstanceProcess.set_adjacent_map_id(instance_process, 1, "north")

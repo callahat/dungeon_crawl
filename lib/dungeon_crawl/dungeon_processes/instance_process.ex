@@ -40,6 +40,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
+  Sets the author
+  """
+  def set_author(instance, author) do
+    GenServer.cast(instance, {:set_author, author})
+  end
+
+  @doc """
   Sets the level number
   """
   def set_level_number(instance, number) do
@@ -249,6 +256,11 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @impl true
   def handle_cast({:set_number, {number}}, %Instances{} = state) do
     {:noreply, %{ state | number: number }}
+  end
+
+  @impl true
+  def handle_cast({:set_author, author}, %Instances{} = state) do
+    {:noreply, %{ state | author: author }}
   end
 
   @impl true

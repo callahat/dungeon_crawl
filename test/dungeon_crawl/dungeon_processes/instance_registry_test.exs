@@ -32,6 +32,7 @@ defmodule DungeonCrawl.InstanceRegistryTest do
   end
 
   test "create/2", %{instance_registry: instance_registry} do
+    user = insert_user()
     button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
     instance = insert_stubbed_dungeon_instance(%{state: "flag: false"},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
@@ -41,6 +42,9 @@ defmodule DungeonCrawl.InstanceRegistryTest do
 
     location = insert_player_location(%{map_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
     map_tile = Repo.get_by(DungeonCrawl.DungeonInstances.MapTile, %{map_instance_id: instance.id, row: 1, col: 2})
+
+    Repo.preload(instance, [map_set: :map_set]).map_set.map_set
+    |> DungeonCrawl.Dungeon.update_map_set(%{user_id: user.id})
 
     assert :ok = InstanceRegistry.create(instance_registry, instance.id)
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, instance.id)
@@ -52,7 +56,8 @@ defmodule DungeonCrawl.InstanceRegistryTest do
                       instance_id: instance_id,
                       player_locations: player_locations,
                       spawn_coordinates: spawn_coordinates,
-                      adjacent_map_ids: adjacent_map_ids} = InstanceProcess.get_state(instance_process)
+                      adjacent_map_ids: adjacent_map_ids,
+                      author: author} = InstanceProcess.get_state(instance_process)
     assert programs == %{map_tile.id => %{
                                            object_id: map_tile.id,
                                            program: %Program{broadcasts: [],
@@ -76,21 +81,24 @@ defmodule DungeonCrawl.InstanceRegistryTest do
     assert spawn_coordinates == [{9, 10}]
     assert instance_id == instance.id
     assert adjacent_map_ids == %{"east" => nil, "north" => instance.id, "south" => nil, "west" => nil}
+    assert Map.take(author, [:id, :name, :is_admin]) == Map.take(user, [:id, :name, :is_admin])
   end
 
-  test "create/3/4", %{instance_registry: instance_registry} do
+  test "create/3..9", %{instance_registry: instance_registry} do
+    author = %{is_admin: false, id: 12345}
     map_tile = %{id: 999, map_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: "", script: ""}
 
     dungeon_map_tiles = [map_tile]
 
-    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, [], %{flag: false}, nil, nil)
+    assert map_tile.map_instance_id == InstanceRegistry.create(instance_registry, map_tile.map_instance_id, dungeon_map_tiles, [], %{flag: false}, nil, nil, %{}, author)
     assert {:ok, instance_process} = InstanceRegistry.lookup(instance_registry, map_tile.map_instance_id)
 
     # the instance map is loaded
     assert %Instances{program_contexts: programs,
                       map_by_ids: by_ids,
                       map_by_coords: by_coords,
-                      state_values: %{flag: false}} = InstanceProcess.get_state(instance_process)
+                      state_values: %{flag: false},
+                      author: ^author} = InstanceProcess.get_state(instance_process)
     assert by_ids == %{map_tile.id => Map.put(map_tile, :parsed_state, %{})}
     assert by_coords ==  %{ {map_tile.row, map_tile.col} => %{map_tile.z_index => map_tile.id} }
     assert programs == %{}

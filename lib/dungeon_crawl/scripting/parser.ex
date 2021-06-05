@@ -324,7 +324,7 @@ defmodule DungeonCrawl.Scripting.Parser do
     pairs |> Enum.reverse
   end
   def _split_kwarg_pairs(params, pairs) do
-    with [_, slag, key, value] <- Regex.run(~r/^(([a-z_]+):\s(,|[^,]+?))(?:,\s[a-z_]+:\s(?:,|[^,]+))*$/, params) do
+    with [_, slag, key, value] <- Regex.run(~r/^(([A-Za-z_]+):\s(,|[^,]+?))(?:,\s[A-Za-z_]+:\s(?:,|[^,]+))*$/, params) do
       value = if(nil == Regex.run(~r/[^\s]/, value), do: " ", else: String.trim(value))
       String.replace_leading(params, slag, "")
       |> String.replace(~r/^\s*,\s*/, "")
@@ -349,12 +349,6 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _cast_param(param) do
     cond do
-      # TODO: May want to do this another way, or validate input on script creation. Maybe a second pass scan that looks for
-      # bad objects that current user does not have access to add
-      Regex.match?(~r/^TTID:\d+$/, param) -> {:ttid, String.slice(param,5..-1) |> String.to_integer}
-        # this lead to an infinite loop
-        # ttid = String.slice(param,5..-1)
-        # Map.put(DungeonCrawl.TileTemplates.get_tile_template!(ttid), :tile_template_id, ttid)
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)

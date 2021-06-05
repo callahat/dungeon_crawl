@@ -29,7 +29,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
             tile_template_slug_cache: %{},
             inactive_players: %{},
             players_visible_coords: %{},
-            full_rerender: false
+            full_rerender: false,
+            author: nil
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.MapTile
@@ -605,14 +606,19 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns a three part tuple, the first being the tile template if found, the state, and an atom indicating if it
   exists in cache, was created in the cache, or not_found.
   """
-  def get_tile_template(slug, %Instances{tile_template_slug_cache: cache} = state) when is_binary(slug) do
+  def get_tile_template(slug, %Instances{tile_template_slug_cache: cache, author: author} = state) when is_binary(slug) do
     if tile_template = cache[slug] do
       {tile_template, state, :exists}
     else
-      if tile_template = DungeonCrawl.TileTemplates.get_tile_template_by_slug(slug) do
+      with tile_template when not is_nil(tile_template) <- DungeonCrawl.TileTemplates.get_tile_template_by_slug(slug),
+           true <- is_nil(author) ||
+                   is_nil(tile_template.user_id) ||
+                   tile_template.public ||
+                   author.is_admin ||
+                   author.id == tile_template.user_id do
         {tile_template, %{ state | tile_template_slug_cache: Map.put(cache, slug, tile_template) }, :created}
       else
-        {nil, state, :not_found}
+        _ -> {nil, state, :not_found}
       end
     end
   end
