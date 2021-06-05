@@ -100,7 +100,7 @@ defmodule DungeonCrawl.Scripting.Command do
             object_id: object_id,
             state: updated_state }
   """
-  def become(%Runner{} = runner_state, [params]) do
+  def become(%Runner{} = runner_state, [%{} = params]) do
     {slug_tile, runner_state} = _get_tile_template(runner_state, params[:slug])
 
     new_attrs = TileTemplates.copy_fields(slug_tile)
@@ -110,6 +110,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
     _become(runner_state, new_attrs, new_state_attrs)
   end
+  def become(runner_state, _), do: runner_state
   def _become(runner_state, new_attrs, new_state_attrs) when new_attrs == %{} and new_state_attrs == %{}, do: runner_state
   def _become(%Runner{program: program, object_id: object_id, state: state} = runner_state, new_attrs, new_state_attrs) do
     new_attrs = resolve_variables(runner_state, new_attrs)

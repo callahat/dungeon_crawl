@@ -71,6 +71,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_map_tile.parsed_state == %{health: 20}
   end
 
+  test "BECOME but using a legacy TTID" do
+    {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1})
+    program = program_fixture()
+    params = ["TTID:123"]
+
+    # acts as noop
+    assert %Runner{state: ^state} = Command.become(%Runner{program: program, object_id: map_tile.id, state: state}, params)
+  end
+
   test "BECOME when script should be unaffected" do
     {map_tile, state} = Instances.create_map_tile(%Instances{}, %MapTile{id: 123, row: 1, col: 2, character: ".", map_instance_id: 1, script: "#END\n:TOUCH\n*creak*"})
     program = state.program_contexts[map_tile.id].program
