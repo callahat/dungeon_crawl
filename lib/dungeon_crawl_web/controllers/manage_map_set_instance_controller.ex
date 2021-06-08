@@ -4,13 +4,13 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.MapSetRegistry
-  alias DungeonCrawl.DungeonProcesses.MapSetProcess
+  alias DungeonCrawl.DungeonProcesses.DungeonRegistry
+  alias DungeonCrawl.DungeonProcesses.DungeonProcess
 
   def index(conn, _params) do
-    dungeons = MapSetRegistry.list(MapSetInstanceRegistry)
+    dungeons = DungeonRegistry.list(DungeonInstanceRegistry)
                |> Enum.map(fn({di_id, dungeon}) ->
-                             state = MapSetProcess.get_state(dungeon)
+                             state = DungeonProcess.get_state(dungeon)
                                      |> Map.take([:dungeon_instance])
                              {state, DungeonInstances.get_dungeon(di_id)}
                            end)
@@ -18,10 +18,10 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
   end
 
   def show(conn, %{"id" => id}) do
-    case MapSetRegistry.lookup(MapSetInstanceRegistry, String.to_integer(id)) do
+    case DungeonRegistry.lookup(DungeonInstanceRegistry, String.to_integer(id)) do
       {:ok, dungeon_process} ->
         dungeon_instance = DungeonInstances.get_dungeon(String.to_integer(id))
-        dungeon_state = MapSetProcess.get_state(dungeon_process)
+        dungeon_state = DungeonProcess.get_state(dungeon_process)
 
         instances = InstanceRegistry.list(dungeon_state.instance_registry)
                     |> Enum.map(fn({instance_id, instance}) ->
@@ -39,7 +39,7 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
   end
 
   def delete(conn, %{"id" => id}) do
-    MapSetRegistry.remove(MapSetInstanceRegistry, String.to_integer(id))
+    DungeonRegistry.remove(DungeonInstanceRegistry, String.to_integer(id))
 
     conn
     |> put_flash(:info, "Removing instance process with id `#{id}`")

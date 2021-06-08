@@ -2,7 +2,7 @@ defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
-  alias DungeonCrawl.DungeonProcesses.MapSets
+  alias DungeonCrawl.DungeonProcesses.Registrar
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Player.Location
@@ -49,7 +49,7 @@ defmodule DungeonCrawl.Action.Travel do
         {:ok, state}
 
       true ->
-        {:ok, dest_instance} = MapSets.instance_process(target_level.dungeon_instance_id, target_level.id)
+        {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.id)
         InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
           {updated_tile, other_instance_state} = Player.place(other_instance_state, player_tile, player_location, passage)
 

@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, Registrar}
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
@@ -37,7 +37,7 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   defp _level_as_table(%DungeonInstances.Level{} = level, height, width) do
-    {:ok, instance} = MapSets.instance_process(level.dungeon_instance_id, level.id)
+    {:ok, instance} = Registrar.instance_process(level.dungeon_instance_id, level.id)
     instance_state = InstanceProcess.get_state(instance)
 
     instance_state.map_by_ids

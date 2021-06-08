@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Action.TravelTest do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
-  alias DungeonCrawl.DungeonProcesses.MapSets
+  alias DungeonCrawl.DungeonProcesses.Registrar
 
   setup do
     level_1_tiles = [%Tile{name: "Stairs", character: ">", row: 6, col: 9, z_index: 0, state: "blocking: false"}]
@@ -14,7 +14,7 @@ defmodule DungeonCrawl.Action.TravelTest do
                        |> Repo.preload(:levels)
     [level_1, level_2] = Enum.sort(dungeon_instance.levels, fn(a,b) -> a.number < b.number end)
     player_location = insert_player_location(%{level_instance_id: level_1.id})
-    {:ok, instance_registry} = MapSets.instance_registry(dungeon_instance.id)
+    {:ok, instance_registry} = Registrar.instance_registry(dungeon_instance.id)
     {:ok, instance_1} = InstanceRegistry.lookup_or_create(instance_registry, level_1.id)
     {:ok, instance_2} = InstanceRegistry.lookup_or_create(instance_registry, level_2.id)
     InstanceProcess.run_with(instance_1, fn (state) ->

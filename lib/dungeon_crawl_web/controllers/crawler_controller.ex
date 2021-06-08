@@ -8,7 +8,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
-  alias DungeonCrawl.DungeonProcesses.{MapSetRegistry, MapSetProcess, MapSets, InstanceProcess}
+  alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, InstanceProcess}
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias Ecto.Multi
 
@@ -37,8 +37,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
     scorable = _scorable_dungeon(dungeon)
 
     {player_stats, level} = if player_location do
-                     {:ok, instance_process} = MapSets.instance_process(player_location.tile.level.dungeon_instance_id,
-                                                                        player_location.tile.level.id)
+                     {:ok, instance_process} = Registrar.instance_process(player_location.tile.level.dungeon_instance_id,
+                                                                          player_location.tile.level.id)
                      level = Map.put(InstanceProcess.get_state(instance_process), :id, player_location.tile.level.id)
                      {PlayerInstance.current_stats(player_location.user_id_hash), level}
                    else
@@ -50,8 +50,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   def _scorable_dungeon(nil), do: false
   def _scorable_dungeon(dungeon_instance) do
-    with {:ok, dungeon_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, dungeon_instance.id) do
-      MapSetProcess.scorable?(dungeon_process)
+    with {:ok, dungeon_process} <- DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id) do
+      DungeonProcess.scorable?(dungeon_process)
     else
       _ -> false
     end

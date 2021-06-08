@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Action.{Move, Pull, Shoot, Travel}
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, InstanceRegistry,
-                                       MapSetRegistry, MapSetProcess, MapSets}
+                                       DungeonRegistry, DungeonProcess, Registrar}
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Direction
@@ -228,10 +228,10 @@ defmodule DungeonCrawl.Scripting.Command do
     [var, op, value] = params
     value = resolve_variable(runner_state, value)
 
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id)
-    old_val = MapSetProcess.get_state_value(map_set_process, var)
+    {:ok, dungeon_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id)
+    old_val = DungeonProcess.get_state_value(dungeon_process, var)
     new_val = Maths.calc(old_val || 0, op, value)
-    MapSetProcess.set_state_value(map_set_process, var, new_val)
+    DungeonProcess.set_state_value(dungeon_process, var, new_val)
 
     runner_state
   end
@@ -412,7 +412,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   def _gameover(%Runner{state: state} = runner_state, [victory, result, "all"], instance_module) do
     # Cast endgame to the other instance processes
-    {:ok, map_set_instance_registry} = MapSets.instance_registry(state.dungeon_instance_id)
+    {:ok, map_set_instance_registry} = Registrar.instance_registry(state.dungeon_instance_id)
     InstanceRegistry.list(map_set_instance_registry)
     |> Enum.each(fn {_id, pid} -> InstanceProcess.gameover(pid, victory, result, instance_module) end)
 
@@ -1278,7 +1278,7 @@ defmodule DungeonCrawl.Scripting.Command do
     object = Instances.get_tile_by_id(state, %{id: object_id})
     sender = %{tile_id: nil, parsed_state: Map.put(object.parsed_state, :global_sender, true), name: object.name}
 
-    {:ok, map_set_instance_registry} = MapSets.instance_registry(state.dungeon_instance_id)
+    {:ok, map_set_instance_registry} = Registrar.instance_registry(state.dungeon_instance_id)
     InstanceRegistry.list(map_set_instance_registry)
     |> Enum.each(fn {_id, pid} -> Logger.info("Pew" <> inspect(pid)) && InstanceProcess.send_event(pid, label, sender) end)
 

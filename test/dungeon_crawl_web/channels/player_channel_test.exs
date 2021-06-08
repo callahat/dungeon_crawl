@@ -2,7 +2,7 @@ defmodule DungeonCrawl.PlayerChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.PlayerChannel
-  alias DungeonCrawl.DungeonProcesses.{InstanceProcess, MapSets, MapSetRegistry}
+  alias DungeonCrawl.DungeonProcesses.{InstanceProcess, Registrar, DungeonRegistry}
 
   setup config do
     state = if is_nil(config[:fog]), do: "", else: "visibility: #{config[:visibility]}"
@@ -15,7 +15,7 @@ defmodule DungeonCrawl.PlayerChannelTest do
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
       |> subscribe_and_join(PlayerChannel, "players:#{player_location.id}")
 
-    on_exit(fn -> MapSetRegistry.remove(MapSetInstanceRegistry, level_instance.dungeon_instance_id) end)
+    on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, level_instance.dungeon_instance_id) end)
 
     {:ok, socket: socket, location: player_location, level_instance: level_instance}
   end
@@ -53,14 +53,14 @@ defmodule DungeonCrawl.PlayerChannelTest do
     instance_id = location.tile.level_instance_id
     push socket, "refresh_level", %{}
     assert_broadcast "change_level", %{level_id: ^instance_id, level_render: _html}
-    {:ok, instance_process} = MapSets.instance_process(level_instance.dungeon_instance_id, instance_id)
+    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, instance_id)
     assert %{players_visible_coords: _pvcs} = InstanceProcess.get_state(instance_process)
   end
 
   @tag visibility: "fog"
   test "update_visible deletes the players visible coords which forces an update when foggy",
        %{socket: socket, location: location, level_instance: level_instance} do
-    {:ok, instance_process} = MapSets.instance_process(level_instance.dungeon_instance_id, level_instance.id)
+    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.id)
     InstanceProcess.run_with(instance_process, fn(state) ->
       {:ok, %{ state | players_visible_coords: %{ location.tile_instance_id => %{} } }}
     end)

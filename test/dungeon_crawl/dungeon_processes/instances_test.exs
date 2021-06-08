@@ -3,7 +3,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
 
   import ExUnit.CaptureLog
 
-  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess}
+  alias DungeonCrawl.DungeonProcesses.{Instances, DungeonRegistry, DungeonProcess}
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scores
@@ -690,7 +690,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel_2)
 
     dungeon_id = Repo.preload(instance, :dungeon).dungeon.dungeon_id
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id)
+    {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id)
 
     # Ends game for all players in instance
     updated_state = Instances.gameover(state, true, "Win")
@@ -732,13 +732,13 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
 
     # no scoring
-    MapSetProcess.set_state_value(map_set_process, :no_scoring, true)
+    DungeonProcess.set_state_value(map_set_process, :no_scoring, true)
     Instances.gameover(state, true, "Done")
 
     assert Scores.list_scores == []
 
     #cleanup
-    MapSetRegistry.remove(MapSetInstanceRegistry, instance.dungeon_instance_id)
+    DungeonRegistry.remove(DungeonInstanceRegistry, instance.dungeon_instance_id)
   end
 
   test "gameover/4 - ends game for given player" do
@@ -769,7 +769,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel_2)
 
     dungeon_id = Repo.preload(instance, :dungeon).dungeon.dungeon_id
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id)
+    {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id)
 
     # default gameover - player gets victory
     updated_state = Instances.gameover(state, player_tile_1.id, true, "Win")
@@ -809,7 +809,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
     Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
 
     # no scoring
-    MapSetProcess.set_state_value(map_set_process, :no_scoring, true)
+    DungeonProcess.set_state_value(map_set_process, :no_scoring, true)
     updated_state = Instances.gameover(state, player_tile_1.id, true, "Done")
 
     assert Scores.list_scores == []
@@ -822,7 +822,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstancesTest do
             payload: %{}}
 
     #cleanup
-    MapSetRegistry.remove(MapSetInstanceRegistry, instance.dungeon_instance_id)
+    DungeonRegistry.remove(DungeonInstanceRegistry, instance.dungeon_instance_id)
   end
 end
 

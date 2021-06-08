@@ -7,7 +7,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.Player
-  alias DungeonCrawl.DungeonProcesses.MapSets
+  alias DungeonCrawl.DungeonProcesses.Registrar
   alias DungeonCrawl.Scripting.Shape
 
   alias DungeonCrawl.Scripting.Direction
@@ -19,7 +19,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                                          |> String.split(":")
                                          |> Enum.map(&String.to_integer(&1))
 
-    {:ok, instance_registry} = MapSets.instance_registry(dungeon_instance_id)
+    {:ok, instance_registry} = Registrar.instance_registry(dungeon_instance_id)
 
     # make sure the instance is up and running
     {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, instance_id)

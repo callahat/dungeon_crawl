@@ -1,10 +1,10 @@
-defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
+defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
   use GenServer
 
   require Logger
 
   alias DungeonCrawl.Account
-  alias DungeonCrawl.DungeonProcesses.{MapSetProcess}
+  alias DungeonCrawl.DungeonProcesses.{DungeonProcess}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
@@ -115,21 +115,21 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
   end
 
   defp _create_dungeon(dungeon_id, dungeon_instance, state_values, {dungeon_ids, refs, supervisor}) do
-    {:ok, map_set_process} = DynamicSupervisor.start_child(supervisor, MapSetProcess)
+    {:ok, map_set_process} = DynamicSupervisor.start_child(supervisor, DungeonProcess)
 
     dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
 
     author = if dungeon.user_id, do: Account.get_user(dungeon.user_id), else: %Account.User{}
 
-    MapSetProcess.set_author(map_set_process, author)
-    MapSetProcess.set_dungeon(map_set_process, dungeon)
-    MapSetProcess.set_dungeon_instance(map_set_process, dungeon_instance)
-    MapSetProcess.set_state_values(map_set_process, state_values)
-    MapSetProcess.start_scheduler(map_set_process)
+    DungeonProcess.set_author(map_set_process, author)
+    DungeonProcess.set_dungeon(map_set_process, dungeon)
+    DungeonProcess.set_dungeon_instance(map_set_process, dungeon_instance)
+    DungeonProcess.set_state_values(map_set_process, state_values)
+    DungeonProcess.start_scheduler(map_set_process)
 
     Repo.preload(dungeon_instance, :levels).levels
     |> Enum.each(fn level ->
-         MapSetProcess.load_instance(map_set_process, level)
+         DungeonProcess.load_instance(map_set_process, level)
        end)
 
     ref = Process.monitor(map_set_process)

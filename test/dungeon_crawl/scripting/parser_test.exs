@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
   # To verify the parsed stuff feeds into the commands, might move this elsewhere
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets, MapSetRegistry}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, Registrar, DungeonRegistry}
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Runner
 
@@ -200,7 +200,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       # without duplicating a bunch of other stuff
       level_instance = insert_stubbed_level_instance()
 
-      {:ok, instance_process} = MapSets.instance_process(level_instance.dungeon_instance_id, level_instance.id)
+      {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.id)
 
       InstanceProcess.run_with(instance_process, fn(state) ->
         tile_params = %Tile{level_instance_id: level_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
@@ -225,7 +225,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
         {:ok, state}
       end)
 
-      MapSetRegistry.remove(MapSetInstanceRegistry, level_instance.dungeon_instance_id)
+      DungeonRegistry.remove(DungeonInstanceRegistry, level_instance.dungeon_instance_id)
     end
 
     test "a bad command" do

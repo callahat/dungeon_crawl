@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.DungeonAdminChannel
-  alias DungeonCrawl.DungeonProcesses.MapSetRegistry
+  alias DungeonCrawl.DungeonProcesses.DungeonRegistry
 
   setup do
     dungeon_instance = insert_stubbed_dungeon_instance()
@@ -10,7 +10,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
     level_instance = Enum.sort(Repo.preload(dungeon_instance, :levels).levels, fn(a, b) -> a.number < b.number end)
                      |> Enum.at(0)
 
-    on_exit(fn -> MapSetRegistry.remove(MapSetInstanceRegistry, dungeon_instance.id) end)
+    on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id) end)
 
     {:ok, dungeon_instance: dungeon_instance, level_instance: level_instance}
   end

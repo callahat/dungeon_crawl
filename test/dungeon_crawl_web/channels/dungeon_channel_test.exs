@@ -6,8 +6,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
-  alias DungeonCrawl.DungeonProcesses.MapSetProcess
-  alias DungeonCrawl.DungeonProcesses.MapSetRegistry
+  alias DungeonCrawl.DungeonProcesses.DungeonProcess
+  alias DungeonCrawl.DungeonProcesses.DungeonRegistry
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileSeeder
 
@@ -52,8 +52,8 @@ defmodule DungeonCrawl.DungeonChannelTest do
     player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}"})
                       |> Repo.preload(:tile)
 
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, dungeon_instance.id)
-    instance_registry = MapSetProcess.get_instance_registry(map_set_process)
+    {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
+    instance_registry = DungeonProcess.get_instance_registry(map_set_process)
     {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, level_instance.id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
       {_, state} = Instances.create_player_tile(instance_state, player_location.tile, player_location)
@@ -64,7 +64,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
       |> subscribe_and_join(DungeonChannel, "dungeons:#{dungeon_instance.id}:#{level_instance.id}")
 
-    on_exit(fn -> MapSetRegistry.remove(MapSetInstanceRegistry, dungeon_instance.id) end)
+    on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id) end)
 
     {:ok, socket: socket,
           player_location: player_location,

@@ -7,7 +7,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSetRegistry, MapSetProcess, MapSets}
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, DungeonRegistry, DungeonProcess, Registrar}
 
   def program_fixture(script \\ nil) do
     script = script ||
@@ -230,11 +230,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     Command.change_dungeon_instance_state(%Runner{state: state}, [:di_flag, "=", "well ok"])
     Command.change_dungeon_instance_state(%Runner{state: state}, [:b, "=", {:instance_state_variable, :a}])
 
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id)
+    {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id)
 
-    assert 1000 == MapSetProcess.get_state_value(map_set_process, :di_thing1)
-    assert "well ok" == MapSetProcess.get_state_value(map_set_process, :di_flag)
-    assert 5 == MapSetProcess.get_state_value(map_set_process, :b)
+    assert 1000 == DungeonProcess.get_state_value(map_set_process, :di_thing1)
+    assert "well ok" == DungeonProcess.get_state_value(map_set_process, :di_flag)
+    assert 5 == DungeonProcess.get_state_value(map_set_process, :b)
   end
 
   test "CHANGE_OTHER_STATE" do
@@ -1225,9 +1225,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # when given dungeon_instance_state_variable
     %Runner{} = Command.random(%Runner{object_id: tile.id, state: state},
                                        [{:dungeon_instance_state_variable, :levelset_me}, "test", "check"])
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id)
+    {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id)
 
-    assert Enum.member?(["test", "check"], MapSetProcess.get_state_value(map_set_process, :levelset_me))
+    assert Enum.member?(["test", "check"], DungeonProcess.get_state_value(map_set_process, :levelset_me))
   end
 
   test "REPLACE tile in a direction" do
@@ -1506,8 +1506,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       |> Enum.filter(fn i -> i.script && i.script != "" end)
       |> Enum.map(&(&1.id))
 
-    {:ok, instance_process_1} = MapSets.instance_process(stubbed_dungeon_instance.id, instance.id)
-    {:ok, instance_process_2} = MapSets.instance_process(stubbed_dungeon_instance.id, instance2.id)
+    {:ok, instance_process_1} = Registrar.instance_process(stubbed_dungeon_instance.id, instance.id)
+    {:ok, instance_process_2} = Registrar.instance_process(stubbed_dungeon_instance.id, instance2.id)
 
     InstanceProcess.run_with(instance_process_1, fn (state) ->
       object = Instances.get_tile(state, %{row: 1, col: 3})
@@ -1530,7 +1530,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Enum.member? program_messages_2, {prog3_id, "dance", expected_sender}
 
     # cleanup
-    MapSetRegistry.remove(MapSetInstanceRegistry, stubbed_dungeon_instance.id)
+    DungeonRegistry.remove(DungeonInstanceRegistry, stubbed_dungeon_instance.id)
   end
 
   test "SEND message to tiles in a direction" do

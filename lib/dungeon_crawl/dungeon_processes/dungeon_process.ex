@@ -1,9 +1,9 @@
-defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
+defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
   use GenServer, restart: :temporary
 
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonProcesses.MapSetProcess
+  alias DungeonCrawl.DungeonProcesses.DungeonProcess
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
 
   require Logger
@@ -133,7 +133,7 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetProcess do
     {:ok, instance_registry} = InstanceRegistry.start_link(self(), [])
 # might need this
 #    InstanceRegistry.link_dungeon(program_registry, self())
-    {:ok, %MapSetProcess{instance_registry: instance_registry}}
+    {:ok, %DungeonProcess{instance_registry: instance_registry}}
   end
 
   @impl true

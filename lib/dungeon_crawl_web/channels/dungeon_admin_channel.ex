@@ -3,14 +3,14 @@ defmodule DungeonCrawlWeb.DungeonAdminChannel do
 
   alias DungeonCrawl.Account
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
-  alias DungeonCrawl.DungeonProcesses.MapSets
+  alias DungeonCrawl.DungeonProcesses.Registrar
 
   def join("dungeon_admin:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
     [dungeon_instance_id, instance_id] = dungeon_instance_id_and_instance_id
                                          |> String.split(":")
                                          |> Enum.map(&String.to_integer(&1))
 
-    with {:ok, instance_registry} <- MapSets.instance_registry(dungeon_instance_id),
+    with {:ok, instance_registry} <- Registrar.instance_registry(dungeon_instance_id),
          {:ok, _instance} <- InstanceRegistry.lookup_or_create(instance_registry, instance_id),
          %{is_admin: true} <- Account.get_by_user_id_hash(socket.assigns.user_id_hash) do
       socket = assign(socket, :instance_id, instance_id)

@@ -34,7 +34,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.{Instances, MapSetRegistry, MapSetProcess, Player}
+  alias DungeonCrawl.DungeonProcesses.{Instances, DungeonRegistry, DungeonProcess, Player}
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Direction
@@ -639,10 +639,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
   def gameover(%Instances{} = state, player_tile_id, victory, result) do
     with tile when not is_nil(tile) <- Instances.get_tile_by_id(state, %{id: player_tile_id}),
+         #%{^player_tile_id => player_location} <- state.player_locations,
          player_location when not is_nil(player_location) <- state.player_locations[player_tile_id],
-         {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id),
-         dungeon when not is_nil(dungeon) <- MapSetProcess.get_dungeon(map_set_process),
-         scorable = MapSetProcess.scorable?(map_set_process) do
+         {:ok, map_set_process} <- DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id),
+         dungeon when not is_nil(dungeon) <- DungeonProcess.get_dungeon(map_set_process),
+         scorable = DungeonProcess.scorable?(map_set_process) do
 
       # TODO: format the seconds in a view function
       cond do

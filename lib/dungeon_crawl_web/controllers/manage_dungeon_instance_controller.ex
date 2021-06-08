@@ -4,10 +4,10 @@ defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.MapSets
+  alias DungeonCrawl.DungeonProcesses.Registrar
 
   def show(conn, %{"di_id" => di_id, "id" => id}) do
-    case MapSets.instance_process(String.to_integer(di_id), String.to_integer(id)) do
+    case Registrar.instance_process(String.to_integer(di_id), String.to_integer(id)) do
       {:ok, instance_process} ->
         instance_state = InstanceProcess.get_state(instance_process)
         instance = Repo.preload(DungeonInstances.get_level(String.to_integer(id)), [level: :dungeon])
@@ -20,7 +20,7 @@ defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
   end
 
   def delete(conn, %{"di_id" => di_id, "id" => id}) do
-    case MapSets.instance_registry(String.to_integer(di_id)) do
+    case Registrar.instance_registry(String.to_integer(di_id)) do
       {:ok, instance_registry} -> InstanceRegistry.remove(instance_registry, String.to_integer(id))
       _ -> nil
     end

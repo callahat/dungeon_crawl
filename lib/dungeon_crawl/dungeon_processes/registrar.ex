@@ -1,9 +1,8 @@
-defmodule DungeonCrawl.DungeonProcesses.MapSets do
-  alias DungeonCrawl.DungeonProcesses.MapSets
-  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry,MapSetRegistry,MapSetProcess}
+defmodule DungeonCrawl.DungeonProcesses.Registrar do
+  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry,DungeonRegistry,DungeonProcess}
 
   @moduledoc """
-  Wraps some convenience methods related to Map Set related processes/registries
+  Wraps some convenience methods related to Dungeon related processes/registries
   and Instance related processes/registries
   """
 
@@ -11,7 +10,7 @@ defmodule DungeonCrawl.DungeonProcesses.MapSets do
   Returns the instance process given dungeon and instance id if found.
   """
   def instance_process(dungeon_instance_id, instance_id) do
-    with {:ok, instance_registry} <- MapSets.instance_registry(dungeon_instance_id),
+    with {:ok, instance_registry} <- instance_registry(dungeon_instance_id),
          {:ok, instance_process} <- InstanceRegistry.lookup_or_create(instance_registry, instance_id) do
       {:ok, instance_process}
     else
@@ -23,8 +22,8 @@ defmodule DungeonCrawl.DungeonProcesses.MapSets do
   Returns the instance registry given the dungeon if found.
   """
   def instance_registry(dungeon_instance_id) do
-    with {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, dungeon_instance_id) do
-      {:ok, MapSetProcess.get_instance_registry(map_set_process)}
+    with {:ok, map_set_process} <- DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance_id) do
+      {:ok, DungeonProcess.get_instance_registry(map_set_process)}
     else
       _ -> nil
     end
