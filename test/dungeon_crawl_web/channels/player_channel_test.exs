@@ -57,6 +57,20 @@ defmodule DungeonCrawl.PlayerChannelTest do
     assert %{players_visible_coords: _pvcs} = InstanceProcess.get_state(instance_process)
   end
 
+  @tag visibility: "fog"
+  test "update_visible deletes the players visible coords which forces an update when foggy",
+       %{socket: socket, location: location, level_instance: level_instance} do
+    {:ok, instance_process} = MapSets.instance_process(level_instance.dungeon_instance_id, level_instance.id)
+    InstanceProcess.run_with(instance_process, fn(state) ->
+      {:ok, %{ state | players_visible_coords: %{ location.tile_instance_id => %{} } }}
+    end)
+
+    push socket, "update_visible", %{}
+    :timer.sleep 5
+    assert %{players_visible_coords: pvcs} = InstanceProcess.get_state(instance_process)
+    refute Map.has_key?(pvcs, location.tile_instance_id)
+  end
+
   test "ping replies with status ok", %{socket: socket} do
     ref = push socket, "ping", %{"hello" => "there"}
     assert_reply ref, :ok, %{"hello" => "there"}

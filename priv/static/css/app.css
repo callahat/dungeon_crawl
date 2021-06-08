@@ -13193,6 +13193,10 @@ input#tile_template_character {
   height: calc(100vh - 56px);
 }
 
+.listing-full-height table {
+  height: min-content;
+}
+
 /*
  * Navbar
  */
