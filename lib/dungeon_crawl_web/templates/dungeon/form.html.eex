@@ -1,4 +1,4 @@
-<%= form_for @changeset, @action, [id: :map_set_form], fn f -> %>
+<%= form_for @changeset, @action, [id: :dungeon_form], fn f -> %>
   <%= if @changeset.action do %>
     <div class="alert alert-danger">
       <p>Oops, something went wrong! Please check the errors below.</p>
@@ -31,10 +31,10 @@
     <%= error_tag f, :description %>
   </div>
 
-  <%= if @dungeons != [] do %>
+  <%= if @levels != [] do %>
   <div class="form-group">
     <%= label f, :title_number, class: "control-label" %>
-    <%= select f, :title_number, Enum.map(@dungeons, &{"#{&1.number} #{&1.name}", &1.number}), class: "form-control" %>
+    <%= select f, :title_number, Enum.map(@levels, &{"#{&1.number} #{&1.name}", &1.number}), class: "form-control" %>
     <%= error_tag f, :title_number %>
   </div>
   <% end %>

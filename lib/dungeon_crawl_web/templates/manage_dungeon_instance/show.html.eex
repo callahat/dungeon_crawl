@@ -1,11 +1,11 @@
 <%= if @instance do %>
 <h1>DB Backed Instance Process</h1>
-<p><%= link "View Map Set", to: Routes.manage_dungeon_path(@conn, :show, @instance.dungeon.map_set, instance_id: @instance.id, level: @instance.number) %></p>
+<p><%= link "View Map Set", to: Routes.manage_dungeon_path(@conn, :show, @instance.level.dungeon, instance_id: @instance.id, level: @instance.number) %></p>
 <% else %>
 <h1>Orphaned Instance Process</h1>
 <% end %>
 
-<p><b>Map Set ID:</b> <%= @instance_state.map_set_instance_id %></p>
+<p><b>Map Set ID:</b> <%= @instance_state.dungeon_instance_id %></p>
 <p><b>Instance ID:</b> <%= @instance_state.instance_id %></p>
 <p><b>Number:</b> <%= @instance_state.number %></p>
 <p><b>Players:</b> <%= @instance_state.player_locations |> Map.to_list |> Enum.count %></p>
@@ -16,7 +16,7 @@
     <div class="col-9 text-left">
       <%= render(DungeonCrawlWeb.SharedView,
                  "dungeon_admin.html",
-                 dungeon: Map.put(@instance_state, :id, @instance_state.instance_id),
+                 level: Map.put(@instance_state, :id, @instance_state.instance_id),
                  width: @instance_state.state_values[:cols],
                  height: @instance_state.state_values[:rows]) %>
     </div>
@@ -24,4 +24,4 @@
 <% end %>
 </div>
 
-<%= link "Back", to: Routes.manage_map_set_instance_path(@conn, :show, @instance_state.map_set_instance_id) %>
+<%= link "Back", to: Routes.manage_map_set_instance_path(@conn, :show, @instance_state.dungeon_instance_id) %>

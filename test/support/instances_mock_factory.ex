@@ -8,8 +8,8 @@ defmodule DungeonCrawl.InstancesMockFactory do
 
               state
             end
-            def gameover(%Instances{} = state, player_map_tile_id, victory, result) do
-              send(unquote(test_pid), {:gameover_test, state.instance_id, player_map_tile_id, victory, result})
+            def gameover(%Instances{} = state, player_tile_id, victory, result) do
+              send(unquote(test_pid), {:gameover_test, state.instance_id, player_tile_id, victory, result})
 
               state
             end

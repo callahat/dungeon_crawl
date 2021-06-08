@@ -4,17 +4,17 @@ defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.DungeonProcesses.Player
   alias DungeonCrawl.DungeonProcesses.MapSets
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Player.Location
 
   @moduledoc """
-  Handles when a player moves from map to map in a dungeon.
+  Handles when a player moves from level to level in a dungeon.
   """
 
   @doc """
-  Moves from one map to another. The player characters tile will be removed from the source
+  Moves from one level to another. The player characters tile will be removed from the source
   instance and put into the target instance. The location in the target instance will be one of
-  the spawn tiles (if any exist on the target map), otherwise the location will be choosen at random
+  the spawn tiles (if any exist on the target level), otherwise the location will be choosen at random
   from a floor space.
   """
   # TODO: this should probably not be called in a blocking manner; could run into a lock where A is moving to Map B, and B is moving to Map A
@@ -27,46 +27,46 @@ defmodule DungeonCrawl.Action.Travel do
   #   :exit, _value -> sleep very short random time, then try again
   # end
   def passage(%Location{} = player_location, %{match_key: _} = passage, level_number, %Instances{} = state) do
-    target_map = DungeonInstances.get_map(state.map_set_instance_id, level_number)
+    target_level = DungeonInstances.get_level(state.dungeon_instance_id, level_number)
 
-    _passage(player_location, passage, target_map, state)
+    _passage(player_location, passage, target_level, state)
   end
 
-  def passage(%Location{} = player_location, %{adjacent_map_id: adjacent_map_id, edge: _} = passage, %Instances{} = state) do
-    target_map = DungeonInstances.get_map(adjacent_map_id)
+  def passage(%Location{} = player_location, %{adjacent_level_id: adjacent_level_id, edge: _} = passage, %Instances{} = state) do
+    target_level = DungeonInstances.get_level(adjacent_level_id)
 
-    _passage(player_location, passage, target_map, state)
+    _passage(player_location, passage, target_level, state)
   end
 
-  defp _passage(player_location, passage, target_map, state) do
-    player_map_tile = Instances.get_map_tile_by_id(state, %{id: player_location.map_tile_instance_id})
+  defp _passage(player_location, passage, target_level, state) do
+    player_tile = Instances.get_tile_by_id(state, %{id: player_location.tile_instance_id})
     cond do
-      is_nil(target_map)->
+      is_nil(target_level)->
         {:ok, state}
 
-      player_map_tile.map_instance_id == target_map.id ->
-        {_player_map_tile, state} = Player.place(state, player_map_tile, player_location, passage)
+      player_tile.level_instance_id == target_level.id ->
+        {_player_tile, state} = Player.place(state, player_tile, player_location, passage)
         {:ok, state}
 
       true ->
-        {:ok, dest_instance} = MapSets.instance_process(target_map.map_set_instance_id, target_map.id)
+        {:ok, dest_instance} = MapSets.instance_process(target_level.dungeon_instance_id, target_level.id)
         InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
-          {updated_tile, other_instance_state} = Player.place(other_instance_state, player_map_tile, player_location, passage)
+          {updated_tile, other_instance_state} = Player.place(other_instance_state, player_tile, player_location, passage)
 
-          dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(other_instance_state, target_map.height, target_map.width)
+          level_table = DungeonCrawlWeb.SharedView.level_as_table(other_instance_state, target_level.height, target_level.width)
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
-                                             "change_dungeon",
-                                             %{dungeon_id: target_map.id, dungeon_render: dungeon_table}
+                                             "change_level",
+                                             %{level_id: target_level.id, level_render: level_table}
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "stat_update",
                                              %{stats: Player.current_stats(other_instance_state, updated_tile)}
 
-          DungeonInstances.update_map_tiles([MapTile.changeset(player_map_tile, Elixir.Map.take(updated_tile, [:map_instance_id, :row, :col, :z_index]))])
+          DungeonInstances.update_tiles([Tile.changeset(player_tile, Elixir.Map.take(updated_tile, [:level_instance_id, :row, :col, :z_index]))])
 
           {:ok, other_instance_state}
         end)
 
-        {_, state} = Instances.delete_map_tile(state, player_map_tile, false)
+        {_, state} = Instances.delete_tile(state, player_tile, false)
 
         {:ok, state}
     end

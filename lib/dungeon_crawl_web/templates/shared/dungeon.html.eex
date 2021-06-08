@@ -1,6 +1,6 @@
 <pre class="dungeon_preview border rounded">
-<table id="dungeon" data-dungeon-id="<%= @dungeon.id %>">
-<%= {:safe, dungeon_as_table(@dungeon, @dungeon.height, @dungeon.width) } %>
+<table id="dungeon" data-dungeon-id="<%= @level.id %>">
+<%= {:safe, level_as_table(@level, @level.height, @level.width) } %>
 </table>
 </pre>
 

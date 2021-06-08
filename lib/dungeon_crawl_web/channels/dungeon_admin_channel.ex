@@ -5,14 +5,12 @@ defmodule DungeonCrawlWeb.DungeonAdminChannel do
   alias DungeonCrawl.DungeonProcesses.InstanceRegistry
   alias DungeonCrawl.DungeonProcesses.MapSets
 
-  # TODO: what prevents someone from changing the instance_id to a dungeon they are not actually in (or allowed to be in)
-  # and evesdrop on broadcasts?
-  def join("dungeon_admin:" <> map_set_instance_id_and_instance_id, _payload, socket) do
-    [map_set_instance_id, instance_id] = map_set_instance_id_and_instance_id
+  def join("dungeon_admin:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
+    [dungeon_instance_id, instance_id] = dungeon_instance_id_and_instance_id
                                          |> String.split(":")
                                          |> Enum.map(&String.to_integer(&1))
 
-    with {:ok, instance_registry} <- MapSets.instance_registry(map_set_instance_id),
+    with {:ok, instance_registry} <- MapSets.instance_registry(dungeon_instance_id),
          {:ok, _instance} <- InstanceRegistry.lookup_or_create(instance_registry, instance_id),
          %{is_admin: true} <- Account.get_by_user_id_hash(socket.assigns.user_id_hash) do
       socket = assign(socket, :instance_id, instance_id)

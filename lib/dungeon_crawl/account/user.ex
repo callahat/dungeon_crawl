@@ -15,7 +15,7 @@ defmodule DungeonCrawl.Account.User do
     field :background_color, :string, default: "whitesmoke"
     field :color, :string, default: "black"
 
-    has_many :map_sets, DungeonCrawl.Dungeons.MapSet
+    has_many :dungeons, DungeonCrawl.Dungeons.Dungeon
     has_many :tile_shortlist, DungeonCrawl.TileShortlists.TileShortlist
 
     timestamps()
@@ -86,10 +86,10 @@ defmodule DungeonCrawl.Account.User do
     end
   end
 
-  def colors_match?(map_1, map_2 \\ %{}) do
+  def colors_match?(level_1, level_2 \\ %{}) do
     %{color: color, background_color: background_color} = \
-      Map.take(map_1, [:color, :background_color])
-      |> Map.merge(Map.take(map_2, [:color, :background_color]))
+      Map.take(level_1, [:color, :background_color])
+      |> Map.merge(Map.take(level_2, [:color, :background_color]))
     color == background_color
   end
 end

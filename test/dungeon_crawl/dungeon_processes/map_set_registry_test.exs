@@ -2,7 +2,7 @@ defmodule DungeonCrawl.MapSetRegistryTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonInstances.{MapSet,MapTile}
+  alias DungeonCrawl.DungeonInstances.{Dungeon,Tile}
   alias DungeonCrawl.DungeonProcesses.{MapSetRegistry,MapSetProcess,InstanceRegistry}
 
   setup do
@@ -11,89 +11,89 @@ defmodule DungeonCrawl.MapSetRegistryTest do
   end
 
   test "lookup", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
+    di = insert_stubbed_dungeon_instance()
 
-    assert :error = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert :error = MapSetRegistry.lookup(map_set_registry, di.id)
 
-    MapSetRegistry.create(map_set_registry, msi.id)
+    MapSetRegistry.create(map_set_registry, di.id)
 
-    assert {:ok, _msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert {:ok, _msi_process} = MapSetRegistry.lookup(map_set_registry, di.id)
   end
 
   test "lookup_or_create", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
+    di = insert_stubbed_dungeon_instance()
 
-    assert {:ok, msi_process} = MapSetRegistry.lookup_or_create(map_set_registry, msi.id)
+    assert {:ok, msi_process} = MapSetRegistry.lookup_or_create(map_set_registry, di.id)
     # Finds the already existing one
-    assert {:ok, ^msi_process} = MapSetRegistry.lookup_or_create(map_set_registry, msi.id)
+    assert {:ok, ^msi_process} = MapSetRegistry.lookup_or_create(map_set_registry, di.id)
   end
 
   test "create/2", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance(%{state: "flag: off"}, %{}, [[%MapTile{character: "O", row: 1, col: 1, z_index: 0}]])
-    ms = Repo.preload(msi, :map_set).map_set
+    di = insert_stubbed_dungeon_instance(%{state: "flag: off"}, %{}, [[%Tile{character: "O", row: 1, col: 1, z_index: 0}]])
+    d = Repo.preload(di, :dungeon).dungeon
 
-    assert :ok = MapSetRegistry.create(map_set_registry, msi.id)
-    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
-    assert %MapSetProcess{map_set: ^ms,
-                          map_set_instance: %MapSet{},
+    assert :ok = MapSetRegistry.create(map_set_registry, di.id)
+    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, di.id)
+    assert %MapSetProcess{dungeon: ^d,
+                          dungeon_instance: %Dungeon{},
                           state_values: %{flag: "off"},
                           instance_registry: instance_registry,
                           entrances: []} = MapSetProcess.get_state(msi_process)
-    map_id = Repo.preload(msi, :maps).maps
-             |> Enum.map(&(&1.id))
-             |> Enum.at(0)
+    level_id = Repo.preload(di, :levels).levels
+               |> Enum.map(&(&1.id))
+               |> Enum.at(0)
     assert instance_list = InstanceRegistry.list(instance_registry)
     assert map_size(instance_list) == 1
-    assert %{^map_id => _} = instance_list
+    assert %{^level_id => _} = instance_list
   end
 
   @tag capture_log: true
   test "create safely handles a dungeon instance that does not exist in the DB", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
-    DungeonInstances.delete_map_set(msi)
-    log = ExUnit.CaptureLog.capture_log(fn -> MapSetRegistry.create(map_set_registry, msi.id); :timer.sleep 5 end)
-    assert :error = MapSetRegistry.lookup(map_set_registry, msi.id)
-    assert log =~ "Got a CREATE cast for #{msi.id} but its already been cleared"
+    di = insert_stubbed_dungeon_instance()
+    DungeonInstances.delete_dungeon(di)
+    log = ExUnit.CaptureLog.capture_log(fn -> MapSetRegistry.create(map_set_registry, di.id); :timer.sleep 5 end)
+    assert :error = MapSetRegistry.lookup(map_set_registry, di.id)
+    assert log =~ "Got a CREATE cast for #{di.id} but its already been cleared"
    end
 
   test "remove", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
-    MapSetRegistry.create(map_set_registry, msi.id)
-    assert {:ok, _msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
+    di = insert_stubbed_dungeon_instance()
+    MapSetRegistry.create(map_set_registry, di.id)
+    assert {:ok, _msi_process} = MapSetRegistry.lookup(map_set_registry, di.id)
 
     # seems to take a quick micro second for the cast to be done
-    MapSetRegistry.remove(map_set_registry, msi.id)
+    MapSetRegistry.remove(map_set_registry, di.id)
     :timer.sleep 1
-    assert :error = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert :error = MapSetRegistry.lookup(map_set_registry, di.id)
   end
 
   test "removes instances on exit", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
-    MapSetRegistry.create(map_set_registry, msi.id)
-    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
+    di = insert_stubbed_dungeon_instance()
+    MapSetRegistry.create(map_set_registry, di.id)
+    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, di.id)
 
     GenServer.stop(msi_process)
-    assert :error = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert :error = MapSetRegistry.lookup(map_set_registry, di.id)
   end
 
   test "removes instance on crash", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
-    MapSetRegistry.create(map_set_registry, msi.id)
-    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, msi.id)
+    di = insert_stubbed_dungeon_instance()
+    MapSetRegistry.create(map_set_registry, di.id)
+    assert {:ok, msi_process} = MapSetRegistry.lookup(map_set_registry, di.id)
 
     # Stop the bucket with a non-normal reason
     GenServer.stop(msi_process, :shutdown)
-    assert :error = MapSetRegistry.lookup(map_set_registry, msi.id)
+    assert :error = MapSetRegistry.lookup(map_set_registry, di.id)
   end
 
   test "list", %{map_set_registry: map_set_registry} do
-    msi = insert_stubbed_map_set_instance()
-    msi_id = msi.id
-    MapSetRegistry.create(map_set_registry, msi.id)
+    di = insert_stubbed_dungeon_instance()
+    di_id = di.id
+    MapSetRegistry.create(map_set_registry, di.id)
 
-    assert msi_ids = MapSetRegistry.list(map_set_registry)
-    assert %{^msi_id => _pid} = msi_ids
-    assert length(Map.keys(msi_ids)) == 1
+    assert di_ids = MapSetRegistry.list(map_set_registry)
+    assert %{^di_id => _pid} = di_ids
+    assert length(Map.keys(di_ids)) == 1
   end
 end
 

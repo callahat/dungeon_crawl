@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.MapGenerators.Utils do
   @doc """
-  Turns a generated dungeon into a displayable string with each row on a line. Needs the row width.
+  Turns a generated level into a displayable string with each row on a line. Needs the row width.
   """
   def stringify(map, cave_width) do
     map

@@ -8,10 +8,10 @@ defmodule DungeonCrawl.DungeonProcesses.MapSets do
   """
 
   @doc """
-  Returns the instance process given map set and instance id if found.
+  Returns the instance process given dungeon and instance id if found.
   """
-  def instance_process(map_set_instance_id, instance_id) do
-    with {:ok, instance_registry} <- MapSets.instance_registry(map_set_instance_id),
+  def instance_process(dungeon_instance_id, instance_id) do
+    with {:ok, instance_registry} <- MapSets.instance_registry(dungeon_instance_id),
          {:ok, instance_process} <- InstanceRegistry.lookup_or_create(instance_registry, instance_id) do
       {:ok, instance_process}
     else
@@ -20,10 +20,10 @@ defmodule DungeonCrawl.DungeonProcesses.MapSets do
   end
 
   @doc """
-  Returns the instance registry given the map set if found.
+  Returns the instance registry given the dungeon if found.
   """
-  def instance_registry(map_set_instance_id) do
-    with {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, map_set_instance_id) do
+  def instance_registry(dungeon_instance_id) do
+    with {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, dungeon_instance_id) do
       {:ok, MapSetProcess.get_instance_registry(map_set_process)}
     else
       _ -> nil

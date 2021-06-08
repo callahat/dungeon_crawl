@@ -33,10 +33,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Sets the map set instance id
+  Sets the dungeon instance id
   """
-  def set_map_set_instance_id(instance, map_set_instance_id) do
-    GenServer.cast(instance, {:set_map_set_instance_id, {map_set_instance_id}})
+  def set_dungeon_instance_id(instance, dungeon_instance_id) do
+    GenServer.cast(instance, {:set_dungeon_instance_id, {dungeon_instance_id}})
   end
 
   @doc """
@@ -54,10 +54,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Sets the adjacent map instance id for the given direction
+  Sets the adjacent level instance id for the given direction
   """
-  def set_adjacent_map_id(instance, map_instance_id, direction) do
-    GenServer.cast(instance, {:set_adjacent_map_id, {map_instance_id, direction}})
+  def set_adjacent_level_id(instance, level_instance_id, direction) do
+    GenServer.cast(instance, {:set_adjacent_level_id, {level_instance_id, direction}})
   end
 
   @doc """
@@ -68,12 +68,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Initializes the dungeon map instance and starts the programs.
+  Initializes the level level instance and starts the programs.
   """
-  def load_map(instance, map_tiles) do
-    map_tiles
-    |> Enum.each( fn(map_tile) ->
-         GenServer.cast(instance, {:create_map_tile, {map_tile}})
+  def load_level(instance, tiles) do
+    tiles
+    |> Enum.each( fn(tile) ->
+         GenServer.cast(instance, {:create_tile, {tile}})
        end )
   end
 
@@ -122,10 +122,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @doc """
-  Gets the tile for the given map tile id.
+  Gets the tile for the given tile id.
   """
   def get_tile(instance, tile_id) do
-    GenServer.call(instance, {:get_map_tile, {tile_id}})
+    GenServer.call(instance, {:get_tile, {tile_id}})
   end
 
   @doc """
@@ -133,7 +133,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   the tile with the highest (top) z_index is returned.
   """
   def get_tile(instance, row, col) do
-    GenServer.call(instance, {:get_map_tile, {row, col}})
+    GenServer.call(instance, {:get_tile, {row, col}})
   end
 
   @doc """
@@ -141,35 +141,35 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   If there are many tiles there, the tile with the highest (top) z_index is returned.
   """
   def get_tile(instance, row, col, direction) do
-    GenServer.call(instance, {:get_map_tile, {row, col, direction}})
+    GenServer.call(instance, {:get_tile, {row, col, direction}})
   end
 
   @doc """
   Gets the tiles for the given row, col coordinates.
   """
   def get_tiles(instance, row, col) do
-    GenServer.call(instance, {:get_map_tiles, {row, col}})
+    GenServer.call(instance, {:get_tiles, {row, col}})
   end
 
   @doc """
   Gets the tiles for the given row, col coordinates one away in the given direction.
   """
   def get_tiles(instance, row, col, direction) do
-    GenServer.call(instance, {:get_map_tiles, {row, col, direction}})
+    GenServer.call(instance, {:get_tiles, {row, col, direction}})
   end
 
   @doc """
-  Updates the given map_tile.
+  Updates the given tile.
   """
   def update_tile(instance, tile_id, attrs) do
-    GenServer.cast(instance, {:update_map_tile, {tile_id, attrs}})
+    GenServer.cast(instance, {:update_tile, {tile_id, attrs}})
   end
 
   @doc """
-  Deletes the given map tile.
+  Deletes the given tile.
   """
   def delete_tile(instance, tile_id) do
-    GenServer.cast(instance, {:delete_map_tile, {tile_id}})
+    GenServer.cast(instance, {:delete_tile, {tile_id}})
   end
 
   @doc """
@@ -208,33 +208,33 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_call({:get_map_tile, {tile_id}}, _from, %Instances{} = state) do
-    map_tile = Instances.get_map_tile_by_id(state, %{id: tile_id})
-    {:reply, map_tile, state}
+  def handle_call({:get_tile, {tile_id}}, _from, %Instances{} = state) do
+    tile = Instances.get_tile_by_id(state, %{id: tile_id})
+    {:reply, tile, state}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {row, col}}, _from, state) do
-    map_tile = Instances.get_map_tile(state, %{row: row, col: col})
-    {:reply, map_tile, state}
+  def handle_call({:get_tile, {row, col}}, _from, state) do
+    tile = Instances.get_tile(state, %{row: row, col: col})
+    {:reply, tile, state}
   end
 
   @impl true
-  def handle_call({:get_map_tile, {row, col, direction}}, _from, state) do
-    map_tile = Instances.get_map_tile(state, %{row: row, col: col}, direction)
-    {:reply, map_tile, state}
+  def handle_call({:get_tile, {row, col, direction}}, _from, state) do
+    tile = Instances.get_tile(state, %{row: row, col: col}, direction)
+    {:reply, tile, state}
   end
 
   @impl true
-  def handle_call({:get_map_tiles, {row, col}}, _from, %Instances{} = state) do
-    map_tiles = Instances.get_map_tiles(state, %{row: row, col: col})
-    {:reply, map_tiles, state}
+  def handle_call({:get_tiles, {row, col}}, _from, %Instances{} = state) do
+    tiles = Instances.get_tiles(state, %{row: row, col: col})
+    {:reply, tiles, state}
   end
 
   @impl true
-  def handle_call({:get_map_tiles, {row, col, direction}}, _from, %Instances{} = state) do
-    map_tiles = Instances.get_map_tiles(state, %{row: row, col: col}, direction)
-    {:reply, map_tiles, state}
+  def handle_call({:get_tiles, {row, col, direction}}, _from, %Instances{} = state) do
+    tiles = Instances.get_tiles(state, %{row: row, col: col}, direction)
+    {:reply, tiles, state}
   end
 
   @impl true
@@ -249,8 +249,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_cast({:set_map_set_instance_id, {map_set_instance_id}}, %Instances{} = state) do
-    {:noreply, %{ state | map_set_instance_id: map_set_instance_id }}
+  def handle_cast({:set_dungeon_instance_id, {dungeon_instance_id}}, %Instances{} = state) do
+    {:noreply, %{ state | dungeon_instance_id: dungeon_instance_id }}
   end
 
   @impl true
@@ -264,8 +264,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_cast({:set_adjacent_map_id, {map_instance_id, direction}}, %Instances{adjacent_map_ids: adjacent_map_ids} = state) do
-    {:noreply, %{ state | adjacent_map_ids: Map.put(adjacent_map_ids, direction, map_instance_id) }}
+  def handle_cast({:set_adjacent_level_id, {level_instance_id, direction}}, %Instances{adjacent_level_ids: adjacent_level_ids} = state) do
+    {:noreply, %{ state | adjacent_level_ids: Map.put(adjacent_level_ids, direction, level_instance_id) }}
   end
 
   @impl true
@@ -274,8 +274,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_cast({:create_map_tile, {map_tile}}, %Instances{} = state) do
-    {_map_tile, state} = Instances.create_map_tile(state, map_tile)
+  def handle_cast({:create_tile, {tile}}, %Instances{} = state) do
+    {_tile, state} = Instances.create_tile(state, tile)
     {:noreply, state}
   end
 
@@ -298,14 +298,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_cast({:update_map_tile, {tile_id, new_attributes}}, %Instances{} = state) do
-    {_updated_tile, state} = Instances.update_map_tile(state, %{id: tile_id}, new_attributes)
+  def handle_cast({:update_tile, {tile_id, new_attributes}}, %Instances{} = state) do
+    {_updated_tile, state} = Instances.update_tile(state, %{id: tile_id}, new_attributes)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:delete_map_tile, {map_tile_id}}, %Instances{} = state) do
-    {_deleted_tile, state} = Instances.delete_map_tile(state, %{id: map_tile_id})
+  def handle_cast({:delete_tile, {tile_id}}, %Instances{} = state) do
+    {_deleted_tile, state} = Instances.delete_tile(state, %{id: tile_id})
     {:noreply, state}
   end
 
@@ -347,7 +347,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   def handle_info(:check_on_inactive_players, %Instances{inactive_players: inactive_players} = state) do
     {stone, inactive_players} = inactive_players
                                 |> Map.to_list()
-                                |> Enum.map(fn {map_tile_id, count} -> {map_tile_id, count + 1} end)
+                                |> Enum.map(fn {tile_id, count} -> {tile_id, count + 1} end)
                                 |> Enum.split_with(fn {_, count} -> count > 5 end)
 
     inactive_players = Enum.into(inactive_players, %{})
@@ -375,10 +375,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     state = ids_to_persist
             |> Enum.map(fn({id, _}) -> id end)
             |> Enum.reduce(state, fn(temp_id, state) ->
-                 map_tile = Instances.get_map_tile_by_id(state, %{id: temp_id})
+                 tile = Instances.get_tile_by_id(state, %{id: temp_id})
                             |> Map.put(:id, nil)
                             |> DungeonCrawl.Repo.insert!()
-                 Instances.set_map_tile_id(state, map_tile, temp_id)
+                 Instances.set_tile_id(state, tile, temp_id)
                end)
 
     # save off this other stuff but don't block the GenServer, and dont care about the result
@@ -397,7 +397,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       updates = updates -- deletes
 
       if deletes != [] do
-        deletes |> DungeonInstances.delete_map_tiles()
+        deletes |> DungeonInstances.delete_tiles()
       end
 
       if updates != [] do
@@ -405,7 +405,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
         |> Enum.map(fn(updated_id) ->
              dirty_ids[updated_id]
            end)
-        |> DungeonInstances.update_map_tiles()
+        |> DungeonInstances.update_tiles()
       end
 
       if :os.system_time(:millisecond) - start_ms > 200 do
@@ -445,9 +445,9 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     end
   end
 
-  defp _broadcast_stat_updates(%{ dirty_player_map_tile_stats: pmt_ids} = state) do
+  defp _broadcast_stat_updates(%{ dirty_player_tile_stats: pmt_ids} = state) do
     Enum.uniq(pmt_ids)
-    |> _broadcast_stat_updates(%{ state | dirty_player_map_tile_stats: [] })
+    |> _broadcast_stat_updates(%{ state | dirty_player_tile_stats: [] })
   end
   defp _broadcast_stat_updates([], state), do: state
   defp _broadcast_stat_updates([ pmt_id | pmt_ids ], state) do
@@ -483,32 +483,32 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _petrify_old_inactive_players([], state), do: {:noreply, state}
-  defp _petrify_old_inactive_players([map_tile_id | to_stone], state) do
-    if player_location = Instances.get_player_location(state, %{id: map_tile_id}) do
+  defp _petrify_old_inactive_players([tile_id | to_stone], state) do
+    if player_location = Instances.get_player_location(state, %{id: tile_id}) do
       player_name = Account.get_name(player_location.user_id_hash)
-      Logger.info "Player #{player_name} has idled out and become a statue in MSI #{state.map_set_instance_id}"
-      {_statue, state} = PlayerInstance.petrify(state, %{id: map_tile_id})
+      Logger.info "Player #{player_name} has idled out and become a statue in MSI #{state.dungeon_instance_id}"
+      {_statue, state} = PlayerInstance.petrify(state, %{id: tile_id})
       _petrify_old_inactive_players(to_stone, state)
     else
-       Logger.info "Player ID #{map_tile_id} has idled out but they were not found in MSI #{state.map_set_instance_id}"
+       Logger.info "Player ID #{tile_id} has idled out but they were not found in MSI #{state.dungeon_instance_id}"
       _petrify_old_inactive_players(to_stone, state)
     end
   end
 
   defp _standard_behaviors([], state), do: state
-  defp _standard_behaviors([ {map_tile_id, label, sender} | messages ], state) do
+  defp _standard_behaviors([ {tile_id, label, sender} | messages ], state) do
     case String.downcase(label) do
       "shot" ->
-        _destroyable_behavior([ {map_tile_id, label, sender} | messages ], state)
+        _destroyable_behavior([ {tile_id, label, sender} | messages ], state)
       "bombed" ->
-        _destroyable_behavior([ {map_tile_id, label, sender} | messages ], state)
+        _destroyable_behavior([ {tile_id, label, sender} | messages ], state)
       _ ->
         _standard_behaviors(messages, state)
     end
   end
 
-  defp _destroyable_behavior([ {map_tile_id, _label, sender} | messages ], state) do
-    object = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+  defp _destroyable_behavior([ {tile_id, _label, sender} | messages ], state) do
+    object = Instances.get_tile_by_id(state, %{id: tile_id})
 
     cond do
       object && StateValue.get_int(object, :health) ->
@@ -531,16 +531,16 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _destroyed_tile(object, sender, messages, state) do
-    {deleted_tile, state} = Instances.delete_map_tile(state, object)
+    {deleted_tile, state} = Instances.delete_tile(state, object)
 
     if deleted_tile do
       state = _award_points(object, sender, state)
 
-      top_tile = Instances.get_map_tile(state, deleted_tile)
+      top_tile = Instances.get_tile(state, deleted_tile)
       payload = %{tiles: [
                    Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                   ]}
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.map_set_instance_id}:#{state.instance_id}", "tile_changes", payload
+      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.dungeon_instance_id}:#{state.instance_id}", "tile_changes", payload
       _standard_behaviors(messages, state)
     else
       _standard_behaviors(messages, state)
@@ -549,8 +549,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _award_points(object, sender, state) do
     awardee = case sender do
-                %{parsed_state: %{owner: owner_id}} -> Instances.get_map_tile_by_id(state, %{id: owner_id})
-                %{map_tile_id: id} -> Instances.get_map_tile_by_id(state, %{id: id})
+                %{parsed_state: %{owner: owner_id}} -> Instances.get_tile_by_id(state, %{id: owner_id})
+                %{tile_id: id} -> Instances.get_tile_by_id(state, %{id: id})
                 _ -> nil
               end
 
@@ -558,7 +558,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
     if is_number(points) && awardee do
       current_points = awardee.parsed_state[:score] || 0
-      {_awardee, state} = Instances.update_map_tile_state(state, awardee, %{score: current_points + points})
+      {_awardee, state} = Instances.update_tile_state(state, awardee, %{score: current_points + points})
 
       state
     else

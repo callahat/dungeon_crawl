@@ -41,7 +41,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
 
   # only definind specific _validate b/c not all commands will have input that could be invalid if it gets past the parser
   defp _validate(program, [ {line_no, [ :become, params ]} | instructions], errors, user) do
-    _validate_map_tile_kwargs(line_no, "BECOME", params, program, instructions, errors, user)
+    _validate_tile_kwargs(line_no, "BECOME", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [ :change_state, params ]} | instructions], errors, user) do
@@ -192,7 +192,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [ :put, params ]} | instructions], errors, user) do
-    _validate_map_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
+    _validate_tile_kwargs(line_no, "PUT", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [:random, [state_var | list]]} | instructions], errors, user)
@@ -200,7 +200,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     case state_var do
       {:state_variable, _} -> _validate(program, instructions, errors, user)
       {:instance_state_variable, _} -> _validate(program, instructions, errors, user)
-      {:map_set_instance_state_variable, _} -> _validate(program, instructions, errors, user)
+      {:dungeon_instance_state_variable, _} -> _validate(program, instructions, errors, user)
       var when is_binary(var) -> _validate(program, instructions, errors, user)
       var -> _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid variable specified #{inspect var}" | errors], user)
     end
@@ -210,11 +210,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate(program, [ {line_no, [ :replace, params ]} | instructions], errors, user) do
-    _validate_map_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)
+    _validate_tile_kwargs(line_no, "REPLACE", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [:remove, params ]} | instructions], errors, user) do
-    _validate_map_tile_kwargs(line_no, "REMOVE", params, program, instructions, errors, user)
+    _validate_tile_kwargs(line_no, "REMOVE", params, program, instructions, errors, user)
   end
 
   defp _validate(program, [ {line_no, [:restore, [label] ]} | instructions], errors, user) do
@@ -347,7 +347,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
 
-  defp _validate_map_tile_kwargs(line_no, command, params, program, instructions, errors, user) do
+  defp _validate_tile_kwargs(line_no, command, params, program, instructions, errors, user) do
     if is_map(Enum.at(params, 0)) && length(params) == 1 do
       params = Enum.at(params, 0)
       params = resolve_variable_map(%{}, params)

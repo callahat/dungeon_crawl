@@ -19,24 +19,24 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
   end
 
   @doc """
-  Looks up the map_set pid for `map_set_id` stored in `server`.
+  Looks up the dungeon pid for `dungeon_id` stored in `server`.
 
-  Returns `{:ok, pid}` if the map_set exists, `:error` otherwise
+  Returns `{:ok, pid}` if the dungeon exists, `:error` otherwise
   """
-  def lookup(server, map_set_id) do
-    GenServer.call(server, {:lookup, map_set_id})
+  def lookup(server, dungeon_id) do
+    GenServer.call(server, {:lookup, dungeon_id})
   end
 
   @doc """
-  Looks up or creates the map_set pid for `map_set_id` stored in `server`.
+  Looks up or creates the dungeon pid for `dungeon_id` stored in `server`.
 
   Returns `{:ok, pid}`.
   """
-  def lookup_or_create(server, map_set_id) do
-    case lookup(server, map_set_id) do
+  def lookup_or_create(server, dungeon_id) do
+    case lookup(server, dungeon_id) do
       :error ->
-        create(server, map_set_id)
-        lookup(server, map_set_id)
+        create(server, dungeon_id)
+        lookup(server, dungeon_id)
 
       {:ok, pid} ->
         {:ok, pid}
@@ -44,22 +44,22 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
   end
 
   @doc """
-  Ensures there is a map_set associated with the given `map_set_id` in `server`.
+  Ensures there is a dungeon associated with the given `dungeon_id` in `server`.
   """
-  def create(server, map_set_id) do
-    GenServer.cast(server, {:create, map_set_id})
+  def create(server, dungeon_id) do
+    GenServer.cast(server, {:create, dungeon_id})
   end
 
   @doc """
-  Stops the map_set associated with the given `map_set_id` in `server`, allowing it to be removed.
+  Stops the dungeon associated with the given `dungeon_id` in `server`, allowing it to be removed.
   """
-  def remove(server, map_set_id) do
-    GenServer.cast(server, {:remove, map_set_id})
+  def remove(server, dungeon_id) do
+    GenServer.cast(server, {:remove, dungeon_id})
   end
 
   @doc """
-  List the map_set ids and the map_set processes they are associated with.
-  Gives some insight into what map_set processes are running.
+  List the dungeon ids and the dungeon processes they are associated with.
+  Gives some insight into what dungeon processes are running.
   """
   def list(server) do
     GenServer.call(server, {:list})
@@ -70,72 +70,71 @@ defmodule DungeonCrawl.DungeonProcesses.MapSetRegistry do
   @impl true
   def init(:ok) do
     {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
-    map_set_ids = %{}
+    dungeon_ids = %{}
     refs = %{}
-    {:ok, {map_set_ids, refs, supervisor}}
+    {:ok, {dungeon_ids, refs, supervisor}}
   end
 
   @impl true
-  def handle_call({:lookup, map_set_id}, _from, {map_set_ids, _, _} = state) do
-    {:reply, Map.fetch(map_set_ids, map_set_id), state}
+  def handle_call({:lookup, dungeon_id}, _from, {dungeon_ids, _, _} = state) do
+    {:reply, Map.fetch(dungeon_ids, dungeon_id), state}
   end
 
   @impl true
-  def handle_call({:list}, _from, {map_set_ids, _, _} = state) do
-    {:reply, map_set_ids, state}
+  def handle_call({:list}, _from, {dungeon_ids, _, _} = state) do
+    {:reply, dungeon_ids, state}
   end
 
   @impl true
-  def handle_cast({:create, map_set_id}, {map_set_ids, refs, supervisor}) do
-    if Map.has_key?(map_set_ids, map_set_id) do
-      {:noreply, {map_set_ids, refs, supervisor}}
+  def handle_cast({:create, dungeon_id}, {dungeon_ids, refs, supervisor}) do
+    if Map.has_key?(dungeon_ids, dungeon_id) do
+      {:noreply, {dungeon_ids, refs, supervisor}}
     else
-      with msi when not is_nil(msi) <- DungeonInstances.get_map_set(map_set_id) do
-        {:ok, state_values} = StateValue.Parser.parse(msi.state)
-
-        {:noreply, _create_map_set(map_set_id, msi, state_values, {map_set_ids, refs, supervisor})}
+      with di when not is_nil(di) <- DungeonInstances.get_dungeon(dungeon_id) do
+        {:ok, state_values} = StateValue.Parser.parse(di.state)
+        {:noreply, _create_dungeon(dungeon_id, di, state_values, {dungeon_ids, refs, supervisor})}
       else
         _error ->
-          Logger.error "Got a CREATE cast for #{map_set_id} but its already been cleared"
-          {:noreply, {map_set_ids, refs, supervisor}}
+          Logger.error "Got a CREATE cast for #{dungeon_id} but its already been cleared"
+          {:noreply, {dungeon_ids, refs, supervisor}}
       end
     end
   end
 
   @impl true
-  def handle_cast({:remove, map_set_id}, {map_set_ids, refs, supervisor}) do
-    if Map.has_key?(map_set_ids, map_set_id), do: GenServer.stop(Map.fetch!(map_set_ids, map_set_id), :shutdown)
-    {:noreply, {map_set_ids, refs, supervisor}}
+  def handle_cast({:remove, dungeon_id}, {dungeon_ids, refs, supervisor}) do
+    if Map.has_key?(dungeon_ids, dungeon_id), do: GenServer.stop(Map.fetch!(dungeon_ids, dungeon_id), :shutdown)
+    {:noreply, {dungeon_ids, refs, supervisor}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {map_set_ids, refs, supervisor}) do
-    {map_set_id, refs} = Map.pop(refs, ref)
-    map_set_ids = Map.delete(map_set_ids, map_set_id)
-    {:noreply, {map_set_ids, refs, supervisor}}
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, {dungeon_ids, refs, supervisor}) do
+    {dungeon_id, refs} = Map.pop(refs, ref)
+    dungeon_ids = Map.delete(dungeon_ids, dungeon_id)
+    {:noreply, {dungeon_ids, refs, supervisor}}
   end
 
-  defp _create_map_set(map_set_id, map_set_instance, state_values, {map_set_ids, refs, supervisor}) do
+  defp _create_dungeon(dungeon_id, dungeon_instance, state_values, {dungeon_ids, refs, supervisor}) do
     {:ok, map_set_process} = DynamicSupervisor.start_child(supervisor, MapSetProcess)
 
-    map_set = Repo.preload(map_set_instance, :map_set).map_set
+    dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
 
-    author = if map_set.user_id, do: Account.get_user(map_set.user_id), else: %Account.User{}
+    author = if dungeon.user_id, do: Account.get_user(dungeon.user_id), else: %Account.User{}
 
     MapSetProcess.set_author(map_set_process, author)
-    MapSetProcess.set_map_set(map_set_process, map_set)
-    MapSetProcess.set_map_set_instance(map_set_process, map_set_instance)
+    MapSetProcess.set_dungeon(map_set_process, dungeon)
+    MapSetProcess.set_dungeon_instance(map_set_process, dungeon_instance)
     MapSetProcess.set_state_values(map_set_process, state_values)
     MapSetProcess.start_scheduler(map_set_process)
 
-    Repo.preload(map_set_instance, :maps).maps
-    |> Enum.each(fn map ->
-         MapSetProcess.load_instance(map_set_process, map)
+    Repo.preload(dungeon_instance, :levels).levels
+    |> Enum.each(fn level ->
+         MapSetProcess.load_instance(map_set_process, level)
        end)
 
     ref = Process.monitor(map_set_process)
-    refs = Map.put(refs, ref, map_set_id)
-    map_set_ids = Map.put(map_set_ids, map_set_id, map_set_process)
-    {map_set_ids, refs, supervisor}
+    refs = Map.put(refs, ref, dungeon_id)
+    dungeon_ids = Map.put(dungeon_ids, dungeon_id, map_set_process)
+    {dungeon_ids, refs, supervisor}
   end
 end

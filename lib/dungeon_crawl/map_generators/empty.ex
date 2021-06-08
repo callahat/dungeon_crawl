@@ -3,7 +3,7 @@ defmodule DungeonCrawl.MapGenerators.Empty do
   @cave_width      80
 
   @doc """
-  Generates an empty dungeon - its all rock/default tile.
+  Generates an empty level - its all rock/default tile.
 
   Returns a Map containing a {row, col} tuple and a value. The value will be one
   single character code indicating what is at that coordinate.

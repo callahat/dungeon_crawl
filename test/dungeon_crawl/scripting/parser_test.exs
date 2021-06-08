@@ -5,8 +5,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
   alias DungeonCrawl.Scripting.Program
 
   # To verify the parsed stuff feeds into the commands, might move this elsewhere
-  alias DungeonCrawl.DungeonInstances.MapTile
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonInstances.Tile
+  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets, MapSetRegistry}
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Runner
 
@@ -107,8 +107,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF ?any_player@is_facing, touch
                text with interpolation ${ @color }
                !buy;buy ${ @id }
-               &msi_thing++
-               #IF &msi_thing > 10, TOUCH
+               &di_thing++
+               #IF &di_thing > 10, TOUCH
                #GAMEOVER
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
@@ -185,8 +185,8 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  71 => [:jump_if, [{:any_player, :is_facing}, "touch"]],
                                                  72 => [:text, [["text with interpolation ", {:state_variable, :color}, ""]]],
                                                  73 => [:text, [["buy ", {:state_variable, :id}, ""], "buy"]],
-                                                 74 => [:change_map_set_instance_state, [:msi_thing, "++", ""]],
-                                                 75 => [:jump_if, [[{:map_set_instance_state_variable, :msi_thing}, ">", 10], "TOUCH"]],
+                                                 74 => [:change_dungeon_instance_state, [:di_thing, "++", ""]],
+                                                 75 => [:jump_if, [[{:dungeon_instance_state_variable, :di_thing}, ">", 10], "TOUCH"]],
                                                  76 => [:gameover, [""]],
                                                  },
                                  status: :alive,
@@ -198,26 +198,34 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
       # Check that the parsed stuff matches the command signatures. Kinda a kludge, but no other better place for this check
       # without duplicating a bunch of other stuff
-      map_instance = insert_stubbed_dungeon_instance()
-      map_tile_params = %MapTile{map_instance_id: map_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
-      {map_tile, state} = Instances.create_map_tile(%Instances{}, map_tile_params)
-      state = %{ state | map_set_instance_id: map_instance.map_set_instance_id }
+      level_instance = insert_stubbed_level_instance()
 
-      runner_state = %Runner{object_id: map_tile.id, program: program, state: state}
+      {:ok, instance_process} = MapSets.instance_process(level_instance.dungeon_instance_id, level_instance.id)
 
-      assert  program.instructions
-              |> Map.to_list
-              |> Enum.map(fn {_line_number, [command, params]} ->
-                   try do
-                     apply(Command, command, [runner_state, params])
-                     :ok
-                   rescue
-                     e in FunctionClauseError -> [Map.take(e,[:function, :module]), command, params]
-                   end
-                 end )
-                 |> Enum.reject(fn e -> e == :ok end)
-                 |> Enum.map(fn e -> inspect e end)
-                 |> Enum.join("\n") == ""
+      InstanceProcess.run_with(instance_process, fn(state) ->
+        tile_params = %Tile{level_instance_id: level_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
+        {tile, state} = Instances.create_tile(state, tile_params)
+        state = %{ state | dungeon_instance_id: level_instance.dungeon_instance_id }
+
+        runner_state = %Runner{object_id: tile.id, program: program, state: state}
+
+        assert  program.instructions
+                |> Map.to_list
+                |> Enum.map(fn {_line_number, [command, params]} ->
+                     try do
+                       apply(Command, command, [runner_state, params])
+                       :ok
+                     rescue
+                       e in FunctionClauseError -> [Map.take(e,[:function, :module]), command, params]
+                     end
+                   end )
+                   |> Enum.reject(fn e -> e == :ok end)
+                   |> Enum.map(fn e -> inspect e end)
+                   |> Enum.join("\n") == ""
+        {:ok, state}
+      end)
+
+      MapSetRegistry.remove(MapSetInstanceRegistry, level_instance.dungeon_instance_id)
     end
 
     test "a bad command" do

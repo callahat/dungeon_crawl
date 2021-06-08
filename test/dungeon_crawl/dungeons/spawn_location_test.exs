@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Dungeons.SpawnLocationTest do
 
   alias DungeonCrawl.Dungeons.SpawnLocation
 
-  @valid_attrs %{row: 19, col: 39, dungeon_id: 1}
+  @valid_attrs %{row: 19, col: 39, level_id: 1}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do

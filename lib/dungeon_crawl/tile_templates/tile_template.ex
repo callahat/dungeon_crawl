@@ -29,7 +29,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :animate_period, :integer
     field :group_name, :string, default: "custom"
     has_one :next_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id, on_delete: :nilify_all
-    has_many :map_tiles, DungeonCrawl.Dungeons.MapTile, on_delete: :nilify_all
+    has_many :tiles, DungeonCrawl.Dungeons.Tile, on_delete: :nilify_all
     belongs_to :previous_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id
     belongs_to :user, DungeonCrawl.Account.User
 

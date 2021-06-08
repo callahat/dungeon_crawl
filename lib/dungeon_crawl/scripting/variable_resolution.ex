@@ -36,36 +36,36 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     object_id
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :character}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.character
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :color}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.color
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :background_color}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.background_color
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :name}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.name
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :row}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.row
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, :col}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.col
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     object.parsed_state[var]
   end
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, :id}) do
     case event_sender do
-      %Location{} -> event_sender.map_tile_instance_id
+      %Location{} -> event_sender.tile_instance_id
       %{id: id} ->  id
       _ -> nil
     end
@@ -94,8 +94,8 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{state: state}, {:instance_state_variable, var}) do
     state.state_values[var]
   end
-  def resolve_variable(%Runner{state: state}, {:map_set_instance_state_variable, var}) do
-    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.map_set_instance_id)
+  def resolve_variable(%Runner{state: state}, {:dungeon_instance_state_variable, var}) do
+    {:ok, map_set_process} = MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, state.dungeon_instance_id)
     MapSetProcess.get_state_value(map_set_process, var)
   end
   def resolve_variable(%Runner{}, {:random, range}) do
@@ -104,8 +104,8 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{object_id: object_id, state: state} = runner_state, {target, :distance}) do
     case resolve_variable(runner_state, target) do
       target_id when is_integer(target_id) ->
-        object = Instances.get_map_tile_by_id(state, %{id: object_id})
-        target = Instances.get_map_tile_by_id(state, %{id: target_id})
+        object = Instances.get_tile_by_id(state, %{id: object_id})
+        target = Instances.get_tile_by_id(state, %{id: target_id})
         Direction.distance(object, target)
 
       _ ->
@@ -113,27 +113,27 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     end
   end
   def resolve_variable(%Runner{object_id: object_id, state: state}, {:any_player, :is_facing}) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Instances.get_tile_by_id(state, %{id: object_id})
     case object.parsed_state[:facing] do
       nil ->    false
       "idle" -> false
       direction ->
         state.player_locations
         |> Map.to_list()
-        |> Enum.map(fn({map_tile_id, _}) ->
-             player_map_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
-             Direction.orthogonal_direction(object, player_map_tile)
+        |> Enum.map(fn({tile_id, _}) ->
+             player_tile = Instances.get_tile_by_id(state, %{id: tile_id})
+             Direction.orthogonal_direction(object, player_tile)
            end)
         |> Enum.member?([direction])
     end
   end
   def resolve_variable(%Runner{object_id: object_id, state: state} = runner_state, {target, :is_facing}) do
     case resolve_variable(runner_state, target) do
-      map_tile_id when is_integer(map_tile_id) ->
-        object = Instances.get_map_tile_by_id(state, %{id: object_id})
-        player_map_tile = Instances.get_map_tile_by_id(state, %{id: map_tile_id})
+      tile_id when is_integer(tile_id) ->
+        object = Instances.get_tile_by_id(state, %{id: object_id})
+        player_tile = Instances.get_tile_by_id(state, %{id: tile_id})
         ! is_nil(object.parsed_state[:facing]) &&
-          Direction.orthogonal_direction(object, player_map_tile) == [object.parsed_state[:facing]]
+          Direction.orthogonal_direction(object, player_tile) == [object.parsed_state[:facing]]
 
       _ ->
         false
@@ -144,11 +144,11 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     resolve_variable(runner_state, {{:direction, direction}, var})
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {{:direction, direction}, var}) do
-    base = Instances.get_map_tile_by_id(state, %{id: object_id})
+    base = Instances.get_tile_by_id(state, %{id: object_id})
     object = if Direction.valid_orthogonal_change?(direction) do
-               Instances.get_map_tile(state, base, Direction.change_direction(base.parsed_state[:facing], direction))
+               Instances.get_tile(state, base, Direction.change_direction(base.parsed_state[:facing], direction))
              else
-               Instances.get_map_tile(state, base, direction)
+               Instances.get_tile(state, base, direction)
              end
     object && resolve_variable(%Runner{state: state, object_id: object.id}, {:state_variable, var})
   end

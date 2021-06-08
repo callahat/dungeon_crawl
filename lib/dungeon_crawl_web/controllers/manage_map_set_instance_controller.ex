@@ -8,29 +8,29 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
   alias DungeonCrawl.DungeonProcesses.MapSetProcess
 
   def index(conn, _params) do
-    map_sets = MapSetRegistry.list(MapSetInstanceRegistry)
-               |> Enum.map(fn({msi_id, map_set}) ->
-                             state = MapSetProcess.get_state(map_set)
-                                     |> Map.take([:map_set_instance])
-                             {state, DungeonInstances.get_map_set(msi_id)}
+    dungeons = MapSetRegistry.list(MapSetInstanceRegistry)
+               |> Enum.map(fn({di_id, dungeon}) ->
+                             state = MapSetProcess.get_state(dungeon)
+                                     |> Map.take([:dungeon_instance])
+                             {state, DungeonInstances.get_dungeon(di_id)}
                            end)
-    render(conn, "index.html", map_sets: map_sets)
+    render(conn, "index.html", dungeons: dungeons)
   end
 
   def show(conn, %{"id" => id}) do
     case MapSetRegistry.lookup(MapSetInstanceRegistry, String.to_integer(id)) do
-      {:ok, map_set_process} ->
-        map_set_instance = DungeonInstances.get_map_set(String.to_integer(id))
-        map_set_state = MapSetProcess.get_state(map_set_process)
+      {:ok, dungeon_process} ->
+        dungeon_instance = DungeonInstances.get_dungeon(String.to_integer(id))
+        dungeon_state = MapSetProcess.get_state(dungeon_process)
 
-        instances = InstanceRegistry.list(map_set_state.instance_registry)
+        instances = InstanceRegistry.list(dungeon_state.instance_registry)
                     |> Enum.map(fn({instance_id, instance}) ->
                                   state = InstanceProcess.get_state(instance)
-                                          |> Map.take([:instance_id, :map_set_instance_id, :number, :player_locations])
-                                  {state, DungeonInstances.get_map(instance_id)}
+                                          |> Map.take([:instance_id, :dungeon_instance_id, :number, :player_locations])
+                                  {state, DungeonInstances.get_level(instance_id)}
                                 end)
 
-        render(conn, "show.html", msi_id: id, map_set_instance: map_set_instance, map_set_state: map_set_state, instances: instances)
+        render(conn, "show.html", di_id: id, dungeon_instance: dungeon_instance, dungeon_state: dungeon_state, instances: instances)
       _ ->
         conn
         |> put_flash(:info, "Instance not found: `#{id}`")

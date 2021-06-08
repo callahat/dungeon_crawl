@@ -5,24 +5,24 @@ defmodule DungeonCrawlWeb.ScoreController do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Account
 
-  def index(conn, %{"map_set_id" => map_set_id, "score_id" => score_id}) do
-    map_set = Dungeons.get_map_set(map_set_id)
-    other_map_sets = Dungeons.get_map_sets(map_set.line_identifier)
-    scores = Scores.top_scores_for_map_set(map_set_id)
-    score = Repo.preload(Scores.get_ranked_score(map_set_id, score_id), :map_set)
-    render(conn, "index.html", scores: scores, details: %{who: map_set.name,
-                                                          other_map_sets: other_map_sets,
-                                                          map_set_id: map_set.id,
+  def index(conn, %{"dungeon_id" => dungeon_id, "score_id" => score_id}) do
+    dungeon = Dungeons.get_dungeon(dungeon_id)
+    other_dungeons = Dungeons.get_dungeons(dungeon.line_identifier)
+    scores = Scores.top_scores_for_dungeon(dungeon_id)
+    score = Repo.preload(Scores.get_ranked_score(dungeon_id, score_id), :dungeon)
+    render(conn, "index.html", scores: scores, details: %{who: dungeon.name,
+                                                          other_dungeons: other_dungeons,
+                                                          dungeon_id: dungeon.id,
                                                           score: score})
   end
 
-  def index(conn, %{"map_set_id" => map_set_id}) do
-    map_set = Dungeons.get_map_set(map_set_id)
-    other_map_sets = Dungeons.get_map_sets(map_set.line_identifier)
-    scores = Scores.top_scores_for_map_set(map_set_id)
-    render(conn, "index.html", scores: scores, details: %{who: map_set.name,
-                                                          other_map_sets: other_map_sets,
-                                                          map_set_id: map_set.id})
+  def index(conn, %{"dungeon_id" => dungeon_id}) do
+    dungeon = Dungeons.get_dungeon(dungeon_id)
+    other_dungeons = Dungeons.get_dungeons(dungeon.line_identifier)
+    scores = Scores.top_scores_for_dungeon(dungeon_id)
+    render(conn, "index.html", scores: scores, details: %{who: dungeon.name,
+                                                          other_dungeons: other_dungeons,
+                                                          dungeon_id: dungeon.id})
   end
 
   def index(conn, %{"user_id" => user_id}) do

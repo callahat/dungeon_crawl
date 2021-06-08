@@ -14,19 +14,19 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   import Phoenix.HTML, only: [html_escape: 1]
 
-  def join("dungeons:" <> map_set_instance_id_and_instance_id, _payload, socket) do
-    [map_set_instance_id, instance_id] = map_set_instance_id_and_instance_id
+  def join("dungeons:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
+    [dungeon_instance_id, instance_id] = dungeon_instance_id_and_instance_id
                                          |> String.split(":")
                                          |> Enum.map(&String.to_integer(&1))
 
-    {:ok, instance_registry} = MapSets.instance_registry(map_set_instance_id)
+    {:ok, instance_registry} = MapSets.instance_registry(dungeon_instance_id)
 
     # make sure the instance is up and running
     {:ok, instance} = InstanceRegistry.lookup_or_create(instance_registry, instance_id)
 
     # remove the player from the inactive map
     InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
-      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
       if player_location && player_location.user_id_hash == socket.assigns.user_id_hash do
         socket = assign(socket, :instance_id, instance_id)
@@ -49,7 +49,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     # add the player to the inactive map
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
-      {_, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {_, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       inactive_players = if player_tile, do: Map.put(inactive_players, player_tile.id, 0), else: inactive_players
       {:ok, %{ instance_state | inactive_players: inactive_players }}
     end)
@@ -78,9 +78,9 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      with target_tile when not is_nil(target_tile) <- Instances.get_map_tile_by_id(instance_state, %{id: tile_id}),
+      with target_tile when not is_nil(target_tile) <- Instances.get_tile_by_id(instance_state, %{id: tile_id}),
            {player_location, player_tile} when not is_nil(player_location) <-
-             _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash),
+             _player_location_and_tile(instance_state, socket.assigns.user_id_hash),
            label <- String.downcase(label),
            true <- Instances.valid_message_action?(instance_state, player_tile.id, label),
            event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
@@ -102,7 +102,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   def handle_in("respawn", %{}, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
       if player_tile && not _player_alive(player_tile) && _game_active(player_tile, player_location) do
         {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
@@ -124,7 +124,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     socket = \
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = Instances.remove_message_actions(instance_state, player_tile.id)
 
       cond do
@@ -148,7 +148,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
                               updated_instance
                           end
 
-          updated_stats = Player.current_stats(updated_state, %{id: player_location.map_tile_instance_id})
+          updated_stats = Player.current_stats(updated_state, %{id: player_location.tile_instance_id})
           DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
 
           {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
@@ -164,7 +164,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   def handle_in("speak", %{"words" => words}, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     instance_state = InstanceProcess.get_state(instance)
-    {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+    {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
     safe_words = \
     case String.split(words, ~r/^\/(?:level|dungeon)\b/, include_captures: true, trim: true, parts: 2) do
@@ -206,18 +206,17 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
 
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
-      adjacent_map_id = _adjacent_map_id(instance_state, player_tile, direction)
-      destination = Instances.get_map_tile(instance_state, player_tile, direction)
+      adjacent_level_id = _adjacent_level_id(instance_state, player_tile, direction)
+      destination = Instances.get_tile(instance_state, player_tile, direction)
 
       cond do
         not _player_alive(player_tile) || not _game_active(player_tile, player_location) ->
           {:ok, instance_state}
 
-        adjacent_map_id ->
-
-          Travel.passage(player_location, %{adjacent_map_id: adjacent_map_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
+        adjacent_level_id ->
+          Travel.passage(player_location, %{adjacent_level_id: adjacent_level_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
 
         destination ->
           case move_func.(player_tile, destination, instance_state) do
@@ -239,20 +238,20 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   defp _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, _unhandled_event_message, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = if player_tile, do: Instances.remove_message_actions(instance_state, player_tile.id),
                                        else: instance_state
 
       with true <- _player_alive(player_tile),
            true <- _game_active(player_tile, player_location),
-           target_tiles when target_tiles != [] <- Instances.get_map_tiles(instance_state, player_tile, direction) do
+           target_tiles when target_tiles != [] <- Instances.get_tiles(instance_state, player_tile, direction) do
 
         toucher = Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state]))
         instance_state = target_tiles
                          |> Enum.reduce(instance_state, fn(target_tile, instance_state) ->
                                Instances.send_event(instance_state, target_tile, "TOUCH", toucher)
                              end)
-        toucher_after_event = Instances.get_map_tile_by_id(instance_state, player_tile)
+        toucher_after_event = Instances.get_tile_by_id(instance_state, player_tile)
         if toucher_after_event && Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
           {:ok, instance_state}
         else
@@ -267,13 +266,13 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
     {:ok, instance} = InstanceRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     InstanceProcess.run_with(instance, fn (instance_state) ->
-      {player_location, player_tile} = _player_location_and_map_tile(instance_state, socket.assigns.user_id_hash)
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = if player_tile, do: Instances.remove_message_actions(instance_state, player_tile.id),
                                        else: instance_state
 
       with true <- _player_alive(player_tile),
            true <- _game_active(player_tile, player_location),
-           target_tile when not is_nil(target_tile) <- Instances.get_map_tile(instance_state, player_tile, direction) do
+           target_tile when not is_nil(target_tile) <- Instances.get_tile(instance_state, player_tile, direction) do
         if !Instances.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
         end
@@ -287,25 +286,25 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     {:noreply, socket}
   end
 
-  defp _player_location_and_map_tile(instance_state, user_id_hash) do
+  defp _player_location_and_tile(instance_state, user_id_hash) do
     player_location = Instances.get_player_location(instance_state, user_id_hash)
     if player_location do
-      player_map_tile = Instances.get_map_tile_by_id(instance_state, %{id: player_location.map_tile_instance_id})
-      {player_location, player_map_tile}
+      player_tile = Instances.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      {player_location, player_tile}
     else
       {nil, nil}
     end
   end
 
   defp _player_alive(nil), do: false
-  defp _player_alive(player_map_tile), do: player_map_tile.parsed_state[:health] > 0
+  defp _player_alive(player_tile), do: player_tile.parsed_state[:health] > 0
 
   defp _game_active(nil, _), do: false
-  defp _game_active(player_map_tile, player_location) do
-    if player_map_tile.parsed_state[:gameover] == true do
+  defp _game_active(player_tile, player_location) do
+    if player_tile.parsed_state[:gameover] == true do
       DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                          "gameover",
-                                         Map.take(player_map_tile.parsed_state, [:score_id, :map_set_id])
+                                         Map.take(player_tile.parsed_state, [:score_id, :dungeon_id])
       false
     else
       true
@@ -327,13 +326,13 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     hearing_groups = \
     instance_state.player_locations
     |> Map.to_list()
-    |> Enum.reject(fn({map_tile_id, _location}) -> map_tile_id == player_tile.id end)
-    |> Enum.map(fn({map_tile_id, location}) -> {Instances.get_map_tile_by_id(instance_state, %{id: map_tile_id}), location} end)
-    |> Enum.group_by(fn({map_tile, _location}) -> cond do
-                                                    Enum.member?(clear_coords, {map_tile.row, map_tile.col}) -> :ok
-                                                    Enum.member?(audiable_coords, {map_tile.row, map_tile.col}) -> :quiet
-                                                    true -> nil
-                                                  end
+    |> Enum.reject(fn({tile_id, _location}) -> tile_id == player_tile.id end)
+    |> Enum.map(fn({tile_id, location}) -> {Instances.get_tile_by_id(instance_state, %{id: tile_id}), location} end)
+    |> Enum.group_by(fn({tile, _location}) -> cond do
+                                                Enum.member?(clear_coords, {tile.row, tile.col}) -> :ok
+                                                Enum.member?(audiable_coords, {tile.row, tile.col}) -> :quiet
+                                                true -> nil
+                                              end
        end)
 
     (hearing_groups[:ok] || [])
@@ -350,8 +349,8 @@ defmodule DungeonCrawlWeb.DungeonChannel do
   defp _send_message_to_other_players_in_instance(player_location, safe_msg, instance_state) do
     instance_state.player_locations
     |> Map.to_list()
-    |> Enum.reject(fn({map_tile_id, _location}) -> map_tile_id == player_location.map_tile_instance_id end)
-    |> Enum.map(fn({_map_tile_id, location}) -> location.id end)
+    |> Enum.reject(fn({tile_id, _location}) -> tile_id == player_location.tile_instance_id end)
+    |> Enum.map(fn({_tile_id, location}) -> location.id end)
     |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to level</i><b>:</b> #{safe_msg}")
 
     safe_msg
@@ -359,7 +358,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   defp _send_message_to_other_players_in_dungeon(player_location, safe_msg, instance_registry) do
     InstanceRegistry.player_location_ids(instance_registry)
-    |> Enum.reject(fn({_, tile_id}) -> tile_id == player_location.map_tile_instance_id end)
+    |> Enum.reject(fn({_, tile_id}) -> tile_id == player_location.tile_instance_id end)
     |> Enum.map(fn({location_id, _}) -> location_id end)
     |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to dungeon</i><b>:</b> #{safe_msg}")
 
@@ -374,14 +373,14 @@ defmodule DungeonCrawlWeb.DungeonChannel do
     _send_message_to_player(location_ids, safe_msg)
   end
 
-  defp _adjacent_map_id(_, nil, _), do: nil
-  defp _adjacent_map_id(instance_state, player_tile, "north"),
-    do: player_tile.row == 0 && instance_state.adjacent_map_ids["north"]
-  defp _adjacent_map_id(instance_state, player_tile, "south"),
-    do: player_tile.row == instance_state.state_values[:rows]-1  && instance_state.adjacent_map_ids["south"]
-  defp _adjacent_map_id(instance_state, player_tile, "east"),
-    do: player_tile.col == instance_state.state_values[:cols]-1 && instance_state.adjacent_map_ids["east"]
-  defp _adjacent_map_id(instance_state, player_tile, "west"),
-    do: player_tile.col == 0 && instance_state.adjacent_map_ids["west"]
-  defp _adjacent_map_id(_,_,_), do: nil
+  defp _adjacent_level_id(_, nil, _), do: nil
+  defp _adjacent_level_id(instance_state, player_tile, "north"),
+    do: player_tile.row == 0 && instance_state.adjacent_level_ids["north"]
+  defp _adjacent_level_id(instance_state, player_tile, "south"),
+    do: player_tile.row == instance_state.state_values[:rows]-1  && instance_state.adjacent_level_ids["south"]
+  defp _adjacent_level_id(instance_state, player_tile, "east"),
+    do: player_tile.col == instance_state.state_values[:cols]-1 && instance_state.adjacent_level_ids["east"]
+  defp _adjacent_level_id(instance_state, player_tile, "west"),
+    do: player_tile.col == 0 && instance_state.adjacent_level_ids["west"]
+  defp _adjacent_level_id(_,_,_), do: nil
 end

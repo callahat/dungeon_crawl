@@ -8,14 +8,14 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   def join("players:" <> location_id, _payload, socket) do
     user_id_hash = socket.assigns.user_id_hash
 
-    with location when not is_nil(location) <- Repo.preload(Player.get_location(%{id: location_id}), [map_tile: :dungeon]),
-         true <- not is_nil(location.map_tile),
+    with location when not is_nil(location) <- Repo.preload(Player.get_location(%{id: location_id}), [tile: :level]),
+         true <- not is_nil(location.tile),
          %{user_id_hash: ^user_id_hash} <- location do
       socket = socket
                |> assign(:location_id, location_id)
-               |> assign(:map_instance_id, location.map_tile.map_instance_id)
-               |> assign(:map_set_instance_id, location.map_tile.dungeon.map_set_instance_id)
-               |> assign(:player_map_tile_id, location.map_tile.id)
+               |> assign(:level_instance_id, location.tile.level_instance_id)
+               |> assign(:dungeon_instance_id, location.tile.level.dungeon_instance_id)
+               |> assign(:player_tile_id, location.tile.id)
 
       {:ok, %{location_id: location_id}, socket}
     else
@@ -26,23 +26,23 @@ defmodule DungeonCrawlWeb.PlayerChannel do
     end
   end
 
-  def handle_in("refresh_dungeon", _, socket) do
-    {:ok, instance_process} = MapSets.instance_process(socket.assigns.map_set_instance_id, socket.assigns.map_instance_id)
+  def handle_in("refresh_level", _, socket) do
+    {:ok, instance_process} = MapSets.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id)
     state = InstanceProcess.get_state(instance_process)
 
-    dungeon_table = DungeonCrawlWeb.SharedView.dungeon_as_table(state, state.state_values[:rows], state.state_values[:cols])
+    level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values[:rows], state.state_values[:cols])
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
-                                       "change_dungeon",
-                                       %{dungeon_id: socket.assigns.map_instance_id, dungeon_render: dungeon_table}
+                                       "change_level",
+                                       %{level_id: socket.assigns.level_instance_id, level_render: level_table}
 
     {:noreply, socket}
   end
 
   def handle_in("update_visible", _, socket) do
-    {:ok, instance_process} = MapSets.instance_process(socket.assigns.map_set_instance_id, socket.assigns.map_instance_id)
+    {:ok, instance_process} = MapSets.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id)
 
     InstanceProcess.run_with(instance_process, fn (state) ->
-      {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_map_tile_id)}}
+      {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id)}}
     end)
 
     {:noreply, socket}

@@ -1,7 +1,7 @@
 <h2>Edit dungeon</h2>
 
-<%= render "form.html", changeset: @changeset, max_dimensions: @max_dimensions, dungeons: @map_set.dungeons,
-                        action: Routes.dungeon_path(@conn, :update, @map_set.id) %>
+<%= render "form.html", changeset: @changeset, max_dimensions: @max_dimensions, levels: @dungeon.levels,
+                        action: Routes.dungeon_path(@conn, :update, @dungeon.id) %>
 
-<%= link "Back", to: Routes.dungeon_path(@conn, :show, @map_set) %>
+<%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
 

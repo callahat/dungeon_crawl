@@ -53,7 +53,7 @@
 
   <div class="form-group">
     <%= label f, :full_rerender_threshold, class: "control-label" %>
-    <%= number_input f, :full_rerender_threshold, class: "form-control", placeholder: "How many dirty tiles in one cycle will instead rerender the whole dungeon" %>
+    <%= number_input f, :full_rerender_threshold, class: "form-control", placeholder: "How many dirty tiles in one cycle will instead rerender the whole level" %>
     <%= error_tag f, :full_rerender_threshold %>
   </div>
 

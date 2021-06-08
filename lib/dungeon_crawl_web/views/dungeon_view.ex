@@ -15,8 +15,8 @@ defmodule DungeonCrawlWeb.DungeonView do
     end
   end
 
-  def adjacent_map_names(dungeon) do
-    names = Dungeons.adjacent_map_names(dungeon)
+  def adjacent_level_names(level) do
+    names = Dungeons.adjacent_level_names(level)
     {:safe,
       """
       <table class="table table-sm compact-table">
@@ -29,8 +29,8 @@ defmodule DungeonCrawlWeb.DungeonView do
     }
   end
 
-  def title_map_name(nil), do: "<no maps>"
-  def title_map_name(dungeon) do
-    "#{dungeon.number} #{dungeon.name}"
+  def title_level_name(nil), do: "<no levels>"
+  def title_level_name(level) do
+    "#{level.number} #{level.name}"
   end
 end

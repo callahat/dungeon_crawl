@@ -13,7 +13,7 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   @entities        ''
 
   @doc """
-  Generates a dungeon using the box method.
+  Generates a level using the box method.
 
   Returns a Map containing a {row, col} tuple and a value. The value will be one of several
   single character codes indicating what is at that coordinate.
@@ -118,7 +118,7 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
 
   defp _plop_room(map, coords, entities) do
     case _door_candidates(map, coords) do
-      [] -> 
+      [] ->
         map
       door_coords ->
         _corners_walls_floors(map, coords)
@@ -162,7 +162,7 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
     _replace_tile_at(map, col, row, ?#)
     |> _walls(cols, row)
   end
-  
+
   defp _floors(map, [], []), do: map
   defp _floors(map, _c, []), do: map
   defp _floors(map, [], _r), do: map

@@ -4,7 +4,7 @@ defmodule DungeonCrawl.MapGenerators.UtilsTest do
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias DungeonCrawl.MapGenerators.Utils
 
-  test "stringify returns a printable representation of the dungeon" do
+  test "stringify returns a printable representation of the level" do
     str = ConnectedRooms.generate(20,20) |> Utils.stringify(20)
     assert is_binary(str)
   end

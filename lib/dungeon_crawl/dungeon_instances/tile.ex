@@ -1,12 +1,11 @@
-defmodule DungeonCrawl.Dungeons.MapTile do
+defmodule DungeonCrawl.DungeonInstances.Tile do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias DungeonCrawl.Dungeons.Map
   # This is where the validations for color, background_color, and character live for now.
   alias DungeonCrawl.TileTemplates.TileTemplate
 
-  schema "dungeon_map_tiles" do
+  schema "tile_instances" do
     field :row, :integer
     field :col, :integer
     field :z_index, :integer, default: 0
@@ -19,6 +18,7 @@ defmodule DungeonCrawl.Dungeons.MapTile do
 
     field :state, :string
     field :script, :string, default: ""
+    field :parsed_state, :map, virtual: true
 
     field :animate_random, :boolean
     field :animate_colors, :string
@@ -26,17 +26,16 @@ defmodule DungeonCrawl.Dungeons.MapTile do
     field :animate_characters, :string
     field :animate_period, :integer
 
-    belongs_to :dungeon, Map
-    belongs_to :tile_template, TileTemplate
+    belongs_to :level, DungeonCrawl.DungeonInstances.Level, foreign_key: :level_instance_id
+    has_one :player_location, DungeonCrawl.Player.Location, foreign_key: :tile_instance_id, on_delete: :delete_all
   end
 
   @doc false
-  def changeset(map_tile, attrs) do
-    map_tile
+  def changeset(tile_instance, attrs) do
+    tile_instance
     |> cast(attrs, [:row,
                     :col,
-                    :dungeon_id,
-                    :tile_template_id,
+                    :level_instance_id,
                     :z_index,
                     :character,
                     :color,
@@ -49,11 +48,9 @@ defmodule DungeonCrawl.Dungeons.MapTile do
                     :animate_background_colors,
                     :animate_characters,
                     :animate_period])
-    |> validate_required([:row, :col, :dungeon_id, :z_index])
-    |> validate_length(:name, max: 32)
+    |> validate_required([:row, :col, :level_instance_id, :z_index])
     |> TileTemplate.validate_animation_fields
     |> TileTemplate.validate_renderables
     |> TileTemplate.validate_state_values
-    # TODO: validate the script (before actually saving it)
   end
 end

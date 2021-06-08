@@ -86,7 +86,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:instance_state_variable, _var}) do
     "from the instance"
   end
-  def resolve_variable(%{}, {:map_set_instance_state_variable, _var}) do
+  def resolve_variable(%{}, {:dungeon_instance_state_variable, _var}) do
     999
   end
   def resolve_variable(%{}, {:random, _var}) do

@@ -5,7 +5,7 @@ let Player = {
 
     let playerChannel = socket.channel("players:" + playerUserIdHash)
 
-    playerChannel.on("change_dungeon", (msg) => {
+    playerChannel.on("change_level", (msg) => {
       dungeonJs.handleDungeonChange(msg)
 
       playerChannel.push("update_visible", {})
@@ -37,9 +37,9 @@ let Player = {
 
     playerChannel.join()
       .receive("ok", (resp) => {
-        dungeonJs.renderMessage("Entered the dungeon")
+        dungeonJs.renderMessage("Entered the level")
 
-        playerChannel.push("refresh_dungeon", {})
+        playerChannel.push("refresh_level", {})
                      .receive("error", e => console.log(e))
       })
       .receive("error", function(resp){

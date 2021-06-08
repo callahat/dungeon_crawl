@@ -3,32 +3,32 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
 
   alias DungeonCrawl.DungeonProcesses.Render
 
-  alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.Instances
   alias DungeonCrawl.Player.Location
 
   setup do
     state = %Instances{state_values: %{rows: 20, cols: 20},
-                       map_set_instance_id: 1,
+                       dungeon_instance_id: 1,
                        instance_id: 2}
 
-    map_tiles = [
-        %MapTile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
-        %MapTile{id: 101, character: ".", row: 0, col: 1, z_index: 0},
-        %MapTile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
-        %MapTile{id: 103, character: ".", row: 1, col: 3, z_index: 0},
-        %MapTile{id: 104, character: "O", row: 1, col: 10, z_index: 0},
-        %MapTile{id: 105, character: "O", row: 1, col: 4, z_index: 0}
+    tiles = [
+        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
+        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0},
+        %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
+        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0},
+        %Tile{id: 104, character: "O", row: 1, col: 10, z_index: 0},
+        %Tile{id: 105, character: "O", row: 1, col: 4, z_index: 0}
       ]
 
-    state = Enum.reduce(map_tiles, state, fn map_tile, state ->
-              {_, state} = Instances.create_map_tile(state, map_tile)
+    state = Enum.reduce(tiles, state, fn tile, state ->
+              {_, state} = Instances.create_tile(state, tile)
               state
             end)
 
-    player_tile = %MapTile{id: 1, character: "@", row: 2, col: 3, z_index: 1, name: "player"}
-    player_location = %Location{id: 3, map_tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
-    {_, state} = Instances.create_player_map_tile(state, player_tile, player_location)
+    player_tile = %Tile{id: 1, character: "@", row: 2, col: 3, z_index: 1, name: "player"}
+    player_location = %Location{id: 3, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
+    {_, state} = Instances.create_player_tile(state, player_tile, player_location)
 
     state = %{state | dirty_ids: %{},
                       rerender_coords: %{},
@@ -45,20 +45,20 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   end
 
   describe "rerender_tiles/1" do
-    test "when full_rerender is true, it does a full rerender of the dungeon", %{dungeon_channel: dungeon_channel,
-                                                                                 dungeon_admin_channel: dungeon_admin_channel,
-                                                                                 state: state} do
+    test "when full_rerender is true, it does a full rerender of the level", %{dungeon_channel: dungeon_channel,
+                                                                               dungeon_admin_channel: dungeon_admin_channel,
+                                                                               state: state} do
       state = %{state | full_rerender: true}
       Render.rerender_tiles(state)
 
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_admin_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
     end
 
     test "when foggy sends updates to the player channels", %{dungeon_channel: dungeon_channel,
@@ -111,11 +111,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_admin_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       refute_receive %Phoenix.Socket.Broadcast{topic: ^player_channel}
 
       # cleanup
@@ -161,11 +161,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       refute_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_admin_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       # cleanup
       Application.put_env(:dungeon_crawl, :full_rerender_threshold, initial_threshold)
     end
@@ -181,11 +181,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^dungeon_admin_channel,
               event: "full_render",
-              payload: %{dungeon_render: _}}
+              payload: %{level_render: _}}
       refute_receive %Phoenix.Socket.Broadcast{
               topic: ^player_channel}
     end
@@ -228,20 +228,20 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
 
   describe "visible_tiles_for_player/3" do
     test "when its not foggy", %{state: state, player_location: player_location} do
-      assert state == Render.visible_tiles_for_player(state, player_location.map_tile_instance_id, player_location.id)
+      assert state == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
       refute_receive %Phoenix.Socket.Broadcast{}
     end
 
     test "when it is foggy", %{state: state, player_location: player_location, player_channel: player_channel} do
       # no rerender_coords, so nothing to do
       state = %{state | state_values: Map.put(state.state_values, :visibility, "fog")}
-      assert state == Render.visible_tiles_for_player(state, player_location.map_tile_instance_id, player_location.id)
+      assert state == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
       refute_receive %Phoenix.Socket.Broadcast{}
 
       # with rerender coords, updates the visible area
       state = %{ state | rerender_coords: %{%{col: 10, row: 1} => true}}
 
-      assert updated_state = Render.visible_tiles_for_player(state, player_location.map_tile_instance_id, player_location.id)
+      assert updated_state = Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
       assert_receive %Phoenix.Socket.Broadcast{
               topic: ^player_channel,
               event: "visible_tiles",
@@ -252,7 +252,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                                  %{col: 3, rendering: "<div>.</div>", row: 1},
                                  %{col: 4, rendering: "<div>O</div>", row: 1}]}}
 
-      player_tile_id = player_location.map_tile_instance_id
+      player_tile_id = player_location.tile_instance_id
 
       assert %{player_tile_id => [%{col: 3, row: 2},
                                   %{col: 3, row: 0},

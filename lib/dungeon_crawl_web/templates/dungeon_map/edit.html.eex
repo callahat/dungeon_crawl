@@ -1,4 +1,4 @@
-<h2>Edit dungeon</h2>
+<h2>Edit level</h2>
 
 <div class="text-center">
 <%= render "tile_pallette_sidebar.html", tile_templates: @tile_templates,
@@ -8,15 +8,15 @@
                                          tile_shortlist: @tile_shortlist %>
 </div>
 
-<%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, dungeon: @dungeon, map_set: @map_set,
-                        action: Routes.dungeon_map_path(@conn, :update, @map_set, @dungeon.id) %>
+<%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, level: @level, dungeon: @dungeon,
+                        action: Routes.dungeon_level_path(@conn, :update, @dungeon, @level.id) %>
 
 <script>
 window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %>
-window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_map_edge_tiles))} %>
+window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_level_edge_tiles))} %>
 </script>
 
-<%= link "Back", to: Routes.dungeon_path(@conn, :show, @map_set) %>
+<%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
 
 <%= render "tile_edit_modal.html" %>
 <%= render "tile_detail_modal.html" %>

@@ -14,11 +14,11 @@ let Dungeon = {
 
     this.handleDungeonChange = function(msg) {
       this.dungeonChannel.leave()
-      console.log("Left dungeon, joining " + msg.dungeon_id)
+      console.log("Left dungeon, joining " + msg.level_id)
 
-      document.getElementById("dungeon_instance").setAttribute("data-instance-id", msg.dungeon_id)
-      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
-      this.tuneInToChannel(socket, msg.dungeon_id)
+      document.getElementById("dungeon_instance").setAttribute("data-instance-id", msg.level_id)
+      document.getElementById("dungeon_instance").innerHTML = msg.level_render
+      this.tuneInToChannel(socket, msg.level_id)
     }
   },
   handleDungeonChange: null,
@@ -30,7 +30,7 @@ let Dungeon = {
     })
 
     this.dungeonChannel.on("full_render", (msg) => {
-      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
+      document.getElementById("dungeon_instance").innerHTML = msg.level_render
     })
     // These could be used to announce something, but the tile updating has been consolidated
     //dungeonChannel.on("player_left", (resp) => {

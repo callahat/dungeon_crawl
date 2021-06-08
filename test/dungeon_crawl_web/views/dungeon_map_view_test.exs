@@ -32,11 +32,11 @@ defmodule DungeonCrawlWeb.DungeonMapViewTest do
       character: {"should be at most %{count} character(s)", [count: 1, validation: :length, kind: :max, type: :string]}
     ]
 
-    assert %{errors: []} = DungeonMapView.render("map_tile_errors.json", %{map_tile_errors: no_errors})
+    assert %{errors: []} = DungeonMapView.render("tile_errors.json", %{tile_errors: no_errors})
     assert %{errors: [
                 %{detail: "should be at most 1 character(s)", field: :character}
               ]
-           } = DungeonMapView.render("map_tile_errors.json", %{map_tile_errors: errors})
-    assert %{errors: [ %{detail: "it bad", field: :script} ] } = DungeonMapView.render("map_tile_errors.json", %{map_tile_errors: [script: "it bad"]})
+           } = DungeonMapView.render("tile_errors.json", %{tile_errors: errors})
+    assert %{errors: [ %{detail: "it bad", field: :script} ] } = DungeonMapView.render("tile_errors.json", %{tile_errors: [script: "it bad"]})
   end
 end

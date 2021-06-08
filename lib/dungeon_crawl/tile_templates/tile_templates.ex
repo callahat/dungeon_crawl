@@ -49,7 +49,7 @@ defmodule DungeonCrawl.TileTemplates do
 
   @doc """
   Returns a map with two keys; :active and :inactive. Each has a list of tile_templates that
-  can be used for designing a dungeon. Note that before activating the dungeon, the inactive tiles
+  can be used for designing a level. Note that before activating the level, the inactive tiles
   should be activated.
 
   ## Examples
@@ -193,7 +193,7 @@ defmodule DungeonCrawl.TileTemplates do
   ## Examples
 
       iex> create_new_tile_template_version(%TileTemplate{active: true})
-      {:ok, %{dungeon: %TileTemplate{}}}
+      {:ok, %TileTemplate{}}
 
       iex> create_new_tile_template_version(%TileTemplate{active: false})
       {:error, "Inactive tile template"}
@@ -212,12 +212,12 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   defp _tile_template_copy_changeset(tile_template) do
-    with old_attrs     <- Elixir.Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public,
+    with old_attrs     <- Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public,
                                                           :description, :state, :script, :slug,
                                                           :animate_random, :animate_colors, :animate_background_colors,
                                                           :animate_characters, :animate_period, :group_name]),
          version_attrs <- %{version: tile_template.version+1, previous_version_id: tile_template.id},
-         new_attrs     <- Elixir.Map.merge(old_attrs, version_attrs)
+         new_attrs     <- Map.merge(old_attrs, version_attrs)
     do
       TileTemplate.changeset(%TileTemplate{}, new_attrs)
       |> Ecto.Changeset.put_change(:slug, tile_template.slug)

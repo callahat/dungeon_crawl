@@ -25,16 +25,16 @@ defmodule DungeonCrawlWeb.Router do
     post "/crawler", CrawlerController, :create
     post "/crawler/avatar", CrawlerController, :avatar
     post "/crawler/validate_avatar", CrawlerController, :validate_avatar
-    get "/crawler/:map_set_instance_id/:passcode", CrawlerController, :invite
-    post "/crawler/:map_set_instance_id/:passcode", CrawlerController, :validate_invite
+    get "/crawler/:dungeon_instance_id/:passcode", CrawlerController, :invite
+    post "/crawler/:dungeon_instance_id/:passcode", CrawlerController, :validate_invite
     delete "/crawler", CrawlerController, :destroy
 
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
     resources "/dungeons", DungeonController do
-        resources "/levels", DungeonMapController, only: [:new, :create, :edit, :update, :delete], as: "map"
-          post    "/levels/:id/validate_map_tile", DungeonMapController, :validate_map_tile, as: "map"
-          get     "/map_edge", DungeonMapController, :map_edge, as: "map"
+        resources "/levels", DungeonMapController, only: [:new, :create, :edit, :update, :delete], as: "level"
+          post    "/levels/:id/validate_tile", DungeonMapController, :validate_tile, as: "level"
+          get     "/level_edge", DungeonMapController, :level_edge, as: "level"
       end
       post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
@@ -56,8 +56,8 @@ defmodule DungeonCrawlWeb.Router do
     resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
     resources "/settings", SettingController, singleton: true, only: [:edit, :update]
     resources "/map_sets", ManageMapSetInstanceController, only: [:index, :show, :delete]
-       get    "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :show
-       delete "/map_sets/:msi_id/instances/:id", ManageDungeonInstanceController, :delete
+       get    "/map_sets/:di_id/instances/:id", ManageDungeonInstanceController, :show
+       delete "/map_sets/:di_id/instances/:id", ManageDungeonInstanceController, :delete
 
     live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
 

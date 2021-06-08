@@ -1,9 +1,9 @@
 <pre class="dungeon_preview border rounded">
-<table id="dungeon" data-dungeon-id="<%= @dungeon.id %>">
-<%= {:safe, editor_dungeon_as_table(@dungeon, @dungeon.height, @dungeon.width) } %>
+<table id="dungeon" data-dungeon-id="<%= @level.id %>">
+<%= {:safe, editor_level_as_table(@level, @level.height, @level.width) } %>
 </table>
 </pre>
 <script>
-window.dungeon_height = <%= @dungeon.height %>;
-window.dungeon_width = <%= @dungeon.width %>;
+window.dungeon_height = <%= @level.height %>;
+window.dungeon_width = <%= @level.width %>;
 </script>
