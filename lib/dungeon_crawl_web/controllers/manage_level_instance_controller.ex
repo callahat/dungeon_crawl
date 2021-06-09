@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
+defmodule DungeonCrawlWeb.ManageLevelInstanceController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.DungeonInstances

@@ -55,9 +55,9 @@ defmodule DungeonCrawlWeb.Router do
     resources "/users", ManageUserController
     resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
     resources "/settings", SettingController, singleton: true, only: [:edit, :update]
-    resources "/map_sets", ManageMapSetInstanceController, only: [:index, :show, :delete]
-       get    "/map_sets/:di_id/instances/:id", ManageDungeonInstanceController, :show
-       delete "/map_sets/:di_id/instances/:id", ManageDungeonInstanceController, :delete
+    resources "/dungeon_instances", ManageMapSetInstanceController, only: [:index, :show, :delete]
+       get    "/dungeon_instances/:di_id/level_instances/:id", ManageLevelInstanceController, :show
+       delete "/dungeon_instances/:di_id/level_instances/:id", ManageLevelInstanceController, :delete
 
     live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
 
