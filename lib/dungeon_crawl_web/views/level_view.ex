@@ -1,8 +1,8 @@
-defmodule DungeonCrawlWeb.DungeonMapView do
+defmodule DungeonCrawlWeb.LevelView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.TileTemplates.TileTemplate
-  alias DungeonCrawlWeb.DungeonMapView
+  alias DungeonCrawlWeb.LevelView
 
   def adjacent_selects(form, dungeons) do
     options = Enum.map(dungeons, &{"#{&1.number} #{&1.name}", &1.number})

@@ -32,9 +32,9 @@ defmodule DungeonCrawlWeb.Router do
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
     resources "/dungeons", DungeonController do
-        resources "/levels", DungeonMapController, only: [:new, :create, :edit, :update, :delete], as: "level"
-          post    "/levels/:id/validate_tile", DungeonMapController, :validate_tile, as: "level"
-          get     "/level_edge", DungeonMapController, :level_edge, as: "level"
+        resources "/levels", LevelController, only: [:new, :create, :edit, :update, :delete], as: "level"
+          post    "/levels/:id/validate_tile", LevelController, :validate_tile, as: "level"
+          get     "/level_edge", LevelController, :level_edge, as: "level"
       end
       post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate

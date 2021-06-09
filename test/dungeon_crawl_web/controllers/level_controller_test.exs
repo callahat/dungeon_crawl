@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.DungeonMapControllerTest do
+defmodule DungeonCrawlWeb.LevelControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.Admin
