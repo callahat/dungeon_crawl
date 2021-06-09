@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.ManageMapSetInstanceControllerTest do
+defmodule DungeonCrawlWeb.ManageDungeonInstanceControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.DungeonInstances
@@ -6,7 +6,7 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceControllerTest do
 
   describe "non registered users" do
     test "redirects non admin users", %{conn: conn} do
-      conn = get conn, manage_map_set_instance_path(conn, :index)
+      conn = get conn, manage_dungeon_instance_path(conn, :index)
       assert redirected_to(conn) == page_path(conn, :index)
     end
     # overkill to hit the other methods
@@ -16,7 +16,7 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceControllerTest do
     setup [:normal_user]
 
     test "redirects non admin users", %{conn: conn} do
-      conn = get conn, manage_map_set_instance_path(conn, :index)
+      conn = get conn, manage_dungeon_instance_path(conn, :index)
       assert redirected_to(conn) == page_path(conn, :index)
     end
     # overkill to hit the other methods
@@ -27,34 +27,34 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceControllerTest do
 
     test "lists all entries on index", %{conn: conn} do
       setup_dungeon_instance()
-      conn = get conn, manage_map_set_instance_path(conn, :index)
+      conn = get conn, manage_dungeon_instance_path(conn, :index)
       assert html_response(conn, 200) =~ "Listing dungeon instances"
     end
 
     test "shows chosen dungeon instance", %{conn: conn} do
       instance = setup_dungeon_instance()
-      conn = get conn, manage_map_set_instance_path(conn, :show, instance.id)
-      assert html_response(conn, 200) =~ "DB Backed Map Set Process"
+      conn = get conn, manage_dungeon_instance_path(conn, :show, instance.id)
+      assert html_response(conn, 200) =~ "DB Backed Dungeon Process"
     end
 
     test "shows chosen dungeon instance when no backing db instance", %{conn: conn} do
       instance = setup_dungeon_instance()
       DungeonInstances.delete_dungeon(instance)
-      conn = get conn, manage_map_set_instance_path(conn, :show, instance.id)
-      assert html_response(conn, 200) =~ "Orphaned Map Set Process"
+      conn = get conn, manage_dungeon_instance_path(conn, :show, instance.id)
+      assert html_response(conn, 200) =~ "Orphaned Dungeon Process"
     end
 
     test "redirects with a message when dungeon instance is nonexistent", %{conn: conn} do
       setup_dungeon_instance()
-      conn = get conn, manage_map_set_instance_path(conn, :show, -1)
-      assert redirected_to(conn) == manage_map_set_instance_path(conn, :index)
-      assert get_flash(conn, :info) == "Instance not found: `-1`"
+      conn = get conn, manage_dungeon_instance_path(conn, :show, -1)
+      assert redirected_to(conn) == manage_dungeon_instance_path(conn, :index)
+      assert get_flash(conn, :info) == "Dungeon instance not found: `-1`"
     end
 
     test "deletes chosen dungeon instance", %{conn: conn} do
       instance = setup_dungeon_instance()
-      conn = delete conn, manage_map_set_instance_path(conn, :delete, instance.id)
-      assert redirected_to(conn) == manage_map_set_instance_path(conn, :index)
+      conn = delete conn, manage_dungeon_instance_path(conn, :delete, instance.id)
+      assert redirected_to(conn) == manage_dungeon_instance_path(conn, :index)
       :timer.sleep 50
       assert DungeonInstances.get_dungeon(instance.id)
       assert :error = DungeonRegistry.lookup(DungeonInstanceRegistry, instance.id)

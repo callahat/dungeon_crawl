@@ -1,12 +1,12 @@
 <%= if @instance do %>
-<h1>DB Backed Instance Process</h1>
-<p><%= link "View Map Set", to: Routes.manage_dungeon_path(@conn, :show, @instance.level.dungeon, instance_id: @instance.id, level: @instance.number) %></p>
+<h1>DB Backed Level Instance Process</h1>
+<p><%= link "View Dungeon", to: Routes.manage_dungeon_path(@conn, :show, @instance.level.dungeon, instance_id: @instance.id, level: @instance.number) %></p>
 <% else %>
-<h1>Orphaned Instance Process</h1>
+<h1>Orphaned Level Instance Process</h1>
 <% end %>
 
-<p><b>Map Set ID:</b> <%= @instance_state.dungeon_instance_id %></p>
-<p><b>Instance ID:</b> <%= @instance_state.instance_id %></p>
+<p><b>Dungeon ID:</b> <%= @instance_state.dungeon_instance_id %></p>
+<p><b>Level Instance ID:</b> <%= @instance_state.instance_id %></p>
 <p><b>Number:</b> <%= @instance_state.number %></p>
 <p><b>Players:</b> <%= @instance_state.player_locations |> Map.to_list |> Enum.count %></p>
 
@@ -24,4 +24,4 @@
 <% end %>
 </div>
 
-<%= link "Back", to: Routes.manage_map_set_instance_path(@conn, :show, @instance_state.dungeon_instance_id) %>
+<%= link "Back", to: Routes.manage_dungeon_instance_path(@conn, :show, @instance_state.dungeon_instance_id) %>

@@ -48,7 +48,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   @@countdown -= 1
 
-  ### Map Set Instance Value
+  ### Dungeon Instance Value
 
   & - references a state value for the dungeon instance (ie, it can be accessed by the current level as well as other levels
       in the game instance. Can be used for reading or setting a dungeon value.

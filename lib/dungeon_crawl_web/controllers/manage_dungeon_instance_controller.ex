@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
+defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.DungeonInstances
@@ -33,8 +33,8 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
         render(conn, "show.html", di_id: id, dungeon_instance: dungeon_instance, dungeon_state: dungeon_state, instances: instances)
       _ ->
         conn
-        |> put_flash(:info, "Instance not found: `#{id}`")
-        |> redirect(to: Routes.manage_map_set_instance_path(conn, :index))
+        |> put_flash(:info, "Dungeon instance not found: `#{id}`")
+        |> redirect(to: Routes.manage_dungeon_instance_path(conn, :index))
     end
   end
 
@@ -42,7 +42,7 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
     DungeonRegistry.remove(DungeonInstanceRegistry, String.to_integer(id))
 
     conn
-    |> put_flash(:info, "Removing instance process with id `#{id}`")
-    |> redirect(to: Routes.manage_map_set_instance_path(conn, :index))
+    |> put_flash(:info, "Removing dungeon instance process with id `#{id}`")
+    |> redirect(to: Routes.manage_dungeon_instance_path(conn, :index))
   end
 end

@@ -30,7 +30,7 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
     test "shows chosen instance", %{conn: conn} do
       instance = setup_level_instance()
       conn = get conn, manage_level_instance_path(conn, :show, instance.dungeon_instance_id, instance.id)
-      assert html_response(conn, 200) =~ "DB Backed Instance Process"
+      assert html_response(conn, 200) =~ "DB Backed Level Instance Process"
     end
 
     test "shows chosen instance when no backing db instance", %{conn: conn} do
@@ -38,21 +38,21 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
       LevelRegistry.create(instance_registry, 1, [], [], %{rows: 0, cols: 0}, instance.dungeon_instance_id)
       conn = get conn, manage_level_instance_path(conn, :show, instance.dungeon_instance_id, 1)
-      assert html_response(conn, 200) =~ "Orphaned Instance Process"
+      assert html_response(conn, 200) =~ "Orphaned Level Instance Process"
     end
 
     test "redirects with a message when instance is nonexistent", %{conn: conn} do
       instance = setup_level_instance()
       conn = get conn, manage_level_instance_path(conn, :show, instance.dungeon_instance_id, -1)
-      assert redirected_to(conn) == manage_map_set_instance_path(conn, :show, instance.dungeon_instance_id)
-      assert get_flash(conn, :info) == "Instance not found: `-1`"
+      assert redirected_to(conn) == manage_dungeon_instance_path(conn, :show, instance.dungeon_instance_id)
+      assert get_flash(conn, :info) == "Level instance not found: `-1`"
     end
 
     test "deletes chosen instance", %{conn: conn} do
       instance = setup_level_instance()
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
       conn = delete conn, manage_level_instance_path(conn, :delete, instance.dungeon_instance_id, instance.id)
-      assert redirected_to(conn) == manage_map_set_instance_path(conn, :show, instance.dungeon_instance_id)
+      assert redirected_to(conn) == manage_dungeon_instance_path(conn, :show, instance.dungeon_instance_id)
       :timer.sleep 50
       assert DungeonInstances.get_level(instance.id)
       assert :error = LevelRegistry.lookup(instance_registry, instance.id)

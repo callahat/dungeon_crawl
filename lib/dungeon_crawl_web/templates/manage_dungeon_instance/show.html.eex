@@ -1,8 +1,8 @@
 <%= if @dungeon_instance do %>
-<h1>DB Backed Map Set Process</h1>
-<p><%= link "View Map Set", to: Routes.manage_dungeon_path(@conn, :show, @dungeon_instance.dungeon_id) %></p>
+<h1>DB Backed Dungeon Process</h1>
+<p><%= link "View Dungeon", to: Routes.manage_dungeon_path(@conn, :show, @dungeon_instance.dungeon_id) %></p>
 <% else %>
-<h1>Orphaned Map Set Process</h1>
+<h1>Orphaned Dungeon Process</h1>
 <% end %>
 
 <p><b>Name:</b> <%= @dungeon_state.dungeon_instance.name %></p>
@@ -49,4 +49,4 @@
   </table>
 </div>
 
-<%= link "Back", to: Routes.manage_map_set_instance_path(@conn, :index) %>
+<%= link "Back", to: Routes.manage_dungeon_instance_path(@conn, :index) %>

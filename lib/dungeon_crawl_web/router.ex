@@ -55,7 +55,7 @@ defmodule DungeonCrawlWeb.Router do
     resources "/users", ManageUserController
     resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
     resources "/settings", SettingController, singleton: true, only: [:edit, :update]
-    resources "/dungeon_instances", ManageMapSetInstanceController, only: [:index, :show, :delete]
+    resources "/dungeon_instances", ManageDungeonInstanceController, only: [:index, :show, :delete]
        get    "/dungeon_instances/:di_id/level_instances/:id", ManageLevelInstanceController, :show
        delete "/dungeon_instances/:di_id/level_instances/:id", ManageLevelInstanceController, :delete
 
