@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, Registrar}
+  alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
   alias DungeonCrawl.TileTemplates
 
   @stats [:health, :gems, :cash, :ammo, :score]
@@ -12,11 +12,11 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   When the instance state object is already available, that along with the player
   tile should be used to get the player stats.
   When only the player location is available, or an instance state is not already available
-  (ie, stats are needed outside of `InstanceProcess.run_with` or outside of a `Command` method)
+  (ie, stats are needed outside of `LevelProcess.run_with` or outside of a `Command` method)
   a `user_id_hash` should be used along to get the stats for that player's current location.
   """
-  def current_stats(%Instances{} = state, %{id: tile_id} = _player_tile) do
-    case Instances.get_tile_by_id(state, %{id: tile_id}) do
+  def current_stats(%Levels{} = state, %{id: tile_id} = _player_tile) do
+    case Levels.get_tile_by_id(state, %{id: tile_id}) do
       nil ->
         %{}
       player_tile ->
@@ -29,7 +29,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
          player_location <- DungeonCrawl.Repo.preload(player_location, [tile: :level]),
          player_level_instance <- player_location.tile.level,
          {:ok, instance_process} <- Registrar.instance_process(player_level_instance.dungeon_instance_id, player_level_instance.id),
-         player_tile when not is_nil(player_tile) <- InstanceProcess.get_tile(instance_process, player_location.tile_instance_id) do
+         player_tile when not is_nil(player_tile) <- LevelProcess.get_tile(instance_process, player_location.tile_instance_id) do
       _current_stats(player_tile)
     else
       _ ->
@@ -64,14 +64,14 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   The grave robber will be pick up everything (even if it might be above a certain limit,
   such as only letting a player carry one of a type of key).
   """
-  def bury(%Instances{} = state, %{id: tile_id} = _player_tile) do
-    player_tile = Instances.get_tile_by_id(state, %{id: tile_id})
+  def bury(%Levels{} = state, %{id: tile_id} = _player_tile) do
+    player_tile = Levels.get_tile_by_id(state, %{id: tile_id})
     original_player_tile_state = player_tile.parsed_state
 
-    bottom_z_index = Enum.at(Instances.get_tiles(state, player_tile), -1).z_index
+    bottom_z_index = Enum.at(Levels.get_tiles(state, player_tile), -1).z_index
     last_player_z_index = player_tile.z_index
 
-    {player_tile, state} = Instances.update_tile(state, player_tile, %{z_index: bottom_z_index - 1})
+    {player_tile, state} = Levels.update_tile(state, player_tile, %{z_index: bottom_z_index - 1})
     deaths = case player_tile.parsed_state[:deaths] do
                nil    -> 1
                deaths -> deaths + 1
@@ -79,7 +79,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
                 |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
-    {player_tile, state} = Instances.update_tile_state(state, player_tile, new_state)
+    {player_tile, state} = Levels.update_tile_state(state, player_tile, new_state)
 
     script_fn = fn items -> """
                             :TOP
@@ -107,10 +107,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   Mean to be used when a player leaves, as this will not update the player tile since it should be deleted upon
   the player leaving.
   """
-  def drop_all_items(%Instances{} = state, %{id: tile_id} = _player_tile) do
-    player_tile = Instances.get_tile_by_id(state, %{id: tile_id})
+  def drop_all_items(%Levels{} = state, %{id: tile_id} = _player_tile) do
+    player_tile = Levels.get_tile_by_id(state, %{id: tile_id})
 
-    z_index_plus_one = Enum.at(Instances.get_tiles(state, player_tile), 0).z_index + 1
+    z_index_plus_one = Enum.at(Levels.get_tiles(state, player_tile), 0).z_index + 1
 
     # maybe have a rat pop out sometimes?
     script_fn = fn items -> """
@@ -133,7 +133,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     _spawn_loot_tile(state, :junk_pile, script_fn, player_tile.parsed_state, player_tile, z_index_plus_one)
   end
 
-  defp _spawn_loot_tile(%Instances{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
+  defp _spawn_loot_tile(%Levels{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
     items_stolen = Map.take(original_state, [:gems, :cash, :ammo])
                    |> Map.to_list
                    |> Enum.concat(_door_keys(original_state))
@@ -152,7 +152,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
            |> Map.merge(TileTemplates.copy_fields(tile_template))
            |> Map.put(:script, script_fn.(items_stolen))
            |> DungeonCrawl.DungeonInstances.create_tile!()
-    Instances.create_tile(state, tile)
+    Levels.create_tile(state, tile)
   end
 
   @doc """
@@ -160,31 +160,31 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   the dungeon. It can be used when a player has "idled out" meaning they closed the window or just stopped
   playing without actually leaving the dungeon.
   """
-  def petrify(%Instances{} = state, player_tile) do
-    location = Instances.get_player_location(state, %{id: player_tile.id})
+  def petrify(%Levels{} = state, player_tile) do
+    location = Levels.get_player_location(state, %{id: player_tile.id})
 
     {junk_pile, state} = drop_all_items(state, player_tile)
-    {_, state} = Instances.delete_tile(state, player_tile)
+    {_, state} = Levels.delete_tile(state, player_tile)
     Player.delete_location!(location)
 
     # spawn statue
-    z_index_plus_one = Enum.at(Instances.get_tiles(state, junk_pile), 0).z_index + 1
+    z_index_plus_one = Enum.at(Levels.get_tiles(state, junk_pile), 0).z_index + 1
     tile_template = DungeonCrawl.TileTemplates.TileSeeder.statue_tile()
     tile = Map.take(junk_pile, [:level_instance_id, :row, :col])
            |> Map.merge(%{z_index: z_index_plus_one})
            |> Map.merge(TileTemplates.copy_fields(tile_template))
            |> DungeonCrawl.DungeonInstances.create_tile!()
-    Instances.create_tile(state, tile)
+    Levels.create_tile(state, tile)
   end
 
   @doc """
   Respawns a player. This will move their associated tile to a spawn coordinate in the instance,
   and restore health to 100.
   """
-  def respawn(%Instances{} = state, player_tile) do
+  def respawn(%Levels{} = state, player_tile) do
     new_coords = _respawn_coordinates(state, player_tile)
-    {player_tile, state} = Instances.update_tile(state, player_tile, new_coords)
-    Instances.update_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
+    {player_tile, state} = Levels.update_tile(state, player_tile, new_coords)
+    Levels.update_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
   end
 
   defp _respawn_coordinates(state, %{parsed_state: player_state} = player_tile) do
@@ -202,41 +202,41 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   @doc """
   Resets a player to their entry coordinates, or a spawn location if `respawn_at_entry` false.
   """
-  def reset(%Instances{} = state, player_tile) do
+  def reset(%Levels{} = state, player_tile) do
     new_coords = _respawn_coordinates(state, player_tile)
-    Instances.update_tile(state, player_tile, new_coords)
+    Levels.update_tile(state, player_tile, new_coords)
   end
 
   @doc """
   Places a player tile in the given instance. By default, it will place the player on
   a spawn location.
   """
-  def place(%Instances{} = state, %Tile{} = player_tile, %Location{} = location) do
+  def place(%Levels{} = state, %Tile{} = player_tile, %Location{} = location) do
     new_coords = _relocated_coordinates(state, player_tile)
     _place(state, player_tile, location, new_coords)
   end
 
-  def place(%Instances{} = state, %Tile{} = player_tile, %Location{} = location, %{edge: _} = passage) do
+  def place(%Levels{} = state, %Tile{} = player_tile, %Location{} = location, %{edge: _} = passage) do
     new_coords = _relocated_coordinates(state, player_tile, passage)
     _place(state, player_tile, location, new_coords)
   end
 
-  def place(%Instances{} = state, %Tile{} = player_tile, %Location{} = location, %{match_key: _} = passage) do
+  def place(%Levels{} = state, %Tile{} = player_tile, %Location{} = location, %{match_key: _} = passage) do
     new_coords = _relocated_coordinates(state, player_tile, passage)
     _place(state, player_tile, location, new_coords)
   end
 
-  defp _place(%Instances{instance_id: instance_id} = state, %Tile{} = player_tile, %Location{} = location, new_coords) do
+  defp _place(%Levels{instance_id: instance_id} = state, %Tile{} = player_tile, %Location{} = location, new_coords) do
     if player_tile.level_instance_id == instance_id do
-      Instances.update_tile(state, player_tile, new_coords)
+      Levels.update_tile(state, player_tile, new_coords)
     else
       new_coords =  Map.put(new_coords, :level_instance_id, instance_id)
       player_tile = Map.merge(player_tile, new_coords)
-      Instances.create_player_tile(state, player_tile, location)
+      Levels.create_player_tile(state, player_tile, location)
     end
   end
 
-  defp _relocated_coordinates(%Instances{spawn_coordinates: spawn_coordinates} = state, player_tile) do
+  defp _relocated_coordinates(%Levels{spawn_coordinates: spawn_coordinates} = state, player_tile) do
     {row, col} = case spawn_coordinates do
                     []     -> {round(:math.fmod(player_tile.row, state.state_values.height)),
                                round(:math.fmod(player_tile.col, state.state_values.width))}
@@ -246,7 +246,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     _relocated_coordinates_with_z(state, %{row: row, col: col})
   end
 
-  defp _relocated_coordinates(%Instances{state_values: %{rows: rows, cols: cols}} = state, player_tile, %{edge: edge}) do
+  defp _relocated_coordinates(%Levels{state_values: %{rows: rows, cols: cols}} = state, player_tile, %{edge: edge}) do
     {row, col} = case edge do
                    "north" -> {0, player_tile.col}
                    "south" -> {rows - 1, player_tile.col}
@@ -257,7 +257,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     _relocated_coordinates_with_z(state, %{row: floor(:math.fmod(row, rows)), col: floor(:math.fmod(col, cols))})
   end
 
-  defp _relocated_coordinates(%Instances{passage_exits: passage_exits} = state, player_tile, %{match_key: match_key} = passage) do
+  defp _relocated_coordinates(%Levels{passage_exits: passage_exits} = state, player_tile, %{match_key: match_key} = passage) do
     matched_exits = if is_nil(match_key),
                          do:   passage_exits,
                          else: Enum.filter(passage_exits, fn {_id, mk} -> mk == match_key end)
@@ -270,20 +270,20 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
         passage_exit_id =\
         if length(exit_ids) > 1 do
           Enum.reject(exit_ids, fn id ->
-            Map.take(Instances.get_tile_by_id(state, %{id: id}) || %{}, [:row, :col]) == Map.take(passage, [:row, :col])
+            Map.take(Levels.get_tile_by_id(state, %{id: id}) || %{}, [:row, :col]) == Map.take(passage, [:row, :col])
           end)
           |> Enum.random()
         else
           Enum.random(exit_ids)
         end
 
-        spawn_location = Instances.get_tile_by_id(state, %{id: passage_exit_id})
+        spawn_location = Levels.get_tile_by_id(state, %{id: passage_exit_id})
         _relocated_coordinates_with_z(state, spawn_location)
     end
   end
 
   defp _relocated_coordinates_with_z(state, spawn_location) do
-    top_tile = Instances.get_tile(state, spawn_location)
+    top_tile = Levels.get_tile(state, spawn_location)
     z_index = if top_tile, do: top_tile.z_index + 1, else: 0
     %{row: spawn_location.row, col: spawn_location.col, z_index: z_index}
   end

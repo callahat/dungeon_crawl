@@ -2,8 +2,8 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
-  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.LevelRegistry
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
 
@@ -23,9 +23,9 @@ defmodule DungeonCrawlWeb.ManageMapSetInstanceController do
         dungeon_instance = DungeonInstances.get_dungeon(String.to_integer(id))
         dungeon_state = DungeonProcess.get_state(dungeon_process)
 
-        instances = InstanceRegistry.list(dungeon_state.instance_registry)
+        instances = LevelRegistry.list(dungeon_state.instance_registry)
                     |> Enum.map(fn({instance_id, instance}) ->
-                                  state = InstanceProcess.get_state(instance)
+                                  state = LevelProcess.get_state(instance)
                                           |> Map.take([:instance_id, :dungeon_instance_id, :number, :player_locations])
                                   {state, DungeonInstances.get_level(instance_id)}
                                 end)

@@ -1,75 +1,77 @@
-defmodule DungeonCrawl.InstanceProcessTest do
+defmodule DungeonCrawl.LevelProcessTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Player.Location
 
+  alias DungeonCrawl.Test.LevelsMockFactory
+
   # A lot of these tests are semi redundant, as the code that actually modifies the state lives
-  # in the Instances module. Testing this also effectively hits the Instances code,
+  # in the Levels module. Testing this also effectively hits the Levels code,
   # which also has its own set of similar tests.
 
   setup do
     DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
 
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
     level_instance = insert_stubbed_level_instance(
                        %{},
                        [%Tile{character: "O", row: 1, col: 1, z_index: 0, script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TERMINATE"}])
     tile = DungeonCrawl.Repo.get_by(Tile, %{level_instance_id: level_instance.id})
 
-    InstanceProcess.set_instance_id(instance_process, level_instance.id)
-    InstanceProcess.set_dungeon_instance_id(instance_process, level_instance.dungeon_instance_id)
-    InstanceProcess.load_level(instance_process, [tile])
-    InstanceProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
+    LevelProcess.set_instance_id(instance_process, level_instance.id)
+    LevelProcess.set_dungeon_instance_id(instance_process, level_instance.dungeon_instance_id)
+    LevelProcess.load_level(instance_process, [tile])
+    LevelProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
 
     %{instance_process: instance_process, tile_id: tile.id, level_instance: level_instance}
   end
 
   test "set_instance_id" do
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
     level_instance = insert_stubbed_level_instance()
     level_instance_id = level_instance.id
-    InstanceProcess.set_instance_id(instance_process, level_instance_id)
-    assert %{ instance_id: ^level_instance_id } = InstanceProcess.get_state(instance_process)
+    LevelProcess.set_instance_id(instance_process, level_instance_id)
+    assert %{ instance_id: ^level_instance_id } = LevelProcess.get_state(instance_process)
   end
 
   test "set_dungeon_instance_id" do
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
     level_instance = insert_stubbed_level_instance()
     dungeon_instance_id = level_instance.dungeon_instance_id
-    InstanceProcess.set_dungeon_instance_id(instance_process, dungeon_instance_id)
-    assert %{ dungeon_instance_id: ^dungeon_instance_id } = InstanceProcess.get_state(instance_process)
+    LevelProcess.set_dungeon_instance_id(instance_process, dungeon_instance_id)
+    assert %{ dungeon_instance_id: ^dungeon_instance_id } = LevelProcess.get_state(instance_process)
   end
 
   test "set_level_number" do
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
     level_instance = insert_stubbed_level_instance()
     number = level_instance.number
-    InstanceProcess.set_level_number(instance_process, number)
-    assert %{ number: ^number } = InstanceProcess.get_state(instance_process)
+    LevelProcess.set_level_number(instance_process, number)
+    assert %{ number: ^number } = LevelProcess.get_state(instance_process)
   end
 
   test "set_author" do
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
     author = %{is_admin: false, id: 23}
-    InstanceProcess.set_author(instance_process, author)
-    assert %{ author: ^author } = InstanceProcess.get_state(instance_process)
+    LevelProcess.set_author(instance_process, author)
+    assert %{ author: ^author } = LevelProcess.get_state(instance_process)
   end
 
   test "set_adjacent_level_id" do
-    {:ok, instance_process} = InstanceProcess.start_link([])
-    InstanceProcess.set_adjacent_level_id(instance_process, 1, "north")
-    assert %{ adjacent_level_ids: %{"north" => 1} } = InstanceProcess.get_state(instance_process)
+    {:ok, instance_process} = LevelProcess.start_link([])
+    LevelProcess.set_adjacent_level_id(instance_process, 1, "north")
+    assert %{ adjacent_level_ids: %{"north" => 1} } = LevelProcess.get_state(instance_process)
   end
 
   test "set_state_values" do
-    {:ok, instance_process} = InstanceProcess.start_link([])
-    InstanceProcess.set_state_values(instance_process, %{flag: false})
-    assert %{ state_values: %{flag: false} } = InstanceProcess.get_state(instance_process)
+    {:ok, instance_process} = LevelProcess.start_link([])
+    LevelProcess.set_state_values(instance_process, %{flag: false})
+    assert %{ state_values: %{flag: false} } = LevelProcess.get_state(instance_process)
   end
 
   test "load_level", %{instance_process: instance_process, tile_id: tile_id} do
@@ -77,12 +79,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
     tiles = [%Tile{id: 123, character: "O", row: 1, col: 1, z_index: 0},
              tile_with_script]
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
 
     # Starts the program(s) for the tiles, no script nothing done for that tile.
-    assert %Instances{ program_contexts: programs,
-                       map_by_ids: by_id,
-                       map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
+    assert %Levels{ program_contexts: programs,
+                    map_by_ids: by_id,
+                    map_by_coords: by_coord } = LevelProcess.get_state(instance_process)
     assert %{^tile_id => %{event_sender: nil,
                        object_id: ^tile_id,
                        program: %Program{status: :alive}},
@@ -92,29 +94,29 @@ defmodule DungeonCrawl.InstanceProcessTest do
             } = programs
 
     # Does not load a program overtop an already running program for that tile id
-    assert :ok = InstanceProcess.load_level(instance_process, [%Tile{id: tile_id, script: "#DIE"}])
-    assert %Instances{ program_contexts: ^programs,
-                       map_by_ids: ^by_id,
-                       map_by_coords: ^by_coord,
-                       new_pids: [236, ^tile_id],
-                       instance_id: _ } = InstanceProcess.get_state(instance_process)
+    assert :ok = LevelProcess.load_level(instance_process, [%Tile{id: tile_id, script: "#DIE"}])
+    assert %Levels{ program_contexts: ^programs,
+                    map_by_ids: ^by_id,
+                    map_by_coords: ^by_coord,
+                    new_pids: [236, ^tile_id],
+                    instance_id: _ } = LevelProcess.get_state(instance_process)
   end
 
   test "load_spawn_coordinates", %{instance_process: instance_process} do
-    assert :ok = InstanceProcess.load_spawn_coordinates(instance_process, [{1,1}, {2,3}, {4,5}])
-    assert %Instances{ spawn_coordinates: spawn_coordinates } = InstanceProcess.get_state(instance_process)
+    assert :ok = LevelProcess.load_spawn_coordinates(instance_process, [{1,1}, {2,3}, {4,5}])
+    assert %Levels{ spawn_coordinates: spawn_coordinates } = LevelProcess.get_state(instance_process)
     assert Enum.sort([{1,1}, {2,3}, {4,5}]) == Enum.sort(spawn_coordinates)
   end
 
   test "start_scheduler", %{instance_process: instance_process} do
     # Starts the scheduler that will run every xxx ms and run the next parts of all the programs
-    InstanceProcess.start_scheduler(instance_process)
+    LevelProcess.start_scheduler(instance_process)
   end
 
   test "inspect_state returns a listing of running programs", %{instance_process: instance_process, tile_id: tile_id} do
-    assert %Instances{ program_contexts: programs,
-                       map_by_ids: _,
-                       map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    assert %Levels{ program_contexts: programs,
+                    map_by_ids: _,
+                    map_by_coords: _ } = LevelProcess.get_state(instance_process)
     assert %{^tile_id => %{event_sender: nil,
                        object_id: ^tile_id,
                        program: %Program{status: :alive}}
@@ -122,9 +124,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
   end
 
   test "responds_to_event?", %{instance_process: instance_process, tile_id: tile_id} do
-    assert InstanceProcess.responds_to_event?(instance_process, tile_id, "TOUCH")
-    refute InstanceProcess.responds_to_event?(instance_process, tile_id, "SNIFF")
-    refute InstanceProcess.responds_to_event?(instance_process, tile_id-1, "ANYTHING")
+    assert LevelProcess.responds_to_event?(instance_process, tile_id, "TOUCH")
+    refute LevelProcess.responds_to_event?(instance_process, tile_id, "SNIFF")
+    refute LevelProcess.responds_to_event?(instance_process, tile_id-1, "ANYTHING")
   end
 
   test "send_event/3", %{instance_process: instance_process, tile_id: tile_id} do
@@ -132,16 +134,16 @@ defmodule DungeonCrawl.InstanceProcessTest do
     scripted_tile_2 = %Tile{id: 237, character: "O", row: 1, col: 3, z_index: 0, script: "#end\n:alert\n#become color: yellow"}
     inert_tile = %Tile{id: 238, character: "O", row: 1, col: 3, z_index: 0, script: "#end\n:alert\n#become color: yellow"}
 
-    assert :ok = InstanceProcess.load_level(instance_process, [scripted_tile_1, scripted_tile_2, inert_tile])
+    assert :ok = LevelProcess.load_level(instance_process, [scripted_tile_1, scripted_tile_2, inert_tile])
 
     sender = %{tile_id: nil, parsed_state: %{}, name: "global"}
 
-    %Instances{ program_contexts: program_contexts } = InstanceProcess.get_state(instance_process)
+    %Levels{ program_contexts: program_contexts } = LevelProcess.get_state(instance_process)
 
     # sends the message to all running programs
-    InstanceProcess.send_event(instance_process, "TOUCH", sender)
-    %Instances{ program_contexts: ^program_contexts,
-                program_messages: program_messages } = InstanceProcess.get_state(instance_process)
+    LevelProcess.send_event(instance_process, "TOUCH", sender)
+    %Levels{ program_contexts: ^program_contexts,
+             program_messages: program_messages } = LevelProcess.get_state(instance_process)
 
     assert Enum.member?(program_messages, {tile_id, "TOUCH", sender})
     assert Enum.member?(program_messages, {scripted_tile_1.id, "TOUCH", sender})
@@ -155,22 +157,22 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
-    %Instances{ program_contexts: %{^tile_id => %{program: program} },
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    %Levels{ program_contexts: %{^tile_id => %{program: program} },
+             map_by_ids: _,
+             map_by_coords: _ } = LevelProcess.get_state(instance_process)
 
     # noop if it tile doesnt have a program
-    InstanceProcess.send_event(instance_process, 111, "TOUCH", player_location)
-    %Instances{ program_contexts: %{^tile_id => %{program: same_program} },
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    LevelProcess.send_event(instance_process, 111, "TOUCH", player_location)
+    %Levels{ program_contexts: %{^tile_id => %{program: same_program} },
+             map_by_ids: _,
+             map_by_coords: _ } = LevelProcess.get_state(instance_process)
     assert program == same_program
 
     # it does something
-    InstanceProcess.send_event(instance_process, tile_id, "TOUCH", player_location)
-    %Instances{ program_contexts: %{^tile_id => %{program: updated_program} },
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    LevelProcess.send_event(instance_process, tile_id, "TOUCH", player_location)
+    %Levels{ program_contexts: %{^tile_id => %{program: updated_program} },
+             map_by_ids: _,
+             map_by_coords: _ } = LevelProcess.get_state(instance_process)
     refute program == updated_program
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
@@ -178,10 +180,10 @@ defmodule DungeonCrawl.InstanceProcessTest do
             payload: %{message: "Hey"}}
 
     # prunes the program if died during the run of the label
-    InstanceProcess.send_event(instance_process, tile_id, "TERMINATE", player_location)
-    %Instances{ program_contexts: %{} ,
-                map_by_ids: _,
-                map_by_coords: _ } = InstanceProcess.get_state(instance_process)
+    LevelProcess.send_event(instance_process, tile_id, "TERMINATE", player_location)
+    %Levels{ program_contexts: %{} ,
+             map_by_ids: _,
+             map_by_coords: _ } = LevelProcess.get_state(instance_process)
   end
 
   test "perform_actions", %{instance_process: instance_process, level_instance: level_instance} do
@@ -196,12 +198,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
 
     # These tiles will be needed later
-    shooter_tile_id = InstanceProcess.get_tile(instance_process, 1, 2).id
-    east_tile_id = InstanceProcess.get_tile(instance_process, 1, 3).id
-    eastest_tile_id = InstanceProcess.get_tile(instance_process, 1, 4).id
+    shooter_tile_id = LevelProcess.get_tile(instance_process, 1, 2).id
+    east_tile_id = LevelProcess.get_tile(instance_process, 1, 3).id
+    eastest_tile_id = LevelProcess.get_tile(instance_process, 1, 4).id
 
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel}
@@ -209,9 +211,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     # Sanity check that the programs are all there, including the one for the generated bullet
-    bullet_tile_id = InstanceProcess.get_tile(instance_process, 1, 2).id
+    bullet_tile_id = LevelProcess.get_tile(instance_process, 1, 2).id
 
-    assert state = InstanceProcess.get_state(instance_process)
+    assert state = LevelProcess.get_state(instance_process)
     # this should still be active
     assert %{program: %{status: :alive}} = state.program_contexts[bullet_tile_id]
     # these will be idle
@@ -247,11 +249,11 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ program_contexts: program_contexts ,
-                program_messages: program_messages } = InstanceProcess.get_state(instance_process)
+    %Levels{ program_contexts: program_contexts ,
+             program_messages: program_messages } = LevelProcess.get_state(instance_process)
     assert [] == program_messages # should be cleared after punting the messages to the actual progams
 
     # The last tile in this setup has no active program
@@ -287,16 +289,16 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_location = %Location{id: 555, tile_instance_id: player_tile.id}
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    InstanceProcess.run_with(instance_process, fn(state) ->
-      Instances.create_player_tile(state, player_tile, player_location)
+    LevelProcess.run_with(instance_process, fn(state) ->
+      Levels.create_player_tile(state, player_tile, player_location)
     end)
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ map_by_ids: map_by_ids,
-                dirty_ids: _dirty_ids } = InstanceProcess.get_state(instance_process)
+    %Levels{ map_by_ids: map_by_ids,
+             dirty_ids: _dirty_ids } = LevelProcess.get_state(instance_process)
 
     # Wounded tiles
     assert_receive %Phoenix.Socket.Broadcast{
@@ -316,12 +318,12 @@ defmodule DungeonCrawl.InstanceProcessTest do
       state: "damage: 5",
       level_instance_id: level_instance.id})
 
-    assert :ok = InstanceProcess.load_level(instance_process, [shooter2])
+    assert :ok = LevelProcess.load_level(instance_process, [shooter2])
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ map_by_ids: map_by_ids,
-                dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
+    %Levels{ map_by_ids: map_by_ids,
+             dirty_ids: dirty_ids } = LevelProcess.get_state(instance_process)
 
     # Dead tiles
     assert_receive %Phoenix.Socket.Broadcast{
@@ -372,8 +374,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
     shooter_tile_id = Enum.at(tiles, 0).id
     non_prog_tile_id = Enum.at(tiles, 1).id
 
-    assert :ok = InstanceProcess.update_tile(instance_process, tile_id, %{state: "destroyable: true"})
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{state: "destroyable: true"})
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     assert_receive %Phoenix.Socket.Broadcast{
@@ -385,9 +387,9 @@ defmodule DungeonCrawl.InstanceProcessTest do
             event: "tile_changes",
             payload: %{tiles: [%{row: 1, col: 1, rendering: "<div> </div>"}]}}
 
-    %Instances{ program_contexts: program_contexts,
-                map_by_ids: map_by_ids,
-                dirty_ids: dirty_ids } = InstanceProcess.get_state(instance_process)
+    %Levels{ program_contexts: program_contexts,
+             map_by_ids: map_by_ids,
+             dirty_ids: dirty_ids } = LevelProcess.get_state(instance_process)
 
     assert [ ^shooter_tile_id ] = Map.keys(program_contexts)
     assert [ ^shooter_tile_id ] = Map.keys(map_by_ids)
@@ -415,17 +417,17 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_location = %Location{id: 555, tile_instance_id: player_tile.id}
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    InstanceProcess.run_with(instance_process, fn(state) ->
-      Instances.create_player_tile(state, player_tile, player_location)
+    LevelProcess.run_with(instance_process, fn(state) ->
+      Levels.create_player_tile(state, player_tile, player_location)
     end)
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
 
-    assert :ok = InstanceProcess.update_tile(instance_process, damager_tile.id, %{state: "damage: 15, owner: #{ player_tile.id }"})
+    assert :ok = LevelProcess.update_tile(instance_process, damager_tile.id, %{state: "damage: 15, owner: #{ player_tile.id }"})
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
-    %Instances{ map_by_ids: map_by_ids } = InstanceProcess.get_state(instance_process)
+    %Levels{ map_by_ids: map_by_ids } = LevelProcess.get_state(instance_process)
 
     refute map_by_ids[healty_tile.id]
     refute map_by_ids[destroyable_tile.id]
@@ -448,8 +450,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles)
-    assert :ok = InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.set_state_values(instance_process, %{visibility: "fog"})
 
     player_tile = DungeonInstances.create_tile!(
                     %{character: "@",
@@ -459,8 +461,8 @@ defmodule DungeonCrawl.InstanceProcessTest do
                       level_instance_id: level_instance.id})
 
     player_location = %Location{id: player_tile.id, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
-    InstanceProcess.run_with(instance_process, fn(state) ->
-      {_, state} = Instances.create_player_tile(state, player_tile, player_location)
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Levels.create_player_tile(state, player_tile, player_location)
       {:ok, %{ state | players_visible_coords: %{player_tile.id => [%{row: 1, col: 10}]}}}
     end)
 
@@ -508,30 +510,30 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_location = %Location{id: player_tile.id, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
     other_player_location = %Location{id: other_player_tile.id, tile_instance_id: other_player_tile.id, user_id_hash: "otherhash"}
 
-    InstanceProcess.run_with(instance_process, fn(state) ->
+    LevelProcess.run_with(instance_process, fn(state) ->
       {_, state} = Map.put(state, :inactive_players, %{player_tile.id => 5, other_player_tile.id => 0})
-                   |> Instances.create_player_tile(player_tile, player_location)
-      Instances.create_player_tile(state, other_player_tile, other_player_location)
+                   |> Levels.create_player_tile(player_tile, player_location)
+      Levels.create_player_tile(state, other_player_tile, other_player_location)
     end)
 
     # old player is petrified
     :ok = Process.send(instance_process, :check_on_inactive_players, [])
 
-    %Instances{ inactive_players: inactive_players,
-                player_locations: player_locations } = InstanceProcess.get_state(instance_process)
+    %Levels{ inactive_players: inactive_players,
+             player_locations: player_locations } = LevelProcess.get_state(instance_process)
 
     assert %{other_player_tile.id => 1} == inactive_players
     assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
 
     # doesn't break when running on a player that isnt' there anymore
-    InstanceProcess.run_with(instance_process, fn(state) ->
+    LevelProcess.run_with(instance_process, fn(state) ->
       {:ok, Map.put(state, :inactive_players, %{player_tile.id => 5, other_player_tile.id => 0})}
     end)
 
     :ok = Process.send(instance_process, :check_on_inactive_players, [])
 
-    %Instances{ inactive_players: inactive_players,
-                player_locations: player_locations } = InstanceProcess.get_state(instance_process)
+    %Levels{ inactive_players: inactive_players,
+             player_locations: player_locations } = LevelProcess.get_state(instance_process)
 
     assert %{other_player_tile.id => 1} == inactive_players
     assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
@@ -556,21 +558,21 @@ defmodule DungeonCrawl.InstanceProcessTest do
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> {:ok, mt} = DungeonInstances.new_tile(mt); mt end)
 
-    assert :ok = InstanceProcess.load_level(instance_process, tiles ++ new_tiles)
+    assert :ok = LevelProcess.load_level(instance_process, tiles ++ new_tiles)
 
     [tile_id_1, tile_id_2, tile_id_3] = tiles |> Enum.map(fn(mt) -> mt.id end)
 
-    new_tile_1 = InstanceProcess.get_tile(instance_process, 1, 5)
-    new_tile_2 = InstanceProcess.get_tile(instance_process, 1, 7)
-    older_new_tile = InstanceProcess.get_tile(instance_process, 1, 6)
+    new_tile_1 = LevelProcess.get_tile(instance_process, 1, 5)
+    new_tile_2 = LevelProcess.get_tile(instance_process, 1, 7)
+    older_new_tile = LevelProcess.get_tile(instance_process, 1, 6)
 
-    InstanceProcess.run_with(instance_process, fn (instance_state) ->
+    LevelProcess.run_with(instance_process, fn (instance_state) ->
       {:ok, %{ instance_state | new_ids: %{instance_state.new_ids | older_new_tile.id => 2 }}}
     end)
 
-    assert :ok = InstanceProcess.update_tile(instance_process, tile_id_1, %{character: "Y", row: 2, col: 3})
-    assert :ok = InstanceProcess.delete_tile(instance_process, tile_id_2)
-    assert :ok = InstanceProcess.delete_tile(instance_process, new_tile_1.id)
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id_1, %{character: "Y", row: 2, col: 3})
+    assert :ok = LevelProcess.delete_tile(instance_process, tile_id_2)
+    assert :ok = LevelProcess.delete_tile(instance_process, new_tile_1.id)
 
     assert :ok = Process.send(instance_process, :write_db, [])
     :timer.sleep 10 # let the process do its thing
@@ -579,87 +581,87 @@ defmodule DungeonCrawl.InstanceProcessTest do
     assert "O" == Repo.get(Tile, tile_id_3).character
 
     # new tiles younger than 2 write_db iterations don't get persisted to the DB yet
-    assert new_tile_2 == InstanceProcess.get_tile(instance_process, 1, 7)
+    assert new_tile_2 == LevelProcess.get_tile(instance_process, 1, 7)
     assert is_binary(new_tile_2.id)
-    persisted_older_new_tile = InstanceProcess.get_tile(instance_process, 1, 6)
+    persisted_older_new_tile = LevelProcess.get_tile(instance_process, 1, 6)
     # new tiles that live past 2 or more write_db iterations get persisted to the DB
     assert is_integer(persisted_older_new_tile.id)
     assert "G" == Repo.get(Tile, persisted_older_new_tile.id).character
   end
 
   test "get_tile/2 gets a tile by its id", %{instance_process: instance_process, tile_id: tile_id} do
-    assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, tile_id)
+    assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = LevelProcess.get_tile(instance_process, tile_id)
   end
 
   test "get_tile/3 gets the top tile for the row, col coordinate", %{instance_process: instance_process, tile_id: tile_id} do
-    assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1)
+    assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = LevelProcess.get_tile(instance_process, 1, 1)
   end
 
   test "get_tile/3 gets nil if no tiles at the given coordinates", %{instance_process: instance_process} do
-    refute InstanceProcess.get_tile(instance_process, -1, -1)
+    refute LevelProcess.get_tile(instance_process, -1, -1)
   end
 
   test "get_tile/4 gets the top tile in the direction from the row, col coordinate", %{instance_process: instance_process, tile_id: tile_id} do
-    assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = InstanceProcess.get_tile(instance_process, 1, 1, "here")
+    assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = LevelProcess.get_tile(instance_process, 1, 1, "here")
   end
 
 # get tiles
 
   test "get_tiles/3 gets the top tile for the row, col coordinate", %{instance_process: instance_process, tile_id: tile_id} do
-    assert [tile] = InstanceProcess.get_tiles(instance_process, 1, 1)
+    assert [tile] = LevelProcess.get_tiles(instance_process, 1, 1)
     assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = tile
   end
 
   test "get_tiles/3 gets emtpy array if no tiles at the given coordinates", %{instance_process: instance_process} do
-    assert [] == InstanceProcess.get_tiles(instance_process, -1, -1)
+    assert [] == LevelProcess.get_tiles(instance_process, -1, -1)
   end
 
   test "get_tiles/4 gets the top tile in the direction from the row, col coordinate", %{instance_process: instance_process, tile_id: tile_id} do
-    assert [tile] = InstanceProcess.get_tiles(instance_process, 1, 1, "here")
+    assert [tile] = LevelProcess.get_tiles(instance_process, 1, 1, "here")
     assert %Tile{id: ^tile_id, character: "O", row: 1, col: 1, z_index: 0} = tile
   end
 # end get tiles
 
   test "update_tile/3", %{instance_process: instance_process, tile_id: tile_id} do
-    assert :ok = InstanceProcess.update_tile(instance_process, tile_id, %{id: 11111, character: "X", row: 1, col: 1})
-    assert %Tile{id: ^tile_id, character: "X", row: 1, col: 1, level_instance_id: m_id} = InstanceProcess.get_tile(instance_process, tile_id)
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{id: 11111, character: "X", row: 1, col: 1})
+    assert %Tile{id: ^tile_id, character: "X", row: 1, col: 1, level_instance_id: m_id} = LevelProcess.get_tile(instance_process, tile_id)
 
     # Move to an empty space
-    assert :ok = InstanceProcess.update_tile(instance_process, tile_id, %{character: "Y", row: 2, col: 3})
-    assert %Tile{id: ^tile_id, character: "Y", row: 2, col: 3} = InstanceProcess.get_tile(instance_process, tile_id)
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{character: "Y", row: 2, col: 3})
+    assert %Tile{id: ^tile_id, character: "Y", row: 2, col: 3} = LevelProcess.get_tile(instance_process, tile_id)
 
     # Move ontop of another tile
     another_tile = %Tile{id: -3, character: "O", row: 5, col: 6, z_index: 0, level_instance_id: m_id}
-    InstanceProcess.load_level(instance_process, [another_tile])
+    LevelProcess.load_level(instance_process, [another_tile])
 
     # Won't move to the same z_index
-    assert :ok = InstanceProcess.update_tile(instance_process, tile_id, %{row: 5, col: 6})
-    assert %Tile{id: ^tile_id, character: "Y", row: 2, col: 3, z_index: 0} = InstanceProcess.get_tile(instance_process, tile_id)
-    assert :ok = InstanceProcess.update_tile(instance_process, tile_id, %{row: 5, col: 6, z_index: 1})
-    assert %Tile{id: ^tile_id, character: "Y", row: 5, col: 6, z_index: 1} = InstanceProcess.get_tile(instance_process, tile_id)
-    assert %Tile{id: -3, character: "O", row: 5, col: 6, z_index: 0} = InstanceProcess.get_tile(instance_process, another_tile.id)
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{row: 5, col: 6})
+    assert %Tile{id: ^tile_id, character: "Y", row: 2, col: 3, z_index: 0} = LevelProcess.get_tile(instance_process, tile_id)
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{row: 5, col: 6, z_index: 1})
+    assert %Tile{id: ^tile_id, character: "Y", row: 5, col: 6, z_index: 1} = LevelProcess.get_tile(instance_process, tile_id)
+    assert %Tile{id: -3, character: "O", row: 5, col: 6, z_index: 0} = LevelProcess.get_tile(instance_process, another_tile.id)
   end
 
   test "delete_tile/2", %{instance_process: instance_process, tile_id: tile_id} do
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
-                map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
+    %Levels{ program_contexts: programs,
+             map_by_ids: by_id,
+             map_by_coords: by_coord } = LevelProcess.get_state(instance_process)
     assert programs[tile_id]
     assert by_id[tile_id]
     assert %{ {1, 1} => %{ 0 => ^tile_id} } = by_coord
 
-    assert :ok = InstanceProcess.delete_tile(instance_process, tile_id)
-    refute InstanceProcess.get_tile(instance_process, tile_id)
-    %Instances{ program_contexts: programs,
-                map_by_ids: by_id,
-                map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
+    assert :ok = LevelProcess.delete_tile(instance_process, tile_id)
+    refute LevelProcess.get_tile(instance_process, tile_id)
+    %Levels{ program_contexts: programs,
+             map_by_ids: by_id,
+             map_by_coords: by_coord } = LevelProcess.get_state(instance_process)
     refute programs[tile_id]
     refute by_id[tile_id]
     assert %{ {1, 1} => %{} } = by_coord
   end
 
   test "gameover/3", %{instance_process: instance_process, level_instance: level_instance} do
-    {:module, instances_mock_mod, _, _} = DungeonCrawl.InstancesMockFactory.generate(self(), DungeonCrawl.Gameover3.InstanceMock)
+    {:module, levels_mock_mod, _, _} = LevelsMockFactory.generate(self(), DungeonCrawl.Gameover3.InstanceMock)
 
     tiles = [
         %{character: "B", row: 1, col: 2, z_index: 0, state: "damage: 5", name: "damager"},
@@ -675,31 +677,31 @@ defmodule DungeonCrawl.InstanceProcessTest do
     player_location_1 = %Location{id: 555, tile_instance_id: player_tile_1.id}
     player_location_2 = %Location{id: 556, tile_instance_id: player_tile_2.id}
 
-    InstanceProcess.run_with(instance_process, fn(state) ->
-      {_, state} = Instances.create_player_tile(state, player_tile_1, player_location_1)
-      Instances.create_player_tile(state, player_tile_2, player_location_2)
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Levels.create_player_tile(state, player_tile_1, player_location_1)
+      Levels.create_player_tile(state, player_tile_2, player_location_2)
     end)
 
-    %Instances{ instance_id: instance_id } = InstanceProcess.get_state(instance_process)
+    %Levels{ instance_id: instance_id } = LevelProcess.get_state(instance_process)
 
-    InstanceProcess.gameover(instance_process, false, "loss", instances_mock_mod)
+    LevelProcess.gameover(instance_process, false, "loss", levels_mock_mod)
 
     assert_receive {:gameover_test, ^instance_id, false, "loss"}
 
     # cleanup
-    :code.purge instances_mock_mod
-    :code.delete instances_mock_mod
+    :code.purge levels_mock_mod
+    :code.delete levels_mock_mod
   end
 
   test "run_with/2", %{instance_process: instance_process, tile_id: tile_id} do
     new_tile = %Tile{id: 999, row: 1, col: 1, z_index: 1, character: "K"}
-    return_value = InstanceProcess.run_with(instance_process, fn (state) ->
-                     Instances.create_tile(state, new_tile)
+    return_value = LevelProcess.run_with(instance_process, fn (state) ->
+                     Levels.create_tile(state, new_tile)
                    end)
     assert return_value == Map.put(new_tile, :parsed_state, %{})
-    %Instances{ program_contexts: _programs,
-                map_by_ids: _by_id,
-                map_by_coords: by_coord } = InstanceProcess.get_state(instance_process)
+    %Levels{ program_contexts: _programs,
+             map_by_ids: _by_id,
+             map_by_coords: by_coord } = LevelProcess.get_state(instance_process)
     assert %{ {1, 1} => %{ 0 => ^tile_id, 1 => 999} } = by_coord
   end
 end

@@ -4,12 +4,8 @@ defmodule DungeonCrawl.DungeonProcessTest do
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonInstances.Tile
-
-  # A lot of these tests are semi redundant, as the code that actually modifies the state lives
-  # in the Instances module. Testing this also effectively hits the Instances code,
-  # which also has its own set of similar tests.
 
   setup do
     map_set_process = start_supervised!(DungeonProcess)
@@ -84,7 +80,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
 
   test "get_instance_registry", %{map_set_process: map_set_process} do
     assert pid = DungeonProcess.get_instance_registry(map_set_process)
-    assert %{} = InstanceRegistry.list(pid)
+    assert %{} = LevelRegistry.list(pid)
   end
 
   test "get_state", %{map_set_process: map_set_process} do
@@ -99,7 +95,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
     level_instance_id = level_instance.id
     assert :ok = DungeonProcess.load_instance(map_set_process, level_instance.id)
     assert %{^level_instance_id => _} = DungeonProcess.get_instance_registry(map_set_process)
-                                        |> InstanceRegistry.list()
+                                        |> LevelRegistry.list()
     assert %DungeonProcess{entrances: []} = DungeonProcess.get_state(map_set_process)
   end
 
@@ -108,7 +104,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
     level_instance_id = level_instance.id
     assert :ok = DungeonProcess.load_instance(map_set_process, level_instance)
     assert %{^level_instance_id => _} = DungeonProcess.get_instance_registry(map_set_process)
-                                        |> InstanceRegistry.list()
+                                        |> LevelRegistry.list()
     assert %DungeonProcess{entrances: []} = DungeonProcess.get_state(map_set_process)
   end
 

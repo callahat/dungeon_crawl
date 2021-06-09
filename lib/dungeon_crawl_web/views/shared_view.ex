@@ -1,14 +1,14 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, Registrar}
+  alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   # todo: pass in if its foggy instead maybe
   def level_as_table(level, height, width, admin \\ false)
-  def level_as_table(%Instances{state_values: state_values} = level, height, width, admin) do
+  def level_as_table(%Levels{state_values: state_values} = level, height, width, admin) do
     if state_values[:visibility] == "fog" && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
@@ -38,14 +38,14 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp _level_as_table(%DungeonInstances.Level{} = level, height, width) do
     {:ok, instance} = Registrar.instance_process(level.dungeon_instance_id, level.id)
-    instance_state = InstanceProcess.get_state(instance)
+    instance_state = LevelProcess.get_state(instance)
 
     instance_state.map_by_ids
     |> Enum.map(fn({_id, tile}) -> tile end)
     |> _level_table(height, width)
   end
 
-  defp _level_as_table(%Instances{} = instance_state, height, width) do
+  defp _level_as_table(%Levels{} = instance_state, height, width) do
     instance_state.map_by_ids
     |> Enum.map(fn({_id, tile}) -> tile end)
     |> _level_table(height, width)

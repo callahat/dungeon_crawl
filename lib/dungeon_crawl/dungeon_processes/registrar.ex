@@ -1,5 +1,5 @@
 defmodule DungeonCrawl.DungeonProcesses.Registrar do
-  alias DungeonCrawl.DungeonProcesses.{InstanceRegistry,DungeonRegistry,DungeonProcess}
+  alias DungeonCrawl.DungeonProcesses.{LevelRegistry,DungeonRegistry,DungeonProcess}
 
   @moduledoc """
   Wraps some convenience methods related to Dungeon related processes/registries
@@ -11,7 +11,7 @@ defmodule DungeonCrawl.DungeonProcesses.Registrar do
   """
   def instance_process(dungeon_instance_id, instance_id) do
     with {:ok, instance_registry} <- instance_registry(dungeon_instance_id),
-         {:ok, instance_process} <- InstanceRegistry.lookup_or_create(instance_registry, instance_id) do
+         {:ok, instance_process} <- LevelRegistry.lookup_or_create(instance_registry, instance_id) do
       {:ok, instance_process}
     else
       _ -> nil

@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
+defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   use GenServer, restart: :temporary
 
   require Logger
@@ -6,7 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   alias DungeonCrawl.Account
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Runner
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.Render
   alias DungeonCrawl.DungeonInstances
@@ -175,7 +175,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   @doc """
   Triggers the end game condition for all players in the instance.
   """
-  def gameover(instance, victory, result, instances_module \\ Instances) do
+  def gameover(instance, victory, result, instances_module \\ Levels) do
     GenServer.cast(instance, {:gameover, {victory, result, instances_module}})
   end
 
@@ -193,7 +193,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   @impl true
   def init(:ok) do
-    {:ok, %Instances{}}
+    {:ok, %Levels{}}
   end
 
   @impl true
@@ -202,120 +202,120 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_call({:responds_to_event?, {tile_id, event}}, _from, %Instances{} = state) do
-    true_or_false = Instances.responds_to_event?(state, %{id: tile_id}, event)
+  def handle_call({:responds_to_event?, {tile_id, event}}, _from, %Levels{} = state) do
+    true_or_false = Levels.responds_to_event?(state, %{id: tile_id}, event)
     {:reply, true_or_false, state}
   end
 
   @impl true
-  def handle_call({:get_tile, {tile_id}}, _from, %Instances{} = state) do
-    tile = Instances.get_tile_by_id(state, %{id: tile_id})
+  def handle_call({:get_tile, {tile_id}}, _from, %Levels{} = state) do
+    tile = Levels.get_tile_by_id(state, %{id: tile_id})
     {:reply, tile, state}
   end
 
   @impl true
   def handle_call({:get_tile, {row, col}}, _from, state) do
-    tile = Instances.get_tile(state, %{row: row, col: col})
+    tile = Levels.get_tile(state, %{row: row, col: col})
     {:reply, tile, state}
   end
 
   @impl true
   def handle_call({:get_tile, {row, col, direction}}, _from, state) do
-    tile = Instances.get_tile(state, %{row: row, col: col}, direction)
+    tile = Levels.get_tile(state, %{row: row, col: col}, direction)
     {:reply, tile, state}
   end
 
   @impl true
-  def handle_call({:get_tiles, {row, col}}, _from, %Instances{} = state) do
-    tiles = Instances.get_tiles(state, %{row: row, col: col})
+  def handle_call({:get_tiles, {row, col}}, _from, %Levels{} = state) do
+    tiles = Levels.get_tiles(state, %{row: row, col: col})
     {:reply, tiles, state}
   end
 
   @impl true
-  def handle_call({:get_tiles, {row, col, direction}}, _from, %Instances{} = state) do
-    tiles = Instances.get_tiles(state, %{row: row, col: col}, direction)
+  def handle_call({:get_tiles, {row, col, direction}}, _from, %Levels{} = state) do
+    tiles = Levels.get_tiles(state, %{row: row, col: col}, direction)
     {:reply, tiles, state}
   end
 
   @impl true
-  def handle_call({:run_with, {function}}, _from, %Instances{} = state) when is_function(function) do
+  def handle_call({:run_with, {function}}, _from, %Levels{} = state) when is_function(function) do
     {return_value, state} = function.(state)
     {:reply, return_value, state}
   end
 
   @impl true
-  def handle_cast({:set_instance_id, {instance_id}}, %Instances{} = state) do
+  def handle_cast({:set_instance_id, {instance_id}}, %Levels{} = state) do
     {:noreply, %{ state | instance_id: instance_id }}
   end
 
   @impl true
-  def handle_cast({:set_dungeon_instance_id, {dungeon_instance_id}}, %Instances{} = state) do
+  def handle_cast({:set_dungeon_instance_id, {dungeon_instance_id}}, %Levels{} = state) do
     {:noreply, %{ state | dungeon_instance_id: dungeon_instance_id }}
   end
 
   @impl true
-  def handle_cast({:set_number, {number}}, %Instances{} = state) do
+  def handle_cast({:set_number, {number}}, %Levels{} = state) do
     {:noreply, %{ state | number: number }}
   end
 
   @impl true
-  def handle_cast({:set_author, author}, %Instances{} = state) do
+  def handle_cast({:set_author, author}, %Levels{} = state) do
     {:noreply, %{ state | author: author }}
   end
 
   @impl true
-  def handle_cast({:set_adjacent_level_id, {level_instance_id, direction}}, %Instances{adjacent_level_ids: adjacent_level_ids} = state) do
+  def handle_cast({:set_adjacent_level_id, {level_instance_id, direction}}, %Levels{adjacent_level_ids: adjacent_level_ids} = state) do
     {:noreply, %{ state | adjacent_level_ids: Map.put(adjacent_level_ids, direction, level_instance_id) }}
   end
 
   @impl true
-  def handle_cast({:set_state_values, {state_values}}, %Instances{} = state) do
+  def handle_cast({:set_state_values, {state_values}}, %Levels{} = state) do
     {:noreply, %{ state | state_values: state_values }}
   end
 
   @impl true
-  def handle_cast({:create_tile, {tile}}, %Instances{} = state) do
-    {_tile, state} = Instances.create_tile(state, tile)
+  def handle_cast({:create_tile, {tile}}, %Levels{} = state) do
+    {_tile, state} = Levels.create_tile(state, tile)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:create_spawn_coordinate, {spawn_coordinate}}, %Instances{} = state) do
+  def handle_cast({:create_spawn_coordinate, {spawn_coordinate}}, %Levels{} = state) do
     {:noreply, %{ state | spawn_coordinates: [spawn_coordinate | state.spawn_coordinates] }}
   end
 
   @impl true
-  def handle_cast({:send_event, {event, sender}}, %Instances{} = state) do
+  def handle_cast({:send_event, {event, sender}}, %Levels{} = state) do
     state = state.program_contexts
-            |> Enum.reduce(state, fn({po_id, _}, state) -> Instances.send_event(state, po_id, event, sender) end)
+            |> Enum.reduce(state, fn({po_id, _}, state) -> Levels.send_event(state, po_id, event, sender) end)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender}}, %Instances{} = state) do
-    state = Instances.send_event(state, %{id: tile_id}, event, sender)
+  def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender}}, %Levels{} = state) do
+    state = Levels.send_event(state, %{id: tile_id}, event, sender)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:update_tile, {tile_id, new_attributes}}, %Instances{} = state) do
-    {_updated_tile, state} = Instances.update_tile(state, %{id: tile_id}, new_attributes)
+  def handle_cast({:update_tile, {tile_id, new_attributes}}, %Levels{} = state) do
+    {_updated_tile, state} = Levels.update_tile(state, %{id: tile_id}, new_attributes)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:delete_tile, {tile_id}}, %Instances{} = state) do
-    {_deleted_tile, state} = Instances.delete_tile(state, %{id: tile_id})
+  def handle_cast({:delete_tile, {tile_id}}, %Levels{} = state) do
+    {_deleted_tile, state} = Levels.delete_tile(state, %{id: tile_id})
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:gameover, {victory, result, instances_module}}, %Instances{} = state) do
+  def handle_cast({:gameover, {victory, result, instances_module}}, %Levels{} = state) do
     {:noreply, instances_module.gameover(state, victory, result)}
   end
 
   @impl true
-  def handle_info(:perform_actions, %Instances{count_to_idle: 0} = state) do
+  def handle_info(:perform_actions, %Levels{count_to_idle: 0} = state) do
     # No player is here, so don't cycle programs and wait longer til the next cycle, and save off any changes/new tiles
     send(self(), :write_db)
 
@@ -325,7 +325,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_info(:perform_actions, %Instances{} = state) do
+  def handle_info(:perform_actions, %Levels{} = state) do
     start_ms = :os.system_time(:millisecond)
     state = _cycle_programs(%{state | new_pids: []})
             |> _broadcast_stat_updates()
@@ -344,7 +344,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   @impl true
-  def handle_info(:check_on_inactive_players, %Instances{inactive_players: inactive_players} = state) do
+  def handle_info(:check_on_inactive_players, %Levels{inactive_players: inactive_players} = state) do
     {stone, inactive_players} = inactive_players
                                 |> Map.to_list()
                                 |> Enum.map(fn {tile_id, count} -> {tile_id, count + 1} end)
@@ -363,7 +363,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   # is a permanent one. Currently when everyone is out of the instance, the DB and processes for the map set are
   # removed.
   @impl true
-  def handle_info(:write_db, %Instances{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
+  def handle_info(:write_db, %Levels{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
     start_ms = :os.system_time(:millisecond)
 
     {new_ids, ids_to_persist} = new_ids
@@ -375,10 +375,10 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
     state = ids_to_persist
             |> Enum.map(fn({id, _}) -> id end)
             |> Enum.reduce(state, fn(temp_id, state) ->
-                 tile = Instances.get_tile_by_id(state, %{id: temp_id})
+                 tile = Levels.get_tile_by_id(state, %{id: temp_id})
                             |> Map.put(:id, nil)
                             |> DungeonCrawl.Repo.insert!()
-                 Instances.set_tile_id(state, tile, temp_id)
+                 Levels.set_tile_id(state, tile, temp_id)
                end)
 
     # save off this other stuff but don't block the GenServer, and dont care about the result
@@ -413,14 +413,14 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
       end
     end)
 
-    {:noreply, %Instances{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
+    {:noreply, %Levels{ state | dirty_ids: %{}, new_ids: Enum.into(new_ids, %{})}}
   end
 
   # TODO: move these private functions to a new module and make them public so tests can isolate behaviors.
   #Cycles through all the programs, running each until a wait point. Any messages for broadcast or a single player
   #will be broadcast. Typically this will only be called by the scheduler.
   # state is passed in mainly so the map can be updated, the program_contexts in state are updated outside.
-  defp _cycle_programs(%Instances{} = state) do
+  defp _cycle_programs(%Levels{} = state) do
     {program_contexts, state} = state.program_contexts
                                 |> Enum.flat_map(fn({k,v}) -> [[k,v]] end)
                                 |> _cycle_programs(state)
@@ -435,7 +435,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   defp _cycle_programs([[pid, program_context] | program_contexts], state) do
     runner_state = Scripting.Runner.run(%Runner{program: program_context.program, object_id: program_context.object_id, state: state})
                               |> Map.put(:event_sender, program_context.event_sender) # This might not be needed
-                              |> Instances.handle_broadcasting() # any nontile_update broadcasts left
+                              |> Levels.handle_broadcasting() # any nontile_update broadcasts left
     {other_program_contexts, updated_state} = _cycle_programs(program_contexts, runner_state.state)
 
     if runner_state.program.status == :dead do
@@ -484,7 +484,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _petrify_old_inactive_players([], state), do: {:noreply, state}
   defp _petrify_old_inactive_players([tile_id | to_stone], state) do
-    if player_location = Instances.get_player_location(state, %{id: tile_id}) do
+    if player_location = Levels.get_player_location(state, %{id: tile_id}) do
       player_name = Account.get_name(player_location.user_id_hash)
       Logger.info "Player #{player_name} has idled out and become a statue in MSI #{state.dungeon_instance_id}"
       {_statue, state} = PlayerInstance.petrify(state, %{id: tile_id})
@@ -508,7 +508,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _destroyable_behavior([ {tile_id, _label, sender} | messages ], state) do
-    object = Instances.get_tile_by_id(state, %{id: tile_id})
+    object = Levels.get_tile_by_id(state, %{id: tile_id})
 
     cond do
       object && StateValue.get_int(object, :health) ->
@@ -523,7 +523,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    {result, state} = Instances.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
+    {result, state} = Levels.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
 
     state = if result == :died, do: _award_points(object, sender, state), else: state
 
@@ -531,12 +531,12 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
   end
 
   defp _destroyed_tile(object, sender, messages, state) do
-    {deleted_tile, state} = Instances.delete_tile(state, object)
+    {deleted_tile, state} = Levels.delete_tile(state, object)
 
     if deleted_tile do
       state = _award_points(object, sender, state)
 
-      top_tile = Instances.get_tile(state, deleted_tile)
+      top_tile = Levels.get_tile(state, deleted_tile)
       payload = %{tiles: [
                    Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
                   ]}
@@ -549,8 +549,8 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
   defp _award_points(object, sender, state) do
     awardee = case sender do
-                %{parsed_state: %{owner: owner_id}} -> Instances.get_tile_by_id(state, %{id: owner_id})
-                %{tile_id: id} -> Instances.get_tile_by_id(state, %{id: id})
+                %{parsed_state: %{owner: owner_id}} -> Levels.get_tile_by_id(state, %{id: owner_id})
+                %{tile_id: id} -> Levels.get_tile_by_id(state, %{id: id})
                 _ -> nil
               end
 
@@ -558,7 +558,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceProcess do
 
     if is_number(points) && awardee do
       current_points = awardee.parsed_state[:score] || 0
-      {_awardee, state} = Instances.update_tile_state(state, awardee, %{score: current_points + points})
+      {_awardee, state} = Levels.update_tile_state(state, awardee, %{score: current_points + points})
 
       state
     else

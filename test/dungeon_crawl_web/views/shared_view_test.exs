@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
   import DungeonCrawlWeb.SharedView
   alias DungeonCrawl.Dungeons.Tile
-  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
 
   @copyable_attrs [:character, :color, :background_color, :state, :script]
 
@@ -67,7 +67,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
 
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
 
     instance = insert_stubbed_level_instance(%{},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
@@ -75,8 +75,8 @@ defmodule DungeonCrawlWeb.SharedViewTest do
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
 
-    InstanceProcess.set_instance_id(instance_process, instance.id)
-    InstanceProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
+    LevelProcess.set_instance_id(instance_process, instance.id)
+    LevelProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
 
     rows = level_as_table(instance, instance.width, instance.height)
 
@@ -85,7 +85,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
 
     # Also can be given the instance state object as well if thats available
-    instance_state = InstanceProcess.get_state(instance_process)
+    instance_state = LevelProcess.get_state(instance_process)
     rows = level_as_table(instance_state, instance.width, instance.height)
 
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
@@ -100,16 +100,16 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
 
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
 
     instance = insert_stubbed_level_instance(%{state: "visibility: fog"},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
-    InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
-    InstanceProcess.set_instance_id(instance_process, instance.id)
-    InstanceProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
+    LevelProcess.set_state_values(instance_process, %{visibility: "fog"})
+    LevelProcess.set_instance_id(instance_process, instance.id)
+    LevelProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
 
     # The DB record won't have parsed state_values, so it will appear normal/not foggy.
     rows = level_as_table(instance, instance.width, instance.height)
@@ -119,7 +119,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
 
     # Also can be given the instance state object as well if thats available
-    instance_state = InstanceProcess.get_state(instance_process)
+    instance_state = LevelProcess.get_state(instance_process)
 
     rows = level_as_table(instance_state, instance.width, instance.height)
 

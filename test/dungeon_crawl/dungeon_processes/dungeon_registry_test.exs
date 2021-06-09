@@ -3,7 +3,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon,Tile}
-  alias DungeonCrawl.DungeonProcesses.{DungeonRegistry,DungeonProcess,InstanceRegistry}
+  alias DungeonCrawl.DungeonProcesses.{DungeonRegistry,DungeonProcess,LevelRegistry}
 
   setup do
     map_set_registry = start_supervised!(DungeonRegistry)
@@ -42,7 +42,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
     level_id = Repo.preload(di, :levels).levels
                |> Enum.map(&(&1.id))
                |> Enum.at(0)
-    assert instance_list = InstanceRegistry.list(instance_registry)
+    assert instance_list = LevelRegistry.list(instance_registry)
     assert map_size(instance_list) == 1
     assert %{^level_id => _} = instance_list
   end

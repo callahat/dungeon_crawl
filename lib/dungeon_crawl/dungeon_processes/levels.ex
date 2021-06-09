@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.DungeonProcesses.Instances do
+defmodule DungeonCrawl.DungeonProcesses.Levels do
   @moduledoc """
-  The instances context.
-  It wraps the retrival and changes of %Instances{}
+  The level instances context.
+  It wraps the retrival and changes of %Levels{}
   """
 
   @count_to_idle 5
@@ -34,7 +34,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.{Instances, DungeonRegistry, DungeonProcess, Player}
+  alias DungeonCrawl.DungeonProcesses.{Levels, DungeonRegistry, DungeonProcess, Player}
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Direction
@@ -53,7 +53,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   end
   def get_tile(_,_,_), do: nil
 
-  def get_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _tile) do
+  def get_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          [{_z_index, top_tile}] <- Map.to_list(tiles)
                                    |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
@@ -69,11 +69,11 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Returns the tiles in the given directon from the provided coordinates.
   """
-  def get_tiles(%Instances{} = state, %{row: row, col: col} = _tile, direction) do
+  def get_tiles(%Levels{} = state, %{row: row, col: col} = _tile, direction) do
     {d_row, d_col} = Direction.delta(direction)
-    Instances.get_tiles(state, %{row: row + d_row, col: col + d_col})
+    Levels.get_tiles(state, %{row: row + d_row, col: col + d_col})
   end
-  def get_tiles(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _tile) do
+  def get_tiles(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          tiles <- Map.to_list(tiles)
                   |> Enum.sort(fn({a,_},{b,_}) -> a > b end)
@@ -88,7 +88,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Gets the tile given by the id.
   """
-  def get_tile_by_id(%Instances{map_by_ids: by_id} = _state, %{id: tile_id} = _tile) do
+  def get_tile_by_id(%Levels{map_by_ids: by_id} = _state, %{id: tile_id} = _tile) do
     by_id[tile_id]
   end
 
@@ -96,10 +96,10 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Gets the player location, returns nil if one is not found. Uses a level with an `id` key to lookup based on the tile
   associated with that location. Otherwise lookup is done based on user_id_hash when the parameter is a binary.
   """
-  def get_player_location(%Instances{player_locations: player_locations} = _state, %{id: tile_id}) do
+  def get_player_location(%Levels{player_locations: player_locations} = _state, %{id: tile_id}) do
     player_locations[tile_id]
   end
-  def get_player_location(%Instances{player_locations: player_locations} = _state, user_id_hash) do
+  def get_player_location(%Levels{player_locations: player_locations} = _state, user_id_hash) do
     player_locations
     |> Map.values
     |> Enum.find(fn location -> location.user_id_hash == user_id_hash end)
@@ -108,7 +108,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Returns true or false, depending on if the given tile_id responds to the event.
   """
-  def responds_to_event?(%Instances{program_contexts: program_contexts} = _state, %{id: tile_id}, event) do
+  def responds_to_event?(%Levels{program_contexts: program_contexts} = _state, %{id: tile_id}, event) do
     with %{^tile_id => %{program: program}} <- program_contexts,
          line_number when not(is_nil(line_number)) <- Program.line_for(program, event) do
       true
@@ -122,7 +122,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Send an event to a tile/program.
   Returns the updated state.
   """
-  def send_event(%Instances{program_contexts: program_contexts} = state, %{id: tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
+  def send_event(%Levels{program_contexts: program_contexts} = state, %{id: tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
     case program_contexts do
       %{^tile_id => %{program: program, object_id: object_id}} ->
         %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
@@ -132,17 +132,17 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                                                                        event)
                                   |> handle_broadcasting()
         if program.status == :dead do
-          %Instances{ state | program_contexts: Map.delete(state.program_contexts, tile_id)}
+          %Levels{ state | program_contexts: Map.delete(state.program_contexts, tile_id)}
         else
           updated_program_context = %{program: program, object_id: object_id, event_sender: sender}
-          %Instances{ state | program_contexts: Map.put(state.program_contexts, tile_id, updated_program_context)}
+          %Levels{ state | program_contexts: Map.put(state.program_contexts, tile_id, updated_program_context)}
         end
 
       _ ->
         state
     end
   end
-  def send_event(%Instances{program_messages: program_messages} = state, tile_id, event, %{} = sender) do
+  def send_event(%Levels{program_messages: program_messages} = state, tile_id, event, %{} = sender) do
     %{ state | program_messages: [ {tile_id, event, sender} | program_messages] }
   end
 
@@ -150,7 +150,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Sets the labels for the event sender id. This will be used when a nonstandard message
   is sent in to verify that the event sender may send it.
   """
-  def set_message_actions(%Instances{message_actions: message_actions} = state, id, labels) do
+  def set_message_actions(%Levels{message_actions: message_actions} = state, id, labels) do
     %{ state | message_actions: Map.put(message_actions, id, labels) }
   end
 
@@ -159,7 +159,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   for cases when the sender has chosen an event to send, or for when it is no longer eligible
   to send an event.
   """
-  def remove_message_actions(%Instances{message_actions: message_actions} = state, id) do
+  def remove_message_actions(%Levels{message_actions: message_actions} = state, id) do
     %{ state | message_actions: Map.delete(message_actions, id) }
   end
 
@@ -167,7 +167,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns if the given label is valid for the event sender id. Ie, this player is allowed
   to send that label because the program solicited it via a dialog window, and it is still valid.
   """
-  def valid_message_action?(%Instances{message_actions: message_actions} = _state, id, label) do
+  def valid_message_action?(%Levels{message_actions: message_actions} = _state, id, label) do
     case message_actions[id] do
       nil -> false
       labels -> Enum.member?(labels, label)
@@ -181,12 +181,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
-  def create_player_tile(%Instances{player_locations: player_locations} = state, tile, location) do
+  def create_player_tile(%Levels{player_locations: player_locations} = state, tile, location) do
     state = if state.count_to_idle < @count_to_idle, do: %{ state | count_to_idle: @count_to_idle }, else: state
 
-    {top, instance_state} = Instances.create_tile(state, tile)
+    {top, instance_state} = Levels.create_tile(state, tile)
     # put here for now then reconsider when the state string goes away and replaced by "attributes" and "items"
-    {top, instance_state} = Instances.update_tile_state(instance_state, top, %{entry_row: top.row, entry_col: top.col})
+    {top, instance_state} = Levels.update_tile_state(instance_state, top, %{entry_row: top.row, entry_col: top.col})
     {top, %{ instance_state | player_locations: Map.put(player_locations, tile.id, location)}}
   end
 
@@ -196,12 +196,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
-  def create_tile(%Instances{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = tile) do
+  def create_tile(%Levels{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = tile) do
     new_id = "new_#{new_id_counter}"
     create_tile(%{ state | new_id_counter: new_id_counter + 1, new_ids: Map.put(new_ids, new_id, 0) }, %{ tile | id: new_id })
   end
 
-  def create_tile(%Instances{} = state, tile) do
+  def create_tile(%Levels{} = state, tile) do
     tile = _with_parsed_state(tile)
     {tile, state} = _register_tile(state, tile)
     {_, tile, state} = _parse_and_start_program(state, tile)
@@ -216,7 +216,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-  defp _register_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, tile) do
+  defp _register_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, tile) do
      if Map.has_key?(by_id, tile.id) do
       # Tile already registered
       {by_id[tile.id], state}
@@ -229,7 +229,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         by_id = Map.put(by_id, tile.id, tile)
         by_coords = Map.put(by_coords, {tile.row, tile.col},
                             Map.put(z_index_map, tile.z_index, tile.id))
-        {tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords }}
+        {tile, %Levels{ state | map_by_ids: by_id, map_by_coords: by_coords }}
       end
     end
   end
@@ -251,12 +251,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-  defp _start_program(%Instances{program_contexts: program_contexts, new_pids: new_pids} = state, tile_id, program_context) do
+  defp _start_program(%Levels{program_contexts: program_contexts, new_pids: new_pids} = state, tile_id, program_context) do
     if Map.has_key?(program_contexts, tile_id) do
       # already a running program for that tile id, or there is no tile for that id
       state
     else
-      %Instances{ state | program_contexts: Map.put(program_contexts, tile_id, program_context),
+      %Levels{ state | program_contexts: Map.put(program_contexts, tile_id, program_context),
                           new_pids: [tile_id | new_pids]}
     end
   end
@@ -267,7 +267,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   If the tile's id has already been updated to the id of the database record, then nothing
   will be done and the instance state will be returned unchanged.
   """
-  def set_tile_id(%Instances{} = state, %{id: new_id} = tile, old_temp_id) when is_binary(old_temp_id) and is_integer(new_id) do
+  def set_tile_id(%Levels{} = state, %{id: new_id} = tile, old_temp_id) when is_binary(old_temp_id) and is_integer(new_id) do
     by_ids = Map.put(state.map_by_ids, new_id, Map.put(state.map_by_ids[old_temp_id], :id, new_id))
              |> Map.delete(old_temp_id)
     z_indexes = state.map_by_coords[{tile.row, tile.col}]
@@ -313,7 +313,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   included in this map will be unaffected.
   """
   @ignorable_state_attrs [:entry_row, :entry_col]
-  def update_tile_state(%Instances{map_by_ids: by_id} = state, %{id: tile_id}, state_attributes) do
+  def update_tile_state(%Levels{map_by_ids: by_id} = state, %{id: tile_id}, state_attributes) do
     tile = by_id[tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(tile.parsed_state, state_attributes))
 
@@ -330,7 +330,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Updates the given tile in the parent instance process, and returns the updated tile and new state.
   If the new attributes include a script, the program will be updated if the script is valid.
   """
-  def update_tile(%Instances{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: tile_id}, new_attributes) do
+  def update_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: tile_id}, new_attributes) do
     new_attributes = Map.delete(new_attributes, :id)
     previous_changeset = state.dirty_ids[tile_id] || Tile.changeset(by_id[tile_id], %{})
 
@@ -356,20 +356,20 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       else
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), tile_id)
-        {updated_tile, %Instances{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
+        {updated_tile, %Levels{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
         |> _update_program(script_changed)
       end
     else
-      {updated_tile, %Instances{ state | map_by_ids: by_id, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
+      {updated_tile, %Levels{ state | map_by_ids: by_id, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
       |> _update_program(script_changed)
     end
   end
 
-  defp _update_program({tile, %Instances{} = state}, false), do: {tile, state}
-  defp _update_program({tile, %Instances{} = state}, true) do
+  defp _update_program({tile, %Levels{} = state}, false), do: {tile, state}
+  defp _update_program({tile, %Levels{} = state}, true) do
     {previous_program, program_contexts} = Map.pop(state.program_contexts, tile.id)
     _update_program(previous_program || %{},
-                    _parse_and_start_program(%Instances{state | program_contexts: program_contexts}, tile))
+                    _parse_and_start_program(%Levels{state | program_contexts: program_contexts}, tile))
   end
   defp _update_program(_previous_program, {:none, tile, state}) do
     {tile, state}
@@ -381,7 +381,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
     updated_context = %{ state.program_contexts[tile.id] | program: new_program }
 
-    {tile, %Instances{ state | program_contexts: Map.put(state.program_contexts, tile.id, updated_context) }}
+    {tile, %Levels{ state | program_contexts: Map.put(state.program_contexts, tile.id, updated_context) }}
   end
 
   @doc """
@@ -393,12 +393,12 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   However, in the case of a player tile that moves from one instance to another, that tile will still be persisted
   but will be associated with another instance, so removing it from the instance process is sufficient.
   """
-  def delete_tile(%Instances{program_contexts: program_contexts,
-                             map_by_ids: by_id,
-                             map_by_coords: by_coords,
-                             player_locations: player_locations,
-                             players_visible_coords: players_visible_coords,
-                                 passage_exits: passage_exits} = state,
+  def delete_tile(%Levels{program_contexts: program_contexts,
+                          map_by_ids: by_id,
+                          map_by_coords: by_coords,
+                          player_locations: player_locations,
+                          players_visible_coords: players_visible_coords,
+                          passage_exits: passage_exits} = state,
                       %{id: tile_id},
                       mark_as_dirty \\ true) do
     program_contexts = Map.delete(program_contexts, tile_id)
@@ -413,16 +413,16 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       by_id = Map.delete(by_id, tile_id)
       player_locations = Map.delete(player_locations, tile_id)
       players_visible_coords = Map.delete(players_visible_coords, tile_id)
-      {tile, %Instances{ state |
-                         program_contexts: program_contexts,
-                         passage_exits: passage_exits,
-                         map_by_ids: by_id,
-                         map_by_coords: by_coords,
-                         dirty_ids: dirty_ids,
-                         player_locations: player_locations,
-                         players_visible_coords: players_visible_coords,
-                         rerender_coords: rerender_coords,
-                         new_ids: Map.delete(state.new_ids, tile_id) }}
+      {tile, %Levels{ state |
+                      program_contexts: program_contexts,
+                      passage_exits: passage_exits,
+                      map_by_ids: by_id,
+                      map_by_coords: by_coords,
+                      dirty_ids: dirty_ids,
+                      player_locations: player_locations,
+                      players_visible_coords: players_visible_coords,
+                      rerender_coords: rerender_coords,
+                      new_ids: Map.delete(state.new_ids, tile_id) }}
     else
       {nil, state}
     end
@@ -439,7 +439,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         direction
 
       dirs ->
-        non_blocking_dirs = Enum.filter(dirs, fn(dir) -> Move.can_move(Instances.get_tile(state, object, dir)) end)
+        non_blocking_dirs = Enum.filter(dirs, fn(dir) -> Move.can_move(Levels.get_tile(state, object, dir)) end)
         if length(non_blocking_dirs) == 0, do: Enum.random(dirs), else: Enum.random(non_blocking_dirs)
     end
   end
@@ -486,21 +486,21 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   @doc """
   Returns true if the given tile_id is a player tile
   """
-  def is_player_tile?(%Instances{player_locations: player_locations}, %{id: tile_id}) do
+  def is_player_tile?(%Levels{player_locations: player_locations}, %{id: tile_id}) do
     Map.has_key?(player_locations, tile_id)
   end
 
   @doc """
   Sets a state value for the instance. Returns the updated state
   """
-  def set_state_value(%Instances{} = state, key, value) do
+  def set_state_value(%Levels{} = state, key, value) do
     %{ state | state_values: Map.put(state.state_values, key, value) }
   end
 
   @doc """
   Gets a state value from the instance. Returns the value.
   """
-  def get_state_value(%Instances{} = state, key) do
+  def get_state_value(%Levels{} = state, key) do
     state.state_values[key]
   end
 
@@ -519,8 +519,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     iex> subtract(state, :cash, 100, 12345)
     {:ok, state}
   """
-  def subtract(%Instances{} = state, what, amount, loser_id) do
-    loser = Instances.get_tile_by_id(state, %{id: loser_id})
+  def subtract(%Levels{} = state, what, amount, loser_id) do
+    loser = Levels.get_tile_by_id(state, %{id: loser_id})
 
     if loser do
       player_location = state.player_locations[loser.id]
@@ -530,7 +530,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
     end
   end
 
-  def _subtract(%Instances{} = state, :health, amount, loser, nil) do
+  def _subtract(%Levels{} = state, :health, amount, loser, nil) do
     current_amount = loser.parsed_state[:health]
 
     if is_nil(current_amount) && not StateValue.get_bool(loser, :destroyable) do
@@ -539,27 +539,27 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       new_amount = (current_amount || 0) - amount
 
       if new_amount <= 0 do
-        {_deleted_tile, state} = Instances.delete_tile(state, loser)
+        {_deleted_tile, state} = Levels.delete_tile(state, loser)
         {:died, state}
       else
-        {_loser, state} = Instances.update_tile_state(state, loser, %{health: new_amount})
+        {_loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
       end
     end
   end
 
-  def _subtract(%Instances{} = state, what, amount, loser, nil) do
+  def _subtract(%Levels{} = state, what, amount, loser, nil) do
     new_amount = (loser.parsed_state[what] || 0) - amount
 
     if new_amount < 0 do
       {:not_enough, state}
     else
-      {_loser, state} = Instances.update_tile_state(state, loser, %{what => new_amount})
+      {_loser, state} = Levels.update_tile_state(state, loser, %{what => new_amount})
       {:ok, state}
     end
   end
 
-  def _subtract(%Instances{} = state, :health, amount, loser, player_location) do
+  def _subtract(%Levels{} = state, :health, amount, loser, player_location) do
     new_amount = (loser.parsed_state[:health] || 0) - amount
 
     cond do
@@ -568,7 +568,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
 
       new_amount <= 0 ->
         lives = if loser.parsed_state[:lives] > 0, do: loser.parsed_state[:lives] - 1, else: -1
-        {loser, state} = Instances.update_tile_state(state, loser, %{health: new_amount, lives: lives})
+        {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount, lives: lives})
         {_grave, state} = Player.bury(state, loser)
 
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
@@ -579,23 +579,23 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
         end
 
       state.state_values[:reset_player_when_damaged] ->
-        {loser, state} = Instances.update_tile_state(state, loser, %{health: new_amount})
+        {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {_loser, state} = Player.reset(state, loser)
         {:ok, state}
 
       true ->
-        {_loser, state} = Instances.update_tile_state(state, loser, %{health: new_amount})
+        {_loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
     end
   end
 
-  def _subtract(%Instances{} = state, what, amount, loser, _player_location) do
+  def _subtract(%Levels{} = state, what, amount, loser, _player_location) do
     new_amount = (loser.parsed_state[what] || 0) - amount
 
     if new_amount < 0 do
       {:not_enough, state}
     else
-      {_loser, state} = Instances.update_tile_state(state, loser, %{what => new_amount})
+      {_loser, state} = Levels.update_tile_state(state, loser, %{what => new_amount})
 
       {:ok, state}
     end
@@ -606,7 +606,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Returns a three part tuple, the first being the tile template if found, the state, and an atom indicating if it
   exists in cache, was created in the cache, or not_found.
   """
-  def get_tile_template(slug, %Instances{tile_template_slug_cache: cache, author: author} = state) when is_binary(slug) do
+  def get_tile_template(slug, %Levels{tile_template_slug_cache: cache, author: author} = state) when is_binary(slug) do
     if tile_template = cache[slug] do
       {tile_template, state, :exists}
     else
@@ -629,7 +629,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
   Update the given player tile to gameover. Broadcasts the gameover message to the appropriate channel.
   Creates a score record if applicable.
   """
-  def gameover(%Instances{} = state, victory, result) do
+  def gameover(%Levels{} = state, victory, result) do
     state.player_locations
     |> Map.keys()
     |> Enum.reduce(state, fn(player_tile_id, state) ->
@@ -637,8 +637,8 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                           end)
   end
 
-  def gameover(%Instances{} = state, player_tile_id, victory, result) do
-    with tile when not is_nil(tile) <- Instances.get_tile_by_id(state, %{id: player_tile_id}),
+  def gameover(%Levels{} = state, player_tile_id, victory, result) do
+    with tile when not is_nil(tile) <- Levels.get_tile_by_id(state, %{id: player_tile_id}),
          #%{^player_tile_id => player_location} <- state.player_locations,
          player_location when not is_nil(player_location) <- state.player_locations[player_tile_id],
          {:ok, map_set_process} <- DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id),
@@ -648,7 +648,7 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
       # TODO: format the seconds in a view function
       cond do
         not scorable ->
-          {_player_tile, state} = Instances.update_tile_state(state, tile, %{gameover: true})
+          {_player_tile, state} = Levels.update_tile_state(state, tile, %{gameover: true})
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
                                              %{}
@@ -673,9 +673,9 @@ defmodule DungeonCrawl.DungeonProcesses.Instances do
                     dungeon_id: dungeon.id}
 
           {:ok, score} = Scores.create_score(attrs)
-          {_player_tile, state} = Instances.update_tile_state(state, tile, %{gameover: true,
-                                                                                     score_id: score.id,
-                                                                                     dungeon_id: score.dungeon_id})
+          {_player_tile, state} = Levels.update_tile_state(state, tile, %{gameover: true,
+                                                                          score_id: score.id,
+                                                                          dungeon_id: score.dungeon_id})
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
                                              %{dungeon_id: score.dungeon_id, score_id: score.id}

@@ -1,13 +1,13 @@
 defmodule DungeonCrawl.Action.Move do
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scripting.Direction
 
   # todo: rename this
-  def go(%Tile{} = entity_tile, %Tile{} = destination, %Instances{} = state, :absolute, tile_changes) do
+  def go(%Tile{} = entity_tile, %Tile{} = destination, %Levels{} = state, :absolute, tile_changes) do
     _move(entity_tile, destination, state, tile_changes)
   end
-  def go(%Tile{} = entity_tile, %Tile{} = destination, %Instances{} = state) do
+  def go(%Tile{} = entity_tile, %Tile{} = destination, %Levels{} = state) do
     cond do
       _is_teleporter(destination, entity_tile) ->
         Direction.coordinates_to_edge(destination, destination.parsed_state[:facing], state.state_values)
@@ -17,7 +17,7 @@ defmodule DungeonCrawl.Action.Move do
 
       _is_pushable(destination.parsed_state[:pushable], entity_tile, destination) ->
         direction = _get_direction(entity_tile, destination)
-        pushed_location = Instances.get_tile(state, destination, direction)
+        pushed_location = Levels.get_tile(state, destination, direction)
 
         case go(destination, pushed_location, state) do
           {:ok, tile_changes, state} ->
@@ -25,7 +25,7 @@ defmodule DungeonCrawl.Action.Move do
 
           _ ->
             if destination.parsed_state[:squishable] do
-              {squashed_tile, state} = Instances.delete_tile(state, destination)
+              {squashed_tile, state} = Levels.delete_tile(state, destination)
               _move(entity_tile, squashed_tile, state, %{})
             else
               {:invalid}
@@ -37,7 +37,7 @@ defmodule DungeonCrawl.Action.Move do
         {:invalid}
 
       _is_squishable(destination, entity_tile) ->
-        {_squashed_tile, state} = Instances.delete_tile(state, destination)
+        {_squashed_tile, state} = Levels.delete_tile(state, destination)
         _move(entity_tile, destination, state, %{})
 
       true ->
@@ -54,10 +54,10 @@ defmodule DungeonCrawl.Action.Move do
 
   defp _move(entity_tile, destination, state, tile_changes) do
     top_tile = Map.take(destination, [:level_instance_id, :row, :col, :z_index])
-    {new_location, state} = Instances.update_tile(state, entity_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
+    {new_location, state} = Levels.update_tile(state, entity_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
     {new_location, state} = _increment_player_steps(state, new_location)
 
-    old_location_top_tile = Instances.get_tile(state, Map.take(entity_tile, [:row, :col]))
+    old_location_top_tile = Levels.get_tile(state, Map.take(entity_tile, [:row, :col]))
     old_location = if old_location_top_tile, do: old_location_top_tile, else: Map.merge(%Tile{}, Map.take(entity_tile, [:row, :col]))
     new_changes = %{ {new_location.row, new_location.col} => new_location,
                      {old_location.row, old_location.col} => old_location}
@@ -66,7 +66,7 @@ defmodule DungeonCrawl.Action.Move do
 
   defp _increment_player_steps(state, %{parsed_state: %{player: true}} = player_tile) do
     steps = player_tile.parsed_state[:steps] || 0
-    Instances.update_tile_state(state, player_tile, %{steps: steps + 1})
+    Levels.update_tile_state(state, player_tile, %{steps: steps + 1})
   end
   defp _increment_player_steps(state, tile), do: {tile, state}
 
@@ -123,8 +123,8 @@ defmodule DungeonCrawl.Action.Move do
   defp _possible_teleporter_destinations([], _state, candidates, _first), do: candidates
   defp _possible_teleporter_destinations([_], _state, candidates, _first), do: candidates
   defp _possible_teleporter_destinations([a, b | coordinates], state, candidates, first) do
-    tile = Instances.get_tile(state, a)
-    candidate_tile = Instances.get_tile(state, b)
+    tile = Levels.get_tile(state, a)
+    candidate_tile = Levels.get_tile(state, b)
 
     candidates = cond do
                    _is_destination_candidate(tile, candidate_tile, first) -> [candidate_tile | candidates]
@@ -148,7 +148,7 @@ defmodule DungeonCrawl.Action.Move do
   end
 
   defp _teleport([], _entity_tile, _state), do: {:invalid}
-  defp _teleport([candidate_destination | candidates], %Tile{} = entity_tile, %Instances{} = state) do
+  defp _teleport([candidate_destination | candidates], %Tile{} = entity_tile, %Levels{} = state) do
     case go(entity_tile, candidate_destination, state) do
       {:ok, _tile_changes, _state} = result->
         result

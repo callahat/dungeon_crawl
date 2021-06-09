@@ -13,7 +13,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   that soft blocking tile and continue towards full distance of the range.
   """
 
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Runner
 
@@ -22,7 +22,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   Returns tile ids that fall on a line from the given origin.
   """
   def line(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ false, bypass_blocking \\ "soft") do
-    origin = Instances.get_tile_by_id(state, %{id: object_id})
+    origin = Levels.get_tile_by_id(state, %{id: object_id})
     {vec_row, vec_col} = Direction.delta(direction) |> Tuple.to_list |> Enum.map(&(&1 * range)) |> List.to_tuple
 
     range_coords = _coords_between(state, origin, %{row: origin.row + vec_row, col: origin.col + vec_col}, bypass_blocking)
@@ -51,7 +51,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
   defp _coords_between(state, origin, delta, step, steps, bypass_blocking, coords, est) do
     {row, col} = coord = _calc_coord(origin, delta, step, steps, est)
-    next_tile = Instances.get_tile(state, %{row: row, col: col})
+    next_tile = Levels.get_tile(state, %{row: row, col: col})
     cond do
       is_nil(next_tile) ->
         coords
@@ -79,7 +79,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   and spanning about 45 degrees on either side of the center line.
   """
   def cone(%Runner{state: state, object_id: object_id}, direction, range, width, include_origin \\ false, bypass_blocking \\ "soft") do
-    origin = Instances.get_tile_by_id(state, %{id: object_id})
+    origin = Levels.get_tile_by_id(state, %{id: object_id})
     {d_row, d_col} = Direction.delta(direction)
     {vec_row, vec_col} =  {d_row * range, d_col * range}
 
@@ -103,7 +103,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   """
   def circle(_environment, _range, include_origin \\ true, bypass_blocking \\ "soft", coeff \\ 0.5)
   def circle(%{state: state, object_id: object_id}, range, include_origin, bypass_blocking, coeff) do
-    origin = Instances.get_tile_by_id(state, %{id: object_id})
+    origin = Levels.get_tile_by_id(state, %{id: object_id})
     _circle(state, origin, range, include_origin, bypass_blocking, coeff)
   end
   def circle(%{state: state, origin: origin}, range, include_origin, bypass_blocking, coeff) do
@@ -153,10 +153,10 @@ defmodule DungeonCrawl.Scripting.Shape do
   """
   def blob(_state, _range, include_origin \\ true, bypass_blocking \\ "soft")
   def blob(%Runner{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do
-    origin = Instances.get_tile_by_id(state, %{id: object_id})
+    origin = Levels.get_tile_by_id(state, %{id: object_id})
     blob({state, origin}, range, include_origin, bypass_blocking)
   end
-  def blob({%Instances{} = state, %{row: row, col: col} = _origin}, range, include_origin, bypass_blocking) do
+  def blob({%Levels{} = state, %{row: row, col: col} = _origin}, range, include_origin, bypass_blocking) do
     coords = if include_origin, do: [{row, col}], else: []
     _blob(state, range, bypass_blocking, coords, [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}])
   end
@@ -165,7 +165,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   defp _blob(state, range, bypass_blocking, coords, frontier) do
     new_coords = frontier
                  |> Enum.filter(fn({row, col}) ->
-                      candidate_tile = Instances.get_tile(state, %{row: row, col: col})
+                      candidate_tile = Levels.get_tile(state, %{row: row, col: col})
                       candidate_tile &&
                         (bypass_blocking == true ||
                            bypass_blocking == "once" ||
@@ -176,7 +176,7 @@ defmodule DungeonCrawl.Scripting.Shape do
     new_frontier = new_coords
                    |> Enum.reject(fn({row, col}) ->
                         # not eligible for fronier if it was a bypass once and this tile is not low but blocking
-                        candidate_tile = Instances.get_tile(state, %{row: row, col: col})
+                        candidate_tile = Levels.get_tile(state, %{row: row, col: col})
                         is_nil(candidate_tile) ||
                           (candidate_tile.parsed_state[:blocking] &&
                            bypass_blocking == "once" &&

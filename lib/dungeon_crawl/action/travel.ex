@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.Action.Travel do
-  alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.DungeonProcesses.Levels
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.Player
   alias DungeonCrawl.DungeonProcesses.Registrar
   alias DungeonCrawl.DungeonInstances
@@ -18,7 +18,7 @@ defmodule DungeonCrawl.Action.Travel do
   from a floor space.
   """
   # TODO: this should probably not be called in a blocking manner; could run into a lock where A is moving to Map B, and B is moving to Map A
-  # maybe wrap passage and the Instances.run_with from the caller
+  # maybe wrap passage and the Levels.run_with from the caller
   # Probably not practical to do when running from the context of the script Runner. Maybe have a way to defer transport when something is blocked.
   # 1. can the change be sent as a message to be executed later when the other instance is not blcoked? Is this actually goign to be a problem?
   # try do
@@ -26,20 +26,20 @@ defmodule DungeonCrawl.Action.Travel do
   # catch
   #   :exit, _value -> sleep very short random time, then try again
   # end
-  def passage(%Location{} = player_location, %{match_key: _} = passage, level_number, %Instances{} = state) do
+  def passage(%Location{} = player_location, %{match_key: _} = passage, level_number, %Levels{} = state) do
     target_level = DungeonInstances.get_level(state.dungeon_instance_id, level_number)
 
     _passage(player_location, passage, target_level, state)
   end
 
-  def passage(%Location{} = player_location, %{adjacent_level_id: adjacent_level_id, edge: _} = passage, %Instances{} = state) do
+  def passage(%Location{} = player_location, %{adjacent_level_id: adjacent_level_id, edge: _} = passage, %Levels{} = state) do
     target_level = DungeonInstances.get_level(adjacent_level_id)
 
     _passage(player_location, passage, target_level, state)
   end
 
   defp _passage(player_location, passage, target_level, state) do
-    player_tile = Instances.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+    player_tile = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
     cond do
       is_nil(target_level)->
         {:ok, state}
@@ -50,7 +50,7 @@ defmodule DungeonCrawl.Action.Travel do
 
       true ->
         {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.id)
-        InstanceProcess.run_with(dest_instance, fn (other_instance_state) ->
+        LevelProcess.run_with(dest_instance, fn (other_instance_state) ->
           {updated_tile, other_instance_state} = Player.place(other_instance_state, player_tile, player_location, passage)
 
           level_table = DungeonCrawlWeb.SharedView.level_as_table(other_instance_state, target_level.height, target_level.width)
@@ -66,7 +66,7 @@ defmodule DungeonCrawl.Action.Travel do
           {:ok, other_instance_state}
         end)
 
-        {_, state} = Instances.delete_tile(state, player_tile, false)
+        {_, state} = Levels.delete_tile(state, player_tile, false)
 
         {:ok, state}
     end

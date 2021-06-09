@@ -1,8 +1,8 @@
 defmodule DungeonCrawlWeb.Crawler do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonProcesses.InstanceProcess
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.Registrar
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.Player
@@ -44,8 +44,8 @@ defmodule DungeonCrawlWeb.Crawler do
     tile = Repo.preload(location, [tile: :level]).tile
     {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.id)
 
-    InstanceProcess.run_with(instance, fn (instance_state) ->
-      {top, instance_state} = Instances.create_player_tile(instance_state, tile, location)
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      {top, instance_state} = Levels.create_player_tile(instance_state, tile, location)
       top_tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
 #    DungeonCrawlWeb.Endpoint.broadcast("dungeons:#{instance_state.dungeon_instance_id}:#{location.tile.level_instance_id}",
 #                                    "player_joined",
@@ -71,10 +71,10 @@ defmodule DungeonCrawlWeb.Crawler do
 
     {:ok, instance} = Registrar.instance_process(di.id, tile.level_instance_id)
 
-    deleted_location = InstanceProcess.run_with(instance, fn (instance_state) ->
-      player_tile = Instances.get_tile_by_id(instance_state, tile)
+    deleted_location = LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, tile)
       {_junk_pile, instance_state} = PlayerInstance.drop_all_items(instance_state, player_tile)
-      {_deleted_instance_location, instance_state} = Instances.delete_tile(instance_state, tile)
+      {_deleted_instance_location, instance_state} = Levels.delete_tile(instance_state, tile)
 
       deleted_location = Player.delete_location!(location)
 

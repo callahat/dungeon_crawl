@@ -4,7 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.DungeonProcesses.LevelRegistry
 
   require Logger
 
@@ -130,9 +130,9 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
 
   @impl true
   def init(:ok) do
-    {:ok, instance_registry} = InstanceRegistry.start_link(self(), [])
+    {:ok, instance_registry} = LevelRegistry.start_link(self(), [])
 # might need this
-#    InstanceRegistry.link_dungeon(program_registry, self())
+#    LevelRegistry.link_dungeon(program_registry, self())
     {:ok, %DungeonProcess{instance_registry: instance_registry}}
   end
 
@@ -194,7 +194,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
 
   @impl true
   def handle_call({:load_instance, level_instance}, _from, state) do
-    InstanceRegistry.create(state.instance_registry, level_instance)
+    LevelRegistry.create(state.instance_registry, level_instance)
 
     if level_instance.entrance do
       {:reply, :ok, %{ state | entrances: [ level_instance.id | state.entrances ] }}
@@ -205,7 +205,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
 
   @impl true
   def handle_info(:check_for_players, state) do
-    if Enum.count(InstanceRegistry.player_location_ids(state.instance_registry)) > 0 do
+    if Enum.count(LevelRegistry.player_location_ids(state.instance_registry)) > 0 do
       Process.send_after(self(), :check_for_players, @timeout)
 
       {:noreply, state}

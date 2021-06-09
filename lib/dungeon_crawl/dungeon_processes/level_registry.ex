@@ -1,9 +1,9 @@
-defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
+defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   use GenServer
 
   require Logger
 
-  alias DungeonCrawl.DungeonProcesses.{Instances,InstanceProcess,Supervisor}
+  alias DungeonCrawl.DungeonProcesses.{Levels,LevelProcess,Supervisor}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
@@ -155,7 +155,7 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
     player_location_ids = \
     instance_ids
     |> Enum.flat_map(fn({_instance_id, instance_process}) ->
-         InstanceProcess.run_with(instance_process, fn(state) ->
+         LevelProcess.run_with(instance_process, fn(state) ->
            player_locations = \
            state.player_locations
            |> Enum.map(fn({player_tile_id, location}) ->
@@ -187,21 +187,21 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   end
 
   defp _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, {instance_ids, refs, map_set_process}) do
-    {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, InstanceProcess)
-    InstanceProcess.set_instance_id(instance_process, instance_id)
-    InstanceProcess.set_dungeon_instance_id(instance_process, diid)
-    InstanceProcess.set_level_number(instance_process, number)
-    InstanceProcess.set_author(instance_process, author)
-    InstanceProcess.set_state_values(instance_process, state_values)
-    InstanceProcess.load_level(instance_process, tiles)
-    InstanceProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
+    {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, LevelProcess)
+    LevelProcess.set_instance_id(instance_process, instance_id)
+    LevelProcess.set_dungeon_instance_id(instance_process, diid)
+    LevelProcess.set_level_number(instance_process, number)
+    LevelProcess.set_author(instance_process, author)
+    LevelProcess.set_state_values(instance_process, state_values)
+    LevelProcess.load_level(instance_process, tiles)
+    LevelProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
     _link_player_locations(instance_process, instance_id)
-    if adjacent["north"], do: InstanceProcess.set_adjacent_level_id(instance_process, adjacent["north"].id, "north")
-    if adjacent["south"], do: InstanceProcess.set_adjacent_level_id(instance_process, adjacent["south"].id, "south")
-    if adjacent["east"], do: InstanceProcess.set_adjacent_level_id(instance_process, adjacent["east"].id, "east")
-    if adjacent["west"], do: InstanceProcess.set_adjacent_level_id(instance_process, adjacent["west"].id, "west")
+    if adjacent["north"], do: LevelProcess.set_adjacent_level_id(instance_process, adjacent["north"].id, "north")
+    if adjacent["south"], do: LevelProcess.set_adjacent_level_id(instance_process, adjacent["south"].id, "south")
+    if adjacent["east"], do: LevelProcess.set_adjacent_level_id(instance_process, adjacent["east"].id, "east")
+    if adjacent["west"], do: LevelProcess.set_adjacent_level_id(instance_process, adjacent["west"].id, "west")
 
-    InstanceProcess.start_scheduler(instance_process)
+    LevelProcess.start_scheduler(instance_process)
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)
     instance_ids = Map.put(instance_ids, instance_id, instance_process)
@@ -209,15 +209,15 @@ defmodule DungeonCrawl.DungeonProcesses.InstanceRegistry do
   end
 
   defp _link_player_locations(instance_process, instance_id) do
-    InstanceProcess.run_with(instance_process, fn (instance_state) ->
+    LevelProcess.run_with(instance_process, fn (instance_state) ->
       {:ok,
         Player.players_in_instance(%DungeonInstances.Level{id: instance_id})
         |> Enum.reduce(instance_state, fn(location, instance_state) ->
-             case Instances.get_tile_by_id(instance_state, %{id: location.tile_instance_id}) do
+             case Levels.get_tile_by_id(instance_state, %{id: location.tile_instance_id}) do
                nil ->
                  # probably should never get here since all tiles would have been loaded
                  tile = Repo.preload(location, :tile).tile
-                 {_tile, instance_state} = Instances.create_player_tile(instance_state, tile, location)
+                 {_tile, instance_state} = Levels.create_player_tile(instance_state, tile, location)
                  instance_state
 
                player_tile ->

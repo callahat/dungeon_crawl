@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.DungeonProcesses.{InstanceProcess, Registrar}
+  alias DungeonCrawl.DungeonProcesses.{LevelProcess, Registrar}
 
   def join("players:" <> location_id, _payload, socket) do
     user_id_hash = socket.assigns.user_id_hash
@@ -28,7 +28,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
 
   def handle_in("refresh_level", _, socket) do
     {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id)
-    state = InstanceProcess.get_state(instance_process)
+    state = LevelProcess.get_state(instance_process)
 
     level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values[:rows], state.state_values[:cols])
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
@@ -41,7 +41,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   def handle_in("update_visible", _, socket) do
     {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id)
 
-    InstanceProcess.run_with(instance_process, fn (state) ->
+    LevelProcess.run_with(instance_process, fn (state) ->
       {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id)}}
     end)
 

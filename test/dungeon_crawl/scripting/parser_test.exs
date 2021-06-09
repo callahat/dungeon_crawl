@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
   # To verify the parsed stuff feeds into the commands, might move this elsewhere
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, Registrar, DungeonRegistry}
+  alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar, DungeonRegistry}
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Runner
 
@@ -202,9 +202,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
       {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.id)
 
-      InstanceProcess.run_with(instance_process, fn(state) ->
+      LevelProcess.run_with(instance_process, fn(state) ->
         tile_params = %Tile{level_instance_id: level_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}
-        {tile, state} = Instances.create_tile(state, tile_params)
+        {tile, state} = Levels.create_tile(state, tile_params)
         state = %{ state | dungeon_instance_id: level_instance.dungeon_instance_id }
 
         runner_state = %Runner{object_id: tile.id, program: program, state: state}

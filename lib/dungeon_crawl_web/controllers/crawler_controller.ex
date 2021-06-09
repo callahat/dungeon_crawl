@@ -8,7 +8,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
-  alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, InstanceProcess}
+  alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, LevelProcess}
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias Ecto.Multi
 
@@ -39,7 +39,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     {player_stats, level} = if player_location do
                      {:ok, instance_process} = Registrar.instance_process(player_location.tile.level.dungeon_instance_id,
                                                                           player_location.tile.level.id)
-                     level = Map.put(InstanceProcess.get_state(instance_process), :id, player_location.tile.level.id)
+                     level = Map.put(LevelProcess.get_state(instance_process), :id, player_location.tile.level.id)
                      {PlayerInstance.current_stats(player_location.user_id_hash), level}
                    else
                      {%{}, nil}

@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.Action.Pull do
   alias DungeonCrawl.Action.Move
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scripting.Direction
 
@@ -12,12 +12,12 @@ defmodule DungeonCrawl.Action.Pull do
 
   ## Examples
 
-    iex> Pull.pull(%Tile{}, %Tile{}, %Instances{})
+    iex> Pull.pull(%Tile{}, %Tile{}, %Levels{})
     {:invalid}
-    iex> Pull.pull(%Tile{}, %Tile{}, %Instances{})
-    {:ok, %{ {1,2} => %Tile{}, {2,2} => %Tile{} }, %Instances{}}
+    iex> Pull.pull(%Tile{}, %Tile{}, %Levels{})
+    {:ok, %{ {1,2} => %Tile{}, {2,2} => %Tile{} }, %Levels{}}
   """
-  def pull(%Tile{} = lead_tile, %Tile{} = destination, %Instances{} = state) do
+  def pull(%Tile{} = lead_tile, %Tile{} = destination, %Levels{} = state) do
     # can_move is false if destination is blocking (regardless of it being pushable or squishable. That may change
     # later. No pulling through a teleporter. Probably could actually implement the teleport and the pull, maybe later.
     if Move.can_move(destination) do
@@ -33,7 +33,7 @@ defmodule DungeonCrawl.Action.Pull do
   defp _execute_pull_chain({:ok, tile_changes, state}, [], puller) do
     {_, state} = cond do
                    puller && Enum.member?(["map_tile_id", "tile_id"], puller.parsed_state[:pulling]) ->
-                     Instances.update_tile_state(state, puller, %{pulling: false})
+                     Levels.update_tile_state(state, puller, %{pulling: false})
                    true ->
                      {puller, state}
                  end
@@ -44,21 +44,21 @@ defmodule DungeonCrawl.Action.Pull do
 
     {lead_tile, state} = cond do
                                puller && Enum.member?(["map_tile_id", "tile_id"], lead_tile.parsed_state[:pullable]) ->
-                                 Instances.update_tile_state(state, lead_tile, %{pullable: puller.id, facing: direction})
+                                 Levels.update_tile_state(state, lead_tile, %{pullable: puller.id, facing: direction})
                                direction != lead_tile.parsed_state[:facing] ->
-                                 Instances.update_tile_state(state, lead_tile, %{facing: direction})
+                                 Levels.update_tile_state(state, lead_tile, %{facing: direction})
                                true ->
                                  {lead_tile, state}
                              end
 
     {_, state} = cond do
                    puller && Enum.member?(["map_tile_id", "tile_id"], puller.parsed_state[:pulling]) ->
-                     Instances.update_tile_state(state, puller, %{pulling: lead_tile.id})
+                     Levels.update_tile_state(state, puller, %{pulling: lead_tile.id})
                    true ->
                      {puller, state}
                  end
 
-    destination = (Instances.get_tile(state, destination) # really only care about row,col and z_index here
+    destination = (Levels.get_tile(state, destination) # really only care about row,col and z_index here
                   || Map.merge(destination, %{z_index: -1}) )
     Move.go(lead_tile, destination, state, :absolute, tile_changes)
     |> _execute_pull_chain(pull_chain, lead_tile)
@@ -71,7 +71,7 @@ defmodule DungeonCrawl.Action.Pull do
 
   defp _pull_chain(lead_tile, destination, state, pull_chain) do
     pulled_tile = ["north", "south", "east", "west"]
-                  |> Enum.map(fn(direction) -> Instances.get_tile(state, lead_tile, direction) end)
+                  |> Enum.map(fn(direction) -> Levels.get_tile(state, lead_tile, direction) end)
                   |> Enum.filter(fn(adjacent) -> can_pull(lead_tile, adjacent, destination, pull_chain) end)
                   |> Enum.reject(fn(adjacent) -> would_not_pull(lead_tile, adjacent) end)
                   |> Enum.shuffle()

@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.DungeonAdminChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.Account
-  alias DungeonCrawl.DungeonProcesses.InstanceRegistry
+  alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonProcesses.Registrar
 
   def join("dungeon_admin:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
@@ -11,7 +11,7 @@ defmodule DungeonCrawlWeb.DungeonAdminChannel do
                                          |> Enum.map(&String.to_integer(&1))
 
     with {:ok, instance_registry} <- Registrar.instance_registry(dungeon_instance_id),
-         {:ok, _instance} <- InstanceRegistry.lookup_or_create(instance_registry, instance_id),
+         {:ok, _instance} <- LevelRegistry.lookup_or_create(instance_registry, instance_id),
          %{is_admin: true} <- Account.get_by_user_id_hash(socket.assigns.user_id_hash) do
       socket = assign(socket, :instance_id, instance_id)
                |> assign(:instance_registry, instance_registry)

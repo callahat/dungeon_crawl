@@ -2,7 +2,7 @@ defmodule DungeonCrawl.PlayerChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.PlayerChannel
-  alias DungeonCrawl.DungeonProcesses.{InstanceProcess, Registrar, DungeonRegistry}
+  alias DungeonCrawl.DungeonProcesses.{LevelProcess, Registrar, DungeonRegistry}
 
   setup config do
     state = if is_nil(config[:fog]), do: "", else: "visibility: #{config[:visibility]}"
@@ -54,20 +54,20 @@ defmodule DungeonCrawl.PlayerChannelTest do
     push socket, "refresh_level", %{}
     assert_broadcast "change_level", %{level_id: ^instance_id, level_render: _html}
     {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, instance_id)
-    assert %{players_visible_coords: _pvcs} = InstanceProcess.get_state(instance_process)
+    assert %{players_visible_coords: _pvcs} = LevelProcess.get_state(instance_process)
   end
 
   @tag visibility: "fog"
   test "update_visible deletes the players visible coords which forces an update when foggy",
        %{socket: socket, location: location, level_instance: level_instance} do
     {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.id)
-    InstanceProcess.run_with(instance_process, fn(state) ->
+    LevelProcess.run_with(instance_process, fn(state) ->
       {:ok, %{ state | players_visible_coords: %{ location.tile_instance_id => %{} } }}
     end)
 
     push socket, "update_visible", %{}
     :timer.sleep 5
-    assert %{players_visible_coords: pvcs} = InstanceProcess.get_state(instance_process)
+    assert %{players_visible_coords: pvcs} = LevelProcess.get_state(instance_process)
     refute Map.has_key?(pvcs, location.tile_instance_id)
   end
 

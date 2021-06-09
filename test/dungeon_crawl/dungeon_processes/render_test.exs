@@ -4,13 +4,13 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   alias DungeonCrawl.DungeonProcesses.Render
 
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.Player.Location
 
   setup do
-    state = %Instances{state_values: %{rows: 20, cols: 20},
-                       dungeon_instance_id: 1,
-                       instance_id: 2}
+    state = %Levels{state_values: %{rows: 20, cols: 20},
+                    dungeon_instance_id: 1,
+                    instance_id: 2}
 
     tiles = [
         %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
@@ -22,13 +22,13 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       ]
 
     state = Enum.reduce(tiles, state, fn tile, state ->
-              {_, state} = Instances.create_tile(state, tile)
+              {_, state} = Levels.create_tile(state, tile)
               state
             end)
 
     player_tile = %Tile{id: 1, character: "@", row: 2, col: 3, z_index: 1, name: "player"}
     player_location = %Location{id: 3, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
-    {_, state} = Instances.create_player_tile(state, player_tile, player_location)
+    {_, state} = Levels.create_player_tile(state, player_tile, player_location)
 
     state = %{state | dirty_ids: %{},
                       rerender_coords: %{},
