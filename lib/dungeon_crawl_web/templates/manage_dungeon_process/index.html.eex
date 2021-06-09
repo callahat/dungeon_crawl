@@ -30,8 +30,8 @@
           <td><%= if dungeon_instance, do: "N", else: "Y" %></td>
 
           <td class="text-right">
-            <%= link "Show", to: Routes.manage_dungeon_instance_path(@conn, :show, state.dungeon_instance.id), class: "btn btn-light btn-sm" %>
-            <%= link "Delete", to: Routes.manage_dungeon_instance_path(@conn, :delete, state.dungeon_instance.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+            <%= link "Show", to: Routes.manage_dungeon_process_path(@conn, :show, state.dungeon_instance.id), class: "btn btn-light btn-sm" %>
+            <%= link "Delete", to: Routes.manage_dungeon_process_path(@conn, :delete, state.dungeon_instance.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
           </td>
         </tr>
   <% end %>

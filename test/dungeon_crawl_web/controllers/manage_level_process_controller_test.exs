@@ -8,7 +8,7 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
 
   describe "non registered users" do
     test "redirects non admin users", %{conn: conn} do
-      conn = get conn, manage_level_instance_path(conn, :show, 1, 1)
+      conn = get conn, manage_level_process_path(conn, :show, 1, 1)
       assert redirected_to(conn) == page_path(conn, :index)
     end
     # overkill to hit the other methods
@@ -18,7 +18,7 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
     setup [:normal_user]
 
     test "redirects non admin users", %{conn: conn} do
-      conn = get conn, manage_level_instance_path(conn, :show, 1, 1)
+      conn = get conn, manage_level_process_path(conn, :show, 1, 1)
       assert redirected_to(conn) == page_path(conn, :index)
     end
     # overkill to hit the other methods
@@ -29,7 +29,7 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
 
     test "shows chosen instance", %{conn: conn} do
       instance = setup_level_instance()
-      conn = get conn, manage_level_instance_path(conn, :show, instance.dungeon_instance_id, instance.id)
+      conn = get conn, manage_level_process_path(conn, :show, instance.dungeon_instance_id, instance.id)
       assert html_response(conn, 200) =~ "DB Backed Level Instance Process"
     end
 
@@ -37,23 +37,23 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
       instance = setup_level_instance()
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
       LevelRegistry.create(instance_registry, 1, [], [], %{rows: 0, cols: 0}, instance.dungeon_instance_id)
-      conn = get conn, manage_level_instance_path(conn, :show, instance.dungeon_instance_id, 1)
+      conn = get conn, manage_level_process_path(conn, :show, instance.dungeon_instance_id, 1)
       assert html_response(conn, 200) =~ "Orphaned Level Instance Process"
     end
 
     test "redirects with a message when instance is nonexistent", %{conn: conn} do
       instance = setup_level_instance()
-      conn = get conn, manage_level_instance_path(conn, :show, instance.dungeon_instance_id, -1)
-      assert redirected_to(conn) == manage_dungeon_instance_path(conn, :show, instance.dungeon_instance_id)
-      assert get_flash(conn, :info) == "Level instance not found: `-1`"
+      conn = get conn, manage_level_process_path(conn, :show, instance.dungeon_instance_id, -1)
+      assert redirected_to(conn) == manage_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
+      assert get_flash(conn, :info) == "Level instance process not found: `-1`"
     end
 
     test "deletes chosen instance", %{conn: conn} do
       instance = setup_level_instance()
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
-      conn = delete conn, manage_level_instance_path(conn, :delete, instance.dungeon_instance_id, instance.id)
-      assert redirected_to(conn) == manage_dungeon_instance_path(conn, :show, instance.dungeon_instance_id)
-      :timer.sleep 50
+      conn = delete conn, manage_level_process_path(conn, :delete, instance.dungeon_instance_id, instance.id)
+      assert redirected_to(conn) == manage_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
+      :timer.sleep 5
       assert DungeonInstances.get_level(instance.id)
       assert :error = LevelRegistry.lookup(instance_registry, instance.id)
     end

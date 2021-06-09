@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
+defmodule DungeonCrawlWeb.ManageDungeonProcessController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.DungeonInstances
@@ -33,8 +33,8 @@ defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
         render(conn, "show.html", di_id: id, dungeon_instance: dungeon_instance, dungeon_state: dungeon_state, instances: instances)
       _ ->
         conn
-        |> put_flash(:info, "Dungeon instance not found: `#{id}`")
-        |> redirect(to: Routes.manage_dungeon_instance_path(conn, :index))
+        |> put_flash(:info, "Dungeon instance process not found: `#{id}`")
+        |> redirect(to: Routes.manage_dungeon_process_path(conn, :index))
     end
   end
 
@@ -43,6 +43,6 @@ defmodule DungeonCrawlWeb.ManageDungeonInstanceController do
 
     conn
     |> put_flash(:info, "Removing dungeon instance process with id `#{id}`")
-    |> redirect(to: Routes.manage_dungeon_instance_path(conn, :index))
+    |> redirect(to: Routes.manage_dungeon_process_path(conn, :index))
   end
 end

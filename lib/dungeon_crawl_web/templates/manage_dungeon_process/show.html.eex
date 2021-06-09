@@ -40,8 +40,8 @@
         <td><%= if instance, do: "N", else: "Y" %></td>
 
         <td class="text-right">
-          <%= link "Show", to: Routes.manage_level_instance_path(@conn, :show, @di_id, state.instance_id), class: "btn btn-light btn-sm" %>
-          <%= link "Delete", to: Routes.manage_level_instance_path(@conn, :delete, @di_id, state.instance_id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+          <%= link "Show", to: Routes.manage_level_process_path(@conn, :show, @di_id, state.instance_id), class: "btn btn-light btn-sm" %>
+          <%= link "Delete", to: Routes.manage_level_process_path(@conn, :delete, @di_id, state.instance_id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
         </td>
       </tr>
 <% end %>
@@ -49,4 +49,4 @@
   </table>
 </div>
 
-<%= link "Back", to: Routes.manage_dungeon_instance_path(@conn, :index) %>
+<%= link "Back", to: Routes.manage_dungeon_process_path(@conn, :index) %>

@@ -24,4 +24,4 @@
 <% end %>
 </div>
 
-<%= link "Back", to: Routes.manage_dungeon_instance_path(@conn, :show, @instance_state.dungeon_instance_id) %>
+<%= link "Back", to: Routes.manage_dungeon_process_path(@conn, :show, @instance_state.dungeon_instance_id) %>

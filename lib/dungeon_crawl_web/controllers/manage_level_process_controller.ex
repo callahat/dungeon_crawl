@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.ManageLevelInstanceController do
+defmodule DungeonCrawlWeb.ManageLevelProcessController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.DungeonInstances
@@ -14,8 +14,8 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceController do
         render(conn, "show.html", instance_state: instance_state, instance: instance)
       _ ->
         conn
-        |> put_flash(:info, "Level instance not found: `#{id}`")
-        |> redirect(to: Routes.manage_dungeon_instance_path(conn, :show, di_id))
+        |> put_flash(:info, "Level instance process not found: `#{id}`")
+        |> redirect(to: Routes.manage_dungeon_process_path(conn, :show, di_id))
     end
   end
 
@@ -27,6 +27,6 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceController do
 
     conn
     |> put_flash(:info, "Removing level instance process with id `#{id}`")
-    |> redirect(to: Routes.manage_dungeon_instance_path(conn, :show, di_id))
+    |> redirect(to: Routes.manage_dungeon_process_path(conn, :show, di_id))
   end
 end
