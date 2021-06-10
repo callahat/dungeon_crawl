@@ -1,12 +1,12 @@
 let Dungeon = {
   init(socket, element){ if(!element){ return }
-    let dungeonId = element.getAttribute("data-instance-id")
-    this.mapSetId = element.getAttribute("data-map-set-id")
+    let levelId = element.getAttribute("data-level-id")
+    this.dungeonId = element.getAttribute("data-dungeon-id")
     socket.connect()
 
     this.setupWindowListeners()
 
-    this.tuneInToChannel(socket, dungeonId)
+    this.tuneInToChannel(socket, levelId)
 
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
@@ -16,21 +16,21 @@ let Dungeon = {
       this.dungeonChannel.leave()
       console.log("Left dungeon, joining " + msg.level_id)
 
-      document.getElementById("dungeon_instance").setAttribute("data-instance-id", msg.level_id)
-      document.getElementById("dungeon_instance").innerHTML = msg.level_render
+      document.getElementById("level_instance").setAttribute("data-level-id", msg.level_id)
+      document.getElementById("level_instance").innerHTML = msg.level_render
       this.tuneInToChannel(socket, msg.level_id)
     }
   },
   handleDungeonChange: null,
-  tuneInToChannel(socket, dungeonId) {
-    this.dungeonChannel = socket.channel("dungeons:" + this.mapSetId + ":" + dungeonId)
+  tuneInToChannel(socket, levelId) {
+    this.dungeonChannel = socket.channel("dungeons:" + this.dungeonId + ":" + levelId)
 
     this.dungeonChannel.on("tile_changes", (resp) => {
       this.tileChanges(resp.tiles)
     })
 
     this.dungeonChannel.on("full_render", (msg) => {
-      document.getElementById("dungeon_instance").innerHTML = msg.level_render
+      document.getElementById("level_instance").innerHTML = msg.level_render
     })
     // These could be used to announce something, but the tile updating has been consolidated
     //dungeonChannel.on("player_left", (resp) => {
@@ -287,7 +287,7 @@ let Dungeon = {
   },
   dungeonChannel: null,
   lastMessage: null,
-  mapSetId: null,
+  dungeonId: null,
   typing: false,
   textLinks: null,
   textLinkPointer: null

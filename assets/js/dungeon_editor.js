@@ -1,7 +1,7 @@
 let DungeonEditor = {
   init(element){ if(!element){ return }
-    let level_id = element.getAttribute("data-map-id"),
-        dungeon_id = element.getAttribute("data-map-set-id")
+    let level_id = element.getAttribute("data-level-id"),
+        dungeon_id = element.getAttribute("data-dungeon-id")
     this.validate_tile_url = "/dungeons/" + dungeon_id +"/levels/" + level_id + "/validate_tile"
     this.map_edge_url = "/dungeons/" + dungeon_id +"/level_edge"
 
@@ -18,7 +18,7 @@ let DungeonEditor = {
 
     this.updateActiveTile(document.getElementsByName("paintable_tile_template")[0])
 
-    document.getElementById("dungeon").addEventListener('mousedown', e => {
+    document.getElementById("level").addEventListener('mousedown', e => {
       if(e.which == 3 || e.button == 2) {
         this.disablePainting()
         this.selectDungeonTile(e)
@@ -27,9 +27,9 @@ let DungeonEditor = {
         this.paintEventHandler(e)
       }
     });
-    document.getElementById("dungeon").addEventListener('mouseover', e => {this.paintEventHandler(e)} );
-    document.getElementById("dungeon").addEventListener('mouseout', e => {this.painted=false} );
-    document.getElementById("dungeon").oncontextmenu = function (){ return false }
+    document.getElementById("level").addEventListener('mouseover', e => {this.paintEventHandler(e)} );
+    document.getElementById("level").addEventListener('mouseout', e => {this.painted=false} );
+    document.getElementById("level").oncontextmenu = function (){ return false }
     document.getElementById("color_pallette").oncontextmenu = function (){ return false }
     window.addEventListener('mouseup', e => {this.disablePainting(); this.erased = null} );
 
@@ -128,7 +128,7 @@ let DungeonEditor = {
     }
 
     for (var i=0; i<events.length; i++) {
-    //document.getElementById("dungeon").addEventListener(events[i], report, false);
+    //document.getElementById("level").addEventListener(events[i], report, false);
     //  window.addEventListener(events[i], report, false);
     }*/
 

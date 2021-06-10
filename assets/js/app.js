@@ -40,8 +40,8 @@ import CodemirrorWrapper from "./codemirror_wrapper"
 import TileAnimation from "./tile_animation"
 import AvatarPreview from "./avatar_preview"
 
-Dungeon.init(socket, document.getElementById("dungeon_instance"))
-DungeonAdmin.init(socket, document.getElementById("dungeon_admin"))
+Dungeon.init(socket, document.getElementById("level_instance"))
+DungeonAdmin.init(socket, document.getElementById("level_admin"))
 Player.init(socket, Dungeon, document.getElementById("player"))
 TileTemplatePreview.init(document.getElementById("character_preview"))
 TileTemplatePreview.init(document.getElementById("character_preview_small"))

@@ -79,7 +79,7 @@
       </div>
       <div class="tab-pane <%= if @level, do: 'show active', else: 'disabled' %>" id="dungeon-map" role="tabpanel" aria-labelledby="map-tab">
       <%= if @level do %>
-      <div class="text-center" id="dungeon_editor" data-map-set-id="<%= @level.dungeon_id %>" data-map-id="<%= @level.id %>">
+      <div class="text-center" id="dungeon_editor" data-dungeon-id="<%= @level.dungeon_id %>" data-level-id="<%= @level.id %>">
         <%= render(DungeonCrawlWeb.SharedView, "editor_dungeon.html", level: @level) %>
       </div>
       <% end %>

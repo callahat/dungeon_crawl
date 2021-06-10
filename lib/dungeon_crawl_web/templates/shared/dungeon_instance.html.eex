@@ -1,7 +1,7 @@
 <pre class="dungeon_preview border rounded"
-><table id="dungeon_instance"
-        data-map-set-id="<%= @level.dungeon_instance_id %>"
-        data-instance-id="<%= @level.id %>">
+><table id="level_instance"
+        data-dungeon-id="<%= @level.dungeon_instance_id %>"
+        data-level-id="<%= @level.id %>">
 <%= {:safe, level_as_table(@level, @height, @width) } %>
 </table
 ></pre>

@@ -1,25 +1,25 @@
 let DungeonAdmin = {
   init(socket, element){ if(!element){ return }
-    let dungeonId = element.getAttribute("data-instance-id")
+    let levelId = element.getAttribute("data-level-id")
     let readonly = element.getAttribute("data-readonly") == "true"
-    this.mapSetId = element.getAttribute("data-map-set-id")
+    this.dungeonId = element.getAttribute("data-dungeon-id")
     socket.connect()
 
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
 
-    this.tuneInToChannel(socket, dungeonId)
+    this.tuneInToChannel(socket, levelId)
   },
-  tuneInToChannel(socket, dungeonId) {
-    this.dungeonChannel = socket.channel("dungeon_admin:" + this.mapSetId + ":" + dungeonId)
+  tuneInToChannel(socket, levelId) {
+    this.dungeonChannel = socket.channel("dungeon_admin:" + this.dungeonId + ":" + levelId)
 
     this.dungeonChannel.on("tile_changes", (resp) => {
       this.tileChanges(resp.tiles)
     })
 
     this.dungeonChannel.on("full_render", (msg) => {
-      document.getElementById("dungeon_instance").innerHTML = msg.dungeon_render
+      document.getElementById("level_instance").innerHTML = msg.dungeon_render
     })
     // These could be used to announce something, but the tile updating has been consolidated
     //dungeonChannel.on("player_left", (resp) => {
@@ -47,7 +47,7 @@ let DungeonAdmin = {
     }
   },
   dungeonChannel: null,
-  mapSetId: null
+  dungeonId: null
 }
 
 export default DungeonAdmin
