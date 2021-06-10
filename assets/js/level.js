@@ -1,4 +1,4 @@
-let Dungeon = {
+let Level = {
   init(socket, element){ if(!element){ return }
     let levelId = element.getAttribute("data-level-id")
     this.dungeonId = element.getAttribute("data-dungeon-id")
@@ -12,7 +12,7 @@ let Dungeon = {
       socket.disconnect()
     })
 
-    this.handleDungeonChange = function(msg) {
+    this.handleLevelChange = function(msg) {
       this.dungeonChannel.leave()
       console.log("Left dungeon, joining " + msg.level_id)
 
@@ -21,7 +21,7 @@ let Dungeon = {
       this.tuneInToChannel(socket, msg.level_id)
     }
   },
-  handleDungeonChange: null,
+  handleLevelChange: null,
   tuneInToChannel(socket, levelId) {
     this.dungeonChannel = socket.channel("dungeons:" + this.dungeonId + ":" + levelId)
 
@@ -293,5 +293,5 @@ let Dungeon = {
   textLinkPointer: null
 }
 
-export default Dungeon
+export default Level
 

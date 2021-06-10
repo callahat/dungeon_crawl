@@ -28,7 +28,7 @@ defmodule DungeonCrawlWeb.ManageDungeonInstanceControllerTest do
     test "lists all entries on index", %{conn: conn} do
       setup_dungeon_instance()
       conn = get conn, manage_dungeon_process_path(conn, :index)
-      assert html_response(conn, 200) =~ "Listing dungeon instances"
+      assert html_response(conn, 200) =~ "Listing dungeon processes"
     end
 
     test "shows chosen dungeon instance", %{conn: conn} do

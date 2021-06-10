@@ -1,4 +1,4 @@
-let DungeonEditor = {
+let LevelEditor = {
   init(element){ if(!element){ return }
     let level_id = element.getAttribute("data-level-id"),
         dungeon_id = element.getAttribute("data-dungeon-id")
@@ -498,8 +498,10 @@ let DungeonEditor = {
     this.updateVisibleStacks()
   },
   findOrCreateActiveTileDiv(map_location_td, context){
-    let div = map_location_td.querySelector("td > div:not(.deleted-map-tile)[data-z-index='" + document.getElementById("z_index_current").value + "']")
-    map_location_td.querySelector("td > div:not(.hidden)").classList.add("hidden")
+    let div = map_location_td.querySelector("td > div:not(.deleted-map-tile)[data-z-index='" + document.getElementById("z_index_current").value + "']"),
+        toHide = map_location_td.querySelector("td > div:not(.hidden)")
+
+    if(!!toHide){ toHide.classList.add("hidden") }
 
     if(!!div) {
       div.classList.remove("hidden")
@@ -776,7 +778,7 @@ let DungeonEditor = {
   updateVisibleStacks(){
     let currentZIndex = document.getElementById("z_index_current").value;
 
-    for(let td of document.querySelectorAll('#dungeon tr td')){
+    for(let td of document.querySelectorAll('#level tr td')){
       if(!td.classList.contains("edge")){
         this.showVisibleTileAtCoordinate(td, currentZIndex)
       }
@@ -847,7 +849,7 @@ let DungeonEditor = {
     return pairs
   },
   showEdgeTiles(side){
-    let edgeTiles = document.querySelectorAll("#dungeon td.edge." + side),
+    let edgeTiles = document.querySelectorAll("#level td.edge." + side),
         tile
 
     edgeTiles.forEach( (tile) => { tile.innerHTML = "" })
@@ -867,7 +869,7 @@ let DungeonEditor = {
             console.log(resp.status)
          })
     } else {
-      let edgeTiles = document.querySelectorAll("#dungeon td.edge." + edge)
+      let edgeTiles = document.querySelectorAll("#level td.edge." + edge)
       edgeTiles.forEach( (tile) => { tile.innerHTML = "" })
     }
   },
@@ -1128,11 +1130,11 @@ let DungeonEditor = {
     cursorRow = parseInt(cursorRow)
     cursorCol = parseInt(cursorCol)
 
-    cursorRow += cursorCol + 1 >= window.dungeon_width ? 1 : 0
-    cursorRow %= window.dungeon_height
+    cursorRow += cursorCol + 1 >= window.level_width ? 1 : 0
+    cursorRow %= window.level_height
 
     cursorCol += 1
-    cursorCol %= window.dungeon_width
+    cursorCol %= window.level_width
     context.textCursorCoordinates = [cursorRow, cursorCol].join("_")
   },
   previousCursorCoords(context){
@@ -1141,10 +1143,10 @@ let DungeonEditor = {
     cursorCol = parseInt(cursorCol)
 
     cursorRow -= cursorCol - 1 < 0 ? 1 : 0
-    cursorRow = cursorRow < 0 ? window.dungeon_height -1 : cursorRow
+    cursorRow = cursorRow < 0 ? window.level_height -1 : cursorRow
 
     cursorCol -= 1
-    cursorCol = cursorCol < 0 ? window.dungeon_width - 1 : cursorCol
+    cursorCol = cursorCol < 0 ? window.level_width - 1 : cursorCol
     context.textCursorCoordinates = [cursorRow, cursorCol].join("_")
   },
   deletePlaceholders(){
@@ -1198,5 +1200,5 @@ let DungeonEditor = {
                  12: "║", 13: "╣", 14: "╠", 15: "╬"}
 }
 
-export default DungeonEditor
+export default LevelEditor
 

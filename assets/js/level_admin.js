@@ -1,4 +1,4 @@
-let DungeonAdmin = {
+let LevelAdmin = {
   init(socket, element){ if(!element){ return }
     let levelId = element.getAttribute("data-level-id")
     let readonly = element.getAttribute("data-readonly") == "true"
@@ -50,5 +50,5 @@ let DungeonAdmin = {
   dungeonId: null
 }
 
-export default DungeonAdmin
+export default LevelAdmin
 

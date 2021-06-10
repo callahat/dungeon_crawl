@@ -1,27 +1,27 @@
 let Player = {
-  init(socket, dungeonJs, element){ if(!element){ return }
+  init(socket, levelJs, element){ if(!element){ return }
     let playerUserIdHash = element.getAttribute("data-location-id")
     socket.connect()
 
     let playerChannel = socket.channel("players:" + playerUserIdHash)
 
     playerChannel.on("change_level", (msg) => {
-      dungeonJs.handleDungeonChange(msg)
+      levelJs.handleLevelChange(msg)
 
       playerChannel.push("update_visible", {})
                    .receive("error", e => console.log(e))
     })
 
     playerChannel.on("visible_tiles", (msg) => {
-      dungeonJs.tileFogger(msg.fog)
-      dungeonJs.tileChanges(msg.tiles)
+      levelJs.tileFogger(msg.fog)
+      levelJs.tileChanges(msg.tiles)
     })
 
     playerChannel.on("message", (resp) => {
       if(!resp.modal) {
-        dungeonJs.renderMessage(resp.message)
+        levelJs.renderMessage(resp.message)
       } else {
-        dungeonJs.renderMessageModal(resp.message)
+        levelJs.renderMessageModal(resp.message)
       }
     })
 
@@ -37,7 +37,7 @@ let Player = {
 
     playerChannel.join()
       .receive("ok", (resp) => {
-        dungeonJs.renderMessage("Entered the level")
+        levelJs.renderMessage("Entered the level")
 
         playerChannel.push("refresh_level", {})
                      .receive("error", e => console.log(e))
