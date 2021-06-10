@@ -36,7 +36,7 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     conn = get conn, crawler_path(conn, :show)
     assert html_response(conn, 200) =~ "View Scores"
     refute html_response(conn, 200) =~ "Not currently in any dungeon"
-    assert html_response(conn, 200) =~ "dungeon_preview"
+    assert html_response(conn, 200) =~ "level_preview"
   end
 
   @tag login_as: "maxheadroom"
@@ -48,7 +48,7 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     conn = get conn, crawler_path(conn, :show)
     refute html_response(conn, 200) =~ "View Scores"
     refute html_response(conn, 200) =~ "Not currently in any dungeon"
-    assert html_response(conn, 200) =~ "dungeon_preview"
+    assert html_response(conn, 200) =~ "level_preview"
   end
 
   test "show when current dungeon without signed in user", %{conn: conn} do
@@ -57,7 +57,7 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     conn = get conn, crawler_path(conn, :show)
 
     refute html_response(conn, 200) =~ "Not currently in any dungeon"
-    assert html_response(conn, 200) =~ "dungeon_preview"
+    assert html_response(conn, 200) =~ "level_preview"
   end
 
   # create

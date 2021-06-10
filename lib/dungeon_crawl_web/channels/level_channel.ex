@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.DungeonChannel do
+defmodule DungeonCrawlWeb.LevelChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.DungeonProcesses.Levels
@@ -14,7 +14,7 @@ defmodule DungeonCrawlWeb.DungeonChannel do
 
   import Phoenix.HTML, only: [html_escape: 1]
 
-  def join("dungeons:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
+  def join("level:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
     [dungeon_instance_id, instance_id] = dungeon_instance_id_and_instance_id
                                          |> String.split(":")
                                          |> Enum.map(&String.to_integer(&1))

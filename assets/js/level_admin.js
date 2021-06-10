@@ -12,24 +12,24 @@ let LevelAdmin = {
     this.tuneInToChannel(socket, levelId)
   },
   tuneInToChannel(socket, levelId) {
-    this.dungeonChannel = socket.channel("dungeon_admin:" + this.dungeonId + ":" + levelId)
+    this.levelAdminChannel = socket.channel("level_admin:" + this.dungeonId + ":" + levelId)
 
-    this.dungeonChannel.on("tile_changes", (resp) => {
+    this.levelAdminChannel.on("tile_changes", (resp) => {
       this.tileChanges(resp.tiles)
     })
 
-    this.dungeonChannel.on("full_render", (msg) => {
+    this.levelAdminChannel.on("full_render", (msg) => {
       document.getElementById("level_instance").innerHTML = msg.dungeon_render
     })
     // These could be used to announce something, but the tile updating has been consolidated
-    //dungeonChannel.on("player_left", (resp) => {
+    //levelAdminChannel.on("player_left", (resp) => {
     //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
     //})
-    //dungeonChannel.on("player_joined", (resp) => {
+    //levelAdminChannel.on("player_joined", (resp) => {
     //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
     //})
 
-    this.dungeonChannel.join()
+    this.levelAdminChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeon admin channel!")
       })
@@ -46,7 +46,7 @@ let LevelAdmin = {
       }
     }
   },
-  dungeonChannel: null,
+  levelAdminChannel: null,
   dungeonId: null
 }
 

@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.DungeonChannelTest do
+defmodule DungeonCrawl.LevelChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
-  alias DungeonCrawlWeb.DungeonChannel
+  alias DungeonCrawlWeb.LevelChannel
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.LevelProcess
@@ -62,7 +62,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
-      |> subscribe_and_join(DungeonChannel, "dungeons:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance.id}:#{level_instance.id}")
 
     on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id) end)
 
@@ -85,13 +85,13 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     assert {:error, %{message: "Could not join channel"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: bad_user.user_id_hash})
-      |> subscribe_and_join(DungeonChannel, "dungeons:#{dungeon_instance_id}:#{level_instance_id}")
+      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance_id}:#{level_instance_id}")
   end
 
   test "with a bad location" do
     assert {:error, %{reason: "join crashed"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "user_id_hash"})
-      |> subscribe_and_join(DungeonChannel, "dungeons:0:0")
+      |> subscribe_and_join(LevelChannel, "level:0:0")
   end
 
   test "with a location with bad tile", %{instance: instance,
@@ -105,7 +105,7 @@ defmodule DungeonCrawl.DungeonChannelTest do
 
     assert {:error, %{message: "Could not join channel"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
-      |> subscribe_and_join(DungeonChannel, "dungeons:#{dungeon_instance_id}:#{level_instance_id}")
+      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance_id}:#{level_instance_id}")
   end
 
   test "shout broadcasts to dungeon:lobby", %{socket: socket} do

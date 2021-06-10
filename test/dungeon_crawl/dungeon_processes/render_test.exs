@@ -34,8 +34,8 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                       rerender_coords: %{},
                       players_visible_coords: %{player_tile.id => [%{row: 1, col: 10}]}}
 
-    channels = %{dungeon_channel: "dungeons:1:2",
-                 dungeon_admin_channel: "dungeon_admin:1:2",
+    channels = %{level_channel: "level:1:2",
+                 level_admin_channel: "level_admin:1:2",
                  player_channel: "players:3"}
 
     Map.values(channels)
@@ -45,24 +45,24 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   end
 
   describe "rerender_tiles/1" do
-    test "when full_rerender is true, it does a full rerender of the level", %{dungeon_channel: dungeon_channel,
-                                                                               dungeon_admin_channel: dungeon_admin_channel,
+    test "when full_rerender is true, it does a full rerender of the level", %{level_channel: level_channel,
+                                                                               level_admin_channel: level_admin_channel,
                                                                                state: state} do
       state = %{state | full_rerender: true}
       Render.rerender_tiles(state)
 
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "full_render",
               payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "full_render",
               payload: %{level_render: _}}
     end
 
-    test "when foggy sends updates to the player channels", %{dungeon_channel: dungeon_channel,
-                                                              dungeon_admin_channel: dungeon_admin_channel,
+    test "when foggy sends updates to the player channels", %{level_channel: level_channel,
+                                                              level_admin_channel: level_admin_channel,
                                                               player_channel: player_channel,
                                                               state: state} do
       state = %{state | state_values: Map.put(state.state_values, :visibility, "fog"), rerender_coords: %{%{col: 10, row: 1} => true}}
@@ -70,8 +70,8 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       assert Map.delete(updated_state, :players_visible_coords) == Map.delete(state, :players_visible_coords)
       assert updated_state.players_visible_coords != state.players_visible_coords
 
-      refute_receive %Phoenix.Socket.Broadcast{topic: ^dungeon_channel}
-      refute_receive %Phoenix.Socket.Broadcast{topic: ^dungeon_admin_channel}
+      refute_receive %Phoenix.Socket.Broadcast{topic: ^level_channel}
+      refute_receive %Phoenix.Socket.Broadcast{topic: ^level_admin_channel}
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "visible_tiles",
@@ -85,18 +85,18 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     end
 
     test "broadcasts to the appropriate channels", %{state: state,
-                                                     dungeon_channel: dungeon_channel,
-                                                     dungeon_admin_channel: dungeon_admin_channel,
+                                                     level_channel: level_channel,
+                                                     level_admin_channel: level_admin_channel,
                                                      player_channel: player_channel} do
       state = %{ state | rerender_coords: %{%{col: 10, row: 1} => true, %{col: 10, row: 2} => true}}
       assert state == Render.rerender_tiles(state)
 
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "tile_changes",
               payload: %{tiles: _}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "tile_changes",
               payload: %{tiles: _}}
       refute_receive %Phoenix.Socket.Broadcast{topic: ^player_channel}
@@ -109,11 +109,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       assert state == Render.rerender_tiles(state)
 
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "full_render",
               payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "full_render",
               payload: %{level_render: _}}
       refute_receive %Phoenix.Socket.Broadcast{topic: ^player_channel}
@@ -136,18 +136,18 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     end
 
     test "broadcasts to the dungeon_admin channel only", %{state: state,
-                                                           dungeon_channel: dungeon_channel,
-                                                           dungeon_admin_channel: dungeon_admin_channel} do
+                                                           level_channel: level_channel,
+                                                           level_admin_channel: level_admin_channel} do
       state = %{ state | state_values: Map.put(state.state_values, :visibility, "fog"),
                          rerender_coords: %{%{col: 10, row: 1} => true, %{col: 10, row: 2} => true}}
       assert state == Render.rerender_tiles_for_admin(state)
 
       refute_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "tile_changes",
               payload: %{tiles: _}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "tile_changes",
               payload: %{tiles: _}}
 
@@ -159,11 +159,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       assert state == Render.rerender_tiles_for_admin(state)
 
       refute_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "full_render",
               payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "full_render",
               payload: %{level_render: _}}
       # cleanup
@@ -172,18 +172,18 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   end
 
   describe "full_rerender/2" do
-    test "broadcasts a full rerender to the given channels", %{dungeon_channel: dungeon_channel,
-                                                               dungeon_admin_channel: dungeon_admin_channel,
+    test "broadcasts a full rerender to the given channels", %{level_channel: level_channel,
+                                                               level_admin_channel: level_admin_channel,
                                                                player_channel: player_channel,
                                                                state: state} do
-      Render.full_rerender(state, [dungeon_channel, dungeon_admin_channel])
+      Render.full_rerender(state, [level_channel, level_admin_channel])
 
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "full_render",
               payload: %{level_render: _}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "full_render",
               payload: %{level_render: _}}
       refute_receive %Phoenix.Socket.Broadcast{
@@ -192,33 +192,33 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   end
 
   describe "partial_rerender/2" do
-    test "broadcasts a partial rerender to the given channels", %{dungeon_channel: dungeon_channel,
-                                                                  dungeon_admin_channel: dungeon_admin_channel,
+    test "broadcasts a partial rerender to the given channels", %{level_channel: level_channel,
+                                                                  level_admin_channel: level_admin_channel,
                                                                   player_channel: player_channel,
                                                                   state: state} do
       # when there are no rerender_coords
-      Render.partial_rerender(state, [dungeon_channel, dungeon_admin_channel])
+      Render.partial_rerender(state, [level_channel, level_admin_channel])
 
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "tile_changes",
               payload: %{tiles: []}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "tile_changes",
               payload: %{tiles: []}}
       refute_receive %Phoenix.Socket.Broadcast{
               topic: ^player_channel}
 
       # when there are rerender_coords
-      Render.partial_rerender(%{ state | rerender_coords: %{%{col: 10, row: 1} => true}}, [dungeon_channel, dungeon_admin_channel])
+      Render.partial_rerender(%{ state | rerender_coords: %{%{col: 10, row: 1} => true}}, [level_channel, level_admin_channel])
 
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_channel,
+              topic: ^level_channel,
               event: "tile_changes",
               payload: %{tiles: [%{col: 10, rendering: "<div>O</div>", row: 1}]}}
       assert_receive %Phoenix.Socket.Broadcast{
-              topic: ^dungeon_admin_channel,
+              topic: ^level_admin_channel,
               event: "tile_changes",
               payload: %{tiles: [%{col: 10, rendering: "<div>O</div>", row: 1}]}}
       refute_receive %Phoenix.Socket.Broadcast{

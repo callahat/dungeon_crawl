@@ -1,11 +1,11 @@
-defmodule DungeonCrawlWeb.DungeonAdminChannel do
+defmodule DungeonCrawlWeb.LevelAdminChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.Account
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonProcesses.Registrar
 
-  def join("dungeon_admin:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
+  def join("level_admin:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
     [dungeon_instance_id, instance_id] = dungeon_instance_id_and_instance_id
                                          |> String.split(":")
                                          |> Enum.map(&String.to_integer(&1))

@@ -187,8 +187,8 @@ defmodule DungeonCrawl.LevelProcessTest do
   end
 
   test "perform_actions", %{instance_process: instance_process, level_instance: level_instance} do
-    dungeon_channel = "dungeons:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SHOOT east"},
@@ -206,7 +206,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     eastest_tile_id = LevelProcess.get_tile(instance_process, 1, 4).id
 
     refute_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel}
+            topic: ^level_channel}
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
@@ -223,21 +223,21 @@ defmodule DungeonCrawl.LevelProcessTest do
     refute state.program_contexts[eastest_tile_id]
 
     assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
+            topic: ^level_channel,
             event: "tile_changes",
             payload: %{tiles: [%{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
                                %{col: 3, rendering: "<div style='color: white'>M</div>", row: 1}]}}
     # These were either idle or had no script
     refute_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
+            topic: ^level_channel,
             payload: %{tiles: [%{row: 1, col: 1}]}}
   end
 
   test "perform_actions adds messages to programs", %{instance_process: instance_process,
                                                       level_instance: level_instance,
                                                       tile_id: tile_id} do
-    dungeon_channel = "dungeons:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tt = insert_tile_template()
 
@@ -271,8 +271,8 @@ defmodule DungeonCrawl.LevelProcessTest do
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
                                                                                level_instance: level_instance} do
-    dungeon_channel = "dungeons:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tiles = [
         %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND bombed, player", state: "damage: 5"},
@@ -335,11 +335,11 @@ defmodule DungeonCrawl.LevelProcessTest do
             event: "message",
             payload: %{message: "You died!"}}
     assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
+            topic: ^level_channel,
             event: "tile_changes",
             payload: %{tiles: tiles}}
     assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
+            topic: ^level_channel,
             event: "tile_changes",
             payload: %{tiles: updated_tiles}}
     assert Enum.member? tiles, %{row: 1, col: 3, rendering: "<div>@</div>"}
@@ -359,8 +359,8 @@ defmodule DungeonCrawl.LevelProcessTest do
   test "perform_actions handles behavior 'destroyable'", %{instance_process: instance_process,
                                                            level_instance: level_instance,
                                                            tile_id: tile_id} do
-    dungeon_channel = "dungeons:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tt = insert_tile_template()
 
@@ -379,13 +379,11 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
+            topic: ^level_channel,
             event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 4, rendering: "<div> </div>"}]}}
-    assert_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel,
-            event: "tile_changes",
-            payload: %{tiles: [%{row: 1, col: 1, rendering: "<div> </div>"}]}}
+            payload: %{tiles: [%{row: 1, col: 1, rendering: "<div> </div>"},
+                               %{col: 2, rendering: "<div style='color: red'>O</div>", row: 1},
+                               %{row: 1, col: 4, rendering: "<div> </div>"}]}}
 
     %Levels{ program_contexts: program_contexts,
              map_by_ids: map_by_ids,
@@ -467,21 +465,21 @@ defmodule DungeonCrawl.LevelProcessTest do
     end)
 
     # subscribe
-    dungeon_channel = "dungeons:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
-    DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
+    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(level_channel)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
     # should have nothing until after sending :perform_actions
     refute_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel}
+            topic: ^level_channel}
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel}
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     refute_receive %Phoenix.Socket.Broadcast{
-            topic: ^dungeon_channel}
+            topic: ^level_channel}
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
             event: "visible_tiles",

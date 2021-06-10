@@ -25,8 +25,8 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   4. Fog range defaults to 6 tiles. It can be set to something else via the `fog_range` state value.
   """
   def rerender_tiles(%Levels{full_rerender: true} = state) do
-    full_rerender(state, ["dungeons:#{state.dungeon_instance_id}:#{state.instance_id}",
-                          "dungeon_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
+    full_rerender(state, ["level:#{state.dungeon_instance_id}:#{state.instance_id}",
+                          "level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
     rerender_tiles(%{state | full_rerender: false})
   end
   def rerender_tiles(%Levels{state_values: %{visibility: "fog"}} = state) do
@@ -38,11 +38,11 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   def rerender_tiles(%Levels{ rerender_coords: coords } = state ) when coords == %{}, do: state
   def rerender_tiles(%Levels{} = state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
-      full_rerender(state, ["dungeons:#{state.dungeon_instance_id}:#{state.instance_id}",
-                            "dungeon_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
+      full_rerender(state, ["level:#{state.dungeon_instance_id}:#{state.instance_id}",
+                            "level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
     else
-      partial_rerender(state, ["dungeons:#{state.dungeon_instance_id}:#{state.instance_id}",
-                               "dungeon_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
+      partial_rerender(state, ["level:#{state.dungeon_instance_id}:#{state.instance_id}",
+                               "level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
     end
 
     state
@@ -69,9 +69,9 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   def rerender_tiles_for_admin(%Levels{rerender_coords: coords} = state ) when coords == %{}, do: state
   def rerender_tiles_for_admin(%Levels{state_values: %{visibility: "fog"}} = state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
-      full_rerender(state, ["dungeon_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
+      full_rerender(state, ["level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
     else
-      partial_rerender(state, ["dungeon_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
+      partial_rerender(state, ["level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
     end
 
     state

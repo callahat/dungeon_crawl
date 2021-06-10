@@ -448,7 +448,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
   def handle_broadcasting(%{state: state} = runner_context) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "dungeons:#{state.dungeon_instance_id}:#{state.instance_id}")
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "level:#{state.dungeon_instance_id}:#{state.instance_id}")
     _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end

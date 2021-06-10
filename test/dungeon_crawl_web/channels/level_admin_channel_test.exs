@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.DungeonAdminChannelTest do
+defmodule DungeonCrawl.LevelAdminChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
-  alias DungeonCrawlWeb.DungeonAdminChannel
+  alias DungeonCrawlWeb.LevelAdminChannel
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
 
   setup do
@@ -20,7 +20,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
 
     assert {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(DungeonAdminChannel, "dungeon_admin:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id}:#{level_instance.id}")
   end
 
   test "with a bad instance", %{dungeon_instance: dungeon_instance, level_instance: level_instance} do
@@ -28,7 +28,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
 
     assert {:error, %{message: "Not found", reload: true}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(DungeonAdminChannel, "dungeon_admin:#{dungeon_instance.id + 1}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id + 1}:#{level_instance.id}")
   end
 
   test "when user is not admin", %{dungeon_instance: dungeon_instance, level_instance: level_instance} do
@@ -36,7 +36,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
 
     assert {:error, %{message: "Could not join channel"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(DungeonAdminChannel, "dungeon_admin:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id}:#{level_instance.id}")
   end
 
   test "ping replies with status ok", %{dungeon_instance: dungeon_instance, level_instance: level_instance}  do
@@ -44,7 +44,7 @@ defmodule DungeonCrawl.DungeonAdminChannelTest do
 
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(DungeonAdminChannel, "dungeon_admin:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id}:#{level_instance.id}")
 
     ref = push socket, "ping", %{"hello" => "there"}
     assert_reply ref, :ok, %{"hello" => "there"}

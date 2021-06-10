@@ -13,7 +13,7 @@ let Level = {
     })
 
     this.handleLevelChange = function(msg) {
-      this.dungeonChannel.leave()
+      this.levelChannel.leave()
       console.log("Left dungeon, joining " + msg.level_id)
 
       document.getElementById("level_instance").setAttribute("data-level-id", msg.level_id)
@@ -23,24 +23,24 @@ let Level = {
   },
   handleLevelChange: null,
   tuneInToChannel(socket, levelId) {
-    this.dungeonChannel = socket.channel("dungeons:" + this.dungeonId + ":" + levelId)
+    this.levelChannel = socket.channel("level:" + this.dungeonId + ":" + levelId)
 
-    this.dungeonChannel.on("tile_changes", (resp) => {
+    this.levelChannel.on("tile_changes", (resp) => {
       this.tileChanges(resp.tiles)
     })
 
-    this.dungeonChannel.on("full_render", (msg) => {
+    this.levelChannel.on("full_render", (msg) => {
       document.getElementById("level_instance").innerHTML = msg.level_render
     })
     // These could be used to announce something, but the tile updating has been consolidated
-    //dungeonChannel.on("player_left", (resp) => {
+    //levelChannel.on("player_left", (resp) => {
     //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
     //})
-    //dungeonChannel.on("player_joined", (resp) => {
+    //levelChannel.on("player_joined", (resp) => {
     //  document.getElementById(resp.row + "_" + resp.col).innerHTML = resp.tile
     //})
 
-    this.dungeonChannel.on("ping", ({count}) => console.log("PING", count))
+    this.levelChannel.on("ping", ({count}) => console.log("PING", count))
 
     let ressurectionEl
     if(ressurectionEl = document.getElementById("ressurect_me")){
@@ -62,13 +62,13 @@ let Level = {
           let label = e.target.getAttribute("data-label"),
               tile_id = e.target.getAttribute("data-tile-id")
           $('#messageModal').modal('hide')
-          this.dungeonChannel.push("message_action", {label: label, tile_id: tile_id})
+          this.levelChannel.push("message_action", {label: label, tile_id: tile_id})
           multilineMessageEl.innerHTML = ""
         }
       })
     }
 
-    this.dungeonChannel.join()
+    this.levelChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeons channel!")
       })
@@ -162,7 +162,7 @@ let Level = {
       action = "move"
     }
 
-    this.dungeonChannel.push(action, payload)
+    this.levelChannel.push(action, payload)
                        .receive("error", e => console.log(e))
   },
   open(direction, shift = false){
@@ -206,7 +206,7 @@ let Level = {
     $('#messageModal').modal('show')
   },
   respawn(){
-    this.dungeonChannel.push("respawn", {})
+    this.levelChannel.push("respawn", {})
                        .receive("error", e => console.log(e))
   },
   sendMessage(){
@@ -214,7 +214,7 @@ let Level = {
         payload
     if(words != ""){
       payload = {words: words}
-      this.dungeonChannel.push("speak", payload)
+      this.levelChannel.push("speak", payload)
         .receive("error", resp => this.renderMessage("Could not send message") )
         .receive("ok", resp => {
                          this.renderMessage("<b>Me:</b> " + resp.safe_words)
@@ -248,7 +248,7 @@ let Level = {
   },
   _useDoor(direction, action){
     let payload = {direction: direction, action: action}
-    this.dungeonChannel.push("use_door", payload)
+    this.levelChannel.push("use_door", payload)
                        .receive("error", resp => this.renderMessage(resp.msg) )
     this.actionMethod = this.move
   },
@@ -285,7 +285,7 @@ let Level = {
          hour:  "2-digit",
          minute: "2-digit"
   },
-  dungeonChannel: null,
+  levelChannel: null,
   lastMessage: null,
   dungeonId: null,
   typing: false,

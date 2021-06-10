@@ -534,14 +534,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     {deleted_tile, state} = Levels.delete_tile(state, object)
 
     if deleted_tile do
-      state = _award_points(object, sender, state)
-
-      top_tile = Levels.get_tile(state, deleted_tile)
-      payload = %{tiles: [
-                   Map.put(Map.take(deleted_tile, [:row, :col]), :rendering, DungeonCrawlWeb.SharedView.tile_and_style(top_tile))
-                  ]}
-      DungeonCrawlWeb.Endpoint.broadcast "dungeons:#{state.dungeon_instance_id}:#{state.instance_id}", "tile_changes", payload
-      _standard_behaviors(messages, state)
+      _standard_behaviors(messages, _award_points(object, sender, state))
     else
       _standard_behaviors(messages, state)
     end

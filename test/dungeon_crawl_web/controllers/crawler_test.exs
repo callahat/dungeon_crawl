@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.CrawlerTest do
   use DungeonCrawlWeb.ChannelCase
 
-  alias DungeonCrawlWeb.DungeonChannel
+  alias DungeonCrawlWeb.LevelChannel
   alias DungeonCrawlWeb.Crawler
 
   alias DungeonCrawl.Dungeons
@@ -33,7 +33,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     {:ok, _, _socket} =
       socket("user_id_hash", %{user_id_hash: location.user_id_hash})
-      |> subscribe_and_join(DungeonChannel, "dungeons:#{di.id}:#{instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{instance.id}")
 
     assert {^di_id, location} = Crawler.join_and_broadcast(di, "itsmehash", %{color: "red", background_color: "green"}, nil)
     assert %Player.Location{} = location
@@ -64,7 +64,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     {:ok, _, _socket} =
       socket("user_id_hash", %{user_id_hash: "itsmehash"})
-      |> subscribe_and_join(DungeonChannel, "dungeons:#{di.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.id}")
 
     # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
     assert %Player.Location{} = location = Repo.preload(Crawler.leave_and_broadcast(location), :tile)
@@ -97,7 +97,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     {:ok, _, _socket} =
       socket("user_id_hash", %{user_id_hash: "itsmehash"})
-      |> subscribe_and_join(DungeonChannel, "dungeons:#{di.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.id}")
 
     # PLAYER LEAVES
     assert %Player.Location{} = Crawler.leave_and_broadcast(location)

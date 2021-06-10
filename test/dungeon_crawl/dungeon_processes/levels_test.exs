@@ -545,7 +545,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     {breakable, state} = Levels.create_tile(state, breakable)
     {damageable, state} = Levels.create_tile(state, damageable)
 
-    dungeon_channel = "dungeons:14:12345"
+    dungeon_channel = "level:14:12345"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
     assert {:noop, updated_state} = Levels.subtract(state, :health, 5, wall.id)
@@ -585,7 +585,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     state = %Levels{dungeon_instance_id: 14, instance_id: 123}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
 
-    dungeon_channel = "dungeons:14:123"
+    dungeon_channel = "level:14:123"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
     player_channel = "players:444"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
