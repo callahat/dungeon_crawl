@@ -1,4 +1,4 @@
-<pre class="dungeon_preview border rounded"
+<pre class="level_preview border rounded"
 ><table id="level_admin"
         data-dungeon-id="<%= @level.dungeon_instance_id %>"
         data-level-id="<%= @level.id %>">

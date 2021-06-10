@@ -12943,7 +12943,7 @@ pre.script {
   font-size: 75%;
 }
 
-pre.dungeon_preview {
+pre.level_preview {
   background: #f5f5f5;
   border-radius: 0.25rem;
   border: 1px solid #dee2e6;
@@ -12952,7 +12952,7 @@ pre.dungeon_preview {
   padding: 0.5em;
 }
 
-pre.dungeon_preview table tr td {
+pre.level_preview table tr td {
   overflow: hidden;
   border: none;
 }
@@ -12993,7 +12993,7 @@ pre.embiggen_most {
   font-size:xx-large;
 }
 
-pre.dungeon_preview table, pre.color_pallette table,
+pre.level_preview table, pre.color_pallette table,
 #characterPickModal {
   margin: 0;
   padding: 0;
@@ -13005,19 +13005,19 @@ pre.dungeon_preview table, pre.color_pallette table,
   user-select: none;
 }
 
-pre.dungeon_preview table tr td, pre.color_pallette table tr td, td.flat:first-child:not(.collapse) {
+pre.level_preview table tr td, pre.color_pallette table tr td, td.flat:first-child:not(.collapse) {
   margin: 0;
   padding: 0;
 }
 
-#level_editor pre.dungeon_preview table td.hilight,
-#level_editor pre.dungeon_preview table td div.hilight,
-#level_editor pre.dungeon_preview table td:hover,
-#level_editor pre.dungeon_preview table td div[style]:hover {
+#level_editor pre.level_preview table td.hilight,
+#level_editor pre.level_preview table td div.hilight,
+#level_editor pre.level_preview table td:hover,
+#level_editor pre.level_preview table td div[style]:hover {
   background-color:orange !important;
 }
 
-#level_editor pre.dungeon_preview table td.spawn-hilight div {
+#level_editor pre.level_preview table td.spawn-hilight div {
 /*  background-color: blue !important; */
   animation: blinkingBackground 1s infinite !important;
 }
@@ -13027,7 +13027,7 @@ pre.dungeon_preview table tr td, pre.color_pallette table tr td, td.flat:first-c
   25%  { background-color: lightblue;}
 }
 
-#level_editor pre.dungeon_preview table td.cursor-hilight div {
+#level_editor pre.level_preview table td.cursor-hilight div {
 /*  background-color: blue !important; */
   animation: cursorBackground 1s infinite !important;
 }
