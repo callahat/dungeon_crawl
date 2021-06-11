@@ -10,13 +10,13 @@
                   <a class="nav-link" href="#general">General</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="#state_values">Map Tile State Values</a>
+                  <a class="nav-link" href="#state_values">Tile State Values</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="#map_state_values">Map State Values</a>
+                  <a class="nav-link" href="#level_state_values">Level State Values</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link" href="#map_set_state_values">Map Set State Values</a>
+                  <a class="nav-link" href="#dungeon_state_values">Dungeon State Values</a>
                 </li>
                 <li class="nav-item">
                   <a class="nav-link" href="#scripting">Scripting</a>
@@ -76,28 +76,35 @@
       <div class="reference" id="reference">
         <h5 id="general">General</h5>
 
-        <b>The Dungeon Map</b>
+        <p>There are three main layers described below, and each element may have its own state values.</p>
 
-        <p>The dungeon map is a collection of map tiles. The visible representation is only in two dimensions, but
+        <b>Dungeon</b>
+
+        <p>The dungeon is a collection of levels. It is at the top of the heirarchy, and is the root from where
+           the levels sprout.</p>
+
+        <b>Level</b>
+
+        <p>The level is a collection of tiles, and is a member of a dungeon. The visible representation is only in two dimensions, but
            there are three dimensions used for denoting the position of a map tile (row and column for the 2d,
            and z_index for the layer or position on the stack). A player moves their avatar around the board
            only on tiles that are not blocking. A row/column coordinate without any tiles is treated as impassable,
            as are the edges outside the board itself.</p>
 
-        <b>The Dungeon Map Tile</b>
+        <b>Tile</b>
 
-        <p>The dungeon map tile is a single element in a dungeon. It makes up everything, from walls, floors,
+        <p>The tile is a single element in a level, and is the leaf of the hierarchy. It makes up everything, from walls, floors,
            monsters, as well as player avatars. The player avatar map tile is similar to other map tiles.
            A map tile is simply an object with has coordinates (row, column, z_index), a character that is displayed
            (such as "M"), a foreground color, a background color, as well as state values and a script (state and
-           script are optional). State values tell about the map tiles state, such as if it is blocking, or pushable,
+           script are optional). State values tell about the tile's state, such as if it is blocking, or pushable,
            as well as other information that might be used in its script (such as number of cycles left for a count down).
-           The script controls more complicated behavior of the map tile (further reference below).
+           The script controls more complicated behavior of the tile (further reference below).
            </p>
 
-        <h5 id="state_values">Map Tile State Attributes and Values</h5>
+        <h5 id="state_values">Tile State Attributes and Values</h5>
 
-        <p>There are several standard behaviors based on certain state values of a map tile.</p>
+        <p>There are several standard behaviors based on certain state values of a tile.</p>
 
         <table class="table table-sm table-bordered">
           <tr>
@@ -106,7 +113,7 @@
           </tr>
           <tr>
             <td>blocking</td>
-            <td>If this is false, the tile is not blocking. Another map tile will not be prevented
+            <td>If this is false, the tile is not blocking. Another tile will not be prevented
                 from moving on top of it. When true (or not present), it acts as a wall and stops
                 another tile from moving onto it. Additionally it sends the "THUD" message to any
                 tile attempting to move there.</td>
@@ -229,10 +236,10 @@
           </tr>
         </table>
 
-        <h5 id="map_state_values">Map State Attributes and Values</h5>
+        <h5 id="level_state_values">Level State Attributes and Values</h5>
 
         <p>There are several standard behaviors based on certain map state values. These will only
-           impact the dungeon map instance (and not any other dungeon maps in the map set).</p>
+           impact the level (and not any other levels in the dungeon).</p>
 
         <table class="table table-sm table-bordered">
           <tr>
@@ -254,7 +261,7 @@
           </tr>
           <tr>
             <td>visibility</td>
-            <td>This sets what the player can see of the dungeon. By default, the top down view of the current
+            <td>This sets what the player can see of the level. By default, the top down view of the current
                 level is seen entirely. When it is set to "fog", then the players vision is restricted to line of
                 sight up to a certain number of tiles away. Blocking tiles can also cast a shadow unless the
                 blocking tile is also "low".</td>
@@ -266,10 +273,10 @@
           </tr>
        </table>
 
-        <h5 id="map_set_state_values">Map Set State Attributes and Values</h5>
+        <h5 id="dungeon_state_values">Dungeon State Attributes and Values</h5>
 
-        <p>There are several standard behaviors based on certain map set state values. These are
-           general options for the entire dungeon map set.</p>
+        <p>There are several standard behaviors based on certain dungeon state values. These are
+           general options for the entire dungeon.</p>
 
         <table class="table table-sm table-bordered">
           <tr>
@@ -334,8 +341,8 @@
           </tr>
           <tr>
             <td>@@</td>
-            <td>Dungeon value</td>
-            <td>Similar to the State Value, however this is for the entire dungeon. There are a few special dungeon values
+            <td>Level value</td>
+            <td>Similar to the State Value, however this is for the entire level. There are a few special level values
                 which are read only and return the boundary row/col: north_edge, west_edge, south_edge, east_edge.
                 This can be useful for objects that need to know when they've reached the edge via a IF command.</td>
             <td><pre class="script">@@ALARM = true</pre>
@@ -343,9 +350,9 @@
           </tr>
           <tr>
             <td>&</td>
-            <td>Map Set value</td>
-            <td>Similar to the State Value, however this is for the entire map set. This is useful for when one dungeon map
-                sets a flag, and another dungeon map checks to see if it has been set.</td>
+            <td>Dungeon value</td>
+            <td>Similar to the State Value, however this is for the entire dungeon. This is useful for when one level
+                sets a flag, and another level checks to see if it has been set.</td>
             <td><pre class="script">&alarm = true</pre>
                 <pre class="script">#IF &countdown == 0, doorslocked</pre></td>
           </tr>
@@ -353,7 +360,7 @@
             <td>?&lt;target&gt;@</td>
             <td>Other's State Value</td>
             <td>Not to be confused with the Shorthand for try.
-                This is for setting state values of another object. There may be instances when the GIVE or TAKE
+                This is for setting state values of another object. There may be occasions when the GIVE or TAKE
                 commands are insufficient. The target can be a direction, "sender" (for the event sender if applicable)
                 or the id of the target object. Additionally, {@state_val} can be used to determine the target from
                 a state value of the current object (which should resolve to a direction or object id). Cannot target a
@@ -449,8 +456,13 @@
           </tr>
           <tr>
             <td>@@</td>
-            <td>state value for the dungeon instance</td>
+            <td>state value for the level</td>
             <td><pre class="script">@@flag_1</pre></td>
+          </tr>
+          <tr>
+            <td>&</td>
+            <td>state value for the dungeon</td>
+            <td><pre class="script">&locks -= 1</pre></td>
           </tr>
           <tr>
             <td>?</td>
@@ -525,9 +537,9 @@
                 <pre class="script">@gems /= 2</pre></td>
           </tr>
           <tr id="change_instance_state">
-            <td>CHANGE_INSTANCE_STATE</td>
+            <td>CHANGE_LEVEL_INSTANCE_STATE</td>
             <td>list - 3</td>
-            <td>Changes the dungeon instance state_values element given in params. (Similar to change_state)</td>
+            <td>Changes the level instance state_values element given in params. (Similar to change_state)</td>
           </tr>
           <tr>
             <td colspan="3" class="examples">
@@ -535,9 +547,9 @@
                 <pre class="script">@@locks -= 1</pre></td>
           </tr>
           <tr id="change_map_set_instance_state">
-            <td>CHANGE_MAP_SET_INSTANCE_STATE</td>
+            <td>CHANGE_DUNGEON_INSTANCE_STATE</td>
             <td>list - 3</td>
-            <td>Changes the map set instance state_values element given in params. (Similar to change_state)</td>
+            <td>Changes the dungeon instance state_values element given in params. (Similar to change_state)</td>
           </tr>
           <tr>
             <td colspan="3" class="examples">
@@ -600,7 +612,7 @@
                 conditions.<br/>
                 The third is player(s) for which this command will end the game.
                 Only three valid values `?sender`, a player map tile id, or `all`. Defaults to the event sender, which will end
-                the game will be ended for only that player. When `all`, the game ends for all players in the map set.</td>
+                the game will be ended for only that player. When `all`, the game ends for all players in the dungeon.</td>
           </tr>
           <tr>
             <td colspan="3" class="examples">
@@ -808,9 +820,9 @@
                 when no target explicitly given), all (all running scripts will be sent this message, including
                 this one), others (all other running scripts will be sent this message), a direction, the name of
                 a tile, or `global` (all running scripts will be send this message, including running scripts in
-                different instances). A direction takes priority over a tile name. The specail varialble `?sender` can be used
-                to send the message to the program that sent the event. `here` can be used to send the message to all
-                the tiles at the same location as the message sender (including the message sender).</td>
+                different level instances). A direction takes priority over a tile name. The special varialble `?sender`
+                can be used to send the message to the program that sent the event. `here` can be used to send the message
+                to all the tiles at the same location as the message sender (including the message sender).</td>
           </tr>
           <tr>
             <td colspan="3" class="examples">
@@ -892,8 +904,8 @@
           <tr id="transport">
             <td>TRANSPORT</td>
             <td>list - 2 or 3</td>
-            <td>Transports a player map tile from one dungeon instance to another dungeon instance that is part
-                of the same map set. First param is the who (which should resolve to a map tile id; but if its not
+            <td>Transports a player map tile from one level to another level that is part
+                of the same dungeon. First param is the who (which should resolve to a map tile id; but if its not
                 a player's map tile this command will do nothing).
 
                 Second param can either be a fixed level number, "up" or "down" (up or down will resolve to the level
@@ -903,7 +915,8 @@
                 For example, if the match key is "green", then only passage exits that also have that match key will be considered.
                 When more than one match, one is randomly picked. Also, when there is no match key specified, a random passage_exit
                 will be used. When no match key is specified, and there are no passage exits, then a random spawn coordinate will
-                be used as a last option.</td>
+                be used as a last option (for levels with no explicit spawn coordinates, any floor tile will count as a spawn
+                coordinate).</td>
           </tr>
           <tr>
             <td colspan="3" class="examples">
