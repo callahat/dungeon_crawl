@@ -43,7 +43,9 @@ defmodule DungeonCrawl.Scripting.Command do
     case name do
       :become       -> :become
       :change_state -> :change_state
-      :change_instance_state -> :change_instance_state
+      :change_instance_state -> :change_level_instance_state # deprecated
+      :change_level_instance_state -> :change_level_instance_state
+      :change_map_set_instance_state -> :change_dungeon_instance_state # deprecated
       :change_dungeon_instance_state -> :change_dungeon_instance_state
       :change_other_state -> :change_other_state
       :cycle        -> :cycle
@@ -191,21 +193,21 @@ defmodule DungeonCrawl.Scripting.Command do
 
   ## Examples
 
-    iex> Command.change_instance_state(%Runner{program: program,
+    iex> Command.change_level_instance_state(%Runner{program: program,
                                                state: %Levels{state_values: %{}}},
                                        [:counter, "+=", 3])
     %Runner{program: program,
             state: %Levels{map_by_ids: %{1 => %{state: "counter: 4"},...}, ...} }
   """
-  def change_instance_state(%Runner{state: state} = runner_state, [var, _op, _value] = params)
+  def change_level_instance_state(%Runner{state: state} = runner_state, [var, _op, _value] = params)
       when var in [:visibility, :fog_range] do
     runner_state = %{ runner_state | state: %{ state | full_rerender: true, players_visible_coords: %{} } }
-    _change_instance_state(runner_state, params)
+    _change_level_instance_state(runner_state, params)
   end
-  def change_instance_state(%Runner{} = runner_state, params) do
-    _change_instance_state(runner_state, params)
+  def change_level_instance_state(%Runner{} = runner_state, params) do
+    _change_level_instance_state(runner_state, params)
   end
-  def _change_instance_state(%Runner{state: state} = runner_state, [var, op, value]) do
+  def _change_level_instance_state(%Runner{state: state} = runner_state, [var, op, value]) do
     value = resolve_variable(runner_state, value)
 
     state_values = Map.put(state.state_values, var, Maths.calc(state.state_values[var] || 0, op, value))
@@ -1061,7 +1063,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   def _random(runner_state, {:instance_state_variable, state_variable}, random_value),
-    do: change_instance_state(runner_state, [state_variable, "=", random_value])
+    do: change_level_instance_state(runner_state, [state_variable, "=", random_value])
   def _random(runner_state, {:dungeon_instance_state_variable, state_variable}, random_value),
     do: change_dungeon_instance_state(runner_state, [state_variable, "=", random_value])
   def _random(runner_state, {:state_variable, state_variable}, random_value),

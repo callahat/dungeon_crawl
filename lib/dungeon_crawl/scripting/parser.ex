@@ -134,7 +134,7 @@ defmodule DungeonCrawl.Scripting.Parser do
         _parse_state_change(:change_state, state_element, program)
 
       %{"type" => "@@", "instruction" => state_element} ->
-        _parse_state_change(:change_instance_state, state_element, program)
+        _parse_state_change(:change_level_instance_state, state_element, program)
 
       %{"type" => "&", "instruction" => state_element} ->
         _parse_state_change(:change_dungeon_instance_state, state_element, program)

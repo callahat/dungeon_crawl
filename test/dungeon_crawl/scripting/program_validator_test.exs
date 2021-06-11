@@ -120,6 +120,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GAMEOVER true, won, ?sender
     #GAMEOVER blah, ok, nigeria
     #GAMEOVER true, WIN
+    &ALL ++= 42
     """
   end
 
@@ -200,6 +201,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 81: RANDOM command has an invalid variable specified [:event_sender]",
                "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
                "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
+               "Line 86: CHANGE command ++ takes only one operand, got `= 42`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -255,6 +257,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 81: RANDOM command has an invalid variable specified [:event_sender]",
                "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
                "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
+               "Line 86: CHANGE command ++ takes only one operand, got `= 42`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

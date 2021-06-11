@@ -47,7 +47,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate(program, [ {line_no, [ :change_state, params ]} | instructions], errors, user) do
     _validate_change(line_no, params, program, instructions, errors, user)
   end
-  defp _validate(program, [ {line_no, [ :change_instance_state, params ]} | instructions], errors, user) do
+  defp _validate(program, [ {line_no, [ :change_level_instance_state, params ]} | instructions], errors, user) do
+    _validate_change(line_no, params, program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [ :change_dungeon_instance_state, params ]} | instructions], errors, user) do
     _validate_change(line_no, params, program, instructions, errors, user)
   end
   defp _validate(program, [ {line_no, [ :change_other_state, params ]} | instructions], errors, user) do

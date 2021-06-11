@@ -28,7 +28,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(" BECOME  ") == :become
     assert Command.get_command(:become) == :become
     assert Command.get_command(:change_state) == :change_state
-    assert Command.get_command(:change_instance_state) == :change_instance_state
+    assert Command.get_command(:change_instance_state) == :change_level_instance_state
+    assert Command.get_command(:change_level_instance_state) == :change_level_instance_state
+    assert Command.get_command(:change_map_set_instance_state) == :change_dungeon_instance_state
     assert Command.get_command(:change_dungeon_instance_state) == :change_dungeon_instance_state
     assert Command.get_command(:change_other_state) == :change_other_state
     assert Command.get_command(:cycle) == :cycle
@@ -205,22 +207,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert top_tile.state == tile.state
   end
 
-  test "CHANGE_INSTANCE_STATE" do
+  test "CHANGE_LEVEL_INSTANCE_STATE" do
     {_tile, state} = Levels.create_tile(%Levels{state_values: %{one: 100, add: 8}}, %Tile{id: 123, row: 1, col: 2, character: "."})
 
-    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:add, "+=", 1])
+    %Runner{state: updated_state} = Command.change_level_instance_state(%Runner{state: state}, [:add, "+=", 1])
     assert updated_state.state_values == %{add: 9, one: 100}
-    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:one, "=", 432])
+    %Runner{state: updated_state} = Command.change_level_instance_state(%Runner{state: state}, [:one, "=", 432])
     assert updated_state.state_values == %{add: 8, one: 432}
-    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: state}, [:new, "+=", 1])
+    %Runner{state: updated_state} = Command.change_level_instance_state(%Runner{state: state}, [:new, "+=", 1])
     assert updated_state.state_values == %{add: 8, new: 1, one: 100}
-    %Runner{state: updated_state} = Command.change_instance_state(%Runner{state: updated_state}, [:new, "+=", {:instance_state_variable, :one}])
+    %Runner{state: updated_state} = Command.change_level_instance_state(%Runner{state: updated_state}, [:new, "+=", {:instance_state_variable, :one}])
     assert updated_state.state_values == %{add: 8, new: 101, one: 100}
     # special instance states that have side effects
     assert %Runner{state: %{state_values: %{visibility: "fog"}, players_visible_coords: %{}, full_rerender: true}} =
-      Command.change_instance_state(%Runner{state: state}, [:visibility, "=", "fog"])
+      Command.change_level_instance_state(%Runner{state: state}, [:visibility, "=", "fog"])
     assert %Runner{state: %{state_values: %{fog_range: 2}, players_visible_coords: %{}, full_rerender: true}} =
-      Command.change_instance_state(%Runner{state: state}, [:fog_range, "=", 2])
+      Command.change_level_instance_state(%Runner{state: state}, [:fog_range, "=", 2])
   end
 
   test "CHANGE_MAP_SET_INSTANCE_STATE" do
