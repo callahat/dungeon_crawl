@@ -8,6 +8,6 @@ defmodule DungeonCrawlWeb.PageControllerTest do
 
   test "GET /reference", %{conn: conn} do
     conn = get conn, "/reference"
-    assert html_response(conn, 200) =~ "The dungeon map is a collection of map tiles. The visible representation is only in two dimensions"
+    assert html_response(conn, 200) =~ "The dungeon is a collection of levels. It is at the top of the heirarchy,"
   end
 end
