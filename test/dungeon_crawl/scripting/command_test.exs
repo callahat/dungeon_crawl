@@ -386,10 +386,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
         %Tile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99"}
       ],
       [
-        %Tile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 0, steps: 10"}
+        %Tile{character: "@", row: 1, col: 5, state: "damage: 10, player: true, score: 0, steps: 10"}
       ]])
 
     [instance, instance2] = Repo.preload(stubbed_dungeon_instance, :levels).levels
+                            |> Enum.sort(fn a, b -> a.number < b.number end)
 
     instance_id = instance.id
     instance2_id = instance2.id
@@ -1500,6 +1501,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       ]])
 
     [instance, instance2] = Repo.preload(stubbed_dungeon_instance, :levels).levels
+                            |> Enum.sort(fn a, b -> a.number < b.number end)
 
     [prog1_id, prog2_id] =
       Repo.preload(instance, :tiles).tiles

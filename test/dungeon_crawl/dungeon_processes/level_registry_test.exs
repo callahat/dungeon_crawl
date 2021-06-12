@@ -176,6 +176,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
                                                                     [%{character: ".", row: 1, col: 1, z_index: 0}]])
 
       [level_1, level_2] = DungeonCrawl.Repo.preload(dungeon_instance, :levels).levels
+                           |> Enum.sort(fn a, b -> a.number < b.number end)
 
       p1 = insert_player_location(%{level_instance_id: level_1.id})
       p2 = insert_player_location(%{level_instance_id: level_1.id})
@@ -184,9 +185,11 @@ defmodule DungeonCrawl.LevelRegistryTest do
       LevelRegistry.create(instance_registry, level_1)
       LevelRegistry.create(instance_registry, level_2)
 
-      assert [{p1.id, p1.tile_instance_id},
-              {p2.id, p2.tile_instance_id},
-              {p3.id, p3.tile_instance_id}] == LevelRegistry.player_location_ids(instance_registry)
+      assert Enum.sort(
+              [{p1.id, p1.tile_instance_id},
+               {p2.id, p2.tile_instance_id},
+               {p3.id, p3.tile_instance_id}]) ==
+             Enum.sort(LevelRegistry.player_location_ids(instance_registry))
     end
   end
 
