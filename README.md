@@ -5,7 +5,7 @@ To start your Phoenix app:
   * Install dependencies with `mix deps.get`
   * Create and migrate your database with `mix ecto.create && mix ecto.migrate`
   * Alternatively you may just want to load the schema with `mix ecto.load`, as the migrations are largely unstable as the schema has changed much during development.
-  * Load the seeds for basic tiles, and generate a joinable map with `mix run priv/repo/basic_tile_template_seeds.exs` and `mix run priv/repo/joinable_dungeon_seeds.exs`
+  * Load the seeds for basic tiles, and generate a joinable map with `mix run priv/repo/basic_tile_template_seeds.exs` and `mix run priv/repo/joinable_dungeon_seeds.exs`. The former is needed to load the basic tiles, the latter is optional and will seed a very basic dungeon.
   * Install Node.js dependencies with `npm install`
   * Start Phoenix endpoint with `mix phoenix.server`
 

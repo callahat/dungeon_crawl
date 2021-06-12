@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.TileTemplates.TileSeeder do
+  # For ideas for other characters to use for your tiles:
   # https://www.utf8-chartable.de/unicode-utf8-table.pl
 
   use DungeonCrawl.TileTemplates.TileSeeder.BasicTiles
