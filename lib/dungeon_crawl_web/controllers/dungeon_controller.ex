@@ -2,8 +2,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Admin
-  alias DungeonCrawl.Dungeon
-  alias DungeonCrawl.Dungeon.MapSet
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.Dungeons.Dungeon
   alias DungeonCrawl.Player
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
@@ -11,76 +11,76 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :authenticate_user
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
-  plug :assign_map_set when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
+  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
-    map_sets = Dungeon.list_map_sets(conn.assigns.current_user)
-               |> Repo.preload(:dungeons)
-    render(conn, "index.html", map_sets: map_sets)
+    dungeons = Dungeons.list_dungeons(conn.assigns.current_user)
+               |> Repo.preload(:levels)
+    render(conn, "index.html", dungeons: dungeons)
   end
 
   def new(conn, _params) do
-    changeset = Dungeon.change_map_set(%MapSet{})
+    changeset = Dungeons.change_dungeon(%Dungeon{})
     render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
   end
 
-  def create(conn, %{"map_set" => dungeon_params}) do
+  def create(conn, %{"dungeon" => dungeon_params}) do
     atomized_dungeon_params = Enum.reduce(dungeon_params, %{}, fn
         {key, value}, acc when is_atom(key) -> Elixir.Map.put(acc, key, value)
         {key, value}, acc when is_binary(key) -> Elixir.Map.put(acc, String.to_existing_atom(key), value)
        end)
 
-    case Dungeon.create_map_set(Elixir.Map.put(atomized_dungeon_params, :user_id, conn.assigns.current_user.id)) do
-      {:ok, map_set} ->
+    case Dungeons.create_dungeon(Elixir.Map.put(atomized_dungeon_params, :user_id, conn.assigns.current_user.id)) do
+      {:ok, dungeon} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
 
-        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
     end
   end
 
   def show(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set
-              |> Repo.preload([dungeons: [dungeon_map_tiles: :tile_template]])
-    owner_name = if map_set.user_id, do: Repo.preload(map_set, :user).user.name, else: "<None>"
+    dungeon = conn.assigns.dungeon
+              |> Repo.preload([levels: [tiles: :tile_template]])
+    owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
 
-    top_level = Enum.at(map_set.dungeons, 0)
+    top_level = Enum.at(dungeon.levels, 0)
     top_level = if top_level, do: top_level.number, else: nil
 
-    title_map = Dungeon.get_title_map(map_set)
+    title_level = Dungeons.get_title_level(dungeon)
 
-    render(conn, "show.html", map_set: map_set, owner_name: owner_name, top_level: top_level, title_map: title_map)
+    render(conn, "show.html", dungeon: dungeon, owner_name: owner_name, top_level: top_level, title_level: title_level)
   end
 
   def edit(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set
+    dungeon = conn.assigns.dungeon
 
-    changeset = Dungeon.change_map_set(map_set)
+    changeset = Dungeons.change_dungeon(dungeon)
 
-    render(conn, "edit.html", map_set: map_set, changeset: changeset, max_dimensions: _max_dimensions())
+    render(conn, "edit.html", dungeon: dungeon, changeset: changeset, max_dimensions: _max_dimensions())
   end
 
-  def update(conn, %{"id" => _id, "map_set" => map_set_params}) do
-    map_set = conn.assigns.map_set
+  def update(conn, %{"id" => _id, "dungeon" => dungeon_params}) do
+    dungeon = conn.assigns.dungeon
 
-    case Dungeon.update_map_set(map_set, map_set_params) do
-      {:ok, map_set} ->
+    case Dungeons.update_dungeon(dungeon, dungeon_params) do
+      {:ok, dungeon} ->
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
 
       {:error, changeset} ->
-        render(conn, "edit.html", map_set: map_set, changeset: changeset, max_dimensions: _max_dimensions())
+        render(conn, "edit.html", dungeon: dungeon, changeset: changeset, max_dimensions: _max_dimensions())
     end
   end
 
   def delete(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set #Dungeon.get_map!(id)
+    dungeon = conn.assigns.dungeon
 
-    Dungeon.delete_map_set!(map_set)
+    Dungeons.delete_dungeon!(dungeon)
 
     conn
     |> put_flash(:info, "Dungeon deleted successfully.")
@@ -88,50 +88,50 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def activate(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set
+    dungeon = conn.assigns.dungeon
 
-    case Dungeon.activate_map_set(map_set) do
-      {:ok, active_map_set} ->
+    case Dungeons.activate_dungeon(dungeon) do
+      {:ok, active_dungeon} ->
         conn
         |> put_flash(:info, "Dungeon activated.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, active_map_set))
+        |> redirect(to: Routes.dungeon_path(conn, :show, active_dungeon))
 
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
     end
   end
 
   def new_version(conn, %{"id" => _id}) do
-    map_set = conn.assigns.map_set
+    dungeon = conn.assigns.dungeon
 
-    case Dungeon.create_new_map_set_version(map_set) do
-      {:ok, new_map_set_version} ->
+    case Dungeons.create_new_dungeon_version(dungeon) do
+      {:ok, new_dungeon_version} ->
         conn
         |> put_flash(:info, "New dungeon version created successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, new_map_set_version))
+        |> redirect(to: Routes.dungeon_path(conn, :show, new_dungeon_version))
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
-      {:error, :new_maps, _, _} ->
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+      {:error, :new_levels, _, _} ->
         conn
         |> put_flash(:error, "Cannot create new version; dimensions restricted?")
-        |> redirect(to: Routes.dungeon_path(conn, :show, map_set))
+        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
     end
   end
 
   def test_crawl(conn, %{"id" => _id}) do
-    if Enum.count(conn.assigns.map_set.dungeons) < 1 do
+    if Enum.count(conn.assigns.dungeon.levels) < 1 do
       conn
-      |> put_flash(:error, "Add a dungeon level first")
-      |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.map_set))
+      |> put_flash(:error, "Add a level first")
+      |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.dungeon))
       |> halt()
     else
      if conn.assigns.player_location, do: leave_and_broadcast(conn.assigns.player_location)
 
-      join_and_broadcast(conn.assigns.map_set, conn.assigns[:user_id_hash], %{}, true)
+      join_and_broadcast(conn.assigns.dungeon, conn.assigns[:user_id_hash], %{}, true)
 
       conn
       |> redirect(to: Routes.crawler_path(conn, :show))
@@ -151,17 +151,17 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   defp assign_player_location(conn, _opts) do
     player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(map_tile: [dungeon: :dungeon_map_tiles])
+                      |> Repo.preload(tile: [level: :tiles])
     conn
     |> assign(:player_location, player_location)
   end
 
-  defp assign_map_set(conn, _opts) do
-    map_set =  Dungeon.get_map_set!(conn.params["id"] || conn.params["map_set_id"])
+  defp assign_dungeon(conn, _opts) do
+    dungeon =  Dungeons.get_dungeon!(conn.params["id"] || conn.params["dungeon_id"])
 
-    if map_set.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+    if dungeon.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
       conn
-      |> assign(:map_set, Repo.preload(map_set, :dungeons))
+      |> assign(:dungeon, Repo.preload(dungeon, :levels))
     else
       conn
       |> put_flash(:error, "You do not have access to that")
@@ -171,7 +171,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   defp validate_updateable(conn, _opts) do
-    if !conn.assigns.map_set.active do
+    if !conn.assigns.dungeon.active do
       conn
     else
       conn

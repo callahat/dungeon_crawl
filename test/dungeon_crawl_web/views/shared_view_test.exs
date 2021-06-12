@@ -2,8 +2,8 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   use DungeonCrawlWeb.ConnCase#, async: true
 
   import DungeonCrawlWeb.SharedView
-  alias DungeonCrawl.Dungeon.MapTile
-  alias DungeonCrawl.DungeonProcesses.InstanceProcess
+  alias DungeonCrawl.Dungeons.Tile
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
 
   @copyable_attrs [:character, :color, :background_color, :state, :script]
 
@@ -16,20 +16,20 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   end
 
   test "tile_and_style/2 using :safe returns a tuple marked html safe" do
-    stub_map_tile = %MapTile{character: "!"}
-    assert tile_and_style(stub_map_tile, :safe) == {:safe, "<div>!</div>"}
+    stub_tile = %Tile{character: "!"}
+    assert tile_and_style(stub_tile, :safe) == {:safe, "<div>!</div>"}
   end
 
   test "tile_and_style/1 returns the html" do
-    stub_map_tile = %MapTile{character: "!"}
-    assert tile_and_style(stub_map_tile) == "<div>!</div>"
+    stub_tile = %Tile{character: "!"}
+    assert tile_and_style(stub_tile) == "<div>!</div>"
   end
 
   test "tile_and_style returns html for different stylings" do
-    a = %MapTile{character: "A"}
-    b = %MapTile{character: "B", color: "red"}
-    c = %MapTile{character: "C", background_color: "black"}
-    d = %MapTile{character: "D", color: "#FFF", background_color: "#000"}
+    a = %Tile{character: "A"}
+    b = %Tile{character: "B", color: "red"}
+    c = %Tile{character: "C", background_color: "black"}
+    d = %Tile{character: "D", color: "#FFF", background_color: "#000"}
 
     style_a = tile_and_style(a)
     style_b = tile_and_style(b)
@@ -47,46 +47,46 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert style_d == "<div style='color: #FFF;background-color: #000'>D</div>"
   end
 
-  test "dungeon_as_table/3 returns table rows of the dungeon" do
+  test "level_as_table/3 returns table rows of the level" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
-    map = insert_stubbed_dungeon(%{},
-            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
+    level = insert_stubbed_level(%{},
+              [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
 
-    rows = dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height)
+    rows = level_as_table(Repo.preload(level, :tiles), level.width, level.height)
 
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
   end
 
-  test "dungeon_as_table/3 returns table rows of the dungeon instance" do
+  test "level_as_table/3 returns table rows of the level instance" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
 
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
 
-    instance = insert_stubbed_dungeon_instance(%{},
+    instance = insert_stubbed_level_instance(%{},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
 
-    InstanceProcess.set_instance_id(instance_process, instance.id)
-    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+    LevelProcess.set_instance_id(instance_process, instance.id)
+    LevelProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
 
-    rows = dungeon_as_table(instance, instance.width, instance.height)
+    rows = level_as_table(instance, instance.width, instance.height)
 
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
 
     # Also can be given the instance state object as well if thats available
-    instance_state = InstanceProcess.get_state(instance_process)
-    rows = dungeon_as_table(instance_state, instance.width, instance.height)
+    instance_state = LevelProcess.get_state(instance_process)
+    rows = level_as_table(instance_state, instance.width, instance.height)
 
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
@@ -96,32 +96,32 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     Process.exit(instance_process, :kill)
   end
 
-  test "dungeon_as_table/3 returns table rows of the dungeon instance when its foggy" do
+  test "level_as_table/3 returns table rows of the level instance when its foggy" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
 
-    {:ok, instance_process} = InstanceProcess.start_link([])
+    {:ok, instance_process} = LevelProcess.start_link([])
 
-    instance = insert_stubbed_dungeon_instance(%{state: "visibility: fog"},
+    instance = insert_stubbed_level_instance(%{state: "visibility: fog"},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
-    InstanceProcess.set_state_values(instance_process, %{visibility: "fog"})
-    InstanceProcess.set_instance_id(instance_process, instance.id)
-    InstanceProcess.load_map(instance_process, Repo.preload(instance, :dungeon_map_tiles).dungeon_map_tiles)
+    LevelProcess.set_state_values(instance_process, %{visibility: "fog"})
+    LevelProcess.set_instance_id(instance_process, instance.id)
+    LevelProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
 
     # The DB record won't have parsed state_values, so it will appear normal/not foggy.
-    rows = dungeon_as_table(instance, instance.width, instance.height)
+    rows = level_as_table(instance, instance.width, instance.height)
 
     assert rows =~ ~r{<td id='1_1'><div style='color: #FFF'>B</div></td>}
     assert rows =~ ~r{<td id='1_2'><div>A</div></td>}
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
 
     # Also can be given the instance state object as well if thats available
-    instance_state = InstanceProcess.get_state(instance_process)
+    instance_state = LevelProcess.get_state(instance_process)
 
-    rows = dungeon_as_table(instance_state, instance.width, instance.height)
+    rows = level_as_table(instance_state, instance.width, instance.height)
 
     assert rows =~ ~r{<td id='1_1'><div style='background-color: darkgray'>░</div></td>}
     assert rows =~ ~r{<td id='1_2'><div style='background-color: darkgray'>░</div></td>}
@@ -131,18 +131,18 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     Process.exit(instance_process, :kill)
   end
 
-  test "editor_dungeon_as_table/3 returns table rows of the dungeon including the data attributes" do
+  test "editor_level_as_table/3 returns table rows of the level including the data attributes" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})
-    map = insert_stubbed_dungeon(%{},
-            [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs)),
-             Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 4, z_index: 1, animate_colors: "red,blue", animate_characters: "1,2,3"},
-                       Map.take(tile_b, @copyable_attrs))])
+    level = insert_stubbed_level(%{},
+              [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs)),
+               Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 4, z_index: 1, animate_colors: "red,blue", animate_characters: "1,2,3"},
+                         Map.take(tile_b, @copyable_attrs))])
 
-    rows = editor_dungeon_as_table(Repo.preload(map, :dungeon_map_tiles), map.width, map.height)
+    rows = editor_level_as_table(Repo.preload(level, :tiles), level.width, level.height)
 
     tile_a_0 = "<div data-z-index=0 data-color='' data-background-color='' data-tile-template-id='#{tile_a.id}' data-character='A' data-state='blocking: false' data-script='' data-name='' data-random='' data-period='' data-characters='' data-colors='' data-background-colors=''><div>A</div></div>"
     tile_b_0 = "<div data-z-index=0 data-color='#FFF' data-background-color='' data-tile-template-id='#{tile_b.id}' data-character='B' data-state='blocking: false' data-script='' data-name='' data-random='' data-period='' data-characters='' data-colors='' data-background-colors=''><div style='color: #FFF'>B</div></div>"

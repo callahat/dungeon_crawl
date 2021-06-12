@@ -1,0 +1,24 @@
+<h2>Edit level</h2>
+
+<div class="text-center">
+<%= render "tile_pallette_sidebar.html", tile_templates: @tile_templates,
+                                         historic_templates: @historic_templates,
+                                         low_z_index: @low_z_index,
+                                         high_z_index: @high_z_index,
+                                         tile_shortlist: @tile_shortlist %>
+</div>
+
+<%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, level: @level, dungeon: @dungeon,
+                        action: Routes.dungeon_level_path(@conn, :update, @dungeon, @level.id) %>
+
+<script>
+window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %>
+window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_level_edge_tiles))} %>
+</script>
+
+<%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
+
+<%= render "tile_edit_modal.html" %>
+<%= render "tile_detail_modal.html" %>
+<%= render "tile_list_modal.html", tile_templates: @tile_templates %>
+<%= render DungeonCrawlWeb.SharedView, "character_select_modal.html" %>

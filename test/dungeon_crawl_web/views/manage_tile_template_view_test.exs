@@ -14,7 +14,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateViewTest do
     refute ManageTileTemplateView.activate_or_new_version_button(conn, tile_template)
   end
 
-  test "activate_or_new_version_button/2 renders new_version if dungeon active", %{conn: conn} do
+  test "activate_or_new_version_button/2 renders new_version if tile template is active", %{conn: conn} do
     tile_template = insert_tile_template(%{active: true})
     assert Regex.match?(~r{New Version}, inspect(ManageTileTemplateView.activate_or_new_version_button(conn, tile_template)))
   end

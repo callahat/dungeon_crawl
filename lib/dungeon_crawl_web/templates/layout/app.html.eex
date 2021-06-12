@@ -34,7 +34,7 @@
               <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
                 <%= link "Users", to: Routes.manage_user_path(@conn, :index), class: "nav-link" %>
                 <%= link "Dungeons", to: Routes.manage_dungeon_path(@conn, :index), class: "nav-link" %>
-                <%= link "Instances", to: Routes.manage_map_set_instance_path(@conn, :index), class: "nav-link" %>
+                <%= link "Dungeon Processes", to: Routes.manage_dungeon_process_path(@conn, :index), class: "nav-link" %>
                 <%= link "Settings", to: Routes.setting_path(@conn, :edit), class: "nav-link" %>
                 <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "nav-link" %>
               </div>

@@ -5,10 +5,10 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Player
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
-  alias DungeonCrawl.DungeonProcesses.{MapSetRegistry, MapSetProcess, MapSets, InstanceProcess}
+  alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, LevelProcess}
   alias DungeonCrawl.MapGenerators.ConnectedRooms
   alias Ecto.Multi
 
@@ -21,44 +21,44 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_autogen_solo_enabled when action in [:create]
   plug :validate_instance_limit when action in [:invite, :avatar, :validate_avatar]
 
-  @dungeon_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
+  @level_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
 
   def show(conn, _opts) do
     player_location = conn.assigns[:player_location]
 
-    map_sets = if player_location,
+    dungeons = if player_location,
                  do: [],
-                 else: Dungeon.list_active_map_sets_with_player_count()
-                       |> Enum.map(fn(%{map_set: map_set}) -> Repo.preload(map_set, [:dungeons, :locations, :map_set_instances]) end)
-    map_set = if player_location, do: Repo.preload(player_location, [map_tile: [dungeon: :map_set]]).map_tile.dungeon.map_set,
+                 else: Dungeons.list_active_dungeons_with_player_count()
+                       |> Enum.map(fn(%{dungeon: dungeon}) -> Repo.preload(dungeon, [:levels, :locations, :dungeon_instances]) end)
+    dungeon = if player_location, do: Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon,
                                   else: nil
-    map_set = if map_set, do: Repo.preload(map_set, :map_set), else: nil
+    dungeon = if dungeon, do: Repo.preload(dungeon, :dungeon), else: nil
 
-    scorable = _scorable_map_set(map_set)
+    scorable = _scorable_dungeon(dungeon)
 
-    {player_stats, dungeon} = if player_location do
-                     {:ok, instance_process} = MapSets.instance_process(player_location.map_tile.dungeon.map_set_instance_id,
-                                                                        player_location.map_tile.dungeon.id)
-                     dungeon = Map.put(InstanceProcess.get_state(instance_process), :id, player_location.map_tile.dungeon.id)
-                     {PlayerInstance.current_stats(player_location.user_id_hash), dungeon}
+    {player_stats, level} = if player_location do
+                     {:ok, instance_process} = Registrar.instance_process(player_location.tile.level.dungeon_instance_id,
+                                                                          player_location.tile.level.id)
+                     level = Map.put(LevelProcess.get_state(instance_process), :id, player_location.tile.level.id)
+                     {PlayerInstance.current_stats(player_location.user_id_hash), level}
                    else
                      {%{}, nil}
                    end
 
-    render(conn, "show.html", player_location: player_location, map_sets: map_sets, player_stats: player_stats, map_set: map_set, scorable: scorable, dungeon: dungeon)
+    render(conn, "show.html", player_location: player_location, dungeons: dungeons, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level)
   end
 
-  def _scorable_map_set(nil), do: false
-  def _scorable_map_set(map_set_instance) do
-    with {:ok, map_set_process} <- MapSetRegistry.lookup_or_create(MapSetInstanceRegistry, map_set_instance.id) do
-      MapSetProcess.scorable?(map_set_process)
+  def _scorable_dungeon(nil), do: false
+  def _scorable_dungeon(dungeon_instance) do
+    with {:ok, dungeon_process} <- DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id) do
+      DungeonProcess.scorable?(dungeon_process)
     else
       _ -> false
     end
   end
 
   def avatar(conn, params) do
-    params = Map.take(params, ["map_set_id", "map_set_instance_id", "is_private", "passcode"])
+    params = Map.take(params, ["dungeon_id", "dungeon_instance_id", "is_private", "passcode"])
     if user = (get_session(conn, :user_avatar) || Account.get_by_user_id_hash(conn.assigns[:user_id_hash])) do
       user = Map.to_list(user)
              |> Enum.map(fn {k, v} -> {to_string(k), v} end)
@@ -76,8 +76,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   def validate_avatar(conn, %{"user" => user} = params) do
     if User.colors_match?(%{color: user["color"], background_color: user["background_color"]}) do
-      params = Map.take(conn.query_params, ["map_set_id", "map_set_instance_id", "is_private", "passcode"])
-               |> Map.merge(Map.take(params, ["map_set_id", "map_set_instance_id", "is_private", "passcode"]))
+      params = Map.take(conn.query_params, ["dungeon_id", "dungeon_instance_id", "is_private", "passcode"])
+               |> Map.merge(Map.take(params, ["dungeon_id", "dungeon_instance_id", "is_private", "passcode"]))
       action_path = action_path(conn, params)
       conn
       |> assign(:query_params, params)
@@ -92,31 +92,31 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
 
   def create(conn, _opts) do
-    dungeon_attrs = (%{name: "Autogenerated", width: Admin.get_setting.autogen_width, height: Admin.get_setting.autogen_height})
+    level_attrs = (%{name: "Autogenerated", width: Admin.get_setting.autogen_width, height: Admin.get_setting.autogen_height})
 
     # TODO: revisit multi's and clean this up
     Multi.new
-    |> Multi.run(:map_set, fn(_repo, %{}) ->
-        Dungeon.generate_map_set(@dungeon_generator, %{name: "Autogenerated", autogenerated: true}, dungeon_attrs)
+    |> Multi.run(:dungeon, fn(_repo, %{}) ->
+        Dungeons.generate_dungeon(@level_generator, %{name: "Autogenerated", autogenerated: true}, level_attrs)
       end)
-    |> Multi.run(:msi, fn(_repo, %{map_set: map_set}) ->
-        DungeonInstances.create_map_set(map_set)
+    |> Multi.run(:di, fn(_repo, %{dungeon: dungeon}) ->
+        DungeonInstances.create_dungeon(dungeon)
       end)
-    |> Multi.run(:player_location, fn(_repo, %{map_set: map_set}) ->
+    |> Multi.run(:player_location, fn(_repo, %{dungeon: dungeon}) ->
         # TODO: change this to only use stuff from the entrances
-        map_set_instance = Enum.at(Repo.preload(map_set, :map_set_instances).map_set_instances, 0)
-        Player.create_location_on_spawnable_space(map_set_instance, conn.assigns[:user_id_hash], %{})
+        dungeon_instance = Enum.at(Repo.preload(dungeon, :dungeon_instances).dungeon_instances, 0)
+        Player.create_location_on_spawnable_space(dungeon_instance, conn.assigns[:user_id_hash], %{})
       end)
     |> Repo.transaction
     |> case do
-      {:ok, %{msi: %{map_set: map_set_instance}}} ->
+      {:ok, %{di: %{dungeon: dungeon_instance}}} ->
         conn
-        |> Plug.Conn.put_session(:map_set_instance_id, map_set_instance.id)
+        |> Plug.Conn.put_session(:dungeon_instance_id, dungeon_instance.id)
         |> redirect(to: Routes.crawler_path(conn, :show))
     end
   end
 
-  def invite(conn, %{"map_set_instance_id" => _msi_id, "passcode" => _passcode} = params) do
+  def invite(conn, %{"dungeon_instance_id" => _di_id, "passcode" => _passcode} = params) do
     avatar(conn, params)
   end
 
@@ -124,7 +124,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     validate_avatar(conn, params)
   end
 
-  def destroy(conn, %{"map_set_id" => map_set_id, "score_id" => score_id}) do
+  def destroy(conn, %{"dungeon_id" => dungeon_id, "score_id" => score_id}) do
     location = Player.get_location(conn.assigns[:user_id_hash])
 
     if location do
@@ -132,7 +132,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
       conn
       |> put_flash(:info, "Dungeon cleared.")
-      |> redirect(to: Routes.score_path(conn, :index, %{map_set_id: map_set_id, score_id: score_id}))
+      |> redirect(to: Routes.score_path(conn, :index, %{dungeon_id: dungeon_id, score_id: score_id}))
     else
       conn
       |> redirect(to: Routes.crawler_path(conn, :show))
@@ -143,8 +143,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
     location = Player.get_location(conn.assigns[:user_id_hash])
 
     if location do
-      map_set = Player.get_map_set(location)
-      post_leave_path = if map_set.active || map_set.autogenerated, do: Routes.crawler_path(conn, :show), else: Routes.dungeon_path(conn, :show, map_set)
+      dungeon = Player.get_dungeon(location)
+      post_leave_path = if dungeon.active || dungeon.autogenerated, do: Routes.crawler_path(conn, :show), else: Routes.dungeon_path(conn, :show, dungeon)
 
       leave_and_broadcast(location)
 
@@ -160,7 +160,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   defp assign_player_location(conn, _opts) do
     # TODO: get this from the instance?
     player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(map_tile: [:dungeon])
+                      |> Repo.preload(tile: [:level])
 
     conn
     |> assign(:player_location, player_location)
@@ -177,15 +177,15 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
-  defp validate_passcode(%{params: %{"map_set_instance_id" => msi_id, "passcode" => passcode}} = conn, _opts) do
-    map_set_instance = DungeonInstances.get_map_set(msi_id)
-    map_set_instance = if map_set_instance, do: Repo.preload(map_set_instance, :map_set), else: nil
+  defp validate_passcode(%{params: %{"dungeon_instance_id" => di_id, "passcode" => passcode}} = conn, _opts) do
+    dungeon_instance = DungeonInstances.get_dungeon(di_id)
+    dungeon_instance = if dungeon_instance, do: Repo.preload(dungeon_instance, :dungeon), else: nil
 
     cond do
-      is_nil(map_set_instance) ||
-          map_set_instance.autogenerated ||
-          map_set_instance.map_set.deleted_at ||
-          map_set_instance.passcode != passcode ->
+      is_nil(dungeon_instance) ||
+          dungeon_instance.autogenerated ||
+          dungeon_instance.dungeon.deleted_at ||
+          dungeon_instance.passcode != passcode ->
         conn
         |> put_flash(:error, "Cannot join that instance")
         |> redirect(to: Routes.crawler_path(conn, :show))
@@ -193,17 +193,17 @@ defmodule DungeonCrawlWeb.CrawlerController do
       # todo: check for max players in instance -> cannot join, but ok to let them know the info is correct
       true ->
         conn
-        |> assign(:map_set, map_set_instance)
+        |> assign(:dungeon, dungeon_instance)
     end
   end
 
-  defp validate_active_or_owner(%{params: %{"map_set_id" => map_set_id}} = conn, _opts) do
-    map_set = Dungeon.get_map_set(map_set_id)
+  defp validate_active_or_owner(%{params: %{"dungeon_id" => dungeon_id}} = conn, _opts) do
+    dungeon = Dungeons.get_dungeon(dungeon_id)
 
-    if map_set && !map_set.deleted_at && (map_set.active ||
-        (conn.assigns.current_user && map_set.user_id == conn.assigns.current_user.id)) do #|| conn.assigns.current_user.is_admin
+    if dungeon && !dungeon.deleted_at && (dungeon.active ||
+        (conn.assigns.current_user && dungeon.user_id == conn.assigns.current_user.id)) do #|| conn.assigns.current_user.is_admin
       conn
-      |> assign(:map_set, map_set)
+      |> assign(:dungeon, dungeon)
     else
       conn
       |> put_flash(:error, "Cannot join that dungeon")
@@ -212,12 +212,12 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
-  defp validate_active_or_owner(%{params: %{"map_set_instance_id" => msi_id}} = conn, _opts) do
-    map_set_instance = Repo.preload(DungeonInstances.get_map_set!(msi_id), :map_set)
+  defp validate_active_or_owner(%{params: %{"dungeon_instance_id" => di_id}} = conn, _opts) do
+    dungeon_instance = Repo.preload(DungeonInstances.get_dungeon!(di_id), :dungeon)
 
-    if map_set_instance && !map_set_instance.map_set.deleted_at && map_set_instance.map_set.active && !map_set_instance.is_private do #|| conn.assigns.current_user.is_admin
+    if dungeon_instance && !dungeon_instance.dungeon.deleted_at && dungeon_instance.dungeon.active && !dungeon_instance.is_private do #|| conn.assigns.current_user.is_admin
       conn
-      |> assign(:instance, map_set_instance)
+      |> assign(:instance, dungeon_instance)
     else
       conn
       |> put_flash(:error, "Cannot join that instance")
@@ -237,8 +237,8 @@ defmodule DungeonCrawlWeb.CrawlerController do
     end
   end
 
-  defp validate_instance_limit(%{params: %{"map_set_id" => map_set_id}} = conn, _opts) do
-    if is_nil(Admin.get_setting.max_instances) or Dungeon.instance_count(map_set_id) < Admin.get_setting.max_instances do
+  defp validate_instance_limit(%{params: %{"dungeon_id" => dungeon_id}} = conn, _opts) do
+    if is_nil(Admin.get_setting.max_instances) or Dungeons.instance_count(dungeon_id) < Admin.get_setting.max_instances do
       conn
     else
       conn
@@ -251,20 +251,20 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   defp join(conn, params) do
     join_target = cond do
-                    params["passcode"] -> :map_set
-                    params["map_set_instance_id"] -> :instance
-                    true -> :map_set
+                    params["passcode"] -> :dungeon
+                    params["dungeon_instance_id"] -> :instance
+                    true -> :dungeon
                   end
 
-    {msi_id, _} = join_and_broadcast(conn.assigns[join_target], conn.assigns[:user_id_hash], conn.assigns[:user], !!params["is_private"])
+    {di_id, _} = join_and_broadcast(conn.assigns[join_target], conn.assigns[:user_id_hash], conn.assigns[:user], !!params["is_private"])
     conn
-    |> Plug.Conn.put_session(:map_set_instance_id, msi_id)
+    |> Plug.Conn.put_session(:dungeon_instance_id, di_id)
     |> redirect(to: Routes.crawler_path(conn, :show))
   end
 
   defp action_path(conn, params) do
     cond do
-      params["passcode"] -> Routes.crawler_path(conn, :validate_invite, params["map_set_instance_id"], params["passcode"], params)
+      params["passcode"] -> Routes.crawler_path(conn, :validate_invite, params["dungeon_instance_id"], params["passcode"], params)
       true -> Routes.crawler_path(conn, :validate_avatar, params)
     end
   end

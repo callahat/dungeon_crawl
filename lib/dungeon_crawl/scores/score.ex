@@ -14,7 +14,7 @@ defmodule DungeonCrawl.Scores.Score do
     field :user, :map, virtual: true
     field :place, :integer, virtual: true
 
-    belongs_to :map_set, DungeonCrawl.Dungeon.MapSet, foreign_key: :map_set_id
+    belongs_to :dungeon, DungeonCrawl.Dungeons.Dungeon
 
     timestamps()
   end
@@ -22,7 +22,7 @@ defmodule DungeonCrawl.Scores.Score do
   @doc false
   def changeset(score, attrs) do
     score
-    |> cast(attrs, [:user_id_hash, :score, :steps, :duration, :result, :victory, :map_set_id, :deaths])
-    |> validate_required([:user_id_hash, :score, :map_set_id])
+    |> cast(attrs, [:user_id_hash, :score, :steps, :duration, :result, :victory, :dungeon_id, :deaths])
+    |> validate_required([:user_id_hash, :score, :dungeon_id])
   end
 end

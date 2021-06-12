@@ -1,11 +1,11 @@
 defmodule DungeonCrawlWeb.DungeonView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.Dungeons
 
   def activate_or_new_version_button(conn, dungeon, location) do
     if dungeon.active do
-      unless Dungeon.next_version_exists?(dungeon) do
+      unless Dungeons.next_version_exists?(dungeon) do
         link "New Version", to: Routes.dungeon_new_version_path(conn, :new_version, dungeon), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-info btn-sm"
       end
     else
@@ -15,8 +15,8 @@ defmodule DungeonCrawlWeb.DungeonView do
     end
   end
 
-  def adjacent_map_names(dungeon) do
-    names = Dungeon.adjacent_map_names(dungeon)
+  def adjacent_level_names(level) do
+    names = Dungeons.adjacent_level_names(level)
     {:safe,
       """
       <table class="table table-sm compact-table">
@@ -29,8 +29,8 @@ defmodule DungeonCrawlWeb.DungeonView do
     }
   end
 
-  def title_map_name(nil), do: "<no maps>"
-  def title_map_name(dungeon) do
-    "#{dungeon.number} #{dungeon.name}"
+  def title_level_name(nil), do: "<no levels>"
+  def title_level_name(level) do
+    "#{level.number} #{level.name}"
   end
 end

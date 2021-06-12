@@ -146,7 +146,7 @@ defmodule DungeonCrawl.Scripting.Direction do
 
   @doc """
   Returns the orthogonal direction that the target is in from the origin. The coordinate map
-  can be a map tile struct, but can also be a simple map containing just `row` and `col` keys.
+  can be a tile struct, but can also be a simple map containing just `row` and `col` keys.
   If the coordinates are entirely orthogonal (that is, on the same row or same column) to each other,
   a list containing a single binary is returned. Otherwise, the list is returned with the row direction
   and the column direction. If the coordinates are the same, `idle` is the direction.
@@ -208,7 +208,7 @@ defmodule DungeonCrawl.Scripting.Direction do
   end
 
   @doc """
-  Returns the distance between two map tiles, in terms of map tiles.
+  Returns the distance between two tiles, in terms of tiles.
 
   ## Examples
 

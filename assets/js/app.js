@@ -30,24 +30,24 @@ window.$ = $
 import 'codemirror/addon/mode/simple.js';
 
 import socket from "./socket"
-import Dungeon from "./dungeon"
-import DungeonAdmin from "./dungeon_admin"
+import Level from "./level"
+import LevelAdmin from "./level_admin"
 import Player from "./player"
 import TileTemplatePreview from "./tile_template_preview"
-import DungeonEditor from "./dungeon_editor"
+import LevelEditor from "./level_editor"
 import CharacterPicker from "./character_picker"
 import CodemirrorWrapper from "./codemirror_wrapper"
 import TileAnimation from "./tile_animation"
 import AvatarPreview from "./avatar_preview"
 
-Dungeon.init(socket, document.getElementById("dungeon_instance"))
-DungeonAdmin.init(socket, document.getElementById("dungeon_admin"))
-Player.init(socket, Dungeon, document.getElementById("player"))
+Level.init(socket, document.getElementById("level_instance"))
+LevelAdmin.init(socket, document.getElementById("level_admin"))
+Player.init(socket, Level, document.getElementById("player"))
 TileTemplatePreview.init(document.getElementById("character_preview"))
 TileTemplatePreview.init(document.getElementById("character_preview_small"))
 AvatarPreview.init(document.getElementById("avatar_preview"))
 AvatarPreview.init(document.getElementById("avatar_preview_small"))
-DungeonEditor.init(document.getElementById("dungeon_editor"))
+LevelEditor.init(document.getElementById("level_editor"))
 CharacterPicker.init(document.getElementById("show_character_picker"))
 CodemirrorWrapper.init(document.getElementById("tile_template_script"), document.getElementById("script-tab"))
 TileAnimation.init()

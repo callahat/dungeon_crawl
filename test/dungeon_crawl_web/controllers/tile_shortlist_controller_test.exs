@@ -12,7 +12,7 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
     end
   end
 
-  describe "validate_map_tile" do
+  describe "validate_tile" do
     setup [:create_user]
 
     test "returns empty array of errors when its all good", %{conn: conn} do

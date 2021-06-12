@@ -16,7 +16,7 @@ defmodule DungeonCrawl.Application do
       DungeonCrawlWeb.Endpoint,
       # Start your own worker by calling: DungeonCrawlWeb.Worker.start_link(arg1, arg2, arg3)
       # worker(DungeonCrawlWeb.Worker, [arg1, arg2, arg3]),
-      {DungeonCrawl.DungeonProcesses.MapSetRegistry, name: MapSetInstanceRegistry},
+      {DungeonCrawl.DungeonProcesses.DungeonRegistry, name: DungeonInstanceRegistry},
       {DynamicSupervisor, name: DungeonCrawl.DungeonProcesses.Supervisor, strategy: :one_for_one},
     ]
 

@@ -1,28 +1,28 @@
 defmodule DungeonCrawlWeb.SharedView do
   use DungeonCrawl.Web, :view
 
-  alias DungeonCrawl.DungeonProcesses.{Instances, InstanceProcess, MapSets}
-  alias DungeonCrawl.Dungeon
+  alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   # todo: pass in if its foggy instead maybe
-  def dungeon_as_table(dungeon, height, width, admin \\ false)
-  def dungeon_as_table(%Instances{state_values: state_values} = dungeon, height, width, admin) do
+  def level_as_table(level, height, width, admin \\ false)
+  def level_as_table(%Levels{state_values: state_values} = level, height, width, admin) do
     if state_values[:visibility] == "fog" && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
-      _dungeon_as_table(dungeon, height, width)
+      _level_as_table(level, height, width)
     end
   end
 
-  def dungeon_as_table(dungeon, height, width, _admin) do
-    _dungeon_as_table(dungeon, height, width)
+  def level_as_table(level, height, width, _admin) do
+    _level_as_table(level, height, width)
   end
 
-  def editor_dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
+  def editor_level_as_table(%Dungeons.Level{} = level, height, width) do
     _edge(width, "north") <>
-    _editor_dungeon_table(dungeon.dungeon_map_tiles, height, width) <>
+    _editor_level_table(level.tiles, height, width) <>
     _edge(width, "south")
   end
 
@@ -31,62 +31,62 @@ defmodule DungeonCrawlWeb.SharedView do
     "<tr><td class='edge'></td>#{ incells }<td class='edge'></td></tr>"
   end
 
-  defp _dungeon_as_table(%Dungeon.Map{} = dungeon, height, width) do
-    dungeon.dungeon_map_tiles
-    |> _dungeon_table(height, width)
+  defp _level_as_table(%Dungeons.Level{} = level, height, width) do
+    level.tiles
+    |> _level_table(height, width)
   end
 
-  defp _dungeon_as_table(%DungeonInstances.Map{} = dungeon, height, width) do
-    {:ok, instance} = MapSets.instance_process(dungeon.map_set_instance_id, dungeon.id)
-    instance_state = InstanceProcess.get_state(instance)
+  defp _level_as_table(%DungeonInstances.Level{} = level, height, width) do
+    {:ok, instance} = Registrar.instance_process(level.dungeon_instance_id, level.id)
+    instance_state = LevelProcess.get_state(instance)
 
     instance_state.map_by_ids
-    |> Enum.map(fn({_id, map_tile}) -> map_tile end)
-    |> _dungeon_table(height, width)
+    |> Enum.map(fn({_id, tile}) -> tile end)
+    |> _level_table(height, width)
   end
 
-  defp _dungeon_as_table(%Instances{} = instance_state, height, width) do
+  defp _level_as_table(%Levels{} = instance_state, height, width) do
     instance_state.map_by_ids
-    |> Enum.map(fn({_id, map_tile}) -> map_tile end)
-    |> _dungeon_table(height, width)
+    |> Enum.map(fn({_id, tile}) -> tile end)
+    |> _level_table(height, width)
   end
 
-  defp _dungeon_table(dungeon_map_tiles, height, width) do
-    dungeon_map_tiles
+  defp _level_table(tiles, height, width) do
+    tiles
     |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
-    |> Enum.reduce(%{}, fn(dmt,acc) -> if Map.has_key?(acc, {dmt.row, dmt.col}), do: acc, else: Map.put(acc, {dmt.row, dmt.col}, dmt) end)
+    |> Enum.reduce(%{}, fn(t,acc) -> if Map.has_key?(acc, {t.row, t.col}), do: acc, else: Map.put(acc, {t.row, t.col}, t) end)
     |> rows(height, width, &cells/3)
   end
 # TODO: Probably move the editor stuff into the dungeon_view, since it will only be used for dungeon editing
-  defp _editor_dungeon_table(dungeon_map_tiles, height, width) do
-    dungeon_map_tiles
-    |> Enum.reduce(%{}, fn(dmt,acc) -> case Map.get(acc, {dmt.row, dmt.col}) do
-                                         nil ->   Map.put(acc, {dmt.row, dmt.col}, %{dmt.z_index => dmt})
-                                         tiles -> Map.put(acc, {dmt.row, dmt.col}, Map.put(tiles, dmt.z_index, dmt))
-                                       end
+  defp _editor_level_table(tiles, height, width) do
+    tiles
+    |> Enum.reduce(%{}, fn(t,acc) -> case Map.get(acc, {t.row, t.col}) do
+                                       nil ->   Map.put(acc, {t.row, t.col}, %{t.z_index => t})
+                                       tiles -> Map.put(acc, {t.row, t.col}, Map.put(tiles, t.z_index, t))
+                                     end
        end )
     |> rows(height, width, &editor_cells/3)
   end
 
-  defp rows(map, height, width, cells_func) do
+  defp rows(level, height, width, cells_func) do
     Enum.to_list(0..height-1)
     |> Enum.map(fn(row) ->
-        "<tr>#{cells_func.(map, row, width)}</tr>"
+        "<tr>#{cells_func.(level, row, width)}</tr>"
        end )
     |> Enum.join("\n")
   end
 
-  defp cells(map, row, width) do
+  defp cells(level, row, width) do
     Enum.to_list(0..width-1)
-    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ tile_and_style(map[{row, col}]) }</td>" end )
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ tile_and_style(level[{row, col}]) }</td>" end )
     |> Enum.join("")
   end
 
-  defp editor_cells(map, row, width) do
+  defp editor_cells(level, row, width) do
     "<td id='west_#{row}' class='edge west'></td>" <>
     (Enum.to_list(0..width-1)
     |> Enum.map(fn(col) ->
-        cells = (map[{row, col}] || %{})
+        cells = (level[{row, col}] || %{})
                 |> Map.to_list()
                 |> Enum.sort(fn({a_z_index, _}, {b_z_index, _}) -> a_z_index > b_z_index end)
                 |> Enum.map(fn({_z_index, cell}) -> cell end)
@@ -153,22 +153,22 @@ defmodule DungeonCrawlWeb.SharedView do
   def tile_and_style(nil), do: "<div> </div>"
   def tile_and_style(tile), do: _tile_and_style(tile)
 
-  defp _tile_and_style(%{color: nil, background_color: nil} = map_tile) do
-    "<div#{ _tile_style_animate(map_tile)}>#{map_tile.character}</div>"
+  defp _tile_and_style(%{color: nil, background_color: nil} = tile) do
+    "<div#{ _tile_style_animate(tile)}>#{tile.character}</div>"
   end
-  defp _tile_and_style(%{color: nil} = map_tile) do
-    "<div#{ _tile_style_animate(map_tile)} style='background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
+  defp _tile_and_style(%{color: nil} = tile) do
+    "<div#{ _tile_style_animate(tile)} style='background-color: #{tile.background_color}'>#{tile.character}</div>"
   end
-  defp _tile_and_style(%{background_color: nil} = map_tile) do
-    "<div#{ _tile_style_animate(map_tile)} style='color: #{map_tile.color}'>#{map_tile.character}</div>"
+  defp _tile_and_style(%{background_color: nil} = tile) do
+    "<div#{ _tile_style_animate(tile)} style='color: #{tile.color}'>#{tile.character}</div>"
   end
-  defp _tile_and_style(map_tile) do
-    "<div#{ _tile_style_animate(map_tile)} style='color: #{map_tile.color};background-color: #{map_tile.background_color}'>#{map_tile.character}</div>"
+  defp _tile_and_style(tile) do
+    "<div#{ _tile_style_animate(tile)} style='color: #{tile.color};background-color: #{tile.background_color}'>#{tile.character}</div>"
   end
 
-  defp _tile_style_animate(map_tile) do
-    if ac = animate_class(map_tile) do
-     " class='#{ac}' #{animate_attributes(map_tile)}"
+  defp _tile_style_animate(tile) do
+    if ac = animate_class(tile) do
+     " class='#{ac}' #{animate_attributes(tile)}"
     end
   end
 

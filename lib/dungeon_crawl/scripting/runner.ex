@@ -2,10 +2,10 @@ defmodule DungeonCrawl.Scripting.Runner do
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
-  alias DungeonCrawl.DungeonProcesses.Instances
+  alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.StateValue
 
-  defstruct program: %Program{}, object_id: nil, state: %Instances{}, event_sender: nil, msg_count: 0
+  defstruct program: %Program{}, object_id: nil, state: %Levels{}, event_sender: nil, msg_count: 0
 
 require Logger
   @doc """
@@ -16,7 +16,7 @@ require Logger
   there.
   """
   def run(%Runner{program: program, object_id: object_id, state: state} = runner_state, label) do
-    with object when not(is_nil(object)) <- Instances.get_map_tile_by_id(state, %{id: object_id}),
+    with object when not(is_nil(object)) <- Levels.get_tile_by_id(state, %{id: object_id}),
          false <- StateValue.get_bool(object, :locked),
          next_pc when not(is_nil(next_pc)) <- Program.line_for(program, label),
          program <- %{program | pc: next_pc, lc: 0, status: :alive} do
@@ -31,7 +31,7 @@ require Logger
     cond do
       program.messages == [] || program.status == :alive || program.status == :dead ->
         # todo: maybe have the check for active tile live elsewhere
-        if Instances.get_map_tile_by_id(state, %{id: object_id}) do
+        if Levels.get_tile_by_id(state, %{id: object_id}) do
           _run(runner_state)
         else
           runner_state
@@ -51,7 +51,7 @@ require Logger
   end
 
   def _run(%Runner{program: program, object_id: object_id, state: state} = runner_state) do
-    object = Instances.get_map_tile_by_id(state, %{id: object_id})
+    object = Levels.get_tile_by_id(state, %{id: object_id})
     case program.status do
       :alive ->
         [command, params] = program.instructions[program.pc]

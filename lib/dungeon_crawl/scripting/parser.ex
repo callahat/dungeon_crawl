@@ -42,16 +42,16 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   ### Dungeon Value
 
-  @@ - references a state value for the dungeon instance (ie, the current "map"). Can be used for setting a dungeon value
+  @@ - references a state value for the level instance (ie, the current "level"). Can be used for setting a level value
 
   @@doors_locked = false
 
   @@countdown -= 1
 
-  ### Map Set Instance Value
+  ### Dungeon Instance Value
 
-  & - references a state value for the map set instance (ie, it can be accessed by the current map as well as other maps
-      in the game instance. Can be used for reading or setting a map set value.
+  & - references a state value for the dungeon instance (ie, it can be accessed by the current level as well as other levels
+      in the game instance. Can be used for reading or setting a dungeon value.
 
   &flag_1 = true
 
@@ -134,10 +134,10 @@ defmodule DungeonCrawl.Scripting.Parser do
         _parse_state_change(:change_state, state_element, program)
 
       %{"type" => "@@", "instruction" => state_element} ->
-        _parse_state_change(:change_instance_state, state_element, program)
+        _parse_state_change(:change_level_instance_state, state_element, program)
 
       %{"type" => "&", "instruction" => state_element} ->
-        _parse_state_change(:change_map_set_instance_state, state_element, program)
+        _parse_state_change(:change_dungeon_instance_state, state_element, program)
 
       %{"type" => type, "instruction" => state_element} when type != "" ->
         _parse_state_change(:change_other_state, type, state_element, program)
@@ -421,7 +421,7 @@ defmodule DungeonCrawl.Scripting.Parser do
         :instance_state_variable
 
       %{"lead" => "&", "mid" => "", "tail" => ""} ->
-        :map_set_instance_state_variable
+        :dungeon_instance_state_variable
 
       %{"lead" => "?", "mid" => who, "tail" => "@"} ->
         case Regex.named_captures(~r/^(?:(?<sender>[^@{}]*$|$)|{@(?<variable>[^@]+)})$/, who) do

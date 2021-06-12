@@ -27,8 +27,8 @@
       </td>
       <td>
         <%= score_filter_link(@conn,
-                              "#{score.map_set.name} (v. #{score.map_set.version})",
-                              %{map_set_id: score.map_set_id}) %>
+                              "#{score.dungeon.name} (v. #{score.dungeon.version})",
+                              %{dungeon_id: score.dungeon_id}) %>
       </td>
       <td><%= score.inserted_at %></td>
       <td><%= format_duration score.duration %></td>
@@ -52,8 +52,8 @@
     </td>
     <td>
       <%= score_filter_link(@conn,
-                            "#{@details[:score].map_set.name} (v. #{@details[:score].map_set.version})",
-                            %{map_set_id: @details[:score].map_set_id}) %>
+                            "#{@details[:score].dungeon.name} (v. #{@details[:score].dungeon.version})",
+                            %{dungeon_id: @details[:score].dungeon_id}) %>
     </td>
     <td><%= @details[:score].inserted_at %></td>
     <td><%= format_duration @details[:score].duration %></td>
@@ -66,7 +66,7 @@
   </tbody>
 </table>
 
-<%= if @details[:other_map_sets] do %>
+<%= if @details[:other_dungeons] do %>
   <h5>Other Versions</h5>
 <table class="table table-sm">
   <thead>
@@ -76,14 +76,14 @@
     </tr>
   </thead>
   <tbody>
-  <%= for other_map_set <- Enum.reject(@details[:other_map_sets], fn ms -> ms.score_count < 1 end) do %>
+  <%= for other_dungeon <- Enum.reject(@details[:other_dungeons], fn d -> d.score_count < 1 end) do %>
     <tr>
       <td><%= score_filter_link(@conn,
-                                if(other_map_set.id == @details[:map_set_id], do: "*", else: "")
-                                <> " #{other_map_set.name} (v. #{other_map_set.version})",
-                                %{map_set_id: other_map_set.id}) %>
+                                if(other_dungeon.id == @details[:dungeon_id], do: "*", else: "")
+                                <> " #{other_dungeon.name} (v. #{other_dungeon.version})",
+                                %{dungeon_id: other_dungeon.id}) %>
       </td>
-      <td><%= other_map_set.score_count %></td>
+      <td><%= other_dungeon.score_count %></td>
     </tr>
   <% end %>
   </tbody>

@@ -3,7 +3,7 @@ let TileAnimation = {
     var paths = ["dungeons/\\d+",
                  "crawler",
                  "tile_templates",
-                 "manage/map_sets/\\d+/instances/\\d+"].join("|")
+                 "manage/dungeon_processes/\\d+/level_processes/\\d+"].join("|")
     if(document.URL.match(new RegExp(paths))){
       this.start()
     }

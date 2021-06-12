@@ -1,0 +1,93 @@
+<%= form_for @changeset, @action, [id: :map], fn f -> %>
+  <%= if @changeset.action do %>
+    <div class="alert alert-danger">
+      <p>Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
+
+  <div>
+    <ul class="nav nav-tabs" id="dungeon_form_tab" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link <%= unless @level, do: 'active' %>" id="fields-tab" data-toggle="tab" href="#fields" role="tab" aria-controls="fields" aria-selected="true">
+          Map Info
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link <%= unless @level, do: 'disabled', else: 'active' %>" id="map-tab" data-toggle="tab" href="#dungeon-map" role="tab" aria-controls="dungeon-map" aria-selected="false">
+          Dungeon Map
+        </a>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="dungeon_form_tab_content">
+      <div class="tab-pane <%= unless @level, do: 'show active' %>" id="fields" role="tabpanel" aria-labelledby="fields-tab">
+        <div class="row">
+          <div class="form-group col-md-4">
+            <%= label f, :name, class: "control-label" %>
+            <%= text_input f, :name, class: "form-control" %>
+            <%= error_tag f, :name %>
+          </div>
+
+          <div class="form-group col-md-2">
+            <%= label f, :height, class: "control-label" %>
+            <%= text_input f, :height, class: "form-control", placeholder: "20 to #{@max_dimensions.max_height}" %>
+            <%= error_tag f, :height %>
+          </div>
+
+          <div class="form-group col-md-2">
+            <%= label f, :width, class: "control-label" %>
+            <%= text_input f, :width, class: "form-control", placeholder: "20 to #{@max_dimensions.max_width}" %>
+            <%= error_tag f, :width %>
+          </div>
+
+      <%= if @generators do %>
+          <div class="form-group col-md-4">
+            <%= label f, :generator, class: "control-label" %>
+            <%= select f, :generator, @generators, class: "form-control" %>
+          </div>
+      <% else %>
+          <div class="form-group col-md-4">
+            <p>* changing dimensions may cause the level to lose tiles</p>
+          </div>
+          <%= hidden_input f, :tile_changes %>
+          <%= hidden_input f, :tile_additions %>
+          <%= hidden_input f, :tile_deletions %>
+          <%= hidden_input f, :spawn_tiles %>
+      <% end %>
+        </div>
+
+        <div class="row">
+          <div class="form-group col-md-10">
+            <%= label f, :state, class: "control-label" %>
+            <%= text_input f, :state, class: "form-control" %>
+            <%= error_tag f, :state %>
+          </div>
+
+          <div class="form-group col-md-2">
+            <%= label f, :entrance, class: "control-label" %><br/>
+            <%= checkbox f, :entrance %>
+            <%= error_tag f, :entrance %>
+          </div>
+        </div>
+
+        <h5>Adjacent Maps</h5>
+
+        <div class="row">
+          <%= adjacent_selects f, @dungeon.levels %>
+        </div>
+
+      </div>
+      <div class="tab-pane <%= if @level, do: 'show active', else: 'disabled' %>" id="dungeon-map" role="tabpanel" aria-labelledby="map-tab">
+      <%= if @level do %>
+      <div class="text-center" id="level_editor" data-dungeon-id="<%= @level.dungeon_id %>" data-level-id="<%= @level.id %>">
+        <%= render(DungeonCrawlWeb.SharedView, "editor_dungeon.html", level: @level) %>
+      </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <%= submit "Submit", class: "btn btn-primary" %>
+  </div>
+<% end %>
+

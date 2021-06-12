@@ -1,48 +1,47 @@
 defmodule DungeonCrawl.Action.Move do
-  alias DungeonCrawl.DungeonProcesses.Instances
-  alias DungeonCrawl.DungeonInstances.MapTile
+  alias DungeonCrawl.DungeonProcesses.Levels
+  alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scripting.Direction
 
   # todo: rename this
-  def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state, :absolute, tile_changes) do
-    _move(entity_map_tile, destination, state, tile_changes)
+  def go(%Tile{} = entity_tile, %Tile{} = destination, %Levels{} = state, :absolute, tile_changes) do
+    _move(entity_tile, destination, state, tile_changes)
   end
-  def go(%MapTile{} = entity_map_tile, %MapTile{} = destination, %Instances{} = state) do
+  def go(%Tile{} = entity_tile, %Tile{} = destination, %Levels{} = state) do
     cond do
-      _is_teleporter(destination, entity_map_tile) ->
+      _is_teleporter(destination, entity_tile) ->
         Direction.coordinates_to_edge(destination, destination.parsed_state[:facing], state.state_values)
         |> _possible_teleporter_destinations(state, [], true)
         |> Enum.reverse()
-        |> _teleport(entity_map_tile, state)
+        |> _teleport(entity_tile, state)
 
-      _is_pushable(destination.parsed_state[:pushable], entity_map_tile, destination) ->
-        direction = _get_direction(entity_map_tile, destination)
-        pushed_location = Instances.get_map_tile(state, destination, direction)
+      _is_pushable(destination.parsed_state[:pushable], entity_tile, destination) ->
+        direction = _get_direction(entity_tile, destination)
+        pushed_location = Levels.get_tile(state, destination, direction)
 
         case go(destination, pushed_location, state) do
-          # TODO: need the new_old_location_map to update all the pushed map tiles in the display
           {:ok, tile_changes, state} ->
-            _move(entity_map_tile, destination, state, tile_changes)
+            _move(entity_tile, destination, state, tile_changes)
 
           _ ->
             if destination.parsed_state[:squishable] do
-              {squashed_tile, state} = Instances.delete_map_tile(state, destination)
-              _move(entity_map_tile, squashed_tile, state, %{})
+              {squashed_tile, state} = Levels.delete_tile(state, destination)
+              _move(entity_tile, squashed_tile, state, %{})
             else
               {:invalid}
             end
         end
 
       (destination.parsed_state[:blocking] || destination.parsed_state[:flying]) &&
-          !(entity_map_tile.parsed_state[:flying] && destination.parsed_state[:low]) ->
+          !(entity_tile.parsed_state[:flying] && destination.parsed_state[:low]) ->
         {:invalid}
 
-      _is_squishable(destination, entity_map_tile) ->
-        {_squashed_tile, state} = Instances.delete_map_tile(state, destination)
-        _move(entity_map_tile, destination, state, %{})
+      _is_squishable(destination, entity_tile) ->
+        {_squashed_tile, state} = Levels.delete_tile(state, destination)
+        _move(entity_tile, destination, state, %{})
 
       true ->
-        _move(entity_map_tile, destination, state, %{})
+        _move(entity_tile, destination, state, %{})
 
     end
   end
@@ -53,57 +52,57 @@ defmodule DungeonCrawl.Action.Move do
     !destination.parsed_state[:blocking]
   end
 
-  defp _move(entity_map_tile, destination, state, tile_changes) do
-    top_tile = Map.take(destination, [:map_instance_id, :row, :col, :z_index])
-    {new_location, state} = Instances.update_map_tile(state, entity_map_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
+  defp _move(entity_tile, destination, state, tile_changes) do
+    top_tile = Map.take(destination, [:level_instance_id, :row, :col, :z_index])
+    {new_location, state} = Levels.update_tile(state, entity_tile, Map.put(top_tile, :z_index, top_tile.z_index+1))
     {new_location, state} = _increment_player_steps(state, new_location)
 
-    old_location_top_tile = Instances.get_map_tile(state, Map.take(entity_map_tile, [:row, :col]))
-    old_location = if old_location_top_tile, do: old_location_top_tile, else: Map.merge(%MapTile{}, Map.take(entity_map_tile, [:row, :col]))
+    old_location_top_tile = Levels.get_tile(state, Map.take(entity_tile, [:row, :col]))
+    old_location = if old_location_top_tile, do: old_location_top_tile, else: Map.merge(%Tile{}, Map.take(entity_tile, [:row, :col]))
     new_changes = %{ {new_location.row, new_location.col} => new_location,
                      {old_location.row, old_location.col} => old_location}
     {:ok, Map.merge(tile_changes, new_changes), state}
   end
 
-  defp _increment_player_steps(state, %{parsed_state: %{player: true}} = player_map_tile) do
-    steps = player_map_tile.parsed_state[:steps] || 0
-    Instances.update_map_tile_state(state, player_map_tile, %{steps: steps + 1})
+  defp _increment_player_steps(state, %{parsed_state: %{player: true}} = player_tile) do
+    steps = player_tile.parsed_state[:steps] || 0
+    Levels.update_tile_state(state, player_tile, %{steps: steps + 1})
   end
-  defp _increment_player_steps(state, map_tile), do: {map_tile, state}
+  defp _increment_player_steps(state, tile), do: {tile, state}
 
   defp _is_teleporter(destination, entity_tile) do
     destination.parsed_state[:teleporter] &&
       Direction.orthogonal_direction(entity_tile, destination) == [destination.parsed_state[:facing]]
   end
 
-  defp _is_pushable(pushable, entity_map_tile, destination) do
-    if entity_map_tile.parsed_state[:not_pushing] do
+  defp _is_pushable(pushable, entity_tile, destination) do
+    if entity_tile.parsed_state[:not_pushing] do
       false
     else
       case pushable do
-        true  -> _is_pushable("nsew", entity_map_tile, destination)
+        true  -> _is_pushable("nsew", entity_tile, destination)
 
         directions when is_binary(directions) ->
           directions
           |> String.split("",trim: true)
-          |> Enum.any?(&_in_direction(&1, entity_map_tile, destination))
+          |> Enum.any?(&_in_direction(&1, entity_tile, destination))
 
         _ -> false
       end
     end
   end
 
-  defp _is_squishable(destination, entity_map_tile) do
-    if entity_map_tile.parsed_state[:not_squishing] do
+  defp _is_squishable(destination, entity_tile) do
+    if entity_tile.parsed_state[:not_squishing] do
       false
     else
       destination.parsed_state[:squishable]
     end
   end
 
-  defp _in_direction(direction, entity_map_tile, destination) do
-    #{row_delta, col_delta} = {destination.row - entity_map_tile.row, destination.col - entity_map_tile.col}
-    dirs = Direction.orthogonal_direction(entity_map_tile, destination)
+  defp _in_direction(direction, entity_tile, destination) do
+    #{row_delta, col_delta} = {destination.row - entity_tile.row, destination.col - entity_tile.col}
+    dirs = Direction.orthogonal_direction(entity_tile, destination)
     case direction do
       "n" -> Enum.member?(dirs, "north") # subject must be south moving north
       "s" -> Enum.member?(dirs, "south")
@@ -115,8 +114,8 @@ defmodule DungeonCrawl.Action.Move do
 
   # assumes orthogonal direction, no diagonal; and idle should not be obtained if we made it here.
   # there should be only one direction
-  defp _get_direction(entity_map_tile, destination) do
-    Direction.orthogonal_direction(entity_map_tile, destination)
+  defp _get_direction(entity_tile, destination) do
+    Direction.orthogonal_direction(entity_tile, destination)
     |> Enum.at(0)
   end
 
@@ -124,11 +123,11 @@ defmodule DungeonCrawl.Action.Move do
   defp _possible_teleporter_destinations([], _state, candidates, _first), do: candidates
   defp _possible_teleporter_destinations([_], _state, candidates, _first), do: candidates
   defp _possible_teleporter_destinations([a, b | coordinates], state, candidates, first) do
-    map_tile = Instances.get_map_tile(state, a)
-    candidate_tile = Instances.get_map_tile(state, b)
+    tile = Levels.get_tile(state, a)
+    candidate_tile = Levels.get_tile(state, b)
 
     candidates = cond do
-                   _is_destination_candidate(map_tile, candidate_tile, first) -> [candidate_tile | candidates]
+                   _is_destination_candidate(tile, candidate_tile, first) -> [candidate_tile | candidates]
                    true -> candidates
                  end
 
@@ -141,21 +140,21 @@ defmodule DungeonCrawl.Action.Move do
 
   defp _is_destination_candidate(nil, _, _), do: false
   defp _is_destination_candidate(_, nil, _), do: false
-  defp _is_destination_candidate(map_tile, candidate_tile, true) do
-     map_tile && candidate_tile && map_tile.parsed_state[:teleporter]
+  defp _is_destination_candidate(tile, candidate_tile, true) do
+     tile && candidate_tile && tile.parsed_state[:teleporter]
   end
-  defp _is_destination_candidate(map_tile, candidate_tile, false) do
-    _is_teleporter(map_tile, candidate_tile)
+  defp _is_destination_candidate(tile, candidate_tile, false) do
+    _is_teleporter(tile, candidate_tile)
   end
 
-  defp _teleport([], _entity_map_tile, _state), do: {:invalid}
-  defp _teleport([candidate_destination | candidates], %MapTile{} = entity_map_tile, %Instances{} = state) do
-    case go(entity_map_tile, candidate_destination, state) do
+  defp _teleport([], _entity_tile, _state), do: {:invalid}
+  defp _teleport([candidate_destination | candidates], %Tile{} = entity_tile, %Levels{} = state) do
+    case go(entity_tile, candidate_destination, state) do
       {:ok, _tile_changes, _state} = result->
         result
 
       _ -> # invalid for whatever reason
-        _teleport(candidates, entity_map_tile, state)
+        _teleport(candidates, entity_tile, state)
     end
   end
 end
