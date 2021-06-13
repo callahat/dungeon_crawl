@@ -206,7 +206,6 @@ CREATE TABLE public.player_locations (
     user_id_hash character varying(255),
     inserted_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
-    map_tile_id bigint,
     tile_instance_id bigint
 );
 
@@ -1000,14 +999,6 @@ ALTER TABLE ONLY public.level_instances
 
 
 --
--- Name: player_locations player_locations_tile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.player_locations
-    ADD CONSTRAINT player_locations_tile_id_fkey FOREIGN KEY (map_tile_id) REFERENCES public.tiles(id) ON DELETE CASCADE;
-
-
---
 -- Name: player_locations player_locations_tile_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1143,3 +1134,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210513224613);
 INSERT INTO public."schema_migrations" (version) VALUES (20210515021252);
 INSERT INTO public."schema_migrations" (version) VALUES (20210605224807);
 INSERT INTO public."schema_migrations" (version) VALUES (20210612225130);
+INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
