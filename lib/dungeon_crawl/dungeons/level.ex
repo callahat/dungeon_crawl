@@ -40,7 +40,7 @@ defmodule DungeonCrawl.Dungeons.Level do
     |> validate_required([:dungeon_id, :number, :height, :width])
     |> validate_inclusion(:height, 20..max_height, message: "must be between 20 and #{max_height}")
     |> validate_inclusion(:width, 20..max_width, message: "must be between 20 and #{max_width}")
-    |> unique_constraint(:number, name: :dungeons_dungeon_id_number_index, message: "Level Number already exists")
+    |> unique_constraint(:number, name: :levels_dungeon_id_number_index, message: "Level Number already exists")
     |> TileTemplate.validate_state_values
   end
 end
