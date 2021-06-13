@@ -52,35 +52,10 @@ CREATE TABLE public.dungeon_instances (
 
 
 --
--- Name: tiles; Type: TABLE; Schema: public; Owner: -
+-- Name: dungeon_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.tiles (
-    id bigint NOT NULL,
-    "row" integer,
-    col integer,
-    level_id bigint,
-    tile_template_id bigint,
-    z_index integer,
-    "character" character varying(255),
-    color character varying(255),
-    background_color character varying(255),
-    state character varying(255),
-    script character varying(2048),
-    name character varying(32),
-    animate_random boolean,
-    animate_colors character varying(255),
-    animate_background_colors character varying(255),
-    animate_characters character varying(32),
-    animate_period integer
-);
-
-
---
--- Name: dungeon_map_tiles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.dungeon_map_tiles_id_seq
+CREATE SEQUENCE public.dungeon_instances_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -89,10 +64,10 @@ CREATE SEQUENCE public.dungeon_map_tiles_id_seq
 
 
 --
--- Name: dungeon_map_tiles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: dungeon_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.dungeon_map_tiles_id_seq OWNED BY public.tiles.id;
+ALTER SEQUENCE public.dungeon_instances_id_seq OWNED BY public.dungeon_instances.id;
 
 
 --
@@ -120,29 +95,6 @@ CREATE TABLE public.dungeons (
 
 
 --
--- Name: levels; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.levels (
-    id bigint NOT NULL,
-    name character varying(255),
-    width integer,
-    height integer,
-    inserted_at timestamp without time zone NOT NULL,
-    updated_at timestamp without time zone NOT NULL,
-    max_instances integer,
-    state character varying(255),
-    dungeon_id bigint,
-    number integer,
-    entrance boolean,
-    number_north integer,
-    number_south integer,
-    number_east integer,
-    number_west integer
-);
-
-
---
 -- Name: dungeons_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -158,7 +110,7 @@ CREATE SEQUENCE public.dungeons_id_seq
 -- Name: dungeons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.levels.id;
+ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.dungeons.id;
 
 
 --
@@ -185,10 +137,10 @@ CREATE TABLE public.level_instances (
 
 
 --
--- Name: map_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: level_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.map_instances_id_seq
+CREATE SEQUENCE public.level_instances_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -197,79 +149,40 @@ CREATE SEQUENCE public.map_instances_id_seq
 
 
 --
--- Name: map_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: level_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.map_instances_id_seq OWNED BY public.level_instances.id;
-
-
---
--- Name: map_set_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.map_set_instances_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+ALTER SEQUENCE public.level_instances_id_seq OWNED BY public.level_instances.id;
 
 
 --
--- Name: map_set_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: levels; Type: TABLE; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.map_set_instances_id_seq OWNED BY public.dungeon_instances.id;
-
-
---
--- Name: map_sets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.map_sets_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: map_sets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.map_sets_id_seq OWNED BY public.dungeons.id;
-
-
---
--- Name: tile_instances; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.tile_instances (
+CREATE TABLE public.levels (
     id bigint NOT NULL,
-    "row" integer,
-    col integer,
-    z_index integer,
-    level_instance_id bigint,
-    "character" character varying(255),
-    color character varying(255),
-    background_color character varying(255),
-    state character varying(2048),
-    script character varying(2048),
-    name character varying(32),
-    animate_random boolean,
-    animate_colors character varying(255),
-    animate_background_colors character varying(255),
-    animate_characters character varying(32),
-    animate_period integer
+    name character varying(255),
+    width integer,
+    height integer,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
+    max_instances integer,
+    state character varying(255),
+    dungeon_id bigint,
+    number integer,
+    entrance boolean,
+    number_north integer,
+    number_south integer,
+    number_east integer,
+    number_west integer
 );
 
 
 --
--- Name: map_tile_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: levels_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.map_tile_instances_id_seq
+CREATE SEQUENCE public.levels_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -278,10 +191,10 @@ CREATE SEQUENCE public.map_tile_instances_id_seq
 
 
 --
--- Name: map_tile_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: levels_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.map_tile_instances_id_seq OWNED BY public.tile_instances.id;
+ALTER SEQUENCE public.levels_id_seq OWNED BY public.levels.id;
 
 
 --
@@ -293,7 +206,6 @@ CREATE TABLE public.player_locations (
     user_id_hash character varying(255),
     inserted_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
-    map_tile_id bigint,
     tile_instance_id bigint
 );
 
@@ -435,6 +347,49 @@ ALTER SEQUENCE public.spawn_locations_id_seq OWNED BY public.spawn_locations.id;
 
 
 --
+-- Name: tile_instances; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tile_instances (
+    id bigint NOT NULL,
+    "row" integer,
+    col integer,
+    z_index integer,
+    level_instance_id bigint,
+    "character" character varying(255),
+    color character varying(255),
+    background_color character varying(255),
+    state character varying(2048),
+    script character varying(2048),
+    name character varying(32),
+    animate_random boolean,
+    animate_colors character varying(255),
+    animate_background_colors character varying(255),
+    animate_characters character varying(32),
+    animate_period integer
+);
+
+
+--
+-- Name: tile_instances_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.tile_instances_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: tile_instances_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.tile_instances_id_seq OWNED BY public.tile_instances.id;
+
+
+--
 -- Name: tile_shortlists; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -530,6 +485,50 @@ ALTER SEQUENCE public.tile_templates_id_seq OWNED BY public.tile_templates.id;
 
 
 --
+-- Name: tiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tiles (
+    id bigint NOT NULL,
+    "row" integer,
+    col integer,
+    level_id bigint,
+    tile_template_id bigint,
+    z_index integer,
+    "character" character varying(255),
+    color character varying(255),
+    background_color character varying(255),
+    state character varying(255),
+    script character varying(2048),
+    name character varying(32),
+    animate_random boolean,
+    animate_colors character varying(255),
+    animate_background_colors character varying(255),
+    animate_characters character varying(32),
+    animate_period integer
+);
+
+
+--
+-- Name: tiles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.tiles_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: tiles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.tiles_id_seq OWNED BY public.tiles.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -570,28 +569,28 @@ ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 -- Name: dungeon_instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.dungeon_instances ALTER COLUMN id SET DEFAULT nextval('public.map_set_instances_id_seq'::regclass);
+ALTER TABLE ONLY public.dungeon_instances ALTER COLUMN id SET DEFAULT nextval('public.dungeon_instances_id_seq'::regclass);
 
 
 --
 -- Name: dungeons id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.dungeons ALTER COLUMN id SET DEFAULT nextval('public.map_sets_id_seq'::regclass);
+ALTER TABLE ONLY public.dungeons ALTER COLUMN id SET DEFAULT nextval('public.dungeons_id_seq'::regclass);
 
 
 --
 -- Name: level_instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.level_instances ALTER COLUMN id SET DEFAULT nextval('public.map_instances_id_seq'::regclass);
+ALTER TABLE ONLY public.level_instances ALTER COLUMN id SET DEFAULT nextval('public.level_instances_id_seq'::regclass);
 
 
 --
 -- Name: levels id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.levels ALTER COLUMN id SET DEFAULT nextval('public.dungeons_id_seq'::regclass);
+ALTER TABLE ONLY public.levels ALTER COLUMN id SET DEFAULT nextval('public.levels_id_seq'::regclass);
 
 
 --
@@ -626,7 +625,7 @@ ALTER TABLE ONLY public.spawn_locations ALTER COLUMN id SET DEFAULT nextval('pub
 -- Name: tile_instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tile_instances ALTER COLUMN id SET DEFAULT nextval('public.map_tile_instances_id_seq'::regclass);
+ALTER TABLE ONLY public.tile_instances ALTER COLUMN id SET DEFAULT nextval('public.tile_instances_id_seq'::regclass);
 
 
 --
@@ -647,7 +646,7 @@ ALTER TABLE ONLY public.tile_templates ALTER COLUMN id SET DEFAULT nextval('publ
 -- Name: tiles id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tiles ALTER COLUMN id SET DEFAULT nextval('public.dungeon_map_tiles_id_seq'::regclass);
+ALTER TABLE ONLY public.tiles ALTER COLUMN id SET DEFAULT nextval('public.tiles_id_seq'::regclass);
 
 
 --
@@ -658,51 +657,35 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 
 
 --
--- Name: tiles dungeon_map_tiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: dungeon_instances dungeon_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tiles
-    ADD CONSTRAINT dungeon_map_tiles_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.dungeon_instances
+    ADD CONSTRAINT dungeon_instances_pkey PRIMARY KEY (id);
 
 
 --
--- Name: levels dungeons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: dungeons dungeons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.levels
+ALTER TABLE ONLY public.dungeons
     ADD CONSTRAINT dungeons_pkey PRIMARY KEY (id);
 
 
 --
--- Name: level_instances map_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: level_instances level_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.level_instances
-    ADD CONSTRAINT map_instances_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT level_instances_pkey PRIMARY KEY (id);
 
 
 --
--- Name: dungeon_instances map_set_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: levels levels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.dungeon_instances
-    ADD CONSTRAINT map_set_instances_pkey PRIMARY KEY (id);
-
-
---
--- Name: dungeons map_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.dungeons
-    ADD CONSTRAINT map_sets_pkey PRIMARY KEY (id);
-
-
---
--- Name: tile_instances map_tile_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tile_instances
-    ADD CONSTRAINT map_tile_instances_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.levels
+    ADD CONSTRAINT levels_pkey PRIMARY KEY (id);
 
 
 --
@@ -746,6 +729,14 @@ ALTER TABLE ONLY public.spawn_locations
 
 
 --
+-- Name: tile_instances tile_instances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tile_instances
+    ADD CONSTRAINT tile_instances_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tile_shortlists tile_shortlists_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -762,6 +753,14 @@ ALTER TABLE ONLY public.tile_templates
 
 
 --
+-- Name: tiles tiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tiles
+    ADD CONSTRAINT tiles_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -770,87 +769,66 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: dungeon_map_tiles_dungeon_id_row_col_index; Type: INDEX; Schema: public; Owner: -
+-- Name: dungeons_active_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX dungeon_map_tiles_dungeon_id_row_col_index ON public.tiles USING btree (level_id, "row", col);
-
-
---
--- Name: dungeon_map_tiles_tile_template_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX dungeon_map_tiles_tile_template_id_index ON public.tiles USING btree (tile_template_id);
+CREATE INDEX dungeons_active_index ON public.dungeons USING btree (active);
 
 
 --
--- Name: dungeons_map_set_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: dungeons_deleted_at_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX dungeons_map_set_id_index ON public.levels USING btree (dungeon_id);
-
-
---
--- Name: dungeons_map_set_id_number_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX dungeons_map_set_id_number_index ON public.levels USING btree (dungeon_id, number);
+CREATE INDEX dungeons_deleted_at_index ON public.dungeons USING btree (deleted_at);
 
 
 --
--- Name: map_instances_map_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: dungeons_line_identifier_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX map_instances_map_id_index ON public.level_instances USING btree (level_id);
-
-
---
--- Name: map_instances_map_set_instance_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX map_instances_map_set_instance_id_index ON public.level_instances USING btree (dungeon_instance_id);
+CREATE INDEX dungeons_line_identifier_index ON public.dungeons USING btree (line_identifier);
 
 
 --
--- Name: map_instances_map_set_instance_id_number_index; Type: INDEX; Schema: public; Owner: -
+-- Name: level_instances_dungeon_instance_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX map_instances_map_set_instance_id_number_index ON public.level_instances USING btree (dungeon_instance_id, number);
-
-
---
--- Name: map_sets_active_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX map_sets_active_index ON public.dungeons USING btree (active);
+CREATE INDEX level_instances_dungeon_instance_id_index ON public.level_instances USING btree (dungeon_instance_id);
 
 
 --
--- Name: map_sets_deleted_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: level_instances_dungeon_instance_id_number_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX map_sets_deleted_at_index ON public.dungeons USING btree (deleted_at);
-
-
---
--- Name: map_sets_line_identifier_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX map_sets_line_identifier_index ON public.dungeons USING btree (line_identifier);
+CREATE UNIQUE INDEX level_instances_dungeon_instance_id_number_index ON public.level_instances USING btree (dungeon_instance_id, number);
 
 
 --
--- Name: map_tile_instances_map_instance_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: level_instances_level_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX map_tile_instances_map_instance_id_index ON public.tile_instances USING btree (level_instance_id);
+CREATE INDEX level_instances_level_id_index ON public.level_instances USING btree (level_id);
 
 
 --
--- Name: player_locations_map_tile_instance_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: levels_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX player_locations_map_tile_instance_id_index ON public.player_locations USING btree (tile_instance_id);
+CREATE INDEX levels_dungeon_id_index ON public.levels USING btree (dungeon_id);
+
+
+--
+-- Name: levels_dungeon_id_number_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX levels_dungeon_id_number_index ON public.levels USING btree (dungeon_id, number);
+
+
+--
+-- Name: player_locations_tile_instance_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX player_locations_tile_instance_id_index ON public.player_locations USING btree (tile_instance_id);
 
 
 --
@@ -861,10 +839,10 @@ CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USIN
 
 
 --
--- Name: scores_map_set_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: scores_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX scores_map_set_id_index ON public.scores USING btree (dungeon_id);
+CREATE INDEX scores_dungeon_id_index ON public.scores USING btree (dungeon_id);
 
 
 --
@@ -875,17 +853,24 @@ CREATE INDEX scores_user_id_hash_index ON public.scores USING btree (user_id_has
 
 
 --
--- Name: spawn_locations_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: spawn_locations_level_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX spawn_locations_dungeon_id_index ON public.spawn_locations USING btree (level_id);
+CREATE INDEX spawn_locations_level_id_index ON public.spawn_locations USING btree (level_id);
 
 
 --
--- Name: spawn_locations_dungeon_id_row_col_index; Type: INDEX; Schema: public; Owner: -
+-- Name: spawn_locations_level_id_row_col_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX spawn_locations_dungeon_id_row_col_index ON public.spawn_locations USING btree (level_id, "row", col);
+CREATE UNIQUE INDEX spawn_locations_level_id_row_col_index ON public.spawn_locations USING btree (level_id, "row", col);
+
+
+--
+-- Name: tile_instances_level_instance_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tile_instances_level_instance_id_index ON public.tile_instances USING btree (level_instance_id);
 
 
 --
@@ -938,6 +923,20 @@ CREATE INDEX tile_templates_user_id_index ON public.tile_templates USING btree (
 
 
 --
+-- Name: tiles_level_id_row_col_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tiles_level_id_row_col_index ON public.tiles USING btree (level_id, "row", col);
+
+
+--
+-- Name: tiles_tile_template_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tiles_tile_template_id_index ON public.tiles USING btree (tile_template_id);
+
+
+--
 -- Name: users_user_id_hash_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -952,107 +951,83 @@ CREATE UNIQUE INDEX users_username_index ON public.users USING btree (username);
 
 
 --
--- Name: tiles dungeon_map_tiles_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tiles
-    ADD CONSTRAINT dungeon_map_tiles_dungeon_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id);
-
-
---
--- Name: tiles dungeon_map_tiles_tile_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tiles
-    ADD CONSTRAINT dungeon_map_tiles_tile_template_id_fkey FOREIGN KEY (tile_template_id) REFERENCES public.tile_templates(id);
-
-
---
--- Name: levels dungeons_map_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.levels
-    ADD CONSTRAINT dungeons_map_set_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
-
-
---
--- Name: level_instances map_instances_map_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.level_instances
-    ADD CONSTRAINT map_instances_map_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
-
-
---
--- Name: level_instances map_instances_map_set_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.level_instances
-    ADD CONSTRAINT map_instances_map_set_instance_id_fkey FOREIGN KEY (dungeon_instance_id) REFERENCES public.dungeon_instances(id) ON DELETE CASCADE;
-
-
---
--- Name: dungeon_instances map_set_instances_map_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: dungeon_instances dungeon_instances_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.dungeon_instances
-    ADD CONSTRAINT map_set_instances_map_set_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
+    ADD CONSTRAINT dungeon_instances_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
 
 
 --
--- Name: dungeons map_sets_previous_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.dungeons
-    ADD CONSTRAINT map_sets_previous_version_id_fkey FOREIGN KEY (previous_version_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
-
-
---
--- Name: dungeons map_sets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: dungeons dungeons_previous_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.dungeons
-    ADD CONSTRAINT map_sets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    ADD CONSTRAINT dungeons_previous_version_id_fkey FOREIGN KEY (previous_version_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
 
 
 --
--- Name: tile_instances map_tile_instances_map_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: dungeons dungeons_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tile_instances
-    ADD CONSTRAINT map_tile_instances_map_instance_id_fkey FOREIGN KEY (level_instance_id) REFERENCES public.level_instances(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.dungeons
+    ADD CONSTRAINT dungeons_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
--- Name: player_locations player_locations_map_tile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: level_instances level_instances_dungeon_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_instances
+    ADD CONSTRAINT level_instances_dungeon_instance_id_fkey FOREIGN KEY (dungeon_instance_id) REFERENCES public.dungeon_instances(id) ON DELETE CASCADE;
+
+
+--
+-- Name: level_instances level_instances_level_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_instances
+    ADD CONSTRAINT level_instances_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
+
+
+--
+-- Name: levels levels_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.levels
+    ADD CONSTRAINT levels_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
+
+
+--
+-- Name: player_locations player_locations_tile_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.player_locations
-    ADD CONSTRAINT player_locations_map_tile_id_fkey FOREIGN KEY (map_tile_id) REFERENCES public.tiles(id) ON DELETE CASCADE;
+    ADD CONSTRAINT player_locations_tile_instance_id_fkey FOREIGN KEY (tile_instance_id) REFERENCES public.tile_instances(id) ON DELETE CASCADE;
 
 
 --
--- Name: player_locations player_locations_map_tile_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.player_locations
-    ADD CONSTRAINT player_locations_map_tile_instance_id_fkey FOREIGN KEY (tile_instance_id) REFERENCES public.tile_instances(id) ON DELETE CASCADE;
-
-
---
--- Name: scores scores_map_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: scores scores_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.scores
-    ADD CONSTRAINT scores_map_set_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id);
+    ADD CONSTRAINT scores_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id);
 
 
 --
--- Name: spawn_locations spawn_locations_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: spawn_locations spawn_locations_level_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.spawn_locations
-    ADD CONSTRAINT spawn_locations_dungeon_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id);
+    ADD CONSTRAINT spawn_locations_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id);
+
+
+--
+-- Name: tile_instances tile_instances_level_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tile_instances
+    ADD CONSTRAINT tile_instances_level_instance_id_fkey FOREIGN KEY (level_instance_id) REFERENCES public.level_instances(id) ON DELETE CASCADE;
 
 
 --
@@ -1085,6 +1060,22 @@ ALTER TABLE ONLY public.tile_templates
 
 ALTER TABLE ONLY public.tile_templates
     ADD CONSTRAINT tile_templates_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tiles tiles_level_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tiles
+    ADD CONSTRAINT tiles_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id);
+
+
+--
+-- Name: tiles tiles_tile_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tiles
+    ADD CONSTRAINT tiles_tile_template_id_fkey FOREIGN KEY (tile_template_id) REFERENCES public.tile_templates(id);
 
 
 --
@@ -1142,3 +1133,5 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210503022021);
 INSERT INTO public."schema_migrations" (version) VALUES (20210513224613);
 INSERT INTO public."schema_migrations" (version) VALUES (20210515021252);
 INSERT INTO public."schema_migrations" (version) VALUES (20210605224807);
+INSERT INTO public."schema_migrations" (version) VALUES (20210612225130);
+INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
