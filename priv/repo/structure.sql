@@ -769,20 +769,6 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: dungeon_tiles_dungeon_id_row_col_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX dungeon_tiles_dungeon_id_row_col_index ON public.tiles USING btree (level_id, "row", col);
-
-
---
--- Name: dungeon_tiles_tile_template_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX dungeon_tiles_tile_template_id_index ON public.tiles USING btree (tile_template_id);
-
-
---
 -- Name: dungeons_active_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -794,20 +780,6 @@ CREATE INDEX dungeons_active_index ON public.dungeons USING btree (active);
 --
 
 CREATE INDEX dungeons_deleted_at_index ON public.dungeons USING btree (deleted_at);
-
-
---
--- Name: dungeons_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX dungeons_dungeon_id_index ON public.levels USING btree (dungeon_id);
-
-
---
--- Name: dungeons_dungeon_id_number_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX dungeons_dungeon_id_number_index ON public.levels USING btree (dungeon_id, number);
 
 
 --
@@ -836,6 +808,20 @@ CREATE UNIQUE INDEX level_instances_dungeon_instance_id_number_index ON public.l
 --
 
 CREATE INDEX level_instances_level_id_index ON public.level_instances USING btree (level_id);
+
+
+--
+-- Name: levels_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX levels_dungeon_id_index ON public.levels USING btree (dungeon_id);
+
+
+--
+-- Name: levels_dungeon_id_number_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX levels_dungeon_id_number_index ON public.levels USING btree (dungeon_id, number);
 
 
 --
@@ -937,6 +923,20 @@ CREATE INDEX tile_templates_user_id_index ON public.tile_templates USING btree (
 
 
 --
+-- Name: tiles_level_id_row_col_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tiles_level_id_row_col_index ON public.tiles USING btree (level_id, "row", col);
+
+
+--
+-- Name: tiles_tile_template_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tiles_tile_template_id_index ON public.tiles USING btree (tile_template_id);
+
+
+--
 -- Name: users_user_id_hash_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -956,14 +956,6 @@ CREATE UNIQUE INDEX users_username_index ON public.users USING btree (username);
 
 ALTER TABLE ONLY public.dungeon_instances
     ADD CONSTRAINT dungeon_instances_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
-
-
---
--- Name: levels dungeons_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.levels
-    ADD CONSTRAINT dungeons_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
 
 
 --
@@ -996,6 +988,14 @@ ALTER TABLE ONLY public.level_instances
 
 ALTER TABLE ONLY public.level_instances
     ADD CONSTRAINT level_instances_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
+
+
+--
+-- Name: levels levels_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.levels
+    ADD CONSTRAINT levels_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
 
 
 --

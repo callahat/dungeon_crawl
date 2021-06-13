@@ -15,10 +15,10 @@ defmodule DungeonCrawl.Repo.Migrations.UpdateDbConstraintAndSequenceNames do
        end)
 
 #update the index names
-    [ {"dungeon_map_tiles_dungeon_id_row_col_index",     "dungeon_tiles_dungeon_id_row_col_index"},
-      {"dungeon_map_tiles_tile_template_id_index",       "dungeon_tiles_tile_template_id_index"},
-      {"dungeons_map_set_id_index",                      "dungeons_dungeon_id_index"},
-      {"dungeons_map_set_id_number_index",               "dungeons_dungeon_id_number_index"},
+    [ {"dungeon_map_tiles_dungeon_id_row_col_index",     "tiles_level_id_row_col_index"},
+      {"dungeon_map_tiles_tile_template_id_index",       "tiles_tile_template_id_index"},
+      {"dungeons_map_set_id_index",                      "levels_dungeon_id_index"},
+      {"dungeons_map_set_id_number_index",               "levels_dungeon_id_number_index"},
       {"map_instances_map_id_index",                     "level_instances_level_id_index"},
       {"map_instances_map_set_instance_id_index",        "level_instances_dungeon_instance_id_index"},
       {"map_instances_map_set_instance_id_number_index", "level_instances_dungeon_instance_id_number_index"},
@@ -47,7 +47,7 @@ defmodule DungeonCrawl.Repo.Migrations.UpdateDbConstraintAndSequenceNames do
       # foreign keys
       {"tiles",             "dungeon_map_tiles_dungeon_id_fkey", "tiles_level_id_fkey"},
       {"tiles",             "dungeon_map_tiles_tile_template_id_fkey", "tiles_tile_template_id_fkey"},
-      {"levels",            "dungeons_map_set_id_fkey", "dungeons_dungeon_id_fkey"},
+      {"levels",            "dungeons_map_set_id_fkey", "levels_dungeon_id_fkey"},
       {"level_instances",   "map_instances_map_id_fkey", "level_instances_level_id_fkey"},
       {"level_instances",   "map_instances_map_set_instance_id_fkey", "level_instances_dungeon_instance_id_fkey"},
       {"dungeon_instances", "map_set_instances_map_set_id_fkey", "dungeon_instances_dungeon_id_fkey"},
@@ -79,10 +79,10 @@ defmodule DungeonCrawl.Repo.Migrations.UpdateDbConstraintAndSequenceNames do
        end)
 
 #update the index names
-    [ {"dungeon_map_tiles_dungeon_id_row_col_index",     "dungeon_tiles_dungeon_id_row_col_index"},
-      {"dungeon_map_tiles_tile_template_id_index",       "dungeon_tiles_tile_template_id_index"},
-      {"dungeons_map_set_id_index",                      "dungeons_dungeon_id_index"},
-      {"dungeons_map_set_id_number_index",               "dungeons_dungeon_id_number_index"},
+    [ {"dungeon_map_tiles_dungeon_id_row_col_index",     "tiles_level_id_row_col_index"},
+      {"dungeon_map_tiles_tile_template_id_index",       "tiles_tile_template_id_index"},
+      {"dungeons_map_set_id_index",                      "levels_dungeon_id_index"},
+      {"dungeons_map_set_id_number_index",               "levels_dungeon_id_number_index"},
       {"map_instances_map_id_index",                     "level_instances_level_id_index"},
       {"map_instances_map_set_instance_id_index",        "level_instances_dungeon_instance_id_index"},
       {"map_instances_map_set_instance_id_number_index", "level_instances_dungeon_instance_id_number_index"},
@@ -112,7 +112,7 @@ defmodule DungeonCrawl.Repo.Migrations.UpdateDbConstraintAndSequenceNames do
       # foreign keys
       {"tiles",             "dungeon_map_tiles_dungeon_id_fkey", "tiles_level_id_fkey"},
       {"tiles",             "dungeon_map_tiles_tile_template_id_fkey", "tiles_tile_template_id_fkey"},
-      {"levels",            "dungeons_map_set_id_fkey", "dungeons_dungeon_id_fkey"},
+      {"levels",            "dungeons_map_set_id_fkey", "levels_dungeon_id_fkey"},
       {"level_instances",   "map_instances_map_id_fkey", "level_instances_level_id_fkey"},
       {"level_instances",   "map_instances_map_set_instance_id_fkey", "level_instances_dungeon_instance_id_fkey"},
       {"dungeon_instances", "map_set_instances_map_set_id_fkey", "dungeon_instances_dungeon_id_fkey"},
