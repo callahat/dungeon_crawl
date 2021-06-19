@@ -76,8 +76,9 @@
             </div>
 
             <div class="form-group">
-              <%= label :tile_template, :state, class: "control-label" %>
-              <%= text_input :tile_template, :state, class: "form-control" %>
+              <%= hidden_input :tile_template, :state, class: "form-control" %>
+
+              <%= render SharedView, "state_fields.html", state: "", form: %{name: "tile_template"} %>
               <pre id="tile_template_state_error_messages"></pre>
             </div>
           </div>

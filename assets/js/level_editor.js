@@ -1,7 +1,8 @@
 let LevelEditor = {
-  init(element){ if(!element){ return }
+  init(element, state_variable_subform){ if(!element){ return }
     let level_id = element.getAttribute("data-level-id"),
         dungeon_id = element.getAttribute("data-dungeon-id")
+    this.state_variable_subform = state_variable_subform
     this.validate_tile_url = "/dungeons/" + dungeon_id +"/levels/" + level_id + "/validate_tile"
     this.map_edge_url = "/dungeons/" + dungeon_id +"/level_edge"
 
@@ -471,6 +472,8 @@ let LevelEditor = {
       document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
 
       $('#tileEditModal').modal({show: true})
+
+      this.state_variable_subform.generateInitialRows(document.getElementById("tile_template_state_variables"), map_location.getAttribute("data-state"))
 
       this.lastCoord = this.lastDraggedCoord = targetCoord
       return
@@ -1197,7 +1200,8 @@ let LevelEditor = {
   lastLineDrawBackgroundColor: null,
   lineScoreMap: { 0: "⋅",  1: "╡",  2: "╞",  3: "═",  4: "╥",  5: "╗",
                   6: "╔",  7: "╦",  8: "╨",  9: "╝", 10: "╚", 11: "╩",
-                 12: "║", 13: "╣", 14: "╠", 15: "╬"}
+                 12: "║", 13: "╣", 14: "╠", 15: "╬"},
+  state_variable_subform: null
 }
 
 export default LevelEditor

@@ -8,19 +8,24 @@
         <th/>
       </tr>
     </thead>
-    <tbody id="state_variables" data-field-name-prefix="<%= @form.name %>">
+    <tbody id="<%= @form.name %>_state_variables" data-field-name-prefix="<%= @form.name %>">
       <%= for {variable, value} <- (Map.to_list(StateValue.Parser.parse!(@state)) ++ [{"", ""}]) do %>
-      <tr>
+      <tr class="<%= @form.name %>_state_data_row">
         <td><input class="form-control" name="<%= @form.name %>[state_variables][]" type="text" value="<%= variable %>"></td>
         <td><input class="form-control" name="<%= @form.name %>[state_values][]" type="text" value="<%= value %>"></td>
         <td><button type="button" class="btn btn-danger delete-state-fields-row">X</button></td>
       </tr>
       <% end %>
-      <tr id="add_state_field_row">
+      <tr id="<%= @form.name %>_add_state_field_row">
         <td/>
-        <td><button id="add_state_field_button" type="button" class="btn btn-success">Add State Variable</button></td>
+        <td><button id="<%= @form.name %>_add_state_field_button" type="button" class="btn btn-success">Add State Variable</button></td>
         <td/>
       </tr>
     </tbody>
   </table>
+  <!-- "hack" to clear the state values when all the above fields were removed, this forces an empty set which is removed
+       so the new state string is generated as empty; with out this not state_variable/state_value parameters would be sent back,
+       and the state string would not be updated as a consequence /-->
+  <input class="form-control" name="<%= @form.name %>[state_variables][]" type="hidden">
+  <input class="form-control" name="<%= @form.name %>[state_values][]" type="hidden">
 </div>
