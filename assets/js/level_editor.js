@@ -926,6 +926,8 @@ let LevelEditor = {
           color: (document.getElementById("tile_template_color").value || ""),
           background_color: (document.getElementById("tile_template_background_color").value || ""),
           tile_name: (document.getElementById("tile_template_name").value || ""),
+          state_variables: (Array.from(document.getElementsByName("tile_template[state_variables][]")).map(v => {return v.value}) || []),
+          state_values: (Array.from(document.getElementsByName("tile_template[state_values][]")).map(v => {return v.value}) || []),
           state: (document.getElementById("tile_template_state").value || ""),
           script: (document.getElementById("tile_template_script").value || ""),
           name: (document.getElementById("tile_template_name").value || ""),
