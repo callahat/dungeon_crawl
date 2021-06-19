@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.Dungeons.DungeonTest do
   use DungeonCrawl.DataCase
 
+  require DungeonCrawl.SharedTests
+
   alias DungeonCrawl.Dungeons.Dungeon
 
   @valid_attrs %{name: "BobDungeon", version: 1}
@@ -27,4 +29,6 @@ defmodule DungeonCrawl.Dungeons.DungeonTest do
     changeset = Dungeon.changeset(%Dungeon{}, Elixir.Map.put(@valid_attrs, :state, "derp"))
     refute changeset.valid?
   end
+
+  DungeonCrawl.SharedTests.handles_state_variables_and_values_correctly(Dungeon)
 end

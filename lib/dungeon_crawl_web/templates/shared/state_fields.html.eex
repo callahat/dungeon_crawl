@@ -1,0 +1,26 @@
+<div>
+  <label class="control-label">State</label>
+  <table>
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Value</th>
+        <th/>
+      </tr>
+    </thead>
+    <tbody id="state_variables" data-field-name-prefix="<%= @form.name %>">
+      <%= for {variable, value} <- (Map.to_list(StateValue.Parser.parse!(@state)) ++ [{"", ""}]) do %>
+      <tr>
+        <td><input class="form-control" name="<%= @form.name %>[state_variables][]" type="text" value="<%= variable %>"></td>
+        <td><input class="form-control" name="<%= @form.name %>[state_values][]" type="text" value="<%= value %>"></td>
+        <td><button type="button" class="btn btn-danger delete-state-fields-row">X</button></td>
+      </tr>
+      <% end %>
+      <tr id="add_state_field_row">
+        <td/>
+        <td><button id="add_state_field_button" type="button" class="btn btn-success">Add State Variable</button></td>
+        <td/>
+      </tr>
+    </tbody>
+  </table>
+</div>

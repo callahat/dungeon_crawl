@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.DungeonView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.Dungeons
+  alias DungeonCrawlWeb.SharedView
 
   def activate_or_new_version_button(conn, dungeon, location) do
     if dungeon.active do

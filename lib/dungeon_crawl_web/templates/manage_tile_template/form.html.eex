@@ -123,9 +123,7 @@
       <div class="row">
         <div class="col-md-12">
           <div class="form-group">
-            <%= label f, :state, class: "control-label" %>
-            <%= text_input f, :state, class: "form-control" %>
-            <%= error_tag f, :state %>
+            <%= render SharedView, "state_fields.html", state: @changeset.data.state, form: f %>
           </div>
         </div>
       </div>

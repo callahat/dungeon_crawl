@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
   use DungeonCrawl.DataCase
 
+  require DungeonCrawl.SharedTests
+
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "#F00", background_color: "black", script: nil}
@@ -75,4 +77,6 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
              end)
     assert errs[:group_name] == ["is invalid"]
   end
+
+  DungeonCrawl.SharedTests.handles_state_variables_and_values_correctly(TileTemplate)
 end

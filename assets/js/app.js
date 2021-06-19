@@ -39,6 +39,7 @@ import CharacterPicker from "./character_picker"
 import CodemirrorWrapper from "./codemirror_wrapper"
 import TileAnimation from "./tile_animation"
 import AvatarPreview from "./avatar_preview"
+import StateVariableSubform from "./state_variable_subform"
 
 Level.init(socket, document.getElementById("level_instance"))
 LevelAdmin.init(socket, document.getElementById("level_admin"))
@@ -51,3 +52,4 @@ LevelEditor.init(document.getElementById("level_editor"))
 CharacterPicker.init(document.getElementById("show_character_picker"))
 CodemirrorWrapper.init(document.getElementById("tile_template_script"), document.getElementById("script-tab"))
 TileAnimation.init()
+StateVariableSubform.init(document.getElementById("state_variables"))

@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   use DungeonCrawlWeb.ConnCase#, async: true
 
   import DungeonCrawlWeb.SharedView
+  alias DungeonCrawlWeb.SharedView
   alias DungeonCrawl.Dungeons.Tile
   alias DungeonCrawl.DungeonProcesses.LevelProcess
 
@@ -166,5 +167,17 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
   test "character_quick_list_html" do
     assert is_binary(character_quick_list_html())
+  end
+
+  test "state_fields.html" do
+    {:safe, rendered_fields} =
+      Phoenix.View.render(SharedView, "state_fields.html", state: "foo: bar, baz: qux", form: %{name: "tile_template"})
+    rendered_fields = Enum.join(rendered_fields, "")
+    assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_variables\]\[\]" type="text" value="foo">|
+    assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_values\]\[\]" type="text" value="bar">|
+    assert rendered_fields =~ ~r|<button type="button" class="btn btn-danger delete-state-fields-row">X</button>|
+    assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_variables\]\[\]" type="text" value="baz">|
+    assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_values\]\[\]" type="text" value="qux">|
+    assert rendered_fields =~ ~r|<button type="button" class="btn btn-danger delete-state-fields-row">X</button>|
   end
 end
