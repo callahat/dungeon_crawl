@@ -958,6 +958,8 @@ let LevelEditor = {
           document.getElementById("tile_errors").classList.remove("hidden")
 
         } else {
+          // since the state is built in the changeset from state_variables and state_values in the tile edit modal now
+          map_tile_attrs.state = resp.tile.state
           context.resetTileModalErrors()
 
           successFunction(map_tile_attrs, context)

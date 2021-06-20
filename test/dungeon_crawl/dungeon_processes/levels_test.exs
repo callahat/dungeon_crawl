@@ -606,7 +606,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "subtract/4 health on a player tile when instance reset_player_when_damaged sv is true" do
-    instance = insert_stubbed_level_instance(%{state_values: "reset_player_when_damaged: true"})
+    instance = insert_stubbed_level_instance(%{state: "reset_player_when_damaged: true"})
     player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
     state = %Levels{dungeon_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}

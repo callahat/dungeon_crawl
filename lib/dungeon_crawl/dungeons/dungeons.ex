@@ -51,8 +51,6 @@ defmodule DungeonCrawl.Dungeons do
                          :character,
                          :color,
                          :background_color,
-                         :state_variables,
-                         :state_values,
                          :state,
                          :script,
                          :name,

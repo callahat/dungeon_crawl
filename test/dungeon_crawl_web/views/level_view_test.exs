@@ -32,11 +32,13 @@ defmodule DungeonCrawlWeb.LevelViewTest do
       character: {"should be at most %{count} character(s)", [count: 1, validation: :length, kind: :max, type: :string]}
     ]
 
-    assert %{errors: []} = LevelView.render("tile_errors.json", %{tile_errors: no_errors})
+    assert %{errors: [], tile: %{character: "a"}} = LevelView.render("tile_errors.json", %{tile_errors: no_errors, tile: %{character: "a"}})
     assert %{errors: [
                 %{detail: "should be at most 1 character(s)", field: :character}
-              ]
-           } = LevelView.render("tile_errors.json", %{tile_errors: errors})
-    assert %{errors: [ %{detail: "it bad", field: :script} ] } = LevelView.render("tile_errors.json", %{tile_errors: [script: "it bad"]})
+              ],
+             tile: %{character: "boo"}
+           } = LevelView.render("tile_errors.json", %{tile_errors: errors, tile: %{character: "boo"}})
+    assert %{errors: [ %{detail: "it bad", field: :script} ], tile: _ } =
+           LevelView.render("tile_errors.json", %{tile_errors: [script: "it bad"], tile: %{}})
   end
 end
