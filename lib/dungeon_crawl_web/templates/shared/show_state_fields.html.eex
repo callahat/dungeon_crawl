@@ -1,4 +1,4 @@
-<div>
+<div class="mb-2">
   <b>State:</b>
   <br/>
   <span>
@@ -9,3 +9,4 @@
     <% end %>
   </span>
 </div>
+

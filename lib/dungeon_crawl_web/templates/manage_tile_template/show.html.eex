@@ -68,7 +68,7 @@
   </li>
 
   <li>
-    <%= render SharedView, "show_state_fields.html", state: @tile_template.state %></p>
+    <%= render SharedView, "show_state_fields.html", state: @tile_template.state %>
   </li>
 
   <li>

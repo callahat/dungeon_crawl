@@ -3,7 +3,7 @@
 <p><b>Title Map:</b> <%= title_level_name(@title_level) %></p>
 <p><b>Author:</b> <%= @owner_name %></p>
 <p><b>Version:</b> <%= @dungeon.version %> (<%= if @dungeon.active, do: "A", else: "Ina" %>ctive)</p>
-<%= render SharedView, "show_state_fields.html", state: @dungeon.state %></p>
+<%= render SharedView, "show_state_fields.html", state: @dungeon.state %>
 
 <p><b>Levels:</b> <%= @dungeon.levels |> Enum.count %></p>
 
@@ -34,7 +34,16 @@
         <div class="tab-pane" id="level<%= level.id %>" role="tabpanel" aria-labelledby="level<%= level.id %>-tab">
           <%= link "Edit Level", to: Routes.dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
           <%= link "Delete Level", to: Routes.dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/>
-          <%= adjacent_level_names(level) %>
+
+          <div class="row">
+            <div class="col-4">
+              <b>Adjacent levels:</b>
+              <%= adjacent_level_names(level) %>
+            </div>
+            <div class="col-6">
+              <%= render SharedView, "show_state_fields.html", state: level.state %>
+            </div>
+          </div>
           <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", level: level) %>
           <br/>
           <%= link "Edit Level", to: Routes.dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
