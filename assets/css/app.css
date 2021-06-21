@@ -16,6 +16,10 @@ a:not(.collapsed) svg.rotate-icon{
   font-size: 50%;
 }
 
+.state-fields th {
+  width: 14em;
+}
+
 .hilighted-score {
   background-color: aliceblue;
 }

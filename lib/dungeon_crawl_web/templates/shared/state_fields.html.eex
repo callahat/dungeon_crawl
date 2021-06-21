@@ -1,11 +1,11 @@
 <div>
   <label class="control-label">State</label>
-  <table>
+  <table class="state-fields">
     <thead>
       <tr>
         <th>Variable</th>
         <th>Value</th>
-        <th/>
+        <td/>
       </tr>
     </thead>
     <tbody id="<%= @form.name %>_state_variables" data-field-name-prefix="<%= @form.name %>">
