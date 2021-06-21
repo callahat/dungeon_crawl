@@ -347,7 +347,9 @@ let LevelEditor = {
     document.getElementById("tile_detail_color").innerText = this.selectedTileColor || "<none>"
     document.getElementById("tile_detail_background_color").innerText = this.selectedTileBackgroundColor || "<none>"
     document.getElementById("tile_detail_description").innerText = document.getElementById("active_tile_description").innerText || "<none>"
-    document.getElementById("tile_detail_state").innerText = this.selectedTileState
+    document.getElementById("tile_detail_state").innerHTML = (this.selectedTileState || "").split(/, ?/).map( kv => {
+                                                                return `<pre class="script" style="display: inline">${kv}</pre>`
+                                                              }).join(" ")
     document.getElementById("tile_detail_script").innerText = this.selectedTileScript
     document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
   },

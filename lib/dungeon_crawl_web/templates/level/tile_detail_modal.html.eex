@@ -40,7 +40,7 @@
         <div class="row">
           <div class="col-12">
             <strong>State</strong>
-            <pre id="tile_detail_state" class="script"></pre>
+            <span id="tile_detail_state"></span>
           </div>
         </div>
 
