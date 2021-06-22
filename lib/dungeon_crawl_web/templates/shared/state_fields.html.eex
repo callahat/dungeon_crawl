@@ -18,7 +18,26 @@
       <% end %>
       <tr id="<%= @form.name %>_add_state_field_row">
         <td/>
-        <td><button id="<%= @form.name %>_add_state_field_button" type="button" class="btn btn-success">Add State Variable</button></td>
+        <td>
+          <button id="<%= @form.name %>_add_state_field_button"
+                  type="button"
+                  class="btn btn-success"
+                  title="Add blank state variable">Add State Variable</button>
+          <button class="btn btn-success dropdown-toggle"
+                  type="button"
+                  id="<%= @form.name %>_standard_variable_dropdown_button"
+                  data-toggle="dropdown"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                  title="Add standard variable" />
+          <div class="dropdown-menu"
+               aria-labelledby="<%= @form.name %>_standard_variable_dropdown_button"
+               id="<%= @form.name %>_standard_variable_dropdown_list">
+            <%= for standard_variable <- (["blocking", "low"]) do %>
+              <a class="dropdown-item" href="#"><%= standard_variable %></a>
+            <% end %>
+          </div>
+        </td>
         <td/>
       </tr>
     </tbody>
