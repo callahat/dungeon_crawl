@@ -171,7 +171,11 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
   test "state_fields.html" do
     {:safe, rendered_fields} =
-      Phoenix.View.render(SharedView, "state_fields.html", state: "foo: bar, baz: qux", form: %{name: "tile_template"})
+      Phoenix.View.render(SharedView,
+                          "state_fields.html",
+                          state: "foo: bar, baz: qux",
+                          form: %{name: "tile_template"},
+                          standard_variables: ["test"])
     rendered_fields = Enum.join(rendered_fields, "")
     assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_variables\]\[\]" type="text" value="foo">|
     assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_values\]\[\]" type="text" value="bar">|

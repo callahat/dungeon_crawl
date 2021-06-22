@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.LevelView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.StateValue.StandardVariables
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawlWeb.LevelView
   alias DungeonCrawlWeb.SharedView

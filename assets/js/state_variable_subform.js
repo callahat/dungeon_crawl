@@ -48,7 +48,8 @@ let StateVariableSubform = {
     element.insertBefore(twoFields, document.getElementById(fieldNamePrefix + "_add_state_field_row"))
   },
   updateStandardVariables(element, standardVariableDropdownListElement){
-    let existingRows = element.getElementsByClassName("dungeon_state_data_row"),
+    let fieldNamePrefix = element.getAttribute("data-field-name-prefix"),
+        existingRows = element.getElementsByClassName(fieldNamePrefix + "_state_data_row"),
         existingVariables = Array.from(existingRows).map(e => {return e.getElementsByClassName("form-control")[0].value})
 
     for(let standardVariable of standardVariableDropdownListElement.getElementsByClassName("dropdown-item")){
@@ -60,13 +61,14 @@ let StateVariableSubform = {
     }
   },
   addStandardVariable(element, standardListTarget){ if(standardListTarget.tagName != "A") { return }
-     let existingRows = element.getElementsByClassName("dungeon_state_data_row"),
-         lastRow = existingRows[existingRows.length - 1]
-     if(lastRow.getElementsByClassName("form-control")[0].value == ""){
-       lastRow.remove()
-     }
-     this.createNewRow(element, standardListTarget.innerText)
-     this.createNewRow(element)
+    let fieldNamePrefix = element.getAttribute("data-field-name-prefix"),
+        existingRows = element.getElementsByClassName(fieldNamePrefix + "_state_data_row"),
+        lastRow = existingRows[existingRows.length - 1]
+    if(lastRow.getElementsByClassName("form-control")[0].value == ""){
+      lastRow.remove()
+    }
+    this.createNewRow(element, standardListTarget.innerText)
+    this.createNewRow(element)
   },
   deleteRow(target) { if(!target.matches('.delete-state-fields-row')) { return }
     target.parentElement.parentElement.remove()

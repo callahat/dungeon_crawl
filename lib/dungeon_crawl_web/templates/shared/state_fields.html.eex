@@ -33,7 +33,7 @@
           <div class="dropdown-menu"
                aria-labelledby="<%= @form.name %>_standard_variable_dropdown_button"
                id="<%= @form.name %>_standard_variable_dropdown_list">
-            <%= for standard_variable <- (["blocking", "low"]) do %>
+            <%= for standard_variable <- @standard_variables do %>
               <a class="dropdown-item" href="#"><%= standard_variable %></a>
             <% end %>
           </div>

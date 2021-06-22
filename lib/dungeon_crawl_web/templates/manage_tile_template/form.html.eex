@@ -123,7 +123,11 @@
       <div class="row">
         <div class="col-md-12">
           <div class="form-group">
-            <%= render SharedView, "state_fields.html", state: @changeset.data.state, form: f %>
+            <%= render SharedView,
+                       "state_fields.html",
+                       state: @changeset.data.state,
+                       form: f,
+                       standard_variables: StandardVariables.tile %>
           </div>
         </div>
       </div>
