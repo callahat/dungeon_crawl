@@ -184,8 +184,9 @@ defmodule DungeonCrawlWeb.LevelController do
   def validate_tile(conn, %{"dungeon_id" => dungeon_id, "id" => id, "tile" => tile_params}) do
     tile_changeset = Tile.changeset(%Tile{}, Elixir.Map.merge(tile_params, %{"dungeon_id" => dungeon_id, "level_id" => id}))
                      |> TileTemplates.TileTemplate.validate_script(conn.assigns.current_user.id)
+                     |> TileTemplates.TileTemplate.validate_state_values
 
-    render(conn, "tile_errors.json", tile_errors: tile_changeset.errors)
+    render(conn, "tile_errors.json", tile: tile_changeset.changes, tile_errors: tile_changeset.errors)
   end
 
   def delete(conn, %{"id" => _id}) do

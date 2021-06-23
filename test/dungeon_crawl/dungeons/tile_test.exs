@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.Dungeons.TileTest do
   use DungeonCrawl.DataCase
 
+  require DungeonCrawl.SharedTests
+
   alias DungeonCrawl.Dungeons.Tile
 
   @valid_attrs %{row: 42, col: 42, tile_template_id: 2, level_id: 1}
@@ -25,4 +27,6 @@ defmodule DungeonCrawl.Dungeons.TileTest do
     changeset = Tile.changeset(%Tile{}, Map.put(@valid_attrs, :state, "derp"))
     refute changeset.valid?
   end
+
+  DungeonCrawl.SharedTests.handles_state_variables_and_values_correctly(Tile)
 end

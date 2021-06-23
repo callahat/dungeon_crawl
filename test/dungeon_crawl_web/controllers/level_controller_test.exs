@@ -71,15 +71,15 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
 
     test "returns empty array of errors when its all good", %{conn: conn, level: level} do
       conn = post conn, dungeon_level_path(conn, :validate_tile, level.dungeon_id, level), tile: @tile_attrs
-      assert json_response(conn, 200) == %{"errors" => []}
+      assert json_response(conn, 200) == %{"errors" => [], "tile" => %{"character" => " ", "col" => 42, "row" => 8, "z_index" => 2}}
     end
 
     test "returns array of validation errors when there are problems", %{conn: conn, level: level} do
       conn = post conn,
                   dungeon_level_path(conn, :validate_tile, level.dungeon_id, level),
-                  tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp"})
-      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "Error parsing around: derp", "field" => "state"},
-                                                        %{"detail" => "should be at most 1 character(s)", "field" => "character"}]}
+                  tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp", state_variables: ["foo"], state_values: ["bar"]})
+      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "should be at most 1 character(s)", "field" => "character"}],
+                                           "tile" => %{"character" => "toobig", "col" => 42, "row" => 8, "state" => "foo: bar", "z_index" => 2}}
     end
   end
 

@@ -1,7 +1,8 @@
 let LevelEditor = {
-  init(element){ if(!element){ return }
+  init(element, state_variable_subform){ if(!element){ return }
     let level_id = element.getAttribute("data-level-id"),
         dungeon_id = element.getAttribute("data-dungeon-id")
+    this.state_variable_subform = state_variable_subform
     this.validate_tile_url = "/dungeons/" + dungeon_id +"/levels/" + level_id + "/validate_tile"
     this.map_edge_url = "/dungeons/" + dungeon_id +"/level_edge"
 
@@ -346,7 +347,9 @@ let LevelEditor = {
     document.getElementById("tile_detail_color").innerText = this.selectedTileColor || "<none>"
     document.getElementById("tile_detail_background_color").innerText = this.selectedTileBackgroundColor || "<none>"
     document.getElementById("tile_detail_description").innerText = document.getElementById("active_tile_description").innerText || "<none>"
-    document.getElementById("tile_detail_state").innerText = this.selectedTileState
+    document.getElementById("tile_detail_state").innerHTML = (this.selectedTileState || "").split(/, ?/).map( kv => {
+                                                                return `<pre class="script" style="display: inline">${kv}</pre>`
+                                                              }).join(" ")
     document.getElementById("tile_detail_script").innerText = this.selectedTileScript
     document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
   },
@@ -471,6 +474,8 @@ let LevelEditor = {
       document.getElementById("tile_template_color").dispatchEvent(new Event('change'))
 
       $('#tileEditModal').modal({show: true})
+
+      this.state_variable_subform.generateInitialRows(document.getElementById("tile_template_state_variables"), map_location.getAttribute("data-state"))
 
       this.lastCoord = this.lastDraggedCoord = targetCoord
       return
@@ -923,6 +928,8 @@ let LevelEditor = {
           color: (document.getElementById("tile_template_color").value || ""),
           background_color: (document.getElementById("tile_template_background_color").value || ""),
           tile_name: (document.getElementById("tile_template_name").value || ""),
+          state_variables: (Array.from(document.getElementsByName("tile_template[state_variables][]")).map(v => {return v.value}) || []),
+          state_values: (Array.from(document.getElementsByName("tile_template[state_values][]")).map(v => {return v.value}) || []),
           state: (document.getElementById("tile_template_state").value || ""),
           script: (document.getElementById("tile_template_script").value || ""),
           name: (document.getElementById("tile_template_name").value || ""),
@@ -953,6 +960,8 @@ let LevelEditor = {
           document.getElementById("tile_errors").classList.remove("hidden")
 
         } else {
+          // since the state is built in the changeset from state_variables and state_values in the tile edit modal now
+          map_tile_attrs.state = resp.tile.state
           context.resetTileModalErrors()
 
           successFunction(map_tile_attrs, context)
@@ -1197,7 +1206,8 @@ let LevelEditor = {
   lastLineDrawBackgroundColor: null,
   lineScoreMap: { 0: "⋅",  1: "╡",  2: "╞",  3: "═",  4: "╥",  5: "╗",
                   6: "╔",  7: "╦",  8: "╨",  9: "╝", 10: "╚", 11: "╩",
-                 12: "║", 13: "╣", 14: "╠", 15: "╬"}
+                 12: "║", 13: "╣", 14: "╠", 15: "╬"},
+  state_variable_subform: null
 }
 
 export default LevelEditor

@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.StateValue.StandardVariables
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawlWeb.SharedView

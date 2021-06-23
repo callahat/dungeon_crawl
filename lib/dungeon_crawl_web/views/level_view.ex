@@ -1,8 +1,11 @@
 defmodule DungeonCrawlWeb.LevelView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.StateValue.StandardVariables
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawlWeb.LevelView
+  alias DungeonCrawlWeb.SharedView
 
   def adjacent_selects(form, dungeons) do
     options = Enum.map(dungeons, &{"#{&1.number} #{&1.name}", &1.number})
@@ -66,7 +69,7 @@ defmodule DungeonCrawlWeb.LevelView do
   end
   def edge_json(_, _), do: []
 
-  def render("tile_errors.json", %{tile_errors: tile_errors}) do
+  def render("tile_errors.json", %{tile_errors: tile_errors, tile: tile}) do
     errors = Enum.map(tile_errors, fn {field, detail} ->
       %{
         field: field,
@@ -74,7 +77,7 @@ defmodule DungeonCrawlWeb.LevelView do
       }
     end)
 
-    %{errors: errors}
+    %{errors: errors, tile: Dungeons.copy_tile_fields(tile)}
   end
 
   def render("adjacent_level_edge.json", %{edge: edge, adjacent_level_edge_tiles: adjacent_level_edge_tiles}) do

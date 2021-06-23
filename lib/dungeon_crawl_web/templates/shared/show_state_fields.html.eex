@@ -1,0 +1,12 @@
+<div class="mb-2">
+  <b>State:</b>
+  <br/>
+  <span>
+    <%= for {variable, value} <- StateValue.Parser.parse!(@state)
+                                 |> Map.to_list()
+                                 |> Enum.sort() do %>
+      <pre class="script" style="display: inline"><%= variable %>: <%= value %></pre>
+    <% end %>
+  </span>
+</div>
+

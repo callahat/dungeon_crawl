@@ -155,7 +155,7 @@ defmodule DungeonCrawlWeb.ManageTileTemplateController do
   end
 
   defp strip_user_id_when_invalid(conn, _opts) do
-    if (conn.assigns.tile_template.user_id == nil || conn.assigns.tile_template.user_id == conn.assigns.current_user.id) && 
+    if (conn.assigns.tile_template.user_id == nil || conn.assigns.tile_template.user_id == conn.assigns.current_user.id) &&
         conn.assigns.current_user.is_admin do
       assign(conn, :tile_template_params, conn.assigns.tile_template_params)
     else

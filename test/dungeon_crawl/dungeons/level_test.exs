@@ -1,6 +1,8 @@
 defmodule DungeonCrawl.Dungeons.LevelTest do
   use DungeonCrawl.DataCase
 
+  require DungeonCrawl.SharedTests
+
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons.Level
 
@@ -37,4 +39,6 @@ defmodule DungeonCrawl.Dungeons.LevelTest do
                 )
     assert {:error, %{errors: [number: {"Level Number already exists", _}]}} = Repo.insert(changeset)
   end
+
+  DungeonCrawl.SharedTests.handles_state_variables_and_values_correctly(Level)
 end

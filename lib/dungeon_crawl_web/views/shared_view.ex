@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   # todo: pass in if its foggy instead maybe

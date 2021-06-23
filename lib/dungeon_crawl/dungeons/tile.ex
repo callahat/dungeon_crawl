@@ -26,6 +26,9 @@ defmodule DungeonCrawl.Dungeons.Tile do
     field :animate_characters, :string
     field :animate_period, :integer
 
+    field :state_variables, {:array, :string}, virtual: true, default: nil
+    field :state_values, {:array, :string}, virtual: true, default: nil
+
     belongs_to :level, Level
     belongs_to :tile_template, TileTemplate
   end
@@ -41,6 +44,8 @@ defmodule DungeonCrawl.Dungeons.Tile do
                     :character,
                     :color,
                     :background_color,
+                    :state_variables,
+                    :state_values,
                     :state,
                     :script,
                     :name,

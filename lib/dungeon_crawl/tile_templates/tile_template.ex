@@ -28,6 +28,10 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :animate_characters, :string
     field :animate_period, :integer
     field :group_name, :string, default: "custom"
+
+    field :state_variables, {:array, :string}, virtual: true, default: nil
+    field :state_values, {:array, :string}, virtual: true, default: nil
+
     has_one :next_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id, on_delete: :nilify_all
     has_many :tiles, DungeonCrawl.Dungeons.Tile, on_delete: :nilify_all
     belongs_to :previous_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id
@@ -58,6 +62,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
                     :previous_version_id,
                     :deleted_at,
                     :user_id,
+                    :state_variables,
+                    :state_values,
                     :state,
                     :animate_random,
                     :animate_colors,
@@ -117,16 +123,34 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
 
   @doc false
-  def validate_state_values(changeset) do
-    state = get_field(changeset, :state)
-    _validate_state_values(changeset, state)
-  end
+  def validate_state_values(%{changes: %{state_variables: state_variables, state_values: state_values}} = changeset)
+      when is_list(state_variables) and is_list(state_values) do
+    if length(state_variables) == length(state_values) do
+      state = [state_variables, state_values]
+              |> Enum.map(fn vars -> Enum.map(vars, &(String.replace(&1, ~r/[:,]/, ""))) end)
+              |> Enum.zip()
+              |> Enum.reject(fn {a,b} -> is_nil(a) || is_nil(b) || String.trim(a) == "" end)
+              |> Enum.into(%{})
+              |> StateValue.Parser.stringify()
 
-  defp _validate_state_values(changeset, nil), do: changeset
-  defp _validate_state_values(changeset, state) do
+      delete_change(changeset, :state_variables)
+      |> delete_change(:state_values)
+      |> put_change(:state, state)
+    else
+      add_error(changeset, :base, "state_variables and state_values are of different lengths")
+    end
+  end
+  def validate_state_values(%{changes: %{state_variables: _}} = changeset) do
+    add_error(changeset, :state_values, "must be present and have same number of elements as state_variables")
+  end
+  def validate_state_values(%{changes: %{state_values: _}} = changeset) do
+    add_error(changeset, :state_variables, "must be present and have same number of elements as state_values")
+  end
+  def validate_state_values(%{changes: %{state: state}} = changeset) do
     case StateValue.Parser.parse(state) do
       {:error, message} -> add_error(changeset, :state, message)
       {:ok, _}          -> changeset
     end
   end
+  def validate_state_values(changeset), do: changeset
 end
