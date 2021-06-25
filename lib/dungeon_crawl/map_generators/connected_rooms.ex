@@ -25,30 +25,32 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   ?+  - Closed door
   ?@  - Statue (or player location)
   """
-  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width) do
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, for_solo \\ false) do
     map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
             Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
               Map.put map, {row, col}, ?\s
             end)
           end)
+    entities = if for_solo, do: @entities |> Enum.shuffle |> Enum.take(_rand_range(1,6)), else: []
 
     {:good_room, coords} = _try_generating_room_coordinates(map, cave_height, cave_width)
     map = _plop_room(map, coords, ?@)
 
-    _generate(map, cave_height, cave_width, round(cave_height * cave_width / 3) + @iterations)
+    _generate(map, cave_height, cave_width, entities, round(cave_height * cave_width / 3) + @iterations)
     |> _replace_corners
+    |> _stairs_up(for_solo, cave_height, cave_width)
   end
 
-  defp _generate(map, _cave_height, _cave_width, 0), do: map
-  defp _generate(map, cave_height, cave_width, n) do
+  defp _generate(map, _cave_height, _cave_width, _entities, 0), do: map
+  defp _generate(map, cave_height, cave_width, entities, n) do
     case _try_generating_room_coordinates(map, cave_height, cave_width) do
       {:good_room, coords} ->
         # IO.puts inspect coords
-        entities = @entities |> Enum.shuffle |> Enum.take(_rand_range(1,6))
+
         _plop_room(map, coords, entities)
-        |> _generate(cave_height, cave_width, n - 1)
+        |> _generate(cave_height, cave_width, entities, n - 1)
       {:bad_room} ->
-        _generate(map, cave_height, cave_width, n - 1)
+        _generate(map, cave_height, cave_width, entities, n - 1)
     end
   end
 
@@ -74,6 +76,34 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
     else
       {:good_room, %{top_left_col: top_left_col, top_left_row: top_left_row, bottom_right_col: bottom_right_col, bottom_right_row: bottom_right_row}}
     end
+  end
+
+  defp _stairs_up(map, true, cave_height, cave_width) do
+    row = _rand_range(0, cave_height-1)
+    col = _rand_range(0, cave_width-1)
+
+    if _valid_stair_placement(map, row, col) do
+      _replace_tile_at(map, col, row, ?▟)
+    else
+      _stairs_up(map, true, cave_height, cave_width)
+    end
+  end
+
+  defp _stairs_up(map, _, _, _), do: map
+
+  defp _valid_stair_placement(map, row, col) do
+    map[{row, col}] == ?. && _valid_stair_neighbors(map, row, col)
+  end
+
+  defp _valid_stair_neighbors(map, row, col) do
+    adjacent_doors =
+      [ map[{row+1, col}],
+        map[{row-1, col}],
+        map[{row, col+1}],
+        map[{row, col-1}] ]
+      |> Enum.filter(fn char -> char == ?' || char == ?+ end)
+
+    adjacent_doors == []
   end
 
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1

@@ -18,7 +18,7 @@ defmodule DungeonCrawl.MapGenerators.TestRooms do
     #..........#     
     #..........#     
     #####+########## 
-    #..............# 
+    #.............?# 
     #..............# 
     #..............# 
     #..............# 
@@ -29,8 +29,9 @@ defmodule DungeonCrawl.MapGenerators.TestRooms do
   end
 
   # Generates a random test level
-  def generate(_cave_height \\ @cave_height, _cave_width \\ @cave_width) do
+  def generate(_cave_height \\ @cave_height, _cave_width \\ @cave_width, for_solo \\ false) do
     random_level_render()
+    |> String.replace("?", if(for_solo, do: "▟", else: "."))
     |> String.split("\n")
     |> Enum.with_index
     |> Enum.reduce(%{}, fn({cols, row}, acc) ->
