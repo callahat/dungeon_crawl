@@ -186,9 +186,9 @@ defmodule DungeonCrawl.LevelRegistryTest do
       LevelRegistry.create(instance_registry, level_2)
 
       assert Enum.sort(
-              [{p1.id, p1.tile_instance_id},
-               {p2.id, p2.tile_instance_id},
-               {p3.id, p3.tile_instance_id}]) ==
+              [{p1.id, p1.tile_instance_id, level_1.number},
+               {p2.id, p2.tile_instance_id, level_1.number},
+               {p3.id, p3.tile_instance_id, level_2.number}]) ==
              Enum.sort(LevelRegistry.player_location_ids(instance_registry))
     end
   end

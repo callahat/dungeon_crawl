@@ -12,4 +12,9 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRoomsTest do
     assert is_integer(row)
     assert is_integer(col)
   end
+
+  test "generate returns a map with stairs up" do
+    dungeon_map = ConnectedRooms.generate(20,20, true)
+    assert Enum.find(dungeon_map, fn {_, char} -> char == ?▟ end)
+  end
 end

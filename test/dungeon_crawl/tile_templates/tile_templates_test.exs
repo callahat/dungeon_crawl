@@ -280,5 +280,11 @@ defmodule DungeonCrawl.TileTemplatesTest do
                script: "",
                state: "blocking: true"} == TileTemplates.copy_fields(tile_template)
     end
+
+    test "tile_mappings_for_dungeon/0" do
+      assert %{
+               ?▟ => _, "▟" => _,
+             } = TileTemplates.tile_mapping_for_dungeons()
+    end
   end
 end

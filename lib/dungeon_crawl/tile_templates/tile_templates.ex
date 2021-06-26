@@ -7,6 +7,7 @@ defmodule DungeonCrawl.TileTemplates do
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.TileTemplates.TileSeeder
 
   @copiable_fields [:character,
                     :color,
@@ -358,5 +359,19 @@ defmodule DungeonCrawl.TileTemplates do
   def copy_fields(nil), do: %{}
   def copy_fields(tile_template) do
     Map.take(tile_template, @copiable_fields)
+  end
+
+  @doc """
+  Returns a mapping of the character to tile template for tiles available from the seeded tiles
+  when a player has a solo dungeon generated. The scope of this is greater than the Map returned
+  from `basic_tiles`.
+  """
+  def tile_mapping_for_dungeons() do
+    stairs_up_tile = TileSeeder.stairs_up()
+    Map.merge TileSeeder.basic_tiles(),
+              %{
+                ?▟ => stairs_up_tile, "▟" => stairs_up_tile,
+
+              }
   end
 end

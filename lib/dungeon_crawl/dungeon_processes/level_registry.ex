@@ -159,7 +159,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
            player_locations = \
            state.player_locations
            |> Enum.map(fn({player_tile_id, location}) ->
-                {location.id, player_tile_id}
+                {location.id, player_tile_id, state.number}
               end)
 
            {player_locations, state}

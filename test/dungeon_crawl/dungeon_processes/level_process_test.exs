@@ -572,8 +572,10 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert :ok = LevelProcess.delete_tile(instance_process, tile_id_2)
     assert :ok = LevelProcess.delete_tile(instance_process, new_tile_1.id)
 
+    Process.monitor(instance_process)
     assert :ok = Process.send(instance_process, :write_db, [])
     :timer.sleep 10 # let the process do its thing
+    refute_receive _
     assert "Y" == Repo.get(Tile, tile_id_1).character
     refute Repo.get(Tile, tile_id_2)
     assert "O" == Repo.get(Tile, tile_id_3).character
@@ -585,6 +587,16 @@ defmodule DungeonCrawl.LevelProcessTest do
     # new tiles that live past 2 or more write_db iterations get persisted to the DB
     assert is_integer(persisted_older_new_tile.id)
     assert "G" == Repo.get(Tile, persisted_older_new_tile.id).character
+  end
+
+  test "write_db stops the instance when the backing record is gone", %{instance_process: instance_process,
+                                                                        level_instance: level_instance} do
+    DungeonInstances.delete_level(level_instance)
+
+    ref = Process.monitor(instance_process)
+    assert :ok = Process.send(instance_process, :write_db, [])
+
+    assert_receive {:DOWN, ^ref, :process, ^instance_process, :normal}
   end
 
   test "get_tile/2 gets a tile by its id", %{instance_process: instance_process, tile_id: tile_id} do
