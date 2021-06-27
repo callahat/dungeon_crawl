@@ -9,8 +9,8 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   @cave_width      80
 
   @doors           '+\''
-  #@entities        Enum.to_list(?A..?|)
-  @entities        ''
+  @entities        '♣öΩπZ*'
+  @items           'ä▪♂$♦♥✚'
 
   @doc """
   Generates a level using the box method.
@@ -136,7 +136,7 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
 
   defp _maybe_treasure_instead(entity) do
     if _rand_range(1,4) == 1 do
-      ?$
+      @items |> Enum.random
     else
       entity
     end
