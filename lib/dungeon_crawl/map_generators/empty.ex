@@ -10,7 +10,7 @@ defmodule DungeonCrawl.MapGenerators.Empty do
 
   ?\s - Rock
   """
-  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, _for_solo \\ false) do
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, _solo_level \\ nil) do
     Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
       Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
         Map.put map, {row, col}, ?\s

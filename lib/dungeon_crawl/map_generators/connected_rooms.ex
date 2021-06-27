@@ -9,8 +9,8 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   @cave_width      80
 
   @doors           '+\''
-  @entities        '♣öΩπZ*'
-  @items           'ä▪♂$♦♥✚'
+
+  alias DungeonCrawl.MapGenerators.Entities
 
   @doc """
   Generates a level using the box method.
@@ -25,32 +25,29 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
   ?+  - Closed door
   ?@  - Statue (or player location)
   """
-  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, for_solo \\ false) do
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, solo_level \\ nil) do
     map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
             Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
               Map.put map, {row, col}, ?\s
             end)
           end)
-    entities = if for_solo, do: @entities |> Enum.shuffle |> Enum.take(_rand_range(1,6)), else: []
 
     {:good_room, coords} = _try_generating_room_coordinates(map, cave_height, cave_width)
     map = _plop_room(map, coords, ?@)
 
-    _generate(map, cave_height, cave_width, entities, round(cave_height * cave_width / 3) + @iterations)
+    _generate(map, cave_height, cave_width, solo_level, round(cave_height * cave_width / 3) + @iterations)
     |> _replace_corners
-    |> _stairs_up(for_solo, cave_height, cave_width)
+    |> _stairs_up(solo_level, cave_height, cave_width)
   end
 
-  defp _generate(map, _cave_height, _cave_width, _entities, 0), do: map
-  defp _generate(map, cave_height, cave_width, entities, n) do
+  defp _generate(map, _cave_height, _cave_width, _solo_level, 0), do: map
+  defp _generate(map, cave_height, cave_width, solo_level, n) do
     case _try_generating_room_coordinates(map, cave_height, cave_width) do
       {:good_room, coords} ->
-        # IO.puts inspect coords
-
-        _plop_room(map, coords, entities)
-        |> _generate(cave_height, cave_width, entities, n - 1)
+        _plop_room(map, coords, solo_level || [])
+        |> _generate(cave_height, cave_width, solo_level, n - 1)
       {:bad_room} ->
-        _generate(map, cave_height, cave_width, entities, n - 1)
+        _generate(map, cave_height, cave_width, solo_level, n - 1)
     end
   end
 
@@ -78,14 +75,14 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
     end
   end
 
-  defp _stairs_up(map, true, cave_height, cave_width) do
+  defp _stairs_up(map, solo_level, cave_height, cave_width) when is_integer(solo_level) do
     row = _rand_range(0, cave_height-1)
     col = _rand_range(0, cave_width-1)
 
     if _valid_stair_placement(map, row, col) do
       _replace_tile_at(map, col, row, ?▟)
     else
-      _stairs_up(map, true, cave_height, cave_width)
+      _stairs_up(map, solo_level, cave_height, cave_width)
     end
   end
 
@@ -128,17 +125,22 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
     _replace_tile_at(map, col, row, Enum.random(@doors))
   end
 
+  defp _add_entities(map, solo_level, coords) when is_integer(solo_level) do
+    room_area = (coords.top_left_col - coords.bottom_right_col) * (coords.top_left_row - coords.bottom_right_row)
+    max_entities = Enum.min [round(solo_level / 3) + 6, round(room_area / 10) + 6]
+    entities = Entities.randomize(_rand_range(1, max_entities))
+    _add_entities(map, entities, coords)
+  end
   defp _add_entities(map, [], _coords), do: map
   defp _add_entities(map, [entity | entities], coords = %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}) do
-    _replace_tile_at(map, _rand_range(tlc + 1, brc - 1), _rand_range(tlr + 1, brr - 1), _maybe_treasure_instead(entity))
-    |> _add_entities(entities, coords)
-  end
+    col = _rand_range(tlc + 1, brc - 1)
+    row = _rand_range(tlr + 1, brr - 1)
 
-  defp _maybe_treasure_instead(entity) do
-    if _rand_range(1,4) == 1 do
-      @items |> Enum.random
+    if map[{row, col}] == ?. do # make sure to put the entity on an empty space
+      _replace_tile_at(map, col, row, entity)
+      |> _add_entities(entities, coords)
     else
-      entity
+      _add_entities(map, [entity | entities], coords)
     end
   end
 
@@ -146,14 +148,14 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
     _corners_walls_floors(map, coords)
   end
 
-  defp _plop_room(map, coords, entities) do
+  defp _plop_room(map, coords, solo_level) do
     case _door_candidates(map, coords) do
       [] ->
         map
       door_coords ->
         _corners_walls_floors(map, coords)
         |> _add_door(Enum.random(door_coords))
-        |> _add_entities(entities, coords)
+        |> _add_entities(solo_level, coords)
     end
   end
 

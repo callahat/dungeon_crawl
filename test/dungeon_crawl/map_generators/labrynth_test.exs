@@ -13,8 +13,9 @@ defmodule DungeonCrawl.MapGenerators.LabrynthTest do
     assert is_integer(col)
   end
 
+  @tag timeout: 1_000
   test "generate returns a map stairs up" do
-    dungeon_map = Labrynth.generate(20,20,true)
+    dungeon_map = Labrynth.generate(20,20,1)
     assert Enum.find(dungeon_map, fn {_, char} -> char == ?▟ end)
   end
 end

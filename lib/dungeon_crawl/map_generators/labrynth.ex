@@ -13,7 +13,7 @@ defmodule DungeonCrawl.MapGenerators.Labrynth do
   ?.  - Floor
   ?#  - Wall
   """
-  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, for_solo \\ false) do
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, solo_level \\ nil) do
     even_height = rem(cave_height, 2) == 0
     even_width = rem(cave_width, 2) == 0
     map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
@@ -31,17 +31,17 @@ defmodule DungeonCrawl.MapGenerators.Labrynth do
 
 # DungeonCrawl.MapGenerators.Labrynth.generate(5,5) |> DungeonCrawl.MapGenerators.Utils.stringify(5) |> IO.puts
     _dig_tunnels({Map.put(map, initial_seed, ?.), seed_queue, initial_seed})
-    |> _stairs_up(for_solo, cave_height, cave_width)
+    |> _stairs_up(solo_level, cave_height, cave_width)
   end
 
-  defp _stairs_up(map, true, cave_height, cave_width) do
+  defp _stairs_up(map, solo_level, cave_height, cave_width) when is_integer(solo_level) do
     row = :rand.uniform(cave_height) - 1
     col = :rand.uniform(cave_width) - 1
 
     if map[{row, col}] != ?# && _adjacent_walls(map, row, col) == 3 do
       Map.put(map, {row, col}, ?▟)
     else
-      _stairs_up(map, true, cave_height, cave_width)
+      _stairs_up(map, solo_level, cave_height, cave_width)
     end
   end
 

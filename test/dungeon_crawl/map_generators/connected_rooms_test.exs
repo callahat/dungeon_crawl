@@ -13,8 +13,9 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRoomsTest do
     assert is_integer(col)
   end
 
+  @tag timeout: 1_000
   test "generate returns a map with stairs up" do
-    dungeon_map = ConnectedRooms.generate(20,20, true)
+    dungeon_map = ConnectedRooms.generate(20,20, 1)
     assert Enum.find(dungeon_map, fn {_, char} -> char == ?▟ end)
   end
 end
