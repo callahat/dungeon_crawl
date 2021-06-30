@@ -127,8 +127,8 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
 
   defp _add_entities(map, solo_level, coords) when is_integer(solo_level) do
     room_area = (coords.top_left_col - coords.bottom_right_col) * (coords.top_left_row - coords.bottom_right_row)
-    max_entities = Enum.min [round(solo_level / 3) + 6, round(room_area / 10) + 6]
-    entities = Entities.randomize(_rand_range(1, max_entities))
+    number = Enum.min [round(solo_level / 10), round(:math.sqrt(room_area))]
+    entities = Entities.randomize(_rand_range(1, number + 6))
     _add_entities(map, entities, coords)
   end
   defp _add_entities(map, [], _coords), do: map
