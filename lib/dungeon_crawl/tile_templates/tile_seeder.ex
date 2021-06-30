@@ -8,6 +8,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
   use DungeonCrawl.TileTemplates.TileSeeder.Creatures
   use DungeonCrawl.TileTemplates.TileSeeder.Items
   use DungeonCrawl.TileTemplates.TileSeeder.Misc
+  use DungeonCrawl.TileTemplates.TileSeeder.Npcs
   use DungeonCrawl.TileTemplates.TileSeeder.Ordinance
   use DungeonCrawl.TileTemplates.TileSeeder.Passageways
   use DungeonCrawl.TileTemplates.TileSeeder.Terrain
@@ -54,6 +55,10 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     clone_machine()
     pushers()
     spinning_gun()
+
+    # npcs
+    glad_trader()
+    sad_trader()
 
     # ordinance
     bomb()

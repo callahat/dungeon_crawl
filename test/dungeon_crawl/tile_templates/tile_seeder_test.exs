@@ -107,6 +107,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Spinning Gun")
   end
 
+  test "npcs" do
+    assert TileSeeder.glad_trader
+    assert TileSeeder.sad_trader
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Glad Trader")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Sad Trader")
+  end
+
   test "ordinance" do
     assert TileSeeder.bomb
     assert TileSeeder.explosion
@@ -163,11 +170,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
     TileSeeder.seed_all()
     seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count - initial_count == 74
+    assert seeded_count - initial_count == 76
 
     # does not add the seeds again
     TileSeeder.seed_all()
     seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count2 - initial_count == 74
+    assert seeded_count2 - initial_count == 76
   end
 end

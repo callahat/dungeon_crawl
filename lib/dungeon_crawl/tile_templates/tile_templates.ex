@@ -387,6 +387,10 @@ defmodule DungeonCrawl.TileTemplates do
     tiger_tile  = TileSeeder.tiger()
     zombie_tile = TileSeeder.zombie()
 
+    # npcs
+    glad_trader_tile = TileSeeder.glad_trader
+    sad_trader_tile = TileSeeder.sad_trader
+
     %{
       ?▟ => stairs_up_tile, "▟" => stairs_up_tile,
       # items
@@ -405,6 +409,10 @@ defmodule DungeonCrawl.TileTemplates do
       ?π => tiger_tile, "π" => tiger_tile,
       ?* => foam_tile, "*" => foam_tile,
       ?Z => zombie_tile, "Z" => zombie_tile,
+
+      # npcs
+      ?☹ => sad_trader_tile, "☹" => sad_trader_tile,
+      ?☺ => glad_trader_tile, "☺" => glad_trader_tile,
     }
   end
 end

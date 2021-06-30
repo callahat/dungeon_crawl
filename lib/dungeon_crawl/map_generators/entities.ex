@@ -26,7 +26,10 @@ defmodule DungeonCrawl.MapGenerators.Entities do
       chance > 85 -> ?♣
       chance > 70 -> ?ö
       chance > 40 -> ?Ω
-      chance > 25 -> ?π
+      chance > 29 -> ?π
+      # 4 % chance of an NPC
+      chance > 27 -> ?☹
+      chance > 25 -> ?☺
       # 25% chance its an item instead of a monster
       chance > 20 -> ?ä
       chance > 15 -> ?▪
