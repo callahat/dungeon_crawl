@@ -6,6 +6,9 @@
       <div class="d-flex flex-row no-gutters">
         <div class="col-6 text-right mr-2">Health:</div><div id="health" class="col-6 text-left"><%= @player_stats[:health] %></div>
       </div>
+      <div class="d-flex flex-row no-gutters<%= if @player_stats[:lives] == -1, do: " hidden" %>">
+        <div class="col-6 text-right mr-2">Lives:</div><div id="lives" class="col-6 text-left"><%= @player_stats[:lives] %></div>
+      </div>
       <div class="d-flex flex-row no-gutters">
         <div class="col-6 text-right mr-2">Gems:</div><div id="gems" class="col-6 text-left"><%= @player_stats[:gems] %></div>
       </div>
