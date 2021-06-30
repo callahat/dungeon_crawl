@@ -141,6 +141,11 @@ defmodule DungeonCrawl.Action.TravelTest do
       {:ok, state}
     end)
 
+    assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "message",
+        payload: %{message: "*** Now on level 2"}}
+
     refute DungeonInstances.get_level(level_1.dungeon_instance_id, level_1.number)
     assert DungeonInstances.get_level(level_2.dungeon_instance_id, level_2.number + 1)
   end
