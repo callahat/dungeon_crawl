@@ -94,7 +94,8 @@
                      "dungeon.html",
                      level: level,
                      width: level.width,
-                     height: level.height) %>
+                     height: level.height,
+                     player_coord_id: nil) %>
         </div>
       <% end %>
       </div>

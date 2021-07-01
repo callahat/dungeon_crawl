@@ -44,7 +44,7 @@
               <%= render SharedView, "show_state_fields.html", state: level.state %>
             </div>
           </div>
-          <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", level: level) %>
+          <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", level: level, player_coord_id: nil) %>
           <br/>
           <%= link "Edit Level", to: Routes.dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
           <%= link "Delete Level", to: Routes.dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/><br/>

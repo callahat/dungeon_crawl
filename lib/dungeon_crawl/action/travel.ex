@@ -58,9 +58,13 @@ defmodule DungeonCrawl.Action.Travel do
           {updated_tile, other_instance_state} = Player.place(other_instance_state, player_tile, player_location, passage)
 
           level_table = DungeonCrawlWeb.SharedView.level_as_table(other_instance_state, target_level.height, target_level.width)
+          fade = ! Enum.member?(["fog"], other_instance_state.state_values[:visibility])
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "change_level",
-                                             %{level_id: target_level.id, level_render: level_table}
+                                             %{level_id: target_level.id,
+                                               level_render: level_table,
+                                               fade: fade,
+                                               player_coord_id: "#{updated_tile.row}_#{updated_tile.col}"}
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "stat_update",
                                              %{stats: Player.current_stats(other_instance_state, updated_tile)}

@@ -19,6 +19,18 @@ let Level = {
       document.getElementById("level_instance").setAttribute("data-level-id", msg.level_id)
       document.getElementById("level_instance").innerHTML = msg.level_render
       this.tuneInToChannel(socket, msg.level_id)
+
+      if(msg.fade) {
+        for(let td of Array.from(document.querySelectorAll("#level_instance td"))){
+          if(td.id != msg.player_coord_id){ td.classList.add("entry-fade") }
+        }
+        setTimeout(() => {
+          for(let td of Array.from(document.querySelectorAll(".entry-fade"))){
+            td.classList.add("entry-faded")
+            td.classList.remove("entry-fade")
+          }
+        }, 1000)
+      }
     }
   },
   handleLevelChange: null,

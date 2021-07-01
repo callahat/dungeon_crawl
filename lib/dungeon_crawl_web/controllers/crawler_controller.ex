@@ -30,6 +30,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     dungeon = if player_location, do: Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon,
                                   else: nil
     dungeon = if dungeon, do: Repo.preload(dungeon, :dungeon), else: nil
+    player_coord_id = if player_location, do: "#{player_location.tile.row}_#{player_location.tile.row}"
 
     scorable = _scorable_dungeon(dungeon)
 
@@ -42,7 +43,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
                      {%{}, nil}
                    end
 
-    render(conn, "show.html", player_location: player_location, dungeons: dungeons, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level)
+    render(conn, "show.html", player_location: player_location, dungeons: dungeons, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level, player_coord_id: player_coord_id)
   end
 
   def _scorable_dungeon(nil), do: false

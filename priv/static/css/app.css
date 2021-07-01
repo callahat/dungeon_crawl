@@ -12947,6 +12947,17 @@ pre.script {
   font-size: 75%;
 }
 
+.level_preview table td.entry-fade div {
+  animation: entryFade 1s !important;
+  animation-fill-mode: forwards;
+}
+
+@keyframes entryFade{
+  0%   { background-color: black; color: black; }
+  33%  { background-color: black; color: black; }
+  100% { }
+}
+
 pre.level_preview {
   background: #f5f5f5;
   border-radius: 0.25rem;
@@ -13022,7 +13033,6 @@ pre.level_preview table tr td, pre.color_pallette table tr td, td.flat:first-chi
 }
 
 #level_editor pre.level_preview table td.spawn-hilight div {
-/*  background-color: blue !important; */
   animation: blinkingBackground 1s infinite !important;
 }
 
@@ -13032,7 +13042,6 @@ pre.level_preview table tr td, pre.color_pallette table tr td, td.flat:first-chi
 }
 
 #level_editor pre.level_preview table td.cursor-hilight div {
-/*  background-color: blue !important; */
   animation: cursorBackground 1s infinite !important;
 }
 
