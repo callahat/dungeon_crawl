@@ -71,6 +71,12 @@ defmodule DungeonCrawl.Scores do
              select: %{ s | place: row_number() |> over(order_by: [desc: s.score])})
   end
 
+  defp _from_ranked_scores_subquery(nil) do
+    subquery(from s in Score,
+             select: %{ s | place: row_number() |> over(order_by: [desc: s.score])},
+             where: is_nil(s.dungeon_id))
+  end
+
   defp _from_ranked_scores_subquery(dungeon_id) do
     subquery(from s in Score,
              select: %{ s | place: row_number() |> over(order_by: [desc: s.score])},

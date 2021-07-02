@@ -7,6 +7,7 @@ defmodule DungeonCrawl.LevelProcessTest do
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Player.Location
+  alias DungeonCrawl.Scores
 
   alias DungeonCrawl.Test.LevelsMockFactory
 
@@ -522,6 +523,8 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     assert %{other_player_tile.id => 1} == inactive_players
     assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
+
+    assert Scores.list_scores() == []
 
     # doesn't break when running on a player that isnt' there anymore
     LevelProcess.run_with(instance_process, fn(state) ->

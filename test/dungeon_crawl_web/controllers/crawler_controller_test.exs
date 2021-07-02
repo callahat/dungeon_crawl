@@ -308,8 +308,8 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     assert redirected_to(conn) == crawler_path(conn, :show)
     assert get_flash(conn, :info) == "Dungeon cleared."
     refute Player.get_location(user.user_id_hash)
-    refute DungeonInstances.get_dungeon(dungeon_instance.id)
-    refute Dungeons.get_level(instance.level_id)
+    assert DungeonInstances.get_dungeon(dungeon_instance.id)
+    assert Dungeons.get_level(instance.level_id)
   end
 
   @tag login_as: "maxheadroom"

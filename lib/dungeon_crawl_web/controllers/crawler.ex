@@ -73,6 +73,7 @@ defmodule DungeonCrawlWeb.Crawler do
 
     deleted_location = LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, tile)
+      instance_state = Levels.gameover(instance_state, player_tile.id, false, "Gave Up")
       {_junk_pile, instance_state} = PlayerInstance.drop_all_items(instance_state, player_tile)
       {_deleted_instance_location, instance_state} = Levels.delete_tile(instance_state, tile)
 

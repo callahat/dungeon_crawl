@@ -498,6 +498,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     if player_location = Levels.get_player_location(state, %{id: tile_id}) do
       player_name = Account.get_name(player_location.user_id_hash)
       Logger.info "Player #{player_name} has idled out and become a statue in MSI #{state.dungeon_instance_id}"
+      state = Levels.gameover(state, tile_id, false, "Idled Out")
       {_statue, state} = PlayerInstance.petrify(state, %{id: tile_id})
       _petrify_old_inactive_players(to_stone, state)
     else
