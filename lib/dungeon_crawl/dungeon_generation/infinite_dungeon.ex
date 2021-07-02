@@ -33,11 +33,16 @@ defmodule DungeonCrawl.DungeonGeneration.InfiniteDungeon do
     |> generate_next_level()
   end
   def _generate_next_level(dungeon, next_number) do
-    # Pick other stuff at random, more random attrs the higher the level?
+    # Higher up more likely fog, all fog past level 100
+    extras = if :rand.uniform(100) < next_number, do: ["visibility: fog", "fog_range: #{3 + :rand.uniform(4)}"], else: []
+    # 10% chance of reset_player_when_damaged
+    extras = if :rand.uniform(10) == 1, do: ["reset_player_when_damaged: true" | extras ], else: extras
+
     level_attrs = %{dungeon_id: dungeon.id,
                     number: next_number,
                     height: Admin.get_setting.autogen_height,
                     width: Admin.get_setting.autogen_width}
+                  |> Map.put(:state, Enum.join(extras, ", "))
     Dungeons.generate_level(Enum.random(@level_generators), level_attrs, true)
   end
 end
