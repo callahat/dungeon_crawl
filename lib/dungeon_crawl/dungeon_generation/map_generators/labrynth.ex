@@ -1,8 +1,8 @@
-defmodule DungeonCrawl.MapGenerators.Labrynth do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
   @cave_height     39
   @cave_width      79
 
-  alias DungeonCrawl.MapGenerators.Entities
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.Entities
 
   @doc """
   Generates a labrynth.
@@ -29,7 +29,7 @@ defmodule DungeonCrawl.MapGenerators.Labrynth do
     initial_seed = _random_coords(cave_height, cave_width)
     seed_queue = _add_to_seed_queue([], initial_seed)
 
-# DungeonCrawl.MapGenerators.Labrynth.generate(5,5) |> DungeonCrawl.MapGenerators.Utils.stringify(5) |> IO.puts
+# DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth.generate(5,5) |> DungeonCrawl.DungeonGeneration.MapGenerators.Utils.stringify(5) |> IO.puts
     _dig_tunnels({Map.put(map, initial_seed, ?.), seed_queue, initial_seed, []})
     |> _stairs_up(solo_level)
     |> _add_entities(solo_level || [])

@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.MapGenerators.ConnectedRoomsTest do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRoomsTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.MapGenerators.ConnectedRooms
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms
 
   test "generate returns a map with a rol, col tuple as key and tile as value" do
     dungeon_map = ConnectedRooms.generate(20,20)

@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.MapGenerators.TestRooms
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
   alias DungeonCrawl.Scores
 
   def insert_user(attrs \\ %{}) do

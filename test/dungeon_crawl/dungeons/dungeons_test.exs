@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonsTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.MapGenerators.TestRooms
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
 
   describe "dungeons" do
     alias DungeonCrawl.Dungeons.Level

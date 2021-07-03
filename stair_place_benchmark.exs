@@ -1,6 +1,6 @@
 defmodule StairPlaceBenchmark do
-  alias DungeonCrawl.MapGenerators.ConnectedRooms
-  alias DungeonCrawl.MapGenerators.Labrynth
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth
 
   require Logger
 
@@ -21,7 +21,7 @@ defmodule StairPlaceBenchmark do
     labrynth = Labrynth.generate
     IO.puts "Took #{(:os.system_time(:millisecond) - start_ms) / 1000.0} seconds"
 
-    IO.puts DungeonCrawl.MapGenerators.Utils.stringify map, 80
+    IO.puts DungeonCrawl.DungeonGeneration.MapGenerators.Utils.stringify map, 80
 
     IO.puts "Running experiements..."
     placing_by_random_guess = measure(fn() ->
@@ -101,8 +101,8 @@ defmodule StairPlaceBenchmark do
 
   defp _adjacent_walls(map, row, col) do
     [ map[{row+1, col}],
-      map[{row-1, col}], 
-      map[{row, col+1}], 
+      map[{row-1, col}],
+      map[{row, col+1}],
       map[{row, col-1}] ]
     |> Enum.filter(fn char -> char == ?# end)
     |> length

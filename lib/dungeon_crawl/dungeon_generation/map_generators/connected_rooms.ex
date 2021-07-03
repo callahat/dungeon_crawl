@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
   @room_min_height  3
   @room_max_height  9
   @room_min_width   5
@@ -10,7 +10,7 @@ defmodule DungeonCrawl.MapGenerators.ConnectedRooms do
 
   @doors           '+\''
 
-  alias DungeonCrawl.MapGenerators.Entities
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.Entities
 
   @doc """
   Generates a level using the box method.

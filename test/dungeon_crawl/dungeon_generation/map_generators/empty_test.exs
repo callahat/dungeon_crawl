@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.MapGenerators.EmptyTest do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.EmptyTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.MapGenerators.Empty
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.Empty
 
   test "generate returns a map with a rol, col tuple as key and tile as value" do
     dungeon_map = Empty.generate(20,20)

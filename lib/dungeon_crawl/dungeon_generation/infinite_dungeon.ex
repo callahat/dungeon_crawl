@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonGeneration.InfiniteDungeon do
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
-  alias DungeonCrawl.MapGenerators.{ConnectedRooms, Labrynth}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Labrynth}
   alias DungeonCrawl.Repo
 
   @level_generators Application.get_env(:dungeon_crawl, :generators) || [ConnectedRooms, Labrynth]

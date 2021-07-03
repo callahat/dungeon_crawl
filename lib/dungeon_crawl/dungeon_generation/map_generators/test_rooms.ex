@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.MapGenerators.TestRooms do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms do
   @cave_height 21
   @cave_width  21
 

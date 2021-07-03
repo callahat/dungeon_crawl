@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.MapGenerators.Utils do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Utils do
   @doc """
   Turns a generated level into a displayable string with each row on a line. Needs the row width.
   """

@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.MapGenerators.Empty do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Empty do
   @cave_height     40
   @cave_width      80
 
