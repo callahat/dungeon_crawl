@@ -28,13 +28,16 @@ let Level = {
       }
     }
   },
-  removeFade(count) {
-    let fadedCells = Array.from(document.querySelectorAll(`.fade_range_${count}`))
+  removeFade(count, range = 1) {
+    let query = []
+    for(let i = 0; i < range; i++){ query.push(`.fade_range_${count + i}`) }
+    let fadedCells = Array.from(document.querySelectorAll(query.join(",")))
     if(fadedCells.length > 0){
       for(let td of fadedCells){
         td.classList = []
       }
-      setTimeout(() => { this.removeFade(count + 1) }, 100)
+      let new_range = count < 10 ? range : range + 1
+      setTimeout(() => { this.removeFade(count + range, new_range) }, 100)
     } else {
       document.getElementById("fade_overlay").innerHTML = ""
     }
