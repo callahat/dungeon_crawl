@@ -21,6 +21,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_instance_limit when action in [:invite, :avatar, :validate_avatar]
 
   def show(conn, _opts) do
+    # TODO: eventually have this get the location and other details from the level/dungeon process instead of DB which may have stale info
     player_location = conn.assigns[:player_location]
 
     dungeons = if player_location,
@@ -30,17 +31,17 @@ defmodule DungeonCrawlWeb.CrawlerController do
     dungeon = if player_location, do: Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon,
                                   else: nil
     dungeon = if dungeon, do: Repo.preload(dungeon, :dungeon), else: nil
-    player_coord_id = if player_location, do: "#{player_location.tile.row}_#{player_location.tile.row}"
 
     scorable = _scorable_dungeon(dungeon)
 
-    {player_stats, level} = if player_location do
+    {player_stats, level, player_coord_id} = if player_location do
                      {:ok, instance_process} = Registrar.instance_process(player_location.tile.level.dungeon_instance_id,
                                                                           player_location.tile.level.id)
                      level = Map.put(LevelProcess.get_state(instance_process), :id, player_location.tile.level.id)
-                     {PlayerInstance.current_stats(player_location.user_id_hash), level}
+                     player_tile = LevelProcess.get_tile(instance_process, player_location.tile.id)
+                     {PlayerInstance.current_stats(player_location.user_id_hash), level, "#{player_tile.row}_#{player_tile.col}"}
                    else
-                     {%{}, nil}
+                     {%{}, nil, nil}
                    end
 
     render(conn, "show.html", player_location: player_location, dungeons: dungeons, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level, player_coord_id: player_coord_id)

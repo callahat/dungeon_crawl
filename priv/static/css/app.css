@@ -12947,15 +12947,8 @@ pre.script {
   font-size: 75%;
 }
 
-.level_preview table td.entry-fade div {
-  animation: entryFade 1s !important;
-  animation-fill-mode: forwards;
-}
-
-@keyframes entryFade{
-  0%   { background-color: black; color: black; }
-  33%  { background-color: black; color: black; }
-  100% { }
+div.fade_overlay {
+  background-color: black;
 }
 
 pre.level_preview {

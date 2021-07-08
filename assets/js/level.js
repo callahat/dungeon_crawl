@@ -8,6 +8,8 @@ let Level = {
 
     this.tuneInToChannel(socket, levelId)
 
+    setTimeout(() => { this.removeFade(1) }, 1000)
+
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
@@ -20,17 +22,21 @@ let Level = {
       document.getElementById("level_instance").innerHTML = msg.level_render
       this.tuneInToChannel(socket, msg.level_id)
 
-      if(msg.fade) {
-        for(let td of Array.from(document.querySelectorAll("#level_instance td"))){
-          if(td.id != msg.player_coord_id){ td.classList.add("entry-fade") }
-        }
-        setTimeout(() => {
-          for(let td of Array.from(document.querySelectorAll(".entry-fade"))){
-            td.classList.add("entry-faded")
-            td.classList.remove("entry-fade")
-          }
-        }, 1000)
+      if(msg.fade_overlay) {
+        document.getElementById("fade_overlay").innerHTML = msg.fade_overlay
+        setTimeout(() => { this.removeFade(1) }, 100)
       }
+    }
+  },
+  removeFade(count) {
+    let fadedCells = Array.from(document.querySelectorAll(`.fade_range_${count}`))
+    if(fadedCells.length > 0){
+      for(let td of fadedCells){
+        td.classList = []
+      }
+      setTimeout(() => { this.removeFade(count + 1) }, 100)
+    } else {
+      document.getElementById("fade_overlay").innerHTML = ""
     }
   },
   handleLevelChange: null,

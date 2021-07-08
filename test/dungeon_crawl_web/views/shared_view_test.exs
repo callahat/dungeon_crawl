@@ -132,6 +132,21 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     Process.exit(instance_process, :kill)
   end
 
+  test "fade_overlay_table/4 when level is foggy" do
+    assert "" == fade_overlay_table(%{state_values: %{visibility: "fog"}}, 40, 40, "1_1")
+  end
+
+  test "fade_overlay_table/3/4 when level is not foggy" do
+    rows = fade_overlay_table(20, 20, "2_5")
+
+    assert rows == fade_overlay_table(%{}, 20, 20, "2_5")
+
+    range_1 = "<td><div class='fade_overlay fade_range_1'> </div></td>"
+    range_2 = "<td><div class='fade_overlay fade_range_2'> </div></td>"
+    assert rows =~ ~r|#{range_1}<td><div class=''> </div></td>#{range_1}|
+    assert rows =~ ~r|#{range_2}#{range_1}#{range_1}#{range_1}#{range_2}|
+  end
+
   test "editor_level_as_table/3 returns table rows of the level including the data attributes" do
     tile_a = insert_tile_template(%{character: "A"})
     tile_b = insert_tile_template(%{character: "B", color: "#FFF"})

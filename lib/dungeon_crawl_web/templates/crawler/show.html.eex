@@ -12,7 +12,8 @@
                "dungeon_instance.html",
                level: @level, # Make this the instance
                height: @player_location.tile.level.height,
-               width: @player_location.tile.level.width) %>
+               width: @player_location.tile.level.width,
+               player_coord_id: @player_coord_id) %>
     <br/>
     <%= link "Leave Dungeon", to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "btn btn-danger btn-sm" %>
     <br/>

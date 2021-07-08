@@ -21,6 +21,18 @@ defmodule DungeonCrawlWeb.SharedView do
     _level_as_table(level, height, width, player_coord_id)
   end
 
+  def fade_overlay_table(%{state_values: %{visibility: "fog"}}, _height, _width, _player_coord_id) do
+    ""
+  end
+
+  def fade_overlay_table(_level, height, width, player_coord_id) do
+    fade_overlay_table(height, width, player_coord_id)
+  end
+
+  def fade_overlay_table(height, width, player_coord_id) do
+    rows(%{}, height, width, player_coord_id, &fade_overlay_cells/4)
+  end
+
   def editor_level_as_table(%Dungeons.Level{} = level, height, width) do
     _edge(width, "north") <>
     _editor_level_table(level.tiles, height, width) <>
@@ -122,6 +134,17 @@ defmodule DungeonCrawlWeb.SharedView do
   defp _lower_editor_cells([ cell | cells ]) do
     "<div class='hidden#{animate_class(cell)}' data-z-index=#{cell.z_index} #{data_attributes(cell)}>#{ tile_and_style(cell) }</div>"
     <> _lower_editor_cells(cells)
+  end
+
+  defp fade_overlay_cells(_, row, width, player_coord_id) do
+    [player_row, player_col] = String.split(player_coord_id, "_") |> Enum.map(&String.to_integer/1)
+    Enum.to_list(0..width-1)
+    |> Enum.map(fn(col) ->
+         range = Enum.max [abs(row - player_row), abs(col - player_col)]
+         div_class = if {row, col} == {player_row, player_col}, do: "", else: "fade_overlay fade_range_#{range}"
+         "<td><div class='#{div_class}'> </div></td>"
+       end)
+    |> Enum.join("")
   end
 
   defp fog_cells(_, row, width) do
