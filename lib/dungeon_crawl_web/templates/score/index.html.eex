@@ -72,7 +72,7 @@
   </tbody>
 </table>
 
-<%= if @details[:other_dungeons] do %>
+<%= if @details[:other_dungeons] && @details[:other_dungeons] != [] do %>
   <h5>Other Versions</h5>
 <table class="table table-sm">
   <thead>
