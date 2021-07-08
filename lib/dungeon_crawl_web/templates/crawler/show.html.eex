@@ -99,8 +99,7 @@
               </div>
               <div class="col-6">
                 <div class="title-map">
-                <%= render(SharedView, "dungeon.html", level: Repo.preload(Dungeons.get_title_level(dungeon), :tiles),
-                                                       player_coord_id: @player_coord_id) %>
+                <%= render(SharedView, "dungeon.html", level: Repo.preload(Dungeons.get_title_level(dungeon), :tiles)) %>
                 </div>
               </div>
               </div>

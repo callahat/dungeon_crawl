@@ -8,17 +8,17 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   # todo: pass in if its foggy instead maybe
-  def level_as_table(level, height, width, player_coord_id \\ nil, admin \\ false)
-  def level_as_table(%Levels{state_values: state_values} = level, height, width, player_coord_id, admin) do
+  def level_as_table(level, height, width, admin \\ false)
+  def level_as_table(%Levels{state_values: state_values} = level, height, width, admin) do
     if state_values[:visibility] == "fog" && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
-      _level_as_table(level, height, width, player_coord_id)
+      _level_as_table(level, height, width)
     end
   end
 
-  def level_as_table(level, height, width, player_coord_id, _admin) do
-    _level_as_table(level, height, width, player_coord_id)
+  def level_as_table(level, height, width, _admin) do
+    _level_as_table(level, height, width)
   end
 
   def fade_overlay_table(%{state_values: %{visibility: "fog"}}, _height, _width, _player_coord_id) do
@@ -44,31 +44,31 @@ defmodule DungeonCrawlWeb.SharedView do
     "<tr><td class='edge'></td>#{ incells }<td class='edge'></td></tr>"
   end
 
-  defp _level_as_table(%Dungeons.Level{} = level, height, width, player_coord_id) do
+  defp _level_as_table(%Dungeons.Level{} = level, height, width) do
     level.tiles
-    |> _level_table(height, width, player_coord_id)
+    |> _level_table(height, width)
   end
 
-  defp _level_as_table(%DungeonInstances.Level{} = level, height, width, player_coord_id) do
+  defp _level_as_table(%DungeonInstances.Level{} = level, height, width) do
     {:ok, instance} = Registrar.instance_process(level.dungeon_instance_id, level.id)
     instance_state = LevelProcess.get_state(instance)
 
     instance_state.map_by_ids
     |> Enum.map(fn({_id, tile}) -> tile end)
-    |> _level_table(height, width, player_coord_id)
+    |> _level_table(height, width)
   end
 
-  defp _level_as_table(%Levels{} = instance_state, height, width, player_coord_id) do
+  defp _level_as_table(%Levels{} = instance_state, height, width) do
     instance_state.map_by_ids
     |> Enum.map(fn({_id, tile}) -> tile end)
-    |> _level_table(height, width, player_coord_id)
+    |> _level_table(height, width)
   end
 
-  defp _level_table(tiles, height, width, player_coord_id) do
+  defp _level_table(tiles, height, width) do
     tiles
     |> Enum.sort(fn(a,b) -> a.z_index > b.z_index end)
     |> Enum.reduce(%{}, fn(t,acc) -> if Map.has_key?(acc, {t.row, t.col}), do: acc, else: Map.put(acc, {t.row, t.col}, t) end)
-    |> rows(height, width, player_coord_id, &_cells/4)
+    |> rows(height, width, &cells/3)
   end
 # TODO: Probably move the editor stuff into the dungeon_view, since it will only be used for dungeon editing
   defp _editor_level_table(tiles, height, width) do
@@ -97,13 +97,9 @@ defmodule DungeonCrawlWeb.SharedView do
     |> Enum.join("\n")
   end
 
-  defp _cells(level, row, width, player_coord_id) do
+  defp cells(level, row, width) do
     Enum.to_list(0..width-1)
-    |> Enum.map(fn(col) ->
-         coord_id = "#{row}_#{col}"
-         td_class = if coord_id == player_coord_id, do: " class=''", else: ""
-         "<td#{td_class} id='#{coord_id}'>#{ tile_and_style(level[{row, col}]) }</td>"
-       end)
+    |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ tile_and_style(level[{row, col}]) }</td>" end )
     |> Enum.join("")
   end
 
