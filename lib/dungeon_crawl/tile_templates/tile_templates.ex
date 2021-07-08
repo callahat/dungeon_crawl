@@ -382,7 +382,7 @@ defmodule DungeonCrawl.TileTemplates do
     # monsters
     bandit_tile = TileSeeder.bandit()
     bear_tile   = TileSeeder.bear()
-    foam_tile   = TileSeeder.expanding_foam()
+    grid_bug_tile = TileSeeder.grid_bug()
     lion_tile   = TileSeeder.lion()
     tiger_tile  = TileSeeder.tiger()
     zombie_tile = TileSeeder.zombie()
@@ -407,7 +407,7 @@ defmodule DungeonCrawl.TileTemplates do
       ?ö => bear_tile, "ö" => bear_tile,
       ?Ω => lion_tile, "Ω" => lion_tile,
       ?π => tiger_tile, "π" => tiger_tile,
-      ?* => foam_tile, "*" => foam_tile,
+      ?x => grid_bug_tile, "x" => grid_bug_tile,
       ?Z => zombie_tile, "Z" => zombie_tile,
 
       # npcs

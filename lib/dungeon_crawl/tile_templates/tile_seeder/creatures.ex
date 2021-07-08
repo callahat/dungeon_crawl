@@ -116,6 +116,41 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
     })
   end
 
+  def grid_bug do
+    TileTemplates.update_or_create_tile_template!(
+      "grid_bug",
+      %{character: "x",
+        name: "Grid Bug",
+        description: "Zap!",
+        state: "blocking: true, soft: true, destroyable: true, points: 6, split_rate: 1, not_pushing: true",
+        color: "purple",
+        public: true,
+        active: true,
+        group_name: "monsters",
+        animate_period: 10,
+        animate_characters: "+, x",
+        script: """
+                :top
+                #random move_dir, north, south, east, west
+                #try @move_dir
+                #if ?random@10 <= @split_rate, split
+                :idle
+                /i
+                #send top
+                #end
+                :touch
+                :thud
+                #if not ?sender@player, idle
+                #take health, 10, ?sender
+                #die
+                :split
+                #if ?{@move_dir}@blocking, idle
+                #put slug: grid_bug, direction: @move_dir
+                #send top
+                """
+    })
+  end
+
   def lion do
     TileTemplates.update_or_create_tile_template!(
       "lion",
@@ -339,6 +374,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       def bandit(), do: unquote(__MODULE__).bandit()
       def bear(), do: unquote(__MODULE__).bear()
       def expanding_foam(), do: unquote(__MODULE__).expanding_foam()
+      def grid_bug(), do: unquote(__MODULE__).grid_bug()
       def lion(), do: unquote(__MODULE__).lion()
       def pede_head(), do: unquote(__MODULE__).pede_head()
       def pede_body(), do: unquote(__MODULE__).pede_body()
