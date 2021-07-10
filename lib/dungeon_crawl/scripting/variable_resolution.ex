@@ -66,6 +66,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, :id}) do
     case event_sender do
       %Location{} -> event_sender.tile_instance_id
+      %{tile_id: id} ->  id
       %{id: id} ->  id
       _ -> nil
     end

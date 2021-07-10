@@ -39,6 +39,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     lion()
     pede_head()
     pede_body()
+    rockworm()
     tiger()
     zombie()
 

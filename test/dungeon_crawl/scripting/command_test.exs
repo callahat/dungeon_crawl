@@ -631,12 +631,17 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "JUMP_IF when state check is TRUE" do
-    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, state: "thing: true", color: "red", background_color: "white"})
+    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, state: "thing: true, truthy: 1", color: "red", background_color: "white"})
     program = program_fixture()
 #    tile = %{id: 1, state: "thing: true", parsed_state: %{thing: true}}
 #    state = %Levels{map_by_ids: %{1 => stubbed_object}}
     params = [{:state_variable, :thing}, "TOUCH"]
 
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 3
+
+    params = [{:state_variable, :truthy}, "TOUCH"]
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
     assert updated_program.status == :alive
     assert updated_program.pc == 3
@@ -655,12 +660,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "JUMP_IF when state check is FALSE" do
-    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, state: "thing: true"})
+    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, state: "thing: true, falsey: nil, truthy: true"})
     program = program_fixture()
 #    stubbed_object = %{state: "thing: true", parsed_state: %{thing: true}}
     params = [["!", {:state_variable, :thing}], "TOUCH"]
 
     assert program.status == :alive
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
+
+    params = [{:state_variable, :falsey}, "TOUCH"]
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
+    assert updated_program.status == :alive
+    assert updated_program.pc == 1
+
+    params = [["!", {:state_variable, :truthy}], "TOUCH"]
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
     assert updated_program.status == :alive
     assert updated_program.pc == 1
