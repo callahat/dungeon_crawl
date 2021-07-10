@@ -10,7 +10,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
 
   @doors           '+\''
 
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.Entities
+  alias DungeonCrawl.DungeonGeneration.Entities
 
   @doc """
   Generates a level using the box method.

@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.DungeonGeneration.MapGenerators.EntitiesTest do
+defmodule DungeonCrawl.DungeonGeneration.EntitiesTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.Entities
+  alias DungeonCrawl.DungeonGeneration.Entities
 
   describe "randomize/2" do
     test "it returns a list of characters" do
