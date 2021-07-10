@@ -21,6 +21,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Entities do
   def random_entity() do
     chance = :rand.uniform(100)
     cond do
+      chance > 99 -> ?r
       chance > 98 -> ?x
       chance > 96 -> ?Z
       chance > 85 -> ?♣
