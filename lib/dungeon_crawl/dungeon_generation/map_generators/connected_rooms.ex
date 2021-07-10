@@ -89,10 +89,10 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     end
   end
 
+  defp _stairs_up(%ConnectedRooms{solo_level: nil} = connected_rooms), do: connected_rooms
   defp _stairs_up(%ConnectedRooms{map: map,
                                   cave_height: cave_height,
-                                  cave_width: cave_width,
-                                  solo_level: solo_level} = connected_rooms) when is_integer(solo_level) do
+                                  cave_width: cave_width} = connected_rooms) do
     row = _rand_range(0, cave_height-1)
     col = _rand_range(0, cave_width-1)
 
@@ -102,8 +102,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
       _stairs_up(connected_rooms)
     end
   end
-
-  defp _stairs_up(connected_rooms), do: connected_rooms
 
   defp _valid_stair_placement(map, row, col) do
     map[{row, col}] == ?. && _valid_stair_neighbors(map, row, col)
@@ -145,7 +143,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     _replace_tile_at(connected_rooms, col, row, Enum.random(@doors))
   end
 
-  defp _add_entities(%ConnectedRooms{solo_level: solo_level} = connected_rooms, _coords) when is_nil(solo_level) do
+  defp _add_entities(%ConnectedRooms{solo_level: nil} = connected_rooms, _coords) do
     connected_rooms
   end
   defp _add_entities(%ConnectedRooms{map: map, solo_level: solo_level} = connected_rooms, coords) do
