@@ -1069,10 +1069,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   test "PUT" do
     instance = insert_stubbed_level_instance(%{},
-      [%Tile{character: ".", row: 1, col: 2, z_index: 0, color: "orange"},
-       %Tile{character: ".", row: 1, col: 3, z_index: 0},
-       %Tile{character: ".", row: 1, col: 4, z_index: 0},
-       %Tile{character: ".", row: 1, col: 5, z_index: 0}])
+      [%Tile{character: ".", row: 0, col: 2, z_index: 0, color: "orange"},
+       %Tile{character: ".", row: 0, col: 3, z_index: 0},
+       %Tile{character: ".", row: 0, col: 4, z_index: 0},
+       %Tile{character: ".", row: 0, col: 5, z_index: 0}])
 
     # Quik and dirty state init
     state = Repo.preload(instance, :tiles).tiles
@@ -1082,7 +1082,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                end)
     state = Map.put(state, :state_values, %{rows: 20, cols: 20})
 
-    tile = Levels.get_tile(state, %{row: 1, col: 2})
+    tile = Levels.get_tile(state, %{row: 0, col: 2})
 
     program = program_fixture()
     squeaky_door = insert_tile_template(%{character: "!", script: "#END\n:TOUCH\nSQUEEEEEEEEEK", state: "blocking: true", active: true})
@@ -1090,12 +1090,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     runner_state = %Runner{program: program, object_id: tile.id, state: state}
 
     %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
-    new_tile = Levels.get_tile(updated_state, %{row: 2, col: 2})
+    new_tile = Levels.get_tile(updated_state, %{row: 1, col: 2})
     assert new_tile.character == "?"
 #    assert new_tile.slug == squeaky_door.slug
     assert Map.take(new_tile, [:color, :script]) == Map.take(squeaky_door, [:color, :script])
     assert program.broadcasts == []
-    assert Map.has_key? updated_state.rerender_coords, %{row: 2, col: 2}
+    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 2}
     assert %{blocking: true} = new_tile.parsed_state
     assert updated_state.new_ids == %{"new_0" => 0}
     assert updated_state.map_by_ids["new_0"]
@@ -1103,11 +1103,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # PUT a clone
     params = [%{clone: tile.id, direction: "east", cloned: true}]
     %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
-    tile_1_3 = Levels.get_tile(updated_state, %{row: 1, col: 3})
-    assert tile_1_3.parsed_state[:cloned]
-    assert Map.take(tile_1_3, [:character, :color]) == Map.take(tile, [:character, :color])
+    tile_0_3 = Levels.get_tile(updated_state, %{row: 0, col: 3})
+    assert tile_0_3.parsed_state[:cloned]
+    assert Map.take(tile_0_3, [:character, :color]) == Map.take(tile, [:character, :color])
     assert program.broadcasts == []
-    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{row: 0, col: 3}
 
     # PUT a clone noop if bad clone id
     params = [%{clone: 12312312312, direction: "east", cloned: true}]
@@ -1118,13 +1118,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # PUT with shape kwargs
     params = [%{slug: squeaky_door.slug, direction: "east", range: 2, shape: "line", include_origin: false}]
     %Runner{program: program, state: updated_state} = Command.put(runner_state, params)
-    tile_1_3 = Levels.get_tile(updated_state, %{row: 1, col: 3})
-    tile_1_4 = Levels.get_tile(updated_state, %{row: 1, col: 4})
-    assert tile_1_3.character == "!"
-    assert tile_1_4.character == "!"
+    tile_0_3 = Levels.get_tile(updated_state, %{row: 0, col: 3})
+    tile_0_4 = Levels.get_tile(updated_state, %{row: 0, col: 4})
+    assert tile_0_3.character == "!"
+    assert tile_0_4.character == "!"
     assert program.broadcasts == []
-    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 3}
-    assert Map.has_key? updated_state.rerender_coords, %{row: 1, col: 4}
+    assert Map.has_key? updated_state.rerender_coords, %{row: 0, col: 3}
+    assert Map.has_key? updated_state.rerender_coords, %{row: 0, col: 4}
     assert updated_state.new_ids == %{"new_0" => 0, "new_1" => 0}
     assert updated_state.map_by_ids["new_0"]
     assert updated_state.map_by_ids["new_1"]

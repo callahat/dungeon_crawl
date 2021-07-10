@@ -1005,8 +1005,8 @@ defmodule DungeonCrawl.Scripting.Command do
                %{row: object.row + row_d, col: object.col + col_d}
              end
 
-    if coords.row > 0 && coords.row <= state.state_values[:rows] &&
-       coords.col > 0 && coords.col <= state.state_values[:cols] do
+    if coords.row >= 0 && coords.row < state.state_values[:rows] &&
+       coords.col >= 0 && coords.col < state.state_values[:cols] do
       new_attrs = Map.merge(attributes, Map.put(coords, :level_instance_id, object.level_instance_id))
       _put_tile(runner_state, new_attrs, new_state_attrs)
     else
