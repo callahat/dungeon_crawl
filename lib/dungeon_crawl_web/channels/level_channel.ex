@@ -47,12 +47,17 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   def terminate(_reason, socket) do
     # add the player to the inactive map
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
-    LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
-      {_, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
-      inactive_players = if player_tile, do: Map.put(inactive_players, player_tile.id, 0), else: inactive_players
-      {:ok, %{ instance_state | inactive_players: inactive_players }}
-    end)
+    case LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id) do
+      {:ok, instance} ->
+        LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
+          {_, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
+          inactive_players = if player_tile, do: Map.put(inactive_players, player_tile.id, 0), else: inactive_players
+          {:ok, %{ instance_state | inactive_players: inactive_players }}
+        end)
+
+      _ ->
+        nil
+    end
 
     :ok
   end
