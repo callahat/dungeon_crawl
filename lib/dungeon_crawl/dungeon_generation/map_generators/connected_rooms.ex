@@ -14,7 +14,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
             cave_height: nil,
             cave_width: nil,
             solo_level: nil,
-            iterations: 0
+            iterations: 0,
+            room_coords: []
 
   alias DungeonCrawl.DungeonGeneration.Entities
   alias DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms
@@ -50,7 +51,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
 
     _generate(connected_rooms)
     |> _replace_corners
-    |> _stairs_up()
+    |> _stairs_up
+    |> _add_entities
     |> Map.fetch!(:map)
   end
 
@@ -143,28 +145,31 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     _replace_tile_at(connected_rooms, col, row, Enum.random(@doors))
   end
 
-  defp _add_entities(%ConnectedRooms{solo_level: nil} = connected_rooms, _coords) do
+  defp _add_entities(%ConnectedRooms{solo_level: nil} = connected_rooms) do
     connected_rooms
   end
-  defp _add_entities(%ConnectedRooms{map: map, solo_level: solo_level} = connected_rooms, coords) do
-    room_area = (coords.top_left_col - coords.bottom_right_col) * (coords.top_left_row - coords.bottom_right_row)
-    number = Enum.min [round(solo_level / 10), round(:math.sqrt(room_area))]
-    entities = Entities.randomize(_rand_range(1, number + 6))
-    %{ connected_rooms | map: _add_entities(map, entities, coords) }
+  defp _add_entities(%ConnectedRooms{solo_level: solo_level, room_coords: room_coords} = connected_rooms) do
+    max_entities = Enum.min [solo_level * 2 + 14, length(room_coords) * 11]
+    min_entities = Enum.min [solo_level + 5, max_entities]
+    entities = Entities.randomize(_rand_range(min_entities, max_entities))
+
+    _add_entities(connected_rooms, entities)
   end
-  defp _add_entities(map, [], _coords), do: map
-  defp _add_entities(map, [entity | entities], coords = %{top_left_col: tlc,
-                                                          top_left_row: tlr,
-                                                          bottom_right_col: brc,
-                                                          bottom_right_row: brr}) do
+  defp _add_entities(%ConnectedRooms{} = connected_rooms, []), do: connected_rooms
+  defp _add_entities(%ConnectedRooms{map: map, room_coords: room_coords} = connected_rooms, [entity | entities]) do
+    %{top_left_col: tlc,
+      top_left_row: tlr,
+      bottom_right_col: brc,
+      bottom_right_row: brr} = Enum.random(room_coords)
+
     col = _rand_range(tlc + 1, brc - 1)
     row = _rand_range(tlr + 1, brr - 1)
 
     if map[{row, col}] == ?. do # make sure to put the entity on an empty space
-      _replace_tile_at(map, col, row, entity)
-      |> _add_entities(entities, coords)
+      _replace_tile_at(connected_rooms, col, row, entity)
+      |> _add_entities(entities)
     else
-      _add_entities(map, [entity | entities], coords)
+      _add_entities(connected_rooms, entities)
     end
   end
 
@@ -179,7 +184,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
       door_coords ->
         _corners_walls_floors(connected_rooms, coords)
         |> _add_door(Enum.random(door_coords))
-        |> _add_entities(coords)
+        |> _maybe_treasure_room(coords)
     end
   end
 
@@ -222,7 +227,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     |> _walls(cols, row)
   end
 
-  defp _floors(%ConnectedRooms{} = connected_rooms, [], []), do: connected_rooms
   defp _floors(%ConnectedRooms{} = connected_rooms, _c, []), do: connected_rooms
   defp _floors(%ConnectedRooms{} = connected_rooms, [], _r), do: connected_rooms
   defp _floors(%ConnectedRooms{} = connected_rooms, [col | cols], rows) do
@@ -248,6 +252,37 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     |> Enum.concat
     |> Enum.concat
     |> Enum.filter(fn({col, row}) -> _tile_at(connected_rooms.map, col, row) == ?# end)
+  end
+
+  defp _maybe_treasure_room(%ConnectedRooms{room_coords: room_coords} = connected_rooms, coords) do
+    # 2% chance its a treasure room, otherwise add it to the list to put entities in later
+    if :rand.uniform(100) <= 2 do
+      _treasure_room(connected_rooms, coords)
+    else
+      %{ connected_rooms | room_coords: [coords | room_coords] }
+    end
+  end
+
+  def _treasure_room(%ConnectedRooms{} = connected_rooms, %{top_left_col: tlc,
+                                                            top_left_row: tlr,
+                                                            bottom_right_col: brc,
+                                                            bottom_right_row: brr}) do
+    inner_tlr = tlr + 1
+    inner_brr = brr - 1
+    inner_tlc = tlc + 1
+    inner_brc = brc - 1
+
+    coords = for col <- Enum.to_list(inner_tlc..inner_brc), row <- Enum.to_list(inner_tlr..inner_brr), do: {row, col}
+    _fill_room(connected_rooms, coords, Entities.treasures)
+  end
+
+  defp _fill_room(%ConnectedRooms{} = connected_rooms, [], _entities), do: connected_rooms
+  defp _fill_room(%ConnectedRooms{} = connected_rooms, [{row, col} | coords], entities) do
+    if _tile_at(connected_rooms.map, col, row) == ?. do
+      _fill_room(_replace_tile_at(connected_rooms, col, row, Enum.random(entities)), coords, entities)
+    else
+      _fill_room(connected_rooms, coords, entities)
+    end
   end
 
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1

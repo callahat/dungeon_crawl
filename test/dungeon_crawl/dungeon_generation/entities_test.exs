@@ -19,5 +19,11 @@ defmodule DungeonCrawl.DungeonGeneration.EntitiesTest do
       assert is_integer(entity) # a character is just an integer in this case
     end
   end
+
+  describe "treasures/0" do
+    test "it returns a list of treasure characters" do
+      assert 'ä$♦♥' == Entities.treasures
+    end
+  end
 end
 

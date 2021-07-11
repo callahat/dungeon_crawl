@@ -41,5 +41,12 @@ defmodule DungeonCrawl.DungeonGeneration.Entities do
       true        -> ?✚
     end
   end
+
+  @doc """
+  Returns a list of treasure characters
+  """
+  def treasures() do
+    'ä$♦♥'
+  end
 end
 
