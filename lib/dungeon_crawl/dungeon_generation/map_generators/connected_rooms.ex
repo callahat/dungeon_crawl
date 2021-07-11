@@ -78,16 +78,14 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     bottom_right_col = top_left_col + w + 1
     bottom_right_row = top_left_row + h + 1
 
-    if(Enum.any?(
-              for(col <- top_left_col..bottom_right_col, do:
-                for(row <- top_left_row..bottom_right_row, do:
-                  _tile_at(map, col, row) == ?.
-              )) |> Enum.concat,
-              fn floor_tile -> floor_tile end
-       )) do
+    if(Enum.any?(for(col <- top_left_col..bottom_right_col, row <- top_left_row..bottom_right_row, do: {row, col}),
+                 fn {row, col} -> _tile_at(map, col, row) == ?. end )) do
       {:bad_room}
     else
-      {:good_room, %{top_left_col: top_left_col, top_left_row: top_left_row, bottom_right_col: bottom_right_col, bottom_right_row: bottom_right_row}}
+      {:good_room, %{top_left_col: top_left_col,
+                     top_left_row: top_left_row,
+                     bottom_right_col: bottom_right_col,
+                     bottom_right_row: bottom_right_row}}
     end
   end
 
@@ -153,7 +151,16 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     min_entities = Enum.min [solo_level + 5, max_entities]
     entities = Entities.randomize(_rand_range(min_entities, max_entities))
 
-    _add_entities(connected_rooms, entities)
+    # 5% chance this map has a treasure room
+    if :rand.uniform(100) <= 5 do
+      [ treasure_room_coords | other_room_coords ] = room_coords
+
+      %{ connected_rooms | room_coords: other_room_coords }
+      |> _treasure_room(treasure_room_coords)
+      |> _add_entities(entities)
+    else
+      _add_entities(connected_rooms, entities)
+    end
   end
   defp _add_entities(%ConnectedRooms{} = connected_rooms, []), do: connected_rooms
   defp _add_entities(%ConnectedRooms{map: map, room_coords: room_coords} = connected_rooms, [entity | entities]) do
@@ -184,14 +191,13 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
       door_coords ->
         _corners_walls_floors(connected_rooms, coords)
         |> _add_door(Enum.random(door_coords))
-        |> _maybe_treasure_room(coords)
     end
   end
 
-  defp _corners_walls_floors(%ConnectedRooms{} = connected_rooms, _coords = %{top_left_col: tlc,
-                                                                              top_left_row: tlr,
-                                                                              bottom_right_col: brc,
-                                                                              bottom_right_row: brr}) do
+  defp _corners_walls_floors(%ConnectedRooms{} = connected_rooms, coords = %{top_left_col: tlc,
+                                                                             top_left_row: tlr,
+                                                                             bottom_right_col: brc,
+                                                                             bottom_right_row: brr}) do
     inner_tlr = tlr + 1
     inner_brr = brr - 1
     inner_tlc = tlc + 1
@@ -199,16 +205,17 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
 
     room_coords = for col <- Enum.to_list(tlc..brc), row <- Enum.to_list(tlr..brr), do: {row, col}
     floor_coords = for col <- Enum.to_list(inner_tlc..inner_brc), row <- Enum.to_list(inner_tlr..inner_brr), do: {row, col}
-    corner_coords = [{tlc,tlr}, {tlc, brr}, {brc, tlr}, {brc, brr}]
-    wall_coords = room_coords -- floor_coords ++ corner_coords
+    corner_coords = [{tlr, tlc}, {brr, tlc}, {tlr, brc}, {brr, brc}]
+    wall_coords = room_coords -- (floor_coords ++ corner_coords)
 
     _corners(connected_rooms, corner_coords)
     |> _walls(wall_coords)
     |> _floors(floor_coords)
+    |> Map.put(:room_coords, [ coords | connected_rooms.room_coords ])
   end
 
   defp _corners(%ConnectedRooms{} = connected_rooms, []), do: connected_rooms
-  defp _corners(%ConnectedRooms{} = connected_rooms, [{col, row} | corner_coords]) do
+  defp _corners(%ConnectedRooms{} = connected_rooms, [{row, col} | corner_coords]) do
     _replace_tile_at(connected_rooms, col, row, 0)
     |> _corners(corner_coords)
   end
@@ -239,15 +246,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     |> Enum.concat
     |> Enum.concat
     |> Enum.filter(fn({col, row}) -> _tile_at(connected_rooms.map, col, row) == ?# end)
-  end
-
-  defp _maybe_treasure_room(%ConnectedRooms{room_coords: room_coords} = connected_rooms, coords) do
-    # 2% chance its a treasure room, otherwise add it to the list to put entities in later
-    if :rand.uniform(100) <= 2 do
-      _treasure_room(connected_rooms, coords)
-    else
-      %{ connected_rooms | room_coords: [coords | room_coords] }
-    end
   end
 
   def _treasure_room(%ConnectedRooms{} = connected_rooms, %{top_left_col: tlc,
