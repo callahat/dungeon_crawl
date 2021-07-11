@@ -12947,6 +12947,10 @@ pre.script {
   font-size: 75%;
 }
 
+div.fade_overlay {
+  background-color: black;
+}
+
 pre.level_preview {
   background: #f5f5f5;
   border-radius: 0.25rem;
@@ -13022,7 +13026,6 @@ pre.level_preview table tr td, pre.color_pallette table tr td, td.flat:first-chi
 }
 
 #level_editor pre.level_preview table td.spawn-hilight div {
-/*  background-color: blue !important; */
   animation: blinkingBackground 1s infinite !important;
 }
 
@@ -13032,7 +13035,6 @@ pre.level_preview table tr td, pre.color_pallette table tr td, td.flat:first-chi
 }
 
 #level_editor pre.level_preview table td.cursor-hilight div {
-/*  background-color: blue !important; */
   animation: cursorBackground 1s infinite !important;
 }
 

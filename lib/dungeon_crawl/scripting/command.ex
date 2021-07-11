@@ -640,10 +640,10 @@ defmodule DungeonCrawl.Scripting.Command do
     jump_if(runner_state, [["", left, op, right], label])
   end
   def jump_if(%Runner{} = runner_state, [[neg, left], label]) do
-    jump_if(runner_state, [[neg, left, "==", true], label])
+    jump_if(runner_state, [[neg, left, "==", :truthy], label])
   end
   def jump_if(%Runner{} = runner_state, [left, label]) do
-    jump_if(runner_state, [["", left, "==", true], label])
+    jump_if(runner_state, [["", left, "==", :truthy], label])
   end
 
   defp _jump_if(%Runner{program: program} = runner_state, true, label) when is_binary(label) do
@@ -1005,8 +1005,8 @@ defmodule DungeonCrawl.Scripting.Command do
                %{row: object.row + row_d, col: object.col + col_d}
              end
 
-    if coords.row > 0 && coords.row <= state.state_values[:rows] &&
-       coords.col > 0 && coords.col <= state.state_values[:cols] do
+    if coords.row >= 0 && coords.row < state.state_values[:rows] &&
+       coords.col >= 0 && coords.col < state.state_values[:cols] do
       new_attrs = Map.merge(attributes, Map.put(coords, :level_instance_id, object.level_instance_id))
       _put_tile(runner_state, new_attrs, new_state_attrs)
     else
@@ -1093,7 +1093,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _replace(%Runner{state: state} = runner_state, target_conditions, new_params) do
     {target, target_conditions} = Map.pop(target_conditions, :target)
-    target = if target, do: String.downcase(target), else: nil
+    target = if is_binary(target), do: String.downcase(target), else: target
 
     if Direction.valid_orthogonal?(target) do
       _replace_in_direction(runner_state, target, target_conditions, new_params)

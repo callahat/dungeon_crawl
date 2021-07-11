@@ -102,7 +102,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #RANDOM dir, NORTH, SOUTH, PLAYER
                #SEQUENCE c, <, ^, >, v
                #IF @ok, 3
-               #IF @notok
+               #IF @notok == nil
                #TARGET_PLAYER nearest
                #IF ?any_player@is_facing, touch
                text with interpolation ${ @color }
@@ -180,7 +180,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  66 => [:random, ["dir", "NORTH", "SOUTH", "PLAYER"]],
                                                  67 => [:sequence, ["c", "<", "^", ">", "v"]],
                                                  68 => [:jump_if, [{:state_variable, :ok}, 3]],
-                                                 69 => [:jump_if, [{:state_variable, :notok}]],
+                                                 69 => [:jump_if, [[{:state_variable, :notok}, "==", nil]]],
                                                  70 => [:target_player, ["nearest"]],
                                                  71 => [:jump_if, [{:any_player, :is_facing}, "touch"]],
                                                  72 => [:text, [["text with interpolation ", {:state_variable, :color}, ""]]],

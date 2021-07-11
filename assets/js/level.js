@@ -8,6 +8,8 @@ let Level = {
 
     this.tuneInToChannel(socket, levelId)
 
+    setTimeout(() => { this.removeFade(1) }, 1000)
+
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
@@ -19,6 +21,25 @@ let Level = {
       document.getElementById("level_instance").setAttribute("data-level-id", msg.level_id)
       document.getElementById("level_instance").innerHTML = msg.level_render
       this.tuneInToChannel(socket, msg.level_id)
+
+      if(msg.fade_overlay) {
+        document.getElementById("fade_overlay").innerHTML = msg.fade_overlay
+        setTimeout(() => { this.removeFade(1) }, 100)
+      }
+    }
+  },
+  removeFade(count, range = 1) {
+    let query = []
+    for(let i = 0; i < range; i++){ query.push(`.fade_range_${count + i}`) }
+    let fadedCells = Array.from(document.querySelectorAll(query.join(",")))
+    if(fadedCells.length > 0){
+      for(let td of fadedCells){
+        td.classList = []
+      }
+      let new_range = count < 10 ? range : range + 1
+      setTimeout(() => { this.removeFade(count + range, new_range) }, 100)
+    } else {
+      document.getElementById("fade_overlay").innerHTML = ""
     }
   },
   handleLevelChange: null,

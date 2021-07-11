@@ -1,8 +1,12 @@
 <pre class="level_preview border rounded"
+><div style="position: relative;"
+><table id="fade_overlay" style="position: absolute; top: 0; z-index: 999;">
+<%= {:safe, fade_overlay_table(@level, @height, @width, @player_coord_id) } %></table
 ><table id="level_instance"
         data-dungeon-id="<%= @level.dungeon_instance_id %>"
         data-level-id="<%= @level.id %>">
 <%= {:safe, level_as_table(@level, @height, @width) } %>
 </table
+></div
 ></pre>
 

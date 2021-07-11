@@ -5,7 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
   alias DungeonCrawl.TileTemplates
 
-  @stats [:health, :gems, :cash, :ammo, :score]
+  @stats [:health, :gems, :cash, :ammo, :score, :lives]
 
   @doc """
   Returns the current stats (health, gems, cash, and ammo) for the player.
@@ -46,7 +46,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
               end)
            |> Enum.join("")
 
-    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0}
+    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0, lives: -1}
     |> Map.merge(Map.take(tile.parsed_state, @stats))
     |> Map.put(:keys, keys)
   end

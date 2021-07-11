@@ -60,17 +60,21 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert TileSeeder.bandit
     assert TileSeeder.bear
     assert TileSeeder.expanding_foam
+    assert TileSeeder.grid_bug
     assert TileSeeder.lion
     assert TileSeeder.pede_head
     assert TileSeeder.pede_body
+    assert TileSeeder.rockworm
     assert TileSeeder.tiger
     assert TileSeeder.zombie
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Bandit")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Bear")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Expanding Foam")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Grid Bug")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Lion")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "PedeHead")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "PedeBody")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Rockworm")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Tiger")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Zombie")
   end
@@ -105,6 +109,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Pusher East")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Pusher West")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Spinning Gun")
+  end
+
+  test "npcs" do
+    assert TileSeeder.glad_trader
+    assert TileSeeder.sad_trader
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Glad Trader")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Sad Trader")
   end
 
   test "ordinance" do
@@ -163,11 +174,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
     TileSeeder.seed_all()
     seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count - initial_count == 74
+    assert seeded_count - initial_count == 78
 
     # does not add the seeds again
     TileSeeder.seed_all()
     seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count2 - initial_count == 74
+    assert seeded_count2 - initial_count == 78
   end
 end

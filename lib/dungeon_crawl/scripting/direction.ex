@@ -159,6 +159,8 @@ defmodule DungeonCrawl.Scripting.Direction do
     ["east"]
     iex> Direction.orthogonal_direction(%{row: 5, col: 5}, %{row: 1, col: 0})
     ["north", "west"]
+    iex> Direction.orthogonal_direction(nil, %{row: 1, col: 0})
+    ["idle"]
 
   """
   def orthogonal_direction(%{row: origin_row, col: origin_col}, %{row: target_row, col: target_col}) do
@@ -179,6 +181,7 @@ defmodule DungeonCrawl.Scripting.Direction do
          if(delta_col > 0, do: "east", else: "west")]
     end
   end
+  def orthogonal_direction(_, _), do: ["idle"]
 
   @doc """
   Returns a list of coordinates from the current coordinate to the board edge (exclusive) in
@@ -218,8 +221,11 @@ defmodule DungeonCrawl.Scripting.Direction do
     3.0
     iex> Direction.distance(%{row: 5, col: 5}, %{row: 1, col: 0})
     6.4031242374328485
+    iex> Direction.distance(nil, %{row: 1, col: 0})
+    nil
   """
   def distance(%{row: origin_row, col: origin_col}, %{row: target_row, col: target_col}) do
     :math.sqrt( :math.pow( target_row - origin_row, 2) + :math.pow( target_col - origin_col, 2) )
   end
+  def distance(_, _), do: nil
 end

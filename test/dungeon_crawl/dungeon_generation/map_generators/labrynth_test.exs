@@ -1,7 +1,7 @@
-defmodule DungeonCrawl.MapGenerators.LabrynthTest do
+defmodule DungeonCrawl.DungeonGeneration.MapGenerators.LabrynthTest do
   use DungeonCrawl.DataCase
 
-  alias DungeonCrawl.MapGenerators.Labrynth
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth
 
   test "generate returns a map with a rol, col tuple as key and tile as value" do
     dungeon_map = Labrynth.generate(20,20)
@@ -11,5 +11,11 @@ defmodule DungeonCrawl.MapGenerators.LabrynthTest do
     assert {row, col} = first_key
     assert is_integer(row)
     assert is_integer(col)
+  end
+
+  @tag timeout: 1_000
+  test "generate returns a map stairs up" do
+    dungeon_map = Labrynth.generate(20,20,1)
+    assert Enum.find(dungeon_map, fn {_, char} -> char == ?▟ end)
   end
 end

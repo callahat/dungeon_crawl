@@ -349,6 +349,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _cast_param(param) do
     cond do
+      Regex.match?(~r/^nil$/i, param) -> nil
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
@@ -361,6 +362,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
   defp _cast_simple_param(param) do
     cond do
+      Regex.match?(~r/^nil$/i, param) -> nil
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)

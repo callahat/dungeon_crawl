@@ -23,6 +23,6 @@ defmodule DungeonCrawl.Scores.Score do
   def changeset(score, attrs) do
     score
     |> cast(attrs, [:user_id_hash, :score, :steps, :duration, :result, :victory, :dungeon_id, :deaths])
-    |> validate_required([:user_id_hash, :score, :dungeon_id])
+    |> validate_required([:user_id_hash, :score])
   end
 end

@@ -54,12 +54,16 @@ let Player = {
   statUpdate(stats){
     document.getElementById("score").innerHTML = stats.score
     document.getElementById("health").innerText = stats.health
+    document.getElementById("lives").innerHTML = stats.lives
     document.getElementById("gems").innerText = stats.gems
     document.getElementById("cash").innerText = stats.cash
     document.getElementById("ammo").innerText = stats.ammo
     document.getElementById("keys").innerHTML = stats.keys
     if(parseInt(stats.health) <= 0 && !document.gameover) {
       $('#respawnModal').modal('show')
+    }
+    if(parseInt(stats.lives) > -1) {
+      document.getElementById("lives").innerHTML = stats.lives
     }
   },
   gameover(resp){

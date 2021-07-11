@@ -38,6 +38,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
       # variables can be obtained from the event sender map (which will only contain tile_id and parsed_state)
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass}) == "bob"
+      assert VariableResolution.resolve_variable(%{ runner_state1 | event_sender: %{tile_id: 123}}, {:event_sender_variable, :id}) == 123
 
       # no event sender no problem
       assert VariableResolution.resolve_variable(runner_state2, {:event_sender_variable, :color}) == nil

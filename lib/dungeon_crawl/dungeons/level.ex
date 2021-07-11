@@ -23,7 +23,7 @@ defmodule DungeonCrawl.Dungeons.Level do
     field :state_variables, {:array, :string}, virtual: true, default: nil
     field :state_values, {:array, :string}, virtual: true, default: nil
 
-    has_many :level_instances, DungeonInstances.Level#, foreign_key: :level_id
+    has_many :level_instances, DungeonInstances.Level, on_delete: :delete_all#, foreign_key: :level_id
     has_many :tiles, Dungeons.Tile, on_delete: :delete_all#, foreign_key: :level_id
     has_many :spawn_locations, Dungeons.SpawnLocation, foreign_key: :level_id, on_delete: :delete_all
     has_many :locations, through: [:level_instances, :locations], on_delete: :delete_all

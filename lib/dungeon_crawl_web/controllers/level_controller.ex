@@ -7,9 +7,7 @@ defmodule DungeonCrawlWeb.LevelController do
   alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
-  alias DungeonCrawl.MapGenerators.ConnectedRooms
-  alias DungeonCrawl.MapGenerators.Empty
-  alias DungeonCrawl.MapGenerators.Labrynth
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth}
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available

@@ -2,7 +2,7 @@ defmodule InstanceBenchmark do
   alias DungeonCrawl.Dungeon
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Map,MapTile}
-  alias DungeonCrawl.MapGenerators.TestRooms
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
   alias DungeonCrawl.TileState.Parser
 
   alias DungeonCrawl.DungeonProcesses.InstanceProcess

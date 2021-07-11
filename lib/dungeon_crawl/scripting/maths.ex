@@ -45,6 +45,14 @@ defmodule DungeonCrawl.Scripting.Maths do
 
   ## Examples
 
+    iex> Maths.check("!", false, "==", :truthy)
+    true
+    iex> Maths.check("", false, "==", :truthy)
+    false
+    iex> Maths.check("", nil, "!=", :truthy)
+    true
+    iex> Maths.check("", "something", "!=", :truthy)
+    false
     iex> Maths.check("!", 1, "==", 9)
     true
     iex> Maths.check("", 1, "==", 9)
@@ -66,6 +74,10 @@ defmodule DungeonCrawl.Scripting.Maths do
     iex> Maths.check(4, "quijibo", 9)
     true
   """
+  def check("!", a, op, :truthy), do: !check(a, op, :truthy)
+  def check(_, a, op, :truthy), do: check(a, op, :truthy)
+  def check(a, "==", :truthy), do: !!a
+  def check(a, "!=", :truthy), do: !check(a, "==", :truthy)
   def check("!", a, op, b), do: !check(a, op, b)
   def check(_, a, op, b),   do: check(a, op, b)
   def check(a, "!=", b),    do: a != b

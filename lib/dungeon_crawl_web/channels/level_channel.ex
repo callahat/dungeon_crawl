@@ -47,12 +47,17 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   def terminate(_reason, socket) do
     # add the player to the inactive map
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
-    LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
-      {_, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
-      inactive_players = if player_tile, do: Map.put(inactive_players, player_tile.id, 0), else: inactive_players
-      {:ok, %{ instance_state | inactive_players: inactive_players }}
-    end)
+    case LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id) do
+      {:ok, instance} ->
+        LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
+          {_, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
+          inactive_players = if player_tile, do: Map.put(inactive_players, player_tile.id, 0), else: inactive_players
+          {:ok, %{ instance_state | inactive_players: inactive_players }}
+        end)
+
+      _ ->
+        nil
+    end
 
     :ok
   end
@@ -358,8 +363,8 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   defp _send_message_to_other_players_in_dungeon(player_location, safe_msg, instance_registry) do
     LevelRegistry.player_location_ids(instance_registry)
-    |> Enum.reject(fn({_, tile_id}) -> tile_id == player_location.tile_instance_id end)
-    |> Enum.map(fn({location_id, _}) -> location_id end)
+    |> Enum.reject(fn({_, tile_id, _number}) -> tile_id == player_location.tile_instance_id end)
+    |> Enum.map(fn({location_id, _, _}) -> location_id end)
     |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to dungeon</i><b>:</b> #{safe_msg}")
 
     safe_msg

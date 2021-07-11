@@ -39,11 +39,14 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   end
 
   def handle_in("update_visible", _, socket) do
-    {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id)
-
-    LevelProcess.run_with(instance_process, fn (state) ->
-      {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id)}}
-    end)
+    case Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id) do
+      {:ok, instance_process} ->
+        LevelProcess.run_with(instance_process, fn (state) ->
+          {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id)}}
+        end)
+      _ ->
+        nil
+    end
 
     {:noreply, socket}
   end
