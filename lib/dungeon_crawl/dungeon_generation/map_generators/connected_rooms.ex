@@ -196,10 +196,15 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     inner_brr = brr - 1
     inner_tlc = tlc + 1
     inner_brc = brc - 1
-    _corners(connected_rooms, [{tlc,tlr}, {tlc, brr}, {brc, tlr}, {brc, brr}])
-    |> _walls({tlc, brc}, Enum.to_list(inner_tlr..inner_brr))
-    |> _walls(Enum.to_list(inner_tlc..inner_brc), {tlr, brr})
-    |> _floors(Enum.to_list(inner_tlc..inner_brc), Enum.to_list(inner_tlr..inner_brr))
+
+    room_coords = for col <- Enum.to_list(tlc..brc), row <- Enum.to_list(tlr..brr), do: {row, col}
+    floor_coords = for col <- Enum.to_list(inner_tlc..inner_brc), row <- Enum.to_list(inner_tlr..inner_brr), do: {row, col}
+    corner_coords = [{tlc,tlr}, {tlc, brr}, {brc, tlr}, {brc, brr}]
+    wall_coords = room_coords -- floor_coords ++ corner_coords
+
+    _corners(connected_rooms, corner_coords)
+    |> _walls(wall_coords)
+    |> _floors(floor_coords)
   end
 
   defp _corners(%ConnectedRooms{} = connected_rooms, []), do: connected_rooms
@@ -208,34 +213,16 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     |> _corners(corner_coords)
   end
 
-  defp _walls(%ConnectedRooms{} = connected_rooms, cols, {trow, brow}) when is_list(cols) do
-    _walls(connected_rooms, cols, trow)
-    |> _walls(cols, brow)
-  end
-  defp _walls(%ConnectedRooms{} = connected_rooms, {lcol, rcol}, rows) when is_list(rows) do
-    _walls(connected_rooms, lcol, rows)
-    |> _walls(rcol, rows)
-  end
-  defp _walls(%ConnectedRooms{} = connected_rooms, _col, []), do: connected_rooms
-  defp _walls(%ConnectedRooms{} = connected_rooms, [], _row), do: connected_rooms
-  defp _walls(%ConnectedRooms{} = connected_rooms, col, [row | rows]) do
+  defp _walls(%ConnectedRooms{} = connected_rooms, []), do: connected_rooms
+  defp _walls(%ConnectedRooms{} = connected_rooms, [ {row, col} | wall_coords]) do
     _replace_tile_at(connected_rooms, col, row, ?#)
-    |> _walls(col, rows)
-  end
-  defp _walls(connected_rooms, [col | cols], row) do
-    _replace_tile_at(connected_rooms, col, row, ?#)
-    |> _walls(cols, row)
+    |> _walls(wall_coords)
   end
 
-  defp _floors(%ConnectedRooms{} = connected_rooms, _c, []), do: connected_rooms
-  defp _floors(%ConnectedRooms{} = connected_rooms, [], _r), do: connected_rooms
-  defp _floors(%ConnectedRooms{} = connected_rooms, [col | cols], rows) do
-    _floors(connected_rooms, col, rows)
-    |> _floors(cols, rows)
-  end
-  defp _floors(%ConnectedRooms{} = connected_rooms, col, [row | rows]) do
+  defp _floors(%ConnectedRooms{} = connected_rooms, []), do: connected_rooms
+  defp _floors(%ConnectedRooms{} = connected_rooms, [{row, col} | floor_coords]) do
     _replace_tile_at(connected_rooms, col, row, ?.)
-    |> _floors(col, rows)
+    |> _floors(floor_coords)
   end
 
   defp _door_candidates(%ConnectedRooms{} = connected_rooms, _coords = %{top_left_col: tlc,

@@ -619,7 +619,7 @@ defmodule DungeonCrawl.Dungeons do
       {:error, %Ecto.Changeset{}}
 
   """
-  def generate_level(level_generator, attrs, for_solo \\ false) do
+  def generate_level(level_generator, attrs, for_solo \\ nil) do
     Multi.new
     |> Multi.insert(:level, Level.changeset(%Level{}, attrs))
     |> Multi.run(:tiles, fn(_repo, %{level: level}) ->

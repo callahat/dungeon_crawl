@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonsTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty}
 
   describe "dungeons" do
     alias DungeonCrawl.Dungeons.Level
@@ -408,6 +408,16 @@ defmodule DungeonCrawl.DungeonsTest do
 
     test "generate_level/2 with invalid data returns error changeset" do
       assert {:error, :level, %Ecto.Changeset{}, _others} = Dungeons.generate_level(TestRooms, @invalid_attrs)
+    end
+
+    test "generate_level/2 with the various generators for solo and dungeon editing" do
+      attrs = fn -> Map.put(@valid_attrs, :dungeon_id, insert_dungeon().id) end
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(ConnectedRooms, attrs.())
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(ConnectedRooms, attrs.(), 1)
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(Labrynth, attrs.())
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(Labrynth, attrs.(), 1)
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(Empty, attrs.())
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(Empty, attrs.(), 1)
     end
 
     test "update_level/2 with valid data updates the level" do
