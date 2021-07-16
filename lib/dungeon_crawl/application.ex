@@ -17,7 +17,6 @@ defmodule DungeonCrawl.Application do
       # Start your own worker by calling: DungeonCrawlWeb.Worker.start_link(arg1, arg2, arg3)
       # worker(DungeonCrawlWeb.Worker, [arg1, arg2, arg3]),
       {DungeonCrawl.DungeonProcesses.DungeonRegistry, name: DungeonInstanceRegistry},
-      {DynamicSupervisor, name: DungeonCrawl.DungeonProcesses.Supervisor, strategy: :one_for_one},
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

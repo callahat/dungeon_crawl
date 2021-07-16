@@ -76,10 +76,10 @@ defmodule DungeonCrawl.Scripting.Maths do
   """
   def check("!", a, op, :truthy), do: !check(a, op, :truthy)
   def check(_, a, op, :truthy), do: check(a, op, :truthy)
-  def check(a, "==", :truthy), do: !!a
-  def check(a, "!=", :truthy), do: !check(a, "==", :truthy)
   def check("!", a, op, b), do: !check(a, op, b)
   def check(_, a, op, b),   do: check(a, op, b)
+  def check(a, "==", :truthy), do: !!a
+  def check(a, "!=", :truthy), do: !check(a, "==", :truthy)
   def check(a, "!=", b),    do: a != b
   def check(a, "==", b),    do: a == b
   def check(a, "<=", b) when is_number(a) and is_number(b), do: a <= b

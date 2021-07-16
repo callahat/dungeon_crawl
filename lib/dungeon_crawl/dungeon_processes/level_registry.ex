@@ -3,11 +3,15 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
 
   require Logger
 
-  alias DungeonCrawl.DungeonProcesses.{Levels,LevelProcess,Supervisor}
+  alias DungeonCrawl.DungeonProcesses.{Levels,LevelProcess}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
+
+  defstruct instance_ids: %{}, refs: %{}, map_set_process: nil, supervisor: nil
+
+  alias DungeonCrawl.DungeonProcesses.LevelRegistry
 
   ## Client API
 
@@ -99,38 +103,37 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   @impl true
   def init(map_set_process) do
     Process.flag(:trap_exit, true)
-    instance_ids = %{}
-    refs = %{}
-    {:ok, {instance_ids, refs, map_set_process}}
+    {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
+    level_registry = %LevelRegistry{map_set_process: map_set_process, supervisor: supervisor}
+    {:ok, level_registry}
   end
 
   @impl true
-  def handle_call({:lookup, instance_id}, _from, state) do
-    {instance_ids, _, _} = state
-    {:reply, Map.fetch(instance_ids, instance_id), state}
+  def handle_call({:lookup, instance_id}, _from, %{instance_ids: instance_ids} = level_registry) do
+    {:reply, Map.fetch(instance_ids, instance_id), level_registry}
   end
 
   # These first two are really to make test setup more convenient
   @impl true
-  def handle_call({:create, nil, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, {instance_ids, refs, map_set_process}) do
+  def handle_call({:create, nil, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, %{instance_ids: instance_ids} = level_registry) do
     instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
     tiles = Enum.map(tiles, fn(t) -> Map.put(t, :level_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, {instance_ids, refs, map_set_process})}
+    {:reply, instance_id, _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry)}
   end
 
   @impl true
-  def handle_call({:create, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, {instance_ids, refs, map_set_process}) do
+  def handle_call({:create, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, %{instance_ids: instance_ids} = level_registry) do
     if Map.has_key?(instance_ids, instance_id) do
-      {:noreply, {instance_ids, refs, map_set_process}}
+      {:noreply, level_registry}
     else
-      {:reply, instance_id, _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, {instance_ids, refs, map_set_process})}
+      {:reply, instance_id, _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry)}
     end
   end
 
   @impl true
-  def handle_call({:create, level_instance}, _from, {instance_ids, refs, map_set_process}) do
+  def handle_call({:create, level_instance}, _from, %{instance_ids: instance_ids} = level_registry) do
     if Map.has_key?(instance_ids, level_instance.id) do
-      {:reply, :ok, {instance_ids, refs, map_set_process}}
+      {:reply, :ok, level_registry}
     else
       {:ok, state_values} = StateValue.Parser.parse(level_instance.state)
       state_values = Map.merge(state_values, %{rows: level_instance.height, cols: level_instance.width})
@@ -141,17 +144,17 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
       spawn_coordinates = _spawn_coordinates(tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
       adjacent = DungeonInstances.get_adjacent_levels(level_instance)
       author = Repo.preload(level_instance, [dungeon: [dungeon: :user]]).dungeon.dungeon.user
-      {:reply, :ok, _create_instance(level_instance.id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, {instance_ids, refs, map_set_process})}
+      {:reply, :ok, _create_instance(level_instance.id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry)}
     end
   end
 
   @impl true
-  def handle_call({:list}, _from, {instance_ids, _, _} = state) do
-    {:reply, instance_ids, state}
+  def handle_call({:list}, _from, %{instance_ids: instance_ids} = level_registry) do
+    {:reply, instance_ids, level_registry}
   end
 
   @impl true
-  def handle_call({:player_location_ids}, _from, {instance_ids, _, _} = state) do
+  def handle_call({:player_location_ids}, _from, %{instance_ids: instance_ids} = level_registry) do
     player_location_ids = \
     instance_ids
     |> Enum.flat_map(fn({_instance_id, instance_process}) ->
@@ -165,29 +168,30 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
            {player_locations, state}
          end)
        end)
-    {:reply, player_location_ids, state}
+    {:reply, player_location_ids, level_registry}
   end
 
   @impl true
-  def handle_cast({:remove, instance_id}, {instance_ids, refs, map_set_process}) do
+  def handle_cast({:remove, instance_id}, %{instance_ids: instance_ids} = level_registry) do
     if Map.has_key?(instance_ids, instance_id), do: GenServer.stop(Map.fetch!(instance_ids, instance_id), :shutdown)
-    {:noreply, {instance_ids, refs, map_set_process}}
+    {:noreply, level_registry}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {instance_ids, refs, map_set_process}) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{instance_ids: instance_ids, refs: refs} = level_registry) do
     {instance_id, refs} = Map.pop(refs, ref)
     instance_ids = Map.delete(instance_ids, instance_id)
-    {:noreply, {instance_ids, refs, map_set_process}}
+    {:noreply, %{level_registry | instance_ids: instance_ids, refs: refs}}
   end
 
   @impl true
-  def handle_info(_msg, state) do
-    {:noreply, state}
+  def handle_info(_msg, level_registry) do
+    {:noreply, level_registry}
   end
 
-  defp _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, {instance_ids, refs, map_set_process}) do
-    {:ok, instance_process} = DynamicSupervisor.start_child(Supervisor, LevelProcess)
+  defp _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry) do
+    %{supervisor: supervisor, refs: refs, instance_ids: instance_ids} = level_registry
+    {:ok, instance_process} = DynamicSupervisor.start_child(supervisor, LevelProcess)
     LevelProcess.set_instance_id(instance_process, instance_id)
     LevelProcess.set_dungeon_instance_id(instance_process, diid)
     LevelProcess.set_level_number(instance_process, number)
@@ -205,7 +209,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)
     instance_ids = Map.put(instance_ids, instance_id, instance_process)
-    {instance_ids, refs, map_set_process}
+    %{ level_registry | instance_ids: instance_ids, refs: refs }
   end
 
   defp _link_player_locations(instance_process, instance_id) do
@@ -240,13 +244,5 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   defp _spawn_coordinates(_tiles, spawn_locations) do
     spawn_locations
     |> Enum.map(fn(spawn_location) -> {spawn_location.row, spawn_location.col} end)
-  end
-
-  @impl true
-  def terminate(_reason, {instance_ids, _refs, _map_set_process}) do
-    instance_ids
-    |> Enum.map(fn({instance_id, _}) -> GenServer.stop(Map.fetch!(instance_ids, instance_id), :shutdown) end)
-
-    :normal
   end
 end
