@@ -52,7 +52,8 @@ defmodule DungeonCrawl.Mixfile do
      {:jason, "~> 1.0"},
      {:plug_cowboy, "~> 2.1"},
      {:comeonin, "~> 2.0"},
-     {:excoveralls, "~> 0.10", only: :test}
+     {:excoveralls, "~> 0.10", only: :test},
+     {:benchee, "~> 1.0", only: :dev}
     ]
   end
 
