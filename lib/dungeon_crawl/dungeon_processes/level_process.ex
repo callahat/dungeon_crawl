@@ -374,6 +374,12 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     end
   end
 
+  # Ignore when a "travel" task completes
+  @impl true
+  def handle_info({_ref, :ok}, state), do: {:noreply, state}
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, :normal}, state), do: {:noreply, state}
+
   defp _write_db_task(%Levels{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
     start_ms = :os.system_time(:millisecond)
 
