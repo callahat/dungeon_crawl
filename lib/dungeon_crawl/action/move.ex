@@ -32,8 +32,7 @@ defmodule DungeonCrawl.Action.Move do
             end
         end
 
-      (destination.parsed_state[:blocking] || destination.parsed_state[:flying]) &&
-          !(entity_tile.parsed_state[:flying] && destination.parsed_state[:low]) ->
+      _is_blocking(destination, entity_tile, state) ->
         {:invalid}
 
       _is_squishable(destination, entity_tile) ->
@@ -90,6 +89,14 @@ defmodule DungeonCrawl.Action.Move do
         _ -> false
       end
     end
+  end
+
+  defp _is_blocking(destination, entity_tile, state) do
+    Levels.get_tiles(state, destination)
+    |> Enum.any?(fn destination_tile ->
+                   destination_tile.parsed_state[:blocking] &&
+                     !(entity_tile.parsed_state[:flying] && destination_tile.parsed_state[:low])
+                 end)
   end
 
   defp _is_squishable(destination, entity_tile) do
