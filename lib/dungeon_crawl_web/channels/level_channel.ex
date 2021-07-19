@@ -228,7 +228,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
             {:ok, _tile_changes, instance_state} ->
               {:ok, instance_state}
 
-            {:invalid} ->
+            {:invalid, _tile_changes, instance_state} ->
               {:ok, instance_state}
           end
 

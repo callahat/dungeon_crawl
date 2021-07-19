@@ -35,7 +35,7 @@ defmodule DungeonCrawl.Action.PullTest do
       {_object, state} = Levels.create_tile(state, object)
       {destination, state} = Levels.update_tile_state(state, destination, %{blocking: true})
 
-      assert {:invalid} == Pull.pull(puller, destination, state)
+      assert {:invalid, %{}, state} == Pull.pull(puller, destination, state)
     end
 
     test "pulling but nothing to pull", %{state: state, puller: puller, destination: destination} do
@@ -65,6 +65,22 @@ defmodule DungeonCrawl.Action.PullTest do
       object2           = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: "pullable: true"}
       {_object1, state} = Levels.create_tile(state, object1)
       {_object2, state} = Levels.create_tile(state, object2)
+
+      assert {:ok, tile_changes, _updated_state} = Pull.pull(puller, destination, state)
+      assert %{ {1, 2} => %Tile{character: "@"},
+                {2, 2} => %Tile{character: "X"},
+                {3, 2} => %Tile{character: "Y"},
+                {3, 3} => %Tile{character: "~"}} = tile_changes
+      assert length(Map.keys(tile_changes)) == 4
+    end
+
+    test "pull a chain of items but one is blocked", %{state: state, puller: puller, destination: destination} do
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: "pullable: true, pulling: true, facing: north"}
+      object2           = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: "pullable: true"}
+      wall1             = %Tile{id: 997, row: 3, col: 2, z_index: 0, character: "#", state: "blocking: true"}
+      {_object1, state} = Levels.create_tile(state, object1)
+      {_object2, state} = Levels.create_tile(state, object2)
+      {_wall1, state}   = Levels.create_tile(state, wall1)
 
       assert {:ok, tile_changes, _updated_state} = Pull.pull(puller, destination, state)
       assert %{ {1, 2} => %Tile{character: "@"},
@@ -139,7 +155,7 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "cant pull bad inputs" do
-      assert {:invalid} == Pull.pull("anything", "that", "doesnt match the params")
+      assert {:invalid, %{}, "doesnt match the params"} == Pull.pull("anything", "that", "doesnt match the params")
     end
   end
 

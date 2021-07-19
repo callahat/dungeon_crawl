@@ -751,7 +751,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                         state: new_state}
         change_state(updated_runner_state, [:facing, "=", direction])
 
-      {:invalid} ->
+      {:invalid, _tile_changes, _state} ->
         next_actions.invalid_move_handler.(runner_state, destination, retryable)
     end
   end
@@ -1415,7 +1415,7 @@ defmodule DungeonCrawl.Scripting.Command do
     if dest_tile.parsed_state[:blocking] do
       _shifting(runner_state, other_pairs, [ {tile, dest_tile} | shifts_pending], tile_changes)
     else
-      {_, tile_changes, state} = Move.go(tile, dest_tile, state, :absolute, tile_changes)
+      {_, tile_changes, state} = Move.go(tile, dest_tile, state, tile_changes, true)
       _shifting(%{runner_state | state: state}, other_pairs, shifts_pending, tile_changes)
     end
   end
