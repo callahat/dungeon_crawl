@@ -10,6 +10,7 @@ require Logger
   to move, {:invalid, tile_changes, state} is returned. Otherwise returns a tuple containing :ok,
   a coordinate map of tile changes, and the updated instance state.
   :invalid implies that the state was not changed as the tile pulling was unable to take its move.
+  Only the tile on the top of the stack can be pulled.
 
   ## Examples
 
@@ -46,8 +47,14 @@ require Logger
 
     case Move.go(lead_tile, destination, state, tile_changes) do
       {:ok, tile_changes, state} ->
+        lead_tile = Levels.get_tile_by_id(state, lead_tile)
+        lead_pullable = lead_tile && lead_tile.parsed_state[:pullable]
+        puller_pulling = puller && puller.parsed_state[:pulling]
+
         {lead_tile, state} = cond do
-                                   puller && Enum.member?(["map_tile_id", "tile_id"], lead_tile.parsed_state[:pullable]) ->
+                                   Enum.member?(["map_tile_id", "tile_id"], lead_pullable) ->
+                                     Levels.update_tile_state(state, lead_tile, %{pullable: puller.id, facing: direction})
+                                   puller && is_binary(lead_pullable) && puller.parsed_state[String.to_atom(lead_pullable)] ->
                                      Levels.update_tile_state(state, lead_tile, %{pullable: puller.id, facing: direction})
                                    direction != lead_tile.parsed_state[:facing] ->
                                      Levels.update_tile_state(state, lead_tile, %{facing: direction})
@@ -56,7 +63,9 @@ require Logger
                                  end
 
         {_, state} = cond do
-                       puller && Enum.member?(["map_tile_id", "tile_id"], puller.parsed_state[:pulling]) ->
+                       Enum.member?(["map_tile_id", "tile_id"], puller_pulling) ->
+                         Levels.update_tile_state(state, puller, %{pulling: lead_tile.id})
+                       lead_tile && is_binary(puller_pulling) && lead_tile.parsed_state[String.to_atom(puller_pulling)] ->
                          Levels.update_tile_state(state, puller, %{pulling: lead_tile.id})
                        true ->
                          {puller, state}
@@ -64,8 +73,11 @@ require Logger
 
         _execute_pull_chain({:ok, tile_changes, state}, pull_chain, lead_tile)
 
-      failed_pull ->
-        failed_pull
+      {:invalid, tile_changes, state} when tile_changes == %{}->
+        {:invalid, %{}, state}
+
+      {:invalid, tile_changes, state} ->
+        {:ok, tile_changes, state}
     end
   end
 
@@ -81,7 +93,7 @@ require Logger
                   |> Enum.reject(fn(adjacent) -> would_not_pull(lead_tile, adjacent) end)
                   |> Enum.shuffle()
                   |> Enum.sort_by(fn pulled_tile ->
-                       {pulled_tile.parsed_state[:pullable] == lead_tile.id, Enum.member?(["map_tile_id", "tile_id"], pulled_tile.parsed_state[:pullable])}
+                       {pulled_tile.parsed_state[:pullable] == lead_tile.id, is_binary(pulled_tile.parsed_state[:pullable]) }
                      end, &>=/2)
                   |> Enum.at(0) # in case there are several pullable candidates, and because Enum.random errors when given empty list
 
@@ -103,7 +115,11 @@ require Logger
   """
   def would_not_pull(tile, adjacent_tile) do
     is_integer(tile.parsed_state[:pulling]) &&
-      tile.parsed_state[:pulling] != adjacent_tile.id
+      tile.parsed_state[:pulling] != adjacent_tile.id ||
+    is_binary(tile.parsed_state[:pulling]) &&
+      !Enum.member?(["linear", "map_tile_id", "tile_id"], tile.parsed_state[:pulling]) &&
+      !(tile.parsed_state[:pulling] =~ ~r/\A[nsew]{1,4}\z/) &&
+      !adjacent_tile.parsed_state[String.to_atom(tile.parsed_state[:pulling])]
   end
 
   @doc """
@@ -126,9 +142,14 @@ require Logger
         "map_tile_id" -> true
         "tile_id"     -> true
         directions when is_binary(directions) ->
+          if directions =~ ~r/\A[nsew]{1,4}\z/ do
             directions
             |> String.split("",trim: true)
             |> Enum.any?(&_in_direction(&1, adjacent_tile, tile))
+          else
+            # assume its a state variable
+            tile.parsed_state[String.to_atom(directions)]
+          end
         puller_tile_id -> tile.id == puller_tile_id
       end
     end
