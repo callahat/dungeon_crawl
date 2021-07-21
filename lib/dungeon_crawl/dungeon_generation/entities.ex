@@ -25,6 +25,7 @@ defmodule DungeonCrawl.DungeonGeneration.Entities do
       chance > 98 -> ?x
       chance > 96 -> ?Z
       chance > 85 -> ?♣
+      chance > 80 -> ?ϴ
       chance > 70 -> ?ö
       chance > 40 -> ?Ω
       chance > 29 -> ?π

@@ -636,13 +636,24 @@ defmodule DungeonCrawl.Dungeons do
     level_generator.generate(level.height, level.width, for_solo)
     |> Enum.to_list
     |> Enum.reduce([], fn({{row,col}, tile}, tiles) ->
-         if advanced_mapping[tile] do
-           [ _generate_tile(advanced_mapping[tile], level.id, row, col, 1),
-             _generate_tile(basic_mapping["."], level.id, row, col, 0)
-             | tiles ]
-         else
-           [ _generate_tile(basic_mapping[tile], level.id, row, col, 0)
-             | tiles ]
+         cond do
+           tile == "ϴ" || tile == ?ϴ ->
+             segments = :rand.uniform(6)
+             Enum.reduce(1..segments,
+                         [ _generate_tile(advanced_mapping[?ϴ], level.id, row, col, segments + 1),
+                           _generate_tile(basic_mapping["."], level.id, row, col, 0)
+                           | tiles ],
+                         fn counter, tiles_accumulator ->
+                           [ _generate_tile(advanced_mapping[?O], level.id, row, col, counter)
+                             | tiles_accumulator ]
+                         end)
+           advanced_mapping[tile] ->
+             [ _generate_tile(advanced_mapping[tile], level.id, row, col, 1),
+               _generate_tile(basic_mapping["."], level.id, row, col, 0)
+               | tiles ]
+           true ->
+             [ _generate_tile(basic_mapping[tile], level.id, row, col, 0)
+               | tiles ]
          end
        end)
   end

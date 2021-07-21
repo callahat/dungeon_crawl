@@ -202,7 +202,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :thud
                 #if ?sender@player, hurt_player
                 #if ?{@facing}@player, hurt_player
-                #if @pulling == false, not_surrounded
+                #if @pulling == centipede, not_surrounded
                 #if not ?clockwise@blocking,not_surrounded
                 #if not ?counterclockwise@blocking,not_surrounded
                 #if not ?reverse@blocking,not_surrounded
@@ -222,7 +222,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :surrounded
                 #facing reverse
                 #send surrounded, @pulling
-                #become slug: pedebody, color: @color, background_color: @background_color, pulling: false, pullable: @pulling
+                #become slug: pedebody, color: @color, background_color: @background_color, pulling: centipede, pullable: @pulling
                 #end
                 :touch
                 #if not ?sender@player, main
@@ -258,7 +258,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #die
                 :surrounded
                 #facing reverse
-                #if @pulling != false, not_tail
+                #if @pulling != centipede, not_tail
                 :tail
                 #become slug: pedehead, facing: @facing, color: @color, background_color: @background_color, pullable: false, pulling: @pullable
                 #end
