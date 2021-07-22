@@ -35,7 +35,8 @@ defmodule DungeonCrawl.Action.PullTest do
       {_object, state} = Levels.create_tile(state, object)
       {destination, state} = Levels.update_tile_state(state, destination, %{blocking: true})
 
-      assert {:invalid, %{}, state} == Pull.pull(puller, destination, state)
+      program_messages = [{destination.id, "touch", %{name: nil, parsed_state: %{}, tile_id: puller.id}}]
+      assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Pull.pull(puller, destination, state)
     end
 
     test "pulling but nothing to pull", %{state: state, puller: puller, destination: destination} do

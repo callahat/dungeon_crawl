@@ -49,8 +49,8 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     {wall, state} = Levels.create_tile(%Levels{}, wall)
     {player_location, state} = Levels.create_tile(state, player_location)
-
-    assert {:invalid, %{}, ^state} = Move.go(player_location, wall, state)
+    program_messages = [{997, "touch", %{name: nil, parsed_state: %{}, tile_id: 1000}}]
+    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, wall, state)
   end
 
   test "moving to a teleporter" do
@@ -75,7 +75,8 @@ defmodule DungeonCrawl.Action.MoveTest do
     {player_location, state} = Levels.create_tile(state, player_location)
 
     # cannot move when teleporter exits are blocked
-    assert {:invalid, %{}, ^state} = Move.go(player_location, teleporter_e, state)
+    program_messages = [{991, "touch", %{name: nil, parsed_state: %{}, tile_id: 9000}}]
+    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, teleporter_e, state)
 
     # teleports to the nearest available teleport exit
     {_, state} = Levels.delete_tile(state, wall_c, false)
@@ -101,7 +102,8 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     # cannot use teleporter if coming from the side
     {player_location, state} = Levels.update_tile(state, player_location, %{row: 2, col: 2})
-    assert {:invalid, %{}, ^state} = Move.go(player_location, teleporter_e, state)
+    program_messages = [{991, "touch", %{name: nil, parsed_state: %{}, tile_id: 9000}}]
+    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, teleporter_e, state)
 
     # can push objects through teleporter
     {player_location, state} = Levels.update_tile(state, player_location, %{row: 1, col: 0})
@@ -141,7 +143,8 @@ defmodule DungeonCrawl.Action.MoveTest do
     bullet_location   = %Tile{id: 1001,  row: 1, col: 3, z_index: 2, character: "-", state: "not_pushing: true"}
     {bullet_location, state} = Levels.create_tile(state, bullet_location)
 
-    assert {:invalid, %{}, ^state} = Move.go(bullet_location, ball, state)
+    program_messages = [{997, "touch", %{name: nil, parsed_state: %{not_pushing: true}, tile_id: 1001}}]
+    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(bullet_location, ball, state)
   end
 
   test "pushing an object directionally wrong way" do
@@ -153,7 +156,8 @@ defmodule DungeonCrawl.Action.MoveTest do
     {ball, state} = Levels.create_tile(state, ball)
     {player_location, state} = Levels.create_tile(state, player_location)
 
-    assert {:invalid, %{}, ^state} = Move.go(player_location, ball, state)
+    program_messages = [{997, "touch", %{name: nil, parsed_state: %{}, tile_id: 1000}}]
+    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, ball, state)
   end
 
   test "pushing a line of objects" do
@@ -188,7 +192,8 @@ defmodule DungeonCrawl.Action.MoveTest do
     wall            = %Tile{id: 1001, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
     {_wall, state} = Levels.create_tile(state, wall)
 
-    assert {:invalid, %{}, ^state} = Move.go(player_location, ball, state)
+    program_messages = [{997, "touch", %{name: nil, parsed_state: %{}, tile_id: 1000}}]
+    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, ball, state)
   end
 
   test "a squishable object" do

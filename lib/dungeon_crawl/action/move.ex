@@ -6,6 +6,7 @@ defmodule DungeonCrawl.Action.Move do
   # todo: rename this
   def go(entity_tile, destination, state, tile_changes \\ %{}, absolute \\ false)
   def go(%Tile{} = entity_tile, %Tile{} = destination, %Levels{} = state, tile_changes, absolute) do
+    state = _send_touches(entity_tile, destination, state)
     cond do
       absolute == true ->
         _move(entity_tile, destination, state, tile_changes)
@@ -62,6 +63,18 @@ defmodule DungeonCrawl.Action.Move do
     new_changes = %{ {new_location.row, new_location.col} => new_location,
                      {old_location.row, old_location.col} => old_location}
     {:ok, Map.merge(tile_changes, new_changes), state}
+  end
+
+  defp _send_touches(entity_tile, destination, state) do
+    toucher = if player_location = Levels.get_player_location(state, entity_tile),
+                do: Map.merge(player_location, Map.take(entity_tile, [:name, :parsed_state])),
+                else: Map.merge(%{tile_id: entity_tile.id}, Map.take(entity_tile, [:name, :parsed_state]))
+    program_messages = Levels.get_tiles(state, destination)
+                       |> Enum.reduce(state.program_messages, fn(tile, pms) ->
+                            [ {tile.id, "touch", toucher}
+                              | pms ]
+                          end)
+    %{ state | program_messages: program_messages}
   end
 
   defp _increment_player_steps(state, %{parsed_state: %{player: true}} = player_tile) do

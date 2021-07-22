@@ -49,7 +49,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     level_instance = Enum.sort(Repo.preload(dungeon_instance, :levels).levels, fn(a, b) -> a.number < b.number end)
                      |> Enum.at(0)
 
-    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}"})
+    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true"})
                       |> Repo.preload(:tile)
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
@@ -209,7 +209,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     push socket, "move", %{"direction" => "up"}
-
+    :timer.sleep 50 # because the touch from a player movement is no longer synchronous
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "message",
@@ -222,7 +222,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     # up would normally move player here to row 2, however the transport_tile causes the player
     # to move to the passage exit at 4,1; and the player stops there
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 3, rendering: "<div>.</div>"},
+    :timer.sleep 50 # because the touch from a player movement is no longer synchronous
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div></div>"},
                                                %{col: 1, row: 4, rendering: "<div>@</div>"}]}
   end
 
