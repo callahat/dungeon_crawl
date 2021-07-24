@@ -244,6 +244,15 @@
             <td>Indicates that the players game has ended. This is set by the GAMEOVER command,
                 or when the player runs out of lives.</td>
           </tr>
+          <tr>
+            <td>already_touched</td>
+            <td>This is used internally when a player moves, and should not be explicitly set. It is set to
+                false after a player has moved, and when it is true will cause the movement to not send touch
+                events to all the tiles at the destination coordinates. This is due to internal implementation
+                of a players movement that first sends the touch events, evaluates any programs for the destination
+                tiles that respond to a touch command, (sets "already_touched" to true to not send the touch events again),
+                moves the player tile to the destination if able, then resets "already_touched" back to false.</td>
+          </tr>
         </table>
 
         <h5 id="level_state_values">Level State Attributes and Values</h5>
