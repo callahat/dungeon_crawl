@@ -62,7 +62,7 @@ defmodule DungeonCrawl.Action.MoveTest do
     floor_c      = %Tile{id: 995, row: 1, col: 5, z_index: 0, character: "."}
     wall_c       = %Tile{id: 996, row: 1, col: 5, z_index: 1, character: "#", state: "blocking: true"}
 
-    player_location   = %Tile{id: 9000,  row: 1, col: 1, z_index: 1, character: "@"}
+    player_location   = %Tile{id: 9000,  row: 1, col: 1, z_index: 1, character: "@", state: "already_touched: false"}
 
     {floor_a, state} =      Levels.create_tile(%Levels{state_values: %{rows: 7, cols: 7}}, floor_a)
     {teleporter_e, state} = Levels.create_tile(state, teleporter_e)
@@ -75,8 +75,10 @@ defmodule DungeonCrawl.Action.MoveTest do
     {player_location, state} = Levels.create_tile(state, player_location)
 
     # cannot move when teleporter exits are blocked
-    program_messages = [{991, "touch", %{name: nil, parsed_state: %{}, tile_id: 9000}}]
-    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, teleporter_e, state)
+    program_messages = [{991, "touch", %{name: nil, parsed_state: %{already_touched: false}, tile_id: 9000}}]
+    assert {:invalid, tile_changes, expected_updated_state} = Move.go(player_location, teleporter_e, state)
+    assert tile_changes == %{}
+    assert %{ state | program_messages: program_messages, dirty_ids: %{}} == %{ expected_updated_state | dirty_ids: %{}}
 
     # teleports to the nearest available teleport exit
     {_, state} = Levels.delete_tile(state, wall_c, false)
@@ -102,8 +104,10 @@ defmodule DungeonCrawl.Action.MoveTest do
 
     # cannot use teleporter if coming from the side
     {player_location, state} = Levels.update_tile(state, player_location, %{row: 2, col: 2})
-    program_messages = [{991, "touch", %{name: nil, parsed_state: %{}, tile_id: 9000}}]
-    assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Move.go(player_location, teleporter_e, state)
+    program_messages = [{991, "touch", %{name: nil, parsed_state: %{already_touched: false}, tile_id: 9000}}]
+    assert {:invalid, tile_changes, expected_updated_state} = Move.go(player_location, teleporter_e, state)
+    assert tile_changes == %{}
+    assert %{ state | program_messages: program_messages, dirty_ids: %{}} == %{ expected_updated_state | dirty_ids: %{}}
 
     # can push objects through teleporter
     {player_location, state} = Levels.update_tile(state, player_location, %{row: 1, col: 0})

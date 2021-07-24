@@ -199,7 +199,15 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   defp _motion(direction, move_func, socket) do
     direction = Direction.normalize_orthogonal(direction)
+    _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, nil, socket)
+    |> _continue_motion(direction, move_func, socket)
+  end
 
+  defp _continue_motion(:player_relocated, _direction, _move_func, socket) do
+    {:reply, :ok, socket}
+  end
+
+  defp _continue_motion(_ok, direction, move_func, socket) do
     {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
@@ -216,11 +224,14 @@ defmodule DungeonCrawlWeb.LevelChannel do
           Travel.passage(player_location, %{adjacent_level_id: adjacent_level_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
 
         destination ->
+          {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: true})
           case move_func.(player_tile, destination, instance_state) do
             {:ok, _tile_changes, instance_state} ->
+              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
               {:ok, instance_state}
 
             {:invalid, _tile_changes, instance_state} ->
+              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
               {:ok, instance_state}
           end
 
@@ -229,6 +240,35 @@ defmodule DungeonCrawlWeb.LevelChannel do
     end)
 
     {:reply, :ok, socket}
+  end
+
+  # todo: is sending a TOUCH message to all tiles (and not just the top one) a good idea?
+  defp _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, _unhandled_event_message, socket) do
+    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
+      instance_state = if player_tile, do: Levels.remove_message_actions(instance_state, player_tile.id),
+                                       else: instance_state
+
+      with true <- _player_alive(player_tile),
+           true <- _game_active(player_tile, player_location),
+           target_tiles when target_tiles != [] <- Levels.get_tiles(instance_state, player_tile, direction) do
+
+        toucher = Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state]))
+        instance_state = target_tiles
+                         |> Enum.reduce(instance_state, fn(target_tile, instance_state) ->
+                               Levels.send_event(instance_state, target_tile, "TOUCH", toucher)
+                             end)
+        toucher_after_event = Levels.get_tile_by_id(instance_state, player_tile)
+        if toucher_after_event && Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
+          {:ok, instance_state}
+        else
+          {:player_relocated, instance_state}
+        end
+      else
+        _ -> {:ok, instance_state}
+      end
+    end)
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do

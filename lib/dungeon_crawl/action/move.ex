@@ -12,6 +12,8 @@ defmodule DungeonCrawl.Action.Move do
         _move(entity_tile, destination, state, tile_changes)
 
       _is_teleporter(destination, entity_tile) ->
+        # Mainly for the player; if they teleport the will not have yet touched the tiles on the other side and should
+        {entity_tile, state} = Levels.update_tile_state(state, entity_tile, %{already_touched: false})
         Direction.coordinates_to_edge(destination, destination.parsed_state[:facing], state.state_values)
         |> _possible_teleporter_destinations(state, [], true)
         |> Enum.reverse()
@@ -65,6 +67,7 @@ defmodule DungeonCrawl.Action.Move do
     {:ok, Map.merge(tile_changes, new_changes), state}
   end
 
+  defp _send_touches(%{parsed_state: %{already_touched: true}} = _entity_tile, _destination, state), do: state
   defp _send_touches(entity_tile, destination, state) do
     toucher = if player_location = Levels.get_player_location(state, entity_tile),
                 do: Map.merge(player_location, Map.take(entity_tile, [:name, :parsed_state])),

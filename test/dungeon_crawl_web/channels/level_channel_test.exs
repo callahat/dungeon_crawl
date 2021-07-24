@@ -187,9 +187,11 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "#"
-  test "move broadcasts nothing if its not a valid move", %{socket: socket} do
+  test "move broadcasts refresh of the player if its not a valid move", %{socket: socket, player_location: player_location} do
     push socket, "move", %{"direction" => "up"}
-    refute_broadcast "tile_changes", _anything_really
+    col = player_location.tile.col
+    row = player_location.tile.row
+    assert_broadcast "tile_changes", %{tiles: [%{col: ^col, rendering: "<div>@</div>", row: ^row}]}
   end
 
   @tag up_tile: "#"
@@ -209,7 +211,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     push socket, "move", %{"direction" => "up"}
-    :timer.sleep 50 # because the touch from a player movement is no longer synchronous
+
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "message",
@@ -222,8 +224,7 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     # up would normally move player here to row 2, however the transport_tile causes the player
     # to move to the passage exit at 4,1; and the player stops there
-    :timer.sleep 50 # because the touch from a player movement is no longer synchronous
-    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div></div>"},
+    assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 3, rendering: "<div>.</div>"},
                                                %{col: 1, row: 4, rendering: "<div>@</div>"}]}
   end
 
