@@ -384,6 +384,8 @@ defmodule DungeonCrawl.TileTemplates do
     bear_tile   = TileSeeder.bear()
     grid_bug_tile = TileSeeder.grid_bug()
     lion_tile   = TileSeeder.lion()
+    pede_head_tile = TileSeeder.pede_head()
+    pede_body_tile = TileSeeder.pede_body()
     rockworm_tile = TileSeeder.rockworm()
     tiger_tile  = TileSeeder.tiger()
     zombie_tile = TileSeeder.zombie()
@@ -408,6 +410,8 @@ defmodule DungeonCrawl.TileTemplates do
       ?ö => bear_tile, "ö" => bear_tile,
       ?Ω => lion_tile, "Ω" => lion_tile,
       ?π => tiger_tile, "π" => tiger_tile,
+      ?ϴ => pede_head_tile, "ϴ" => pede_head_tile,
+      ?O => pede_body_tile, "O" => pede_body_tile,
       ?r => rockworm_tile, "r" => rockworm_tile,
       ?x => grid_bug_tile, "x" => grid_bug_tile,
       ?Z => zombie_tile, "Z" => zombie_tile,

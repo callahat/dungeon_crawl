@@ -737,8 +737,6 @@ defmodule DungeonCrawl.Scripting.Command do
 
     destination = Levels.get_tile(state, object, direction)
 
-    # Might want to be able to pass coordinates, esp if the movement will ever be more than one away
-    runner_state = send_message(runner_state, ["touch", direction])
     %Runner{program: program, state: state} = runner_state
 
     case move_func.(object, destination, state) do
@@ -751,8 +749,8 @@ defmodule DungeonCrawl.Scripting.Command do
                                         state: new_state}
         change_state(updated_runner_state, [:facing, "=", direction])
 
-      {:invalid} ->
-        next_actions.invalid_move_handler.(runner_state, destination, retryable)
+      {:invalid, _tile_changes, new_state} ->
+        next_actions.invalid_move_handler.(%{runner_state | state: new_state}, destination, retryable)
     end
   end
 
@@ -1415,7 +1413,7 @@ defmodule DungeonCrawl.Scripting.Command do
     if dest_tile.parsed_state[:blocking] do
       _shifting(runner_state, other_pairs, [ {tile, dest_tile} | shifts_pending], tile_changes)
     else
-      {_, tile_changes, state} = Move.go(tile, dest_tile, state, :absolute, tile_changes)
+      {_, tile_changes, state} = Move.go(tile, dest_tile, state, tile_changes, true)
       _shifting(%{runner_state | state: state}, other_pairs, shifts_pending, tile_changes)
     end
   end

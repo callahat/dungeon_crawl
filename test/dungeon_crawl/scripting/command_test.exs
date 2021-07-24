@@ -812,7 +812,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 1}
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
-    assert [{1, "touch", %{tile_id: 3}}] = state.program_messages
+    assert [{1, "touch", %{name: nil, parsed_state: %{}, tile_id: 3}}] = state.program_messages
     state = %{state | program_messages: []}
     state = %{ state | rerender_coords: %{} }
 
@@ -839,7 +839,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
            } = program
     assert state.rerender_coords == %{}
     assert %{row: 1, col: 1, character: "c", z_index: 1} = mover
-    assert [{4, "touch", %{tile_id: 3}}] = state.program_messages
+    assert [{4, "touch", %{name: nil, parsed_state: %{facing: "left"}, tile_id: 3}}] = state.program_messages
     state = %{state | program_messages: []}
 
     # Idle

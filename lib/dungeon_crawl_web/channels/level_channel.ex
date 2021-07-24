@@ -224,11 +224,14 @@ defmodule DungeonCrawlWeb.LevelChannel do
           Travel.passage(player_location, %{adjacent_level_id: adjacent_level_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
 
         destination ->
+          {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: true})
           case move_func.(player_tile, destination, instance_state) do
             {:ok, _tile_changes, instance_state} ->
+              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
               {:ok, instance_state}
 
-            {:invalid} ->
+            {:invalid, _tile_changes, instance_state} ->
+              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
               {:ok, instance_state}
           end
 

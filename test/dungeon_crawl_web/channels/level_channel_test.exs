@@ -49,7 +49,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     level_instance = Enum.sort(Repo.preload(dungeon_instance, :levels).levels, fn(a, b) -> a.number < b.number end)
                      |> Enum.at(0)
 
-    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}"})
+    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true"})
                       |> Repo.preload(:tile)
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
@@ -187,9 +187,11 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "#"
-  test "move broadcasts nothing if its not a valid move", %{socket: socket} do
+  test "move broadcasts refresh of the player if its not a valid move", %{socket: socket, player_location: player_location} do
     push socket, "move", %{"direction" => "up"}
-    refute_broadcast "tile_changes", _anything_really
+    col = player_location.tile.col
+    row = player_location.tile.row
+    assert_broadcast "tile_changes", %{tiles: [%{col: ^col, rendering: "<div>@</div>", row: ^row}]}
   end
 
   @tag up_tile: "#"

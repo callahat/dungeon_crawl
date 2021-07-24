@@ -119,6 +119,16 @@
                 tile attempting to move there.</td>
           </tr>
           <tr>
+            <td>low</td>
+            <td>If this is true, and the tile is also blocking, movement will still be restricted. However,
+                when conditions such as fog exist, it will not block the players vision. Additionally,
+                a tile that is "flying" will be able to pass over this tile.</td>
+          </tr>
+          <tr>
+            <td>flying</td>
+            <td>If this is true, this tile will be able to move over low and blocking tiles.</td>
+          </tr>
+          <tr>
             <td>pushable</td>
             <td>When true, the map tile may be shoved around by another map tile moving into its row column coordinates.
                 The pushed map tile will attempt to move in the same direction that the pushing tile is moving (ie,
@@ -233,6 +243,15 @@
             <td>gameover</td>
             <td>Indicates that the players game has ended. This is set by the GAMEOVER command,
                 or when the player runs out of lives.</td>
+          </tr>
+          <tr>
+            <td>already_touched</td>
+            <td>This is used internally when a player moves, and should not be explicitly set. It is set to
+                false after a player has moved, and when it is true will cause the movement to not send touch
+                events to all the tiles at the destination coordinates. This is due to internal implementation
+                of a players movement that first sends the touch events, evaluates any programs for the destination
+                tiles that respond to a touch command, (sets "already_touched" to true to not send the touch events again),
+                moves the player tile to the destination if able, then resets "already_touched" back to false.</td>
           </tr>
         </table>
 

@@ -189,7 +189,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "ϴ",
         name: "PedeHead",
         description: "Centipede head",
-        state: "blocking: true, soft: true, facing: south, pulling: map_tile_id",
+        state: "blocking: true, soft: true, facing: south, pulling: centipede, centipede: true",
         public: true,
         active: true,
         group_name: "monsters",
@@ -202,7 +202,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :thud
                 #if ?sender@player, hurt_player
                 #if ?{@facing}@player, hurt_player
-                #if @pulling == false, not_surrounded
+                #if @pulling == centipede, not_surrounded
                 #if not ?clockwise@blocking,not_surrounded
                 #if not ?counterclockwise@blocking,not_surrounded
                 #if not ?reverse@blocking,not_surrounded
@@ -222,7 +222,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 :surrounded
                 #facing reverse
                 #send surrounded, @pulling
-                #become slug: pedebody, color: @color, background_color: @background_color, pulling: false, pullable: @pulling
+                #become slug: pedebody, color: @color, background_color: @background_color, pulling: centipede, pullable: @pulling
                 #end
                 :touch
                 #if not ?sender@player, main
@@ -244,7 +244,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
       %{character: "O",
         name: "PedeBody",
         description: "Centipede body segment",
-        state: "pullable: map_tile_id, pulling: map_tile_id, blocking: true, soft: true, facing: west",
+        state: "pullable: centipede, pulling: centipede, blocking: true, soft: true, facing: west, centipede: true",
         public: true,
         active: true,
         group_name: "monsters",
@@ -258,7 +258,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Creatures do
                 #die
                 :surrounded
                 #facing reverse
-                #if @pulling != false, not_tail
+                #if @pulling != centipede, not_tail
                 :tail
                 #become slug: pedehead, facing: @facing, color: @color, background_color: @background_color, pullable: false, pulling: @pullable
                 #end
