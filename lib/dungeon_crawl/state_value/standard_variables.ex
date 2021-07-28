@@ -4,6 +4,7 @@ defmodule DungeonCrawl.StateValue.StandardVariables do
              "starting_lives",
            ]
   @level   [
+             "fade_overlay",
              "fog_range",
              "reset_player_when_damaged",
              "pacifism",

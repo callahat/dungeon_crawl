@@ -136,6 +136,10 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert "" == fade_overlay_table(%{state_values: %{visibility: "fog"}}, 40, 40, "1_1")
   end
 
+  test "fade_overlay_table/4 when level has fade overlay off" do
+    assert "" == fade_overlay_table(%{state_values: %{fade_overlay: "off"}}, 40, 40, "1_1")
+  end
+
   test "fade_overlay_table/3/4 when level is not foggy" do
     rows = fade_overlay_table(20, 20, "2_5")
 

@@ -25,6 +25,10 @@ defmodule DungeonCrawlWeb.SharedView do
     ""
   end
 
+  def fade_overlay_table(%{state_values: %{fade_overlay: "off"}}, _height, _width, _player_coord_id) do
+    ""
+  end
+
   def fade_overlay_table(_level, height, width, player_coord_id) do
     fade_overlay_table(height, width, player_coord_id)
   end

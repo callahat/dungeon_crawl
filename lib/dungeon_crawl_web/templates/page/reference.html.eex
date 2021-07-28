@@ -290,6 +290,14 @@
             <td>Optionally, when visibility is set to "fog", this sets the number of tiles away that a player can see.
                 When not set, the player can see up to six tiles away.</td>
           </tr>
+          <tr>
+            <td>fade_overlay</td>
+            <td>Controls the display of the fade overlay which can be useful to help a player find their avatar when
+                changing levels. When set to "off", the fade overlay will not be used on that level. When set to "passages"
+                (the default when the state value is not set) the fade overlay will not be shown when traveling
+                to adjacent levels but will be shown when using a passage (which could place the player in
+                a very different location on the next level). When set to "on", the fade overlay will always trigger.</td>
+          </tr>
        </table>
 
         <h5 id="dungeon_state_values">Dungeon State Attributes and Values</h5>
