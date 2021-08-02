@@ -15,6 +15,7 @@ defmodule DungeonCrawl.StateValue.StandardVariablesTest do
              "fade_overlay",
              "fog_range",
              "reset_player_when_damaged",
+             "reset_when_no_players",
              "pacifism",
              "visibility",
            ] == StandardVariables.level

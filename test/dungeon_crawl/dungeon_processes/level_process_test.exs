@@ -2,6 +2,7 @@ defmodule DungeonCrawl.LevelProcessTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonInstances.Level
   alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.Scripting.Program
@@ -489,6 +490,21 @@ defmodule DungeonCrawl.LevelProcessTest do
                                %{col: 2, rendering: "<div>◦</div>", row: 1},
                                %{col: 3, rendering: "<div>@</div>", row: 2},
                                %{col: 4, rendering: "<div>.</div>", row: 1}]}}
+  end
+
+
+  test "perform_actions when reset when no players", %{instance_process: instance_process, level_instance: level_instance} do
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {:ok, %{ state | count_to_idle: 0, state_values: Map.merge(state.state_values, %{reset_when_no_players: true}) }}
+    end)
+
+    ref = Process.monitor(instance_process)
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    # terminates the process, leaves the instance
+    assert_receive {:DOWN, ^ref, :process, ^instance_process, :normal}
+    assert DungeonCrawl.Repo.get Level, level_instance.id
   end
 
   test "check_on_inactive_players", %{instance_process: instance_process, level_instance: level_instance} do
