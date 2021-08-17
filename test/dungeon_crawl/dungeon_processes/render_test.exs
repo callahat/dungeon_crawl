@@ -15,6 +15,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     tiles = [
         %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
         %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0},
+        %Tile{id: 108, character: ".", row: 1, col: 1, z_index: 0},
         %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
         %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0},
         %Tile{id: 104, character: "O", row: 1, col: 10, z_index: 0},
@@ -259,6 +260,27 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                                   %{col: 2, row: 1},
                                   %{col: 3, row: 1},
                                   %{col: 4, row: 1}]} == updated_state.players_visible_coords
+    end
+  end
+
+  describe "illuminated_tile_map/1" do
+    test "returns a map of illuminated tiles", %{state: state, player_location: player_location} do
+      state = %{ state | light_sources: %{player_location.tile_instance_id => true}}
+      assert %{{0, 3} => true,
+               {1, 3} => true,
+               {2, 3} => true,
+               {1, 4} => true,
+               {1, 2} => ["south", "east"]} == Render.illuminated_tile_map(state)
+
+      # Multiple light sources
+      state = %{ state | light_sources: %{player_location.tile_instance_id => true, 101 => true}}
+      assert %{{0, 3} => true,
+               {1, 3} => true,
+               {2, 3} => true,
+               {1, 4} => true,
+               {1, 2} => true,
+               {0, 1} => true,
+               {1, 1} => true} == Render.illuminated_tile_map(state)
     end
   end
 end

@@ -5,7 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
   alias DungeonCrawl.Admin
   alias DungeonCrawl.DungeonProcesses.Levels
-  alias DungeonCrawl.Scripting.Shape
+  alias DungeonCrawl.Scripting.{Direction,Shape}
 
   @doc """
   Handles rerending tiles. It returns a %Levels{} struct.
@@ -143,5 +143,60 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   defp _should_update_visible_tiles(visible_coords, rerender_coords) do
     Map.keys(rerender_coords)
     |> Enum.any?(fn coord -> Enum.member?(visible_coords, coord) end)
+  end
+
+  @doc """
+  Calculates all illuminated tiles from all light sources. This will probably not be a public method
+  """
+  def illuminated_tile_map(%Levels{light_sources: light_sources} = state) do
+    light_sources
+    |> Map.keys
+    |> Enum.reduce(%{}, fn tile_id, acc -> _illuminated_tiles(state, tile_id, acc) end)
+  end
+
+  defp _illuminated_tiles(state, light_source_tile_id, illumination_map \\ %{}) do
+    light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
+    range = 6 # todo: look this up from the tile's parsed_state
+    # {row, col} lists
+    all_illuminated_coords = Shape.circle(%{state: state, origin: light_tile}, range, true, "once", 0.33)
+    fully_illuminated_coords = Shape.circle(%{state: state, origin: light_tile}, range, true, "soft", 0.33)
+    partially_illuminated_coords = all_illuminated_coords -- fully_illuminated_coords
+
+    illumination_map = \
+    fully_illuminated_coords
+    |> Enum.reduce(illumination_map, fn coords, acc->
+         cond do
+           acc[coords] != true -> Map.put(acc, coords, true)
+           true -> acc
+         end
+       end)
+
+    illumination_map = \
+    partially_illuminated_coords
+    |> Enum.reduce(illumination_map, fn {row, col} =coords, acc->
+      cond do
+        acc[coords] == true ->
+          acc
+
+        _3_adjacent_walls(state, coords) ->
+          Map.put(acc, coords, true)
+
+        true ->
+          facing = Direction.orthogonal_direction(%{row: row, col: col}, %{row: light_tile.row, col: light_tile.col})
+          illuminated_faces = Enum.uniq(facing ++ (acc[coords] || []))
+          Map.put(acc, coords, if(length(illuminated_faces) == 4, do: true, else: illuminated_faces))
+      end
+    end)
+  end
+
+  defp _3_adjacent_walls(state, {row, col}) do
+    [ Levels.get_tile(state, %{row: row+1, col: col}),
+      Levels.get_tile(state, %{row: row-1, col: col}),
+      Levels.get_tile(state, %{row: row, col: col+1}),
+      Levels.get_tile(state, %{row: row, col: col-1}) ]
+    |> Enum.filter(fn tile ->
+         is_nil(tile) || tile.parsed_state[:blocking] == true && tile.parsed_state[:low] != true
+       end)
+    |> length >= 3
   end
 end
