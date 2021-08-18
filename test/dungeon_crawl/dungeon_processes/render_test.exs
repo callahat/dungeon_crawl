@@ -80,6 +80,24 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                    tiles: _}}
     end
 
+    test "when dark sends updates to the player channels", %{level_channel: level_channel,
+      level_admin_channel: level_admin_channel,
+      player_channel: player_channel,
+      state: state} do
+      state = %{state | state_values: Map.put(state.state_values, :visibility, "dark"), rerender_coords: %{%{col: 10, row: 1} => true}}
+      assert updated_state = Render.rerender_tiles(state)
+      assert Map.delete(updated_state, :players_visible_coords) == Map.delete(state, :players_visible_coords)
+      assert updated_state.players_visible_coords != state.players_visible_coords
+
+      refute_receive %Phoenix.Socket.Broadcast{topic: ^level_channel}
+      refute_receive %Phoenix.Socket.Broadcast{topic: ^level_admin_channel}
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "visible_tiles",
+        payload: %{fog: _,
+          tiles: _}}
+    end
+
     test "does nothing when nothing to update", %{state: state} do
       assert state == Render.rerender_tiles(state)
       refute_receive %Phoenix.Socket.Broadcast{}
@@ -228,7 +246,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   end
 
   describe "visible_tiles_for_player/3" do
-    test "when its not foggy", %{state: state, player_location: player_location} do
+    test "when its normal", %{state: state, player_location: player_location} do
       assert state == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
       refute_receive %Phoenix.Socket.Broadcast{}
     end
@@ -260,6 +278,49 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                                   %{col: 2, row: 1},
                                   %{col: 3, row: 1},
                                   %{col: 4, row: 1}]} == updated_state.players_visible_coords
+    end
+
+    test "when it is dark", %{state: state, player_location: player_location, player_channel: player_channel} do
+      # no rerender_coords, so nothing to do
+      state = %{state | state_values: Map.put(state.state_values, :visibility, "dark"),
+                        light_sources: %{103 => true, 108 => true}} # 1, 3 - in front of player
+      assert state == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
+      refute_receive %Phoenix.Socket.Broadcast{}
+
+      # with rerender coords, updates the visible area
+      state = %{ state | rerender_coords: %{%{col: 10, row: 1} => true}}
+
+      illuminated_tiles = Render.illuminated_tile_map(state)
+      assert updated_state = Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "visible_tiles",
+        payload: %{fog: [%{col: 10, row: 1}],
+          tiles: [%{col: 3, rendering: "<div>@</div>", row: 2},
+            %{col: 3, rendering: "<div>.</div>", row: 0},
+            %{col: 2, rendering: "<div>#</div>", row: 1},
+            %{col: 3, rendering: "<div>.</div>", row: 1},
+            %{col: 4, rendering: "<div>O</div>", row: 1}]}}
+
+      player_tile_id = player_location.tile_instance_id
+
+      assert %{player_tile_id => [%{col: 3, row: 2},
+                 %{col: 3, row: 0},
+                 %{col: 2, row: 1},
+                 %{col: 3, row: 1},
+                 %{col: 4, row: 1}]} == updated_state.players_visible_coords
+
+      # nothing changed
+      illuminated_tiles = Render.illuminated_tile_map(updated_state)
+      assert updated_state == Render.visible_tiles_for_player(updated_state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
+      refute_receive %Phoenix.Socket.Broadcast{}
+
+      # with rerender coords in players line of sight, but no light source illuminating it
+      # nothing is rendered
+      state = %{state | players_visible_coords: %{}, light_sources: %{108 => true}} # 0, 1, player cant see
+      illuminated_tiles = Render.illuminated_tile_map(state)
+      assert %{state | players_visible_coords: %{1 => []}} == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
+      refute_receive %Phoenix.Socket.Broadcast{}
     end
   end
 

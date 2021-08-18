@@ -35,6 +35,13 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
          visible_tiles_for_player(state, player_tile_id, location.id)
        end)
   end
+  def rerender_tiles(%Levels{state_values: %{visibility: "dark"}} = state) do
+    illuminated_tiles = illuminated_tile_map(state)
+    state.player_locations
+    |> Enum.reduce(state, fn {player_tile_id, location}, state ->
+      visible_tiles_for_player(state, player_tile_id, location.id, illuminated_tiles)
+    end)
+  end
   def rerender_tiles(%Levels{ rerender_coords: coords } = state ) when coords == %{}, do: state
   def rerender_tiles(%Levels{} = state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
@@ -121,28 +128,70 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
       range = if player_tile.parsed_state[:buried] == true, do: 0, else: state.state_values[:fog_range] || 6 # get this from the player?
       current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
-      fogged_coords = visible_coords -- current_visible_coords
-      newly_visible_coords = current_visible_coords -- visible_coords
-      rerender_coords = Map.keys(state.rerender_coords)
-      renderable_coords = rerender_coords -- (rerender_coords -- current_visible_coords)
-      visible_tiles = (renderable_coords ++ newly_visible_coords)
-                      |> Enum.uniq()
-                      |> Enum.map(fn coord ->
-                           tile = Levels.get_tile(state, coord)
-                           Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
-                         end)
-      DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles, fog: fogged_coords})
-      %{ state | players_visible_coords: Map.put(state.players_visible_coords, player_tile_id, current_visible_coords) }
+
+      _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords)
     else
       state
     end
   end
   def visible_tiles_for_player(%Levels{} = state, _player_tile_id, _location_id), do: state
+  def visible_tiles_for_player(%Levels{state_values: %{visibility: "dark", rows: rows, cols: cols}} = state,
+                               player_tile_id,
+                               location_id,
+                               illuminated_tiles) do
+    visible_coords = state.players_visible_coords[player_tile_id] || []
+    player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
+
+    range = floor(:math.sqrt(rows * cols))
+
+    if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
+      coords_in_los = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
+      possibly_visible = coords_in_los -- (Map.keys(illuminated_tiles) -- coords_in_los)
+
+      current_visible_coords = \
+        possibly_visible
+        |> Enum.filter(fn coords ->
+                         lit = illuminated_tiles[coords]
+                         lit == true || _player_in_direction_of_lit_face(player_tile, coords, lit)
+                       end)
+        |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
+
+      _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords)
+    else
+      state
+    end
+  end
+  def visible_tiles_for_player(%Levels{} = state, _, _, _), do: state
+
+  defp _player_in_direction_of_lit_face(_, _, nil), do: false
+  defp _player_in_direction_of_lit_face(player_tile, {row, col}, lit_faces) do
+    Enum.any?(Direction.orthogonal_direction(%{row: row, col: col}, player_tile),
+              fn player_direction ->
+                Enum.member?(lit_faces, player_direction)
+              end)
+  end
 
   defp _should_update_visible_tiles([], _rerender_coords), do: true
   defp _should_update_visible_tiles(visible_coords, rerender_coords) do
     Map.keys(rerender_coords)
     |> Enum.any?(fn coord -> Enum.member?(visible_coords, coord) end)
+  end
+
+  defp _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords) do
+    fogged_coords = visible_coords -- current_visible_coords
+    newly_visible_coords = current_visible_coords -- visible_coords
+    rerender_coords = Map.keys(state.rerender_coords)
+    renderable_coords = rerender_coords -- (rerender_coords -- current_visible_coords)
+    visible_tiles = (renderable_coords ++ newly_visible_coords)
+                    |> Enum.uniq()
+                    |> Enum.map(fn coord ->
+      tile = Levels.get_tile(state, coord)
+      Map.put(coord, :rendering, DungeonCrawlWeb.SharedView.tile_and_style(tile))
+    end)
+    if visible_tiles != [] || fogged_coords != [] do
+      DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles, fog: fogged_coords})
+    end
+    %{ state | players_visible_coords: Map.put(state.players_visible_coords, player_tile_id, current_visible_coords) }
   end
 
   @doc """
@@ -154,7 +203,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     |> Enum.reduce(%{}, fn tile_id, acc -> _illuminated_tiles(state, tile_id, acc) end)
   end
 
-  defp _illuminated_tiles(state, light_source_tile_id, illumination_map \\ %{}) do
+  defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
     range = 6 # todo: look this up from the tile's parsed_state
     # {row, col} lists
@@ -171,7 +220,6 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
          end
        end)
 
-    illumination_map = \
     partially_illuminated_coords
     |> Enum.reduce(illumination_map, fn {row, col} =coords, acc->
       cond do
