@@ -7,10 +7,12 @@ defmodule DungeonCrawlWeb.SharedView do
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates.TileTemplate
 
+  @occluded_visibilities ["fog", "dark"]
+
   # todo: pass in if its foggy instead maybe
   def level_as_table(level, height, width, admin \\ false)
   def level_as_table(%Levels{state_values: state_values} = level, height, width, admin) do
-    if state_values[:visibility] == "fog" && not admin do
+    if Enum.member?(@occluded_visibilities, state_values[:visibility]) && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
       _level_as_table(level, height, width)
@@ -22,6 +24,10 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   def fade_overlay_table(%{state_values: %{visibility: "fog"}}, _height, _width, _player_coord_id) do
+    ""
+  end
+
+  def fade_overlay_table(%{state_values: %{visibility: "dark"}}, _height, _width, _player_coord_id) do
     ""
   end
 

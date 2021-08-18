@@ -152,7 +152,9 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
         possibly_visible
         |> Enum.filter(fn coords ->
                          lit = illuminated_tiles[coords]
-                         lit == true || _player_in_direction_of_lit_face(player_tile, coords, lit)
+                         lit == true ||
+                           _player_in_direction_of_lit_face(player_tile, coords, lit) ||
+                           coords == {player_tile.row, player_tile.col}
                        end)
         |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
 

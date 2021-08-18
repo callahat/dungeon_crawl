@@ -296,11 +296,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
         topic: ^player_channel,
         event: "visible_tiles",
         payload: %{fog: [%{col: 10, row: 1}],
-          tiles: [%{col: 3, rendering: "<div>@</div>", row: 2},
-            %{col: 3, rendering: "<div>.</div>", row: 0},
-            %{col: 2, rendering: "<div>#</div>", row: 1},
-            %{col: 3, rendering: "<div>.</div>", row: 1},
-            %{col: 4, rendering: "<div>O</div>", row: 1}]}}
+                   tiles: [%{col: 3, rendering: "<div>@</div>", row: 2},
+                           %{col: 3, rendering: "<div>.</div>", row: 0},
+                           %{col: 2, rendering: "<div>#</div>", row: 1},
+                           %{col: 3, rendering: "<div>.</div>", row: 1},
+                           %{col: 4, rendering: "<div>O</div>", row: 1}]}}
 
       player_tile_id = player_location.tile_instance_id
 
@@ -316,11 +316,16 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       refute_receive %Phoenix.Socket.Broadcast{}
 
       # with rerender coords in players line of sight, but no light source illuminating it
-      # nothing is rendered
+      # nothing is rendered except for the players own tile (which is NOT automatically a light source)
       state = %{state | players_visible_coords: %{}, light_sources: %{108 => true}} # 0, 1, player cant see
       illuminated_tiles = Render.illuminated_tile_map(state)
-      assert %{state | players_visible_coords: %{1 => []}} == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
-      refute_receive %Phoenix.Socket.Broadcast{}
+      assert %{state | players_visible_coords: %{1 => [%{col: 3, row: 2}]}} ==
+             Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "visible_tiles",
+        payload: %{fog: [],
+                   tiles: [%{col: 3, rendering: "<div>@</div>", row: 2}]}}
     end
   end
 
