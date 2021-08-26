@@ -207,7 +207,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
   defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
-    range = 6 # todo: look this up from the tile's parsed_state
+    range = light_tile.parsed_state[:light_range] || 6
     # {row, col} lists
     all_illuminated_coords = Shape.circle(%{state: state, origin: light_tile}, range, true, "once", 0.33)
     fully_illuminated_coords = Shape.circle(%{state: state, origin: light_tile}, range, true, "soft", 0.33)

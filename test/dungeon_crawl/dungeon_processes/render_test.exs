@@ -14,7 +14,9 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
 
     tiles = [
         %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
-        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0},
+        %Tile{id: 109, character: ".", row: 2, col: 1, z_index: 0},
+        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: "light_range: 1"},
+        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: "light_range: 2"},
         %Tile{id: 108, character: ".", row: 1, col: 1, z_index: 0},
         %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
         %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0},
@@ -338,15 +340,26 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                {1, 4} => true,
                {1, 2} => ["south", "east"]} == Render.illuminated_tile_map(state)
 
-      # Multiple light sources
+      # Multiple light sources, one light source has short range
       state = %{ state | light_sources: %{player_location.tile_instance_id => true, 101 => true}}
+      assert %{{0, 3} => true,
+               {1, 3} => true,
+               {2, 3} => true,
+               {1, 4} => true,
+               {1, 2} => ["south", "east"],
+               {0, 1} => true,
+               {1, 1} => true} == Render.illuminated_tile_map(state)
+
+      # other light source has longer range
+      state = %{ state | light_sources: %{player_location.tile_instance_id => true, 110 => true}}
       assert %{{0, 3} => true,
                {1, 3} => true,
                {2, 3} => true,
                {1, 4} => true,
                {1, 2} => true,
                {0, 1} => true,
-               {1, 1} => true} == Render.illuminated_tile_map(state)
+               {1, 1} => true,
+               {2,1} => true} == Render.illuminated_tile_map(state)
     end
   end
 end
