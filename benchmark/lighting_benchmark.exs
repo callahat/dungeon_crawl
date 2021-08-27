@@ -81,17 +81,37 @@ defmodule Lighting.Benchmark do
         "w/ move foggy" => fn -> Lighting.MoveRerender.moves(%{fog_state| rerender_coords: %{}}, player_tile, moves) end,
         "w/ move dark 1 light" => fn -> Lighting.MoveRerender.moves(%{dark_state_1_light | rerender_coords: %{}}, player_tile, moves) end,
         "w/ move dark 2 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_2_light | rerender_coords: %{}}, player_tile, moves) end,
-        "w/ move dark 10 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_10_light | rerender_coords: %{}}, player_tile, moves) end,
-        "w/ 100 move full visibility" => fn -> Lighting.MoveRerender.moves(%{initial_state| rerender_coords: %{}}, player_tile, 100) end,
-        "w/ 100 move foggy" => fn -> Lighting.MoveRerender.moves(%{fog_state| rerender_coords: %{}}, player_tile, 100) end,
-        "w/ 100 move dark 1 light" => fn -> Lighting.MoveRerender.moves(%{dark_state_1_light | rerender_coords: %{}}, player_tile, 100) end,
-        "w/ 100 move dark 2 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_2_light | rerender_coords: %{}}, player_tile, 100) end,
-        "w/ 100 move dark 10 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_10_light | rerender_coords: %{}}, player_tile, 100) end
+        "w/ move dark 10 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_10_light | rerender_coords: %{}}, player_tile, moves) end
       },
       time: 10,
       print: [fast_warning: false]
     )
   end
 end
+
+# The moves step once, which should be a minor change to rerender (instead of calculating everything)
+#Name                              ips        average  deviation         median         99th %
+#w/ move full visibility      16874.12      0.0593 ms    ±58.21%      0.0726 ms       0.118 ms
+#w/ move foggy                 2465.76        0.41 ms    ±13.96%        0.40 ms        0.62 ms
+#full visibility               1807.34        0.55 ms     ±7.90%        0.54 ms        0.71 ms
+#foggy                         1650.43        0.61 ms     ±8.79%        0.59 ms        0.83 ms
+#w/ move dark 1 light           519.94        1.92 ms    ±10.00%        1.86 ms        2.66 ms
+#dark 1 light                   474.57        2.11 ms     ±9.54%        2.03 ms        2.88 ms
+#w/ move dark 2 lights          380.64        2.63 ms     ±9.17%        2.54 ms        3.43 ms
+#dark 2 lights                  361.27        2.77 ms     ±7.48%        2.70 ms        3.54 ms
+#w/ move dark 10 lights         125.91        7.94 ms     ±5.01%        7.91 ms        9.09 ms
+#dark 10 lights                 123.79        8.08 ms     ±4.81%        8.06 ms        9.23 ms
+#
+#Comparison:
+#          w/ move full visibility      16874.12
+#          w/ move foggy                 2465.76 - 6.84x slower +0.35 ms
+#                                                    full visibility               1807.34 - 9.34x slower +0.49 ms
+#                                                                                                         foggy                         1650.43 - 10.22x slower +0.55 ms
+#                                                                                                                                                                     w/ move dark 1 light           519.94 - 32.45x slower +1.86 ms
+#                                                                                                                                                                                                                              dark 1 light                   474.57 - 35.56x slower +2.05 ms
+#w/ move dark 2 lights          380.64 - 44.33x slower +2.57 ms
+#                                                            dark 2 lights                  361.27 - 46.71x slower +2.71 ms
+#w/ move dark 10 lights         125.91 - 134.01x slower +7.88 ms
+#dark 10 lights                 123.79 - 136.31x slower +8.02 ms
 
 Lighting.Benchmark.benchmark()
