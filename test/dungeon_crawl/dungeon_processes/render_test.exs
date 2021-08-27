@@ -292,7 +292,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       # with rerender coords, updates the visible area
       state = %{ state | rerender_coords: %{%{col: 10, row: 1} => true}}
 
-      illuminated_tiles = Render.illuminated_tile_map(state)
+      {illuminated_tiles, _updated_state} = Render.refresh_illuminated_tile_map(state)
       assert updated_state = Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
@@ -313,16 +313,16 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                  %{col: 4, row: 1}]} == updated_state.players_visible_coords
 
       # nothing changed
-      illuminated_tiles = Render.illuminated_tile_map(updated_state)
+      {illuminated_tiles, updated_state} = Render.refresh_illuminated_tile_map(updated_state)
       assert updated_state == Render.visible_tiles_for_player(updated_state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
       refute_receive %Phoenix.Socket.Broadcast{}
 
       # with rerender coords in players line of sight, but no light source illuminating it
       # nothing is rendered except for the players own tile (which is NOT automatically a light source)
       state = %{state | players_visible_coords: %{}, light_sources: %{108 => true}} # 0, 1, player cant see
-      illuminated_tiles = Render.illuminated_tile_map(state)
-      assert %{state | players_visible_coords: %{1 => [%{col: 3, row: 2}]}} ==
-             Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
+      {illuminated_tiles, updated_state} = Render.refresh_illuminated_tile_map(state)
+      assert %{updated_state | players_visible_coords: %{1 => [%{col: 3, row: 2}]}} ==
+             Render.visible_tiles_for_player(updated_state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "visible_tiles",
@@ -331,27 +331,42 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     end
   end
 
-  describe "illuminated_tile_map/1" do
+  describe "refresh_illuminated_tile_map/1" do
     test "returns a map of illuminated tiles", %{state: state, player_location: player_location} do
       state = %{ state | light_sources: %{player_location.tile_instance_id => true}}
+      {illuminated_tile_map, updated_state} = Render.refresh_illuminated_tile_map(state)
       assert %{{0, 3} => true,
                {1, 3} => true,
                {2, 3} => true,
                {1, 4} => true,
-               {1, 2} => ["south", "east"]} == Render.illuminated_tile_map(state)
+               {1, 2} => ["south", "east"]} == illuminated_tile_map
+      assert %{1 => %{{0, 3} => true,
+                      {1, 2} => ["south", "east"],
+                      {1, 3} => true,
+                      {1, 4} => true,
+                      {2, 3} => true}} == updated_state.light_sources
 
       # Multiple light sources, one light source has short range
       state = %{ state | light_sources: %{player_location.tile_instance_id => true, 101 => true}}
+      {illuminated_tile_map, updated_state} = Render.refresh_illuminated_tile_map(state)
       assert %{{0, 3} => true,
                {1, 3} => true,
                {2, 3} => true,
                {1, 4} => true,
                {1, 2} => ["south", "east"],
                {0, 1} => true,
-               {1, 1} => true} == Render.illuminated_tile_map(state)
+               {1, 1} => true} == illuminated_tile_map
+      assert %{  1 => %{{0, 3} => true,
+                        {1, 2} => ["south", "east"],
+                        {1, 3} => true,
+                        {1, 4} => true,
+                        {2, 3} => true},
+               101 => %{{0, 1} => true,
+                        {1, 1} => true}} == updated_state.light_sources
 
       # other light source has longer range
       state = %{ state | light_sources: %{player_location.tile_instance_id => true, 110 => true}}
+      {illuminated_tile_map, updated_state} = Render.refresh_illuminated_tile_map(state)
       assert %{{0, 3} => true,
                {1, 3} => true,
                {2, 3} => true,
@@ -359,7 +374,16 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                {1, 2} => true,
                {0, 1} => true,
                {1, 1} => true,
-               {2,1} => true} == Render.illuminated_tile_map(state)
+               {2,1} => true} == illuminated_tile_map
+      assert %{  1 => %{{0, 3} => true,
+                        {1, 2} => ["south", "east"],
+                        {1, 3} => true,
+                        {1, 4} => true,
+                        {2, 3} => true},
+               110 => %{{0, 1} => true,
+                        {1, 1} => true,
+                        {1, 2} => ["north", "west"],
+                        {2, 1} => true}} == updated_state.light_sources
     end
   end
 end

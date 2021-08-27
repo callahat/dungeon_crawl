@@ -36,7 +36,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
        end)
   end
   def rerender_tiles(%Levels{state_values: %{visibility: "dark"}} = state) do
-    illuminated_tiles = illuminated_tile_map(state)
+    {illuminated_tiles, state} = refresh_illuminated_tile_map(state)
     state.player_locations
     |> Enum.reduce(state, fn {player_tile_id, location}, state ->
       visible_tiles_for_player(state, player_tile_id, location.id, illuminated_tiles)
@@ -197,14 +197,34 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   end
 
   @doc """
-  Calculates all illuminated tiles from all light sources. This will probably not be a public method
+  Calculates all illuminated tiles from all light sources. Returns a tuple; first element is the
+  composite illumination map, second element is the updated state where the current light sources
+  have their specific lighting map as the value.
   """
-  def illuminated_tile_map(%Levels{light_sources: light_sources} = state) do
-    light_sources
-    |> Map.keys
-    |> Enum.reduce(%{}, fn tile_id, acc -> _illuminated_tiles(state, tile_id, acc) end)
+  def refresh_illuminated_tile_map(%Levels{light_sources: light_sources} = state) do
+    hydrated_light_sources = \
+      light_sources
+      |> Enum.reduce(%{}, fn {tile_id, illumination}, acc ->
+           updated_illumination = \
+             if illumination == true ||
+                  illumination == [] ||
+                  _lit_tiles_saw_change(illumination, state.rerender_coords) do
+               _illuminated_tiles(state, tile_id, %{})
+             else
+               illumination
+             end
+
+           Map.put acc, tile_id, updated_illumination
+         end)
+
+    {
+      _reduce_illumination_map(hydrated_light_sources),
+      %{state | light_sources: hydrated_light_sources}
+    }
   end
 
+  # Returns map of coords => true for fully illuminated, or list of illuminated sides
+  # ie %{ {1, 2} => ["north", "west"], ... }
   defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
     range = light_tile.parsed_state[:light_range] || 6
@@ -223,7 +243,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
        end)
 
     partially_illuminated_coords
-    |> Enum.reduce(illumination_map, fn {row, col} =coords, acc->
+    |> Enum.reduce(illumination_map, fn {row, col} = coords, acc->
       cond do
         acc[coords] == true ->
           acc
@@ -248,5 +268,28 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
          is_nil(tile) || tile.parsed_state[:blocking] == true && tile.parsed_state[:low] != true
        end)
     |> length >= 3
+  end
+
+  defp _reduce_illumination_map(hydrated_light_sources) do
+    hydrated_light_sources
+    |> Map.values
+    |> Enum.flat_map(&(&1))
+    |> Enum.reduce(%{}, fn {coords, lighting}, acc ->
+         cond do
+           acc[coords] == true ->
+             acc
+
+           lighting == true ->
+             Map.put(acc, coords, true)
+
+           true -> # is_list(lighting) == true
+             illuminated_faces = Enum.uniq(lighting ++ (acc[coords] || []))
+             Map.put(acc, coords, if(length(illuminated_faces) == 4, do: true, else: illuminated_faces))
+         end
+       end)
+  end
+
+  defp _lit_tiles_saw_change(lit_coords, rerender_coords) do
+    Enum.any?(lit_coords, &(rerender_coords[&1]))
   end
 end
