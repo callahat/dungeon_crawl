@@ -208,45 +208,34 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
     range = light_tile.parsed_state[:light_range] || 6
-    # {row, col} lists
-    all_illuminated_coords = Shape.circle(%{state: state, origin: light_tile}, range, true, "once", 0.33)
-    fully_illuminated_coords = Shape.circle(%{state: state, origin: light_tile}, range, true, "soft", 0.33)
-    partially_illuminated_coords = all_illuminated_coords -- fully_illuminated_coords
 
-    illumination_map = \
-    fully_illuminated_coords
-    |> Enum.reduce(illumination_map, fn coords, acc->
+    Shape.circle(%{state: state, origin: light_tile}, range, true, "once", 0.33)
+    |> Enum.reduce(illumination_map, fn {row, col} = coords, acc->
          cond do
-           acc[coords] != true -> Map.put(acc, coords, true)
+           acc[coords] != true ->
+             tile = Levels.get_tile(state, %{row: row, col: col})
+             cond do
+               is_nil(tile) ->
+                 acc
+               tile.parsed_state[:blocking] != true ||
+                    tile.parsed_state[:low] == true ->
+                 Map.put(acc, coords, true)
+               true ->
+                 facing = Direction.orthogonal_direction(%{row: row, col: col}, %{row: light_tile.row, col: light_tile.col})
+                          |> _reject_blocked_facings(tile, state)
+                 illuminated_faces = Enum.uniq(facing ++ (acc[coords] || []))
+                 Map.put(acc, coords, if(length(illuminated_faces) == 4, do: true, else: illuminated_faces))
+             end
            true -> acc
          end
        end)
-
-    partially_illuminated_coords
-    |> Enum.reduce(illumination_map, fn {row, col} =coords, acc->
-      cond do
-        acc[coords] == true ->
-          acc
-
-        _3_adjacent_walls(state, coords) ->
-          Map.put(acc, coords, true)
-
-        true ->
-          facing = Direction.orthogonal_direction(%{row: row, col: col}, %{row: light_tile.row, col: light_tile.col})
-          illuminated_faces = Enum.uniq(facing ++ (acc[coords] || []))
-          Map.put(acc, coords, if(length(illuminated_faces) == 4, do: true, else: illuminated_faces))
-      end
-    end)
   end
 
-  defp _3_adjacent_walls(state, {row, col}) do
-    [ Levels.get_tile(state, %{row: row+1, col: col}),
-      Levels.get_tile(state, %{row: row-1, col: col}),
-      Levels.get_tile(state, %{row: row, col: col+1}),
-      Levels.get_tile(state, %{row: row, col: col-1}) ]
-    |> Enum.filter(fn tile ->
-         is_nil(tile) || tile.parsed_state[:blocking] == true && tile.parsed_state[:low] != true
-       end)
-    |> length >= 3
+  defp _reject_blocked_facings(facings, lit_tile, state) do
+    facings
+    |> Enum.reject(fn facing ->
+                     tile = Levels.get_tile(state, lit_tile, facing)
+                     is_nil(tile) || tile.parsed_state[:blocking] == true && tile.parsed_state[:low] != true
+                   end)
   end
 end

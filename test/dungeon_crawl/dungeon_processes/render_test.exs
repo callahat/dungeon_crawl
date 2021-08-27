@@ -338,7 +338,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                {1, 3} => true,
                {2, 3} => true,
                {1, 4} => true,
-               {1, 2} => ["south", "east"]} == Render.illuminated_tile_map(state)
+               {1, 2} => ["east"]} == Render.illuminated_tile_map(state)
 
       # Multiple light sources, one light source has short range
       state = %{ state | light_sources: %{player_location.tile_instance_id => true, 101 => true}}
@@ -346,7 +346,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                {1, 3} => true,
                {2, 3} => true,
                {1, 4} => true,
-               {1, 2} => ["south", "east"],
+               {1, 2} => ["east"],
                {0, 1} => true,
                {1, 1} => true} == Render.illuminated_tile_map(state)
 
@@ -356,7 +356,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                {1, 3} => true,
                {2, 3} => true,
                {1, 4} => true,
-               {1, 2} => true,
+               {1, 2} => ["west", "east"],
                {0, 1} => true,
                {1, 1} => true,
                {2,1} => true} == Render.illuminated_tile_map(state)

@@ -35,3 +35,6 @@ erl_crash.dump
 
 # sql dumps
 *.sql
+
+# other lock files
+*.~lock*
