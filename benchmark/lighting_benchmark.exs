@@ -68,7 +68,7 @@ defmodule Lighting.Benchmark do
                                state
                              end)
 
-    moves = 100
+    moves = 1
 
     Benchee.run(
       %{
@@ -77,11 +77,11 @@ defmodule Lighting.Benchmark do
         "dark 1 light" => fn -> Render.rerender_tiles(dark_state_1_light) end,
         "dark 2 lights" => fn -> Render.rerender_tiles(dark_state_2_light) end,
         "dark 10 lights" => fn -> Render.rerender_tiles(dark_state_10_light) end,
-        "w/ move full visibility" => fn -> Lighting.MoveRerender.moves(initial_state, player_tile, moves) end,
-        "w/ move foggy" => fn -> Lighting.MoveRerender.moves(fog_state, player_tile, moves) end,
-        "w/ move dark 1 light" => fn -> Lighting.MoveRerender.moves(dark_state_1_light, player_tile, moves) end,
-        "w/ move dark 2 lights" => fn -> Lighting.MoveRerender.moves(dark_state_2_light, player_tile, moves) end,
-        "w/ move dark 10 lights" => fn -> Lighting.MoveRerender.moves(dark_state_10_light, player_tile, moves) end
+        "w/ move full visibility" => fn -> Lighting.MoveRerender.moves(%{initial_state| rerender_coords: %{}}, player_tile, moves) end,
+        "w/ move foggy" => fn -> Lighting.MoveRerender.moves(%{fog_state| rerender_coords: %{}}, player_tile, moves) end,
+        "w/ move dark 1 light" => fn -> Lighting.MoveRerender.moves(%{dark_state_1_light | rerender_coords: %{}}, player_tile, moves) end,
+        "w/ move dark 2 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_2_light | rerender_coords: %{}}, player_tile, moves) end,
+        "w/ move dark 10 lights" => fn -> Lighting.MoveRerender.moves(%{dark_state_10_light | rerender_coords: %{}}, player_tile, moves) end
       },
       time: 10,
       print: [fast_warning: false]
@@ -89,28 +89,29 @@ defmodule Lighting.Benchmark do
   end
 end
 
+# The moves step once, which should be a minor change to rerender (instead of calculating everything)
 #Name                              ips        average  deviation         median         99th %
-#full visibility               1781.99        0.56 ms    ±10.23%        0.55 ms        0.79 ms
-#foggy                         1580.62        0.63 ms     ±9.23%        0.62 ms        0.86 ms
-#dark 1 light                   509.16        1.96 ms     ±6.81%        1.93 ms        2.68 ms
-#dark 2 lights                  405.70        2.46 ms     ±5.33%        2.43 ms        2.96 ms
-#w/ move full visibility        152.75        6.55 ms     ±8.35%        6.49 ms        8.18 ms
-#dark 10 lights                 140.77        7.10 ms     ±5.02%        7.05 ms        8.38 ms
-#w/ move foggy                   23.46       42.63 ms     ±3.86%       42.89 ms       45.87 ms
-#w/ move dark 1 light             5.29      189.18 ms     ±4.57%      189.37 ms      216.80 ms
-#w/ move dark 2 lights            4.16      240.30 ms     ±5.55%      235.53 ms      283.95 ms
-#w/ move dark 10 lights           1.41      707.37 ms     ±3.64%      693.42 ms      751.52 ms
+#w/ move full visibility      16874.12      0.0593 ms    ±58.21%      0.0726 ms       0.118 ms
+#w/ move foggy                 2465.76        0.41 ms    ±13.96%        0.40 ms        0.62 ms
+#full visibility               1807.34        0.55 ms     ±7.90%        0.54 ms        0.71 ms
+#foggy                         1650.43        0.61 ms     ±8.79%        0.59 ms        0.83 ms
+#w/ move dark 1 light           519.94        1.92 ms    ±10.00%        1.86 ms        2.66 ms
+#dark 1 light                   474.57        2.11 ms     ±9.54%        2.03 ms        2.88 ms
+#w/ move dark 2 lights          380.64        2.63 ms     ±9.17%        2.54 ms        3.43 ms
+#dark 2 lights                  361.27        2.77 ms     ±7.48%        2.70 ms        3.54 ms
+#w/ move dark 10 lights         125.91        7.94 ms     ±5.01%        7.91 ms        9.09 ms
+#dark 10 lights                 123.79        8.08 ms     ±4.81%        8.06 ms        9.23 ms
 #
 #Comparison:
-#          full visibility               1781.99
-#          foggy                         1580.62 - 1.13x slower +0.0715 ms
-#                                                                  dark 1 light                   509.16 - 3.50x slower +1.40 ms
-#          dark 2 lights                  405.70 - 4.39x slower +1.90 ms
-#                                                    w/ move full visibility        152.75 - 11.67x slower +5.99 ms
-#                                                                                               dark 10 lights                 140.77 - 12.66x slower +6.54 ms
-#                                                                                                                                              w/ move foggy                   23.46 - 75.97x slower +42.07 ms
-#                                                                                                                                                                                                    w/ move dark 1 light             5.29 - 337.11x slower +188.62 ms
-#                                                                                                                                                                                                                                                    w/ move dark 2 lights            4.16 - 428.21x slower +239.74 ms
-#                                                                                                                                                                                                                                                                                                  w/ move dark 10 lights           1.41 - 1260.53x slower +706.81 ms
+#          w/ move full visibility      16874.12
+#          w/ move foggy                 2465.76 - 6.84x slower +0.35 ms
+#                                                    full visibility               1807.34 - 9.34x slower +0.49 ms
+#                                                                                                         foggy                         1650.43 - 10.22x slower +0.55 ms
+#                                                                                                                                                                     w/ move dark 1 light           519.94 - 32.45x slower +1.86 ms
+#                                                                                                                                                                                                                              dark 1 light                   474.57 - 35.56x slower +2.05 ms
+#w/ move dark 2 lights          380.64 - 44.33x slower +2.57 ms
+#                                                            dark 2 lights                  361.27 - 46.71x slower +2.71 ms
+#w/ move dark 10 lights         125.91 - 134.01x slower +7.88 ms
+#dark 10 lights                 123.79 - 136.31x slower +8.02 ms
 
 Lighting.Benchmark.benchmark()
