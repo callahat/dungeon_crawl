@@ -24,10 +24,13 @@ defmodule DungeonCrawl.StateValue.StandardVariablesTest do
   test "tile" do
     assert [
              "blocking",
+             "blocking_light",
              "damage",
              "destroyable",
              "flying",
              "health",
+             "light_range",
+             "light_source",
              "low",
              "not_pushing",
              "not_squishing",

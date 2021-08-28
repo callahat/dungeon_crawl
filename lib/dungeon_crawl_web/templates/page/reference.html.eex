@@ -214,6 +214,22 @@
                 a tile is destroyed via standard behaviors.</td>
           </tr>
           <tr>
+            <td>light_source</td>
+            <td>For "dark" levels, indicates that this tile is a light source when true. Light
+                is blocked by "blocking" tiles that are neither "low" nor not "blocking_light", and
+                the light radiates outward from the source so shadows may be cast, similar to fog.</td>
+          </tr>
+          <tr>
+            <td>light_range</td>
+            <td>For "dark" levels and a light_source tile, indicates how far the light goes. Default range
+                of a light_source is 6 when this state variable is not present.</td>
+          </tr>
+          <tr>
+            <td>blocking_light</td>
+            <td>When false, this tile will not block light or player vision even though "blocking" is true
+                and movement may be prevented. By default a blocking tile will block light and vision.</td>
+          </tr>
+          <tr>
             <td colspan=2>Player Tile Specific</td>
           </tr>
           <tr>
