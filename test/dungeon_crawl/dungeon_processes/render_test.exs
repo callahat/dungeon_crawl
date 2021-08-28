@@ -19,7 +19,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
         %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: "light_range: 2"},
         %Tile{id: 108, character: ".", row: 1, col: 1, z_index: 0},
         %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
-        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0},
+        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0, state: "blocking: true, blocking_light: false"},
         %Tile{id: 104, character: "O", row: 1, col: 10, z_index: 0},
         %Tile{id: 105, character: "O", row: 1, col: 4, z_index: 0}
       ]
@@ -171,6 +171,19 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
               topic: ^level_admin_channel,
               event: "tile_changes",
               payload: %{tiles: _}}
+
+      state = %{ state | state_values: Map.put(state.state_values, :visibility, "dark"),
+        rerender_coords: %{%{col: 10, row: 1} => true, %{col: 10, row: 2} => true}}
+      assert state == Render.rerender_tiles_for_admin(state)
+
+      refute_receive %Phoenix.Socket.Broadcast{
+        topic: ^level_channel,
+        event: "tile_changes",
+        payload: %{tiles: _}}
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^level_admin_channel,
+        event: "tile_changes",
+        payload: %{tiles: _}}
 
       # When the changes exceed the threshold - dont actually use a threshold this low. The
       # threshold is meant for when it would be faster to rerender the whole thing vs send out updated tiles

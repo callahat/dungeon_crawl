@@ -129,7 +129,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
     if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
       range = if player_tile.parsed_state[:buried] == true, do: 0, else: state.state_values[:fog_range] || 6 # get this from the player?
-      current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
+      current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "visible", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
 
       _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords)
@@ -148,7 +148,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     range = floor(:math.sqrt(rows * cols))
 
     if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
-      coords_in_los = Shape.circle(%{state: state, origin: player_tile}, range, true, "once", 0.33)
+      coords_in_los = Shape.circle(%{state: state, origin: player_tile}, range, true, "visible", 0.33)
       possibly_visible = coords_in_los -- (Map.keys(illuminated_tiles) -- coords_in_los)
 
       current_visible_coords = \
@@ -215,7 +215,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     range = light_tile.parsed_state[:light_range] || 6
     illumination_map = Map.put(illumination_map, {light_tile.row, light_tile.col}, true)
 
-    Shape.circle(%{state: state, origin: light_tile}, range, true, "once", 0.33)
+    Shape.circle(%{state: state, origin: light_tile}, range, true, "visible", 0.33)
     |> Enum.reduce(illumination_map, fn {row, col} = coords, acc->
          cond do
            acc[coords] != true ->
@@ -224,7 +224,8 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
                is_nil(tile) ->
                  acc
                tile.parsed_state[:blocking] != true ||
-                    tile.parsed_state[:low] == true ->
+                    tile.parsed_state[:low] == true ||
+                    tile.parsed_state[:blocking_light] == false ->
                  Map.put(acc, coords, true)
                true ->
                  facing = Direction.orthogonal_direction(%{row: row, col: col}, %{row: light_tile.row, col: light_tile.col})
@@ -241,7 +242,10 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     facings
     |> Enum.reject(fn facing ->
                      tile = Levels.get_tile(state, lit_tile, facing)
-                     is_nil(tile) || tile.parsed_state[:blocking] == true && tile.parsed_state[:low] != true
+                     is_nil(tile) ||
+                       tile.parsed_state[:blocking] == true &&
+                       tile.parsed_state[:low] != true &&
+                       tile.parsed_state[:blocking_light] != false
                    end)
   end
 end
