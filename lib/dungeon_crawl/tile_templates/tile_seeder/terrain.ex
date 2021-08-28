@@ -99,7 +99,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
       %{character: "░",
         name: "Lava",
         description: "Its molten rock",
-        state: "blocking: true, low: true, soft: true",
+        state: "blocking: true, low: true, soft: true, light_source: true, light_range: 2",
         color: "black",
         background_color: "red",
         public: true,

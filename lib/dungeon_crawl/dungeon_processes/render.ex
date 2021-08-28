@@ -74,7 +74,11 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   only will broadcast to the dungeon_admin channel.
   """
   def rerender_tiles_for_admin(%Levels{rerender_coords: coords} = state ) when coords == %{}, do: state
-  def rerender_tiles_for_admin(%Levels{state_values: %{visibility: "fog"}} = state) do
+  def rerender_tiles_for_admin(%Levels{state_values: %{visibility: "dark"}} = state), do: _rerender_for_admin(state)
+  def rerender_tiles_for_admin(%Levels{state_values: %{visibility: "fog"}} = state), do: _rerender_for_admin(state)
+  def rerender_tiles_for_admin(%Levels{} = state), do: state
+
+  defp _rerender_for_admin(state) do
     if length(Map.keys(state.rerender_coords)) > _full_rerender_threshold() do
       full_rerender(state, ["level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"])
     else
@@ -83,7 +87,6 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
     state
   end
-  def rerender_tiles_for_admin(%Levels{} = state), do: state
 
   @doc """
   Broadcasts a full rerender of all the level tiles to the given channels.
@@ -197,9 +200,11 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   end
 
   @doc """
-  Calculates all illuminated tiles from all light sources. This will probably not be a public method
+  Calculates all illuminated tiles from all light sources.
   """
   def illuminated_tile_map(%Levels{light_sources: light_sources} = state) do
+    # This might be something to split into multiple processes if this calculation
+    # is a noticable bottleneck from a players perspective
     light_sources
     |> Map.keys
     |> Enum.reduce(%{}, fn tile_id, acc -> _illuminated_tiles(state, tile_id, acc) end)
@@ -208,6 +213,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
     range = light_tile.parsed_state[:light_range] || 6
+    illumination_map = Map.put(illumination_map, {light_tile.row, light_tile.col}, true)
 
     Shape.circle(%{state: state, origin: light_tile}, range, true, "once", 0.33)
     |> Enum.reduce(illumination_map, fn {row, col} = coords, acc->

@@ -130,7 +130,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
       %{character: "ɸ",
         name: "Scroll",
         description: "Add your own text for this item",
-        state: "pushable: true, wait_cycles: 2",
+        state: "pushable: true, wait_cycles: 2, light_source: true, light_range: 1",
         public: true,
         active: true,
         group_name: "items",
