@@ -13280,6 +13280,10 @@ input#tile_template_character {
   font-size: 75%;
 }
 
+.torch-bar {
+  color: yellow;
+  background-color: tan
+}
 /*
  * Codemirror
  */

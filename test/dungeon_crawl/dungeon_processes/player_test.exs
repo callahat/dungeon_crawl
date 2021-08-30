@@ -16,7 +16,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     player_location = insert_player_location(%{level_instance_id: instance.id,
                                                row: 23,
                                                col: 24,
-                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0",
+                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3",
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 
@@ -34,8 +34,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/2", %{state: state, player_tile: player_tile} do
-    assert %{ammo: 4, cash: 420, gems: 1, health: 100, keys: keys} = Player.current_stats(state, player_tile)
-    assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" = keys
+    assert %{ammo: 4, cash: 420, gems: 1, health: 100, keys: keys, torches: 1, torch_light: torch_light} =
+             Player.current_stats(state, player_tile)
+    assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" == keys
+    assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light
   end
 
   test "current_stats/2 when the tile does not exist (this path should not happen)", %{player_tile: player_tile} do
@@ -63,10 +65,12 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert String.contains? grave.script, """
                                           You defile the grave
                                           Found 1 red_key
+                                          Found 1 torches
                                           Found 1 gems
                                           Found 420 cash
                                           Found 4 ammo
                                           #GIVE red_key, 1, ?sender
+                                          #GIVE torches, 1, ?sender
                                           #GIVE gems, 1, ?sender
                                           #GIVE cash, 420, ?sender
                                           #GIVE ammo, 4, ?sender

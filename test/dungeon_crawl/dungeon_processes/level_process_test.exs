@@ -110,11 +110,6 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert Enum.sort([{1,1}, {2,3}, {4,5}]) == Enum.sort(spawn_coordinates)
   end
 
-  test "start_scheduler", %{instance_process: instance_process} do
-    # Starts the scheduler that will run every xxx ms and run the next parts of all the programs
-    LevelProcess.start_scheduler(instance_process)
-  end
-
   test "inspect_state returns a listing of running programs", %{instance_process: instance_process, tile_id: tile_id} do
     assert %Levels{ program_contexts: programs,
                     map_by_ids: _,
@@ -492,7 +487,6 @@ defmodule DungeonCrawl.LevelProcessTest do
                                %{col: 4, rendering: "<div>.</div>", row: 1}]}}
   end
 
-
   test "perform_actions when reset when no players", %{instance_process: instance_process, level_instance: level_instance} do
     LevelProcess.run_with(instance_process, fn(state) ->
       {:ok, %{ state | count_to_idle: 0, state_values: Map.merge(state.state_values, %{reset_when_no_players: true}) }}
@@ -554,6 +548,62 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     assert %{other_player_tile.id => 1} == inactive_players
     assert player_locations == %{other_player_tile.id => other_player_location} # petrified and removed; this function tested elsewhere
+  end
+
+  test "player_torch_timeout", %{instance_process: instance_process, level_instance: level_instance} do
+    player_tile = DungeonInstances.create_tile!(
+      %{character: "@",
+        row: 1,
+        col: 3,
+        z_index: 1,
+        state: "health: 10, torch_light: 6, light_range: 6, light_source: true",
+        name: "player",
+        level_instance_id: level_instance.id})
+    other_player_tile = DungeonInstances.create_tile!(
+      %{row: 1,
+        col: 4,
+        z_index: 1,
+        state: "health: 10",
+        level_instance_id: level_instance.id})
+    dimmed_player_tile = DungeonInstances.create_tile!(
+      %{row: 1,
+        col: 5,
+        z_index: 1,
+        state: "health: 10, torch_light: 2, light_range: 6, light_source: true",
+        level_instance_id: level_instance.id})
+    out_player_tile = DungeonInstances.create_tile!(
+      %{row: 1,
+        col: 6,
+        z_index: 1,
+        state: "health: 10, torch_light: 1, light_range: 1, light_source: true",
+        level_instance_id: level_instance.id})
+
+    player_location = %Location{id: player_tile.id, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
+    other_player_location = %Location{id: other_player_tile.id, tile_instance_id: other_player_tile.id, user_id_hash: "otherhash"}
+    dimmed_player_location = %Location{id: dimmed_player_tile.id, tile_instance_id: dimmed_player_tile.id, user_id_hash: "outhash"}
+    out_player_location = %Location{id: out_player_tile.id, tile_instance_id: out_player_tile.id, user_id_hash: "dimhash"}
+
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Levels.create_player_tile(state, player_tile, player_location)
+      {_, state} = Levels.create_player_tile(state, other_player_tile, other_player_location)
+      {_, state} = Levels.create_player_tile(state, dimmed_player_tile, dimmed_player_location)
+      Levels.create_player_tile(state, out_player_tile, out_player_location)
+    end)
+
+    # toches go out, dim, burn down, etc
+    :ok = Process.send(instance_process, :player_torch_timeout, [])
+
+    LevelProcess.run_with(instance_process, fn(state) ->
+      assert %{light_source: true, light_range: 6, torch_light: 5} =
+               Levels.get_tile_by_id(state, player_tile).parsed_state
+      refute Levels.get_tile_by_id(state, other_player_location).parsed_state[:torch_light]
+      assert %{light_source: true, light_range: 2, torch_light: 1} =
+               Levels.get_tile_by_id(state, dimmed_player_location).parsed_state
+      assert %{light_source: false, light_range: nil, torch_light: 0} =
+               Levels.get_tile_by_id(state, out_player_tile).parsed_state
+
+      {:ok, state}
+    end)
   end
 
   test "write_db", %{instance_process: instance_process, level_instance: level_instance} do

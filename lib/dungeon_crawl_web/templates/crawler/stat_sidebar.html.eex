@@ -19,6 +19,9 @@
         <div class="col-6 text-right mr-2">Ammo:</div><div id="ammo" class="col-6 text-left"><%= @player_stats[:ammo] %></div>
       </div>
       <div class="d-flex flex-row no-gutters">
+        <div class="col-6 text-right mr-2">Torches:</div><div class="col-6 text-left"><span id="torches"><%= @player_stats[:torches] %></span><span id="torch_light" class="col-6 text-left"><%= {:safe, @player_stats[:torch_light]} %></span></div>
+      </div>
+      <div class="d-flex flex-row no-gutters">
         <div class="col-6 text-right mr-2">Keys:</div><div id="keys" class="col-6 text-left"><%= {:safe, @player_stats[:keys]} %></div>
       </div>
       <div>

@@ -149,6 +149,29 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     })
   end
 
+  def torch do
+    TileTemplates.update_or_create_tile_template!(
+      "torch",
+      %{character: "¥",
+        name: "Torch",
+        description: "A torch",
+        state: "",
+        color: "brown",
+        public: true,
+        active: true,
+        group_name: "items",
+        script: """
+        :main
+        #end
+        :touch
+        #if ! ?sender@player, main
+        A torch to light the way
+        #give torches, 1, ?sender
+        #die
+        """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def ammo(), do: unquote(__MODULE__).ammo()
@@ -157,6 +180,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
       def heart(), do: unquote(__MODULE__).heart()
       def medkit(), do: unquote(__MODULE__).medkit()
       def scroll(), do: unquote(__MODULE__).scroll()
+      def torch(), do: unquote(__MODULE__).torch()
     end
   end
 end

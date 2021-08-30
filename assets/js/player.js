@@ -59,6 +59,8 @@ let Player = {
     document.getElementById("cash").innerText = stats.cash
     document.getElementById("ammo").innerText = stats.ammo
     document.getElementById("keys").innerHTML = stats.keys
+    document.getElementById("torches").innerHTML = stats.torches
+    document.getElementById("torch_light").innerHTML = stats.torch_light
     if(parseInt(stats.health) <= 0 && !document.gameover) {
       $('#respawnModal').modal('show')
     }

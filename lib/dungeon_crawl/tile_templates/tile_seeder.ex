@@ -50,6 +50,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     heart()
     medkit()
     scroll()
+    torch()
 
     # misc
     beam_wall_emitter()
