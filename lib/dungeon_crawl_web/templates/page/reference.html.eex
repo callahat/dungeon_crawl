@@ -269,6 +269,41 @@
                 tiles that respond to a touch command, (sets "already_touched" to true to not send the touch events again),
                 moves the player tile to the destination if able, then resets "already_touched" back to false.</td>
           </tr>
+          <tr>
+            <td>ammo</td>
+            <td>How much ammo the player has</td>
+          </tr>
+          <tr>
+            <td>health</td>
+            <td>The players HP; when it reaches zero the player dies and is replaced by a grave.
+                Depending on the dungeon they may have the opporunity to respawn, although their stuff
+                will be buried in the grave.</td>
+          </tr>
+          <tr>
+            <td>gems</td>
+            <td>Number of gems a player has. They can be used in trading.</td>
+          </tr>
+          <tr>
+            <td>cash</td>
+            <td>Similar to gems, can be used for trading.</td>
+          </tr>
+          <tr>
+            <td>torches</td>
+            <td>How many torches the player has. These can be used to generate light that
+                radiates from the players tile on dark levels. A torch will usually provide
+                light for about 30 seconds.</td>
+          </tr>
+          <tr>
+            <td>torch_light</td>
+            <td>How long the torch will last, represented by a colored bar 6 units long.
+                On the last unit, the light range is greatly diminished.</td>
+          </tr>
+          <tr>
+            <td>keys</td>
+            <td>These can be used to open colored doors that match the color of the key. Gone
+                after one use, but sometimes the player may carry more than one of the same color
+                key.</td>
+          </tr>
         </table>
 
         <h5 id="level_state_values">Level State Attributes and Values</h5>
