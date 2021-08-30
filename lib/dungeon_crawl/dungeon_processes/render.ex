@@ -245,7 +245,8 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
                      is_nil(tile) ||
                        tile.parsed_state[:blocking] == true &&
                        tile.parsed_state[:low] != true &&
-                       tile.parsed_state[:blocking_light] != false
+                       tile.parsed_state[:blocking_light] != false &&
+                       tile.parsed_state[:light_source] != true
                    end)
   end
 end

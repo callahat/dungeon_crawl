@@ -111,7 +111,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         animate_period: 1,
         animate_characters: "|, \\, -, /",
         animate_colors: "red, green, darkorange, blue, purple",
-        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 1",
+        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 1, blocking_light: false",
         script: """
                 #target_player random
                 :top
