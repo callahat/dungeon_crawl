@@ -59,7 +59,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
       %{character: "♦",
         name: "Gem",
         description: "Gem",
-        state: "destroyable: true, blocking: true, soft: true, pushable: true",
+        state: "destroyable: true, blocking: true, soft: true, pushable: true, blocking_light: false",
         color: "blue",
         public: true,
         active: true,
