@@ -127,7 +127,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
       %{character: "@",
         name: "Player",
         description: "Its a player.",
-        state: "blocking: true, soft: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6, bullet_damage: 10, score: 0, steps: 0, player: true"}
+        state: "blocking: true, soft: true, pushable: true, health: 100, gems: 0, cash: 0, ammo: 6, bullet_damage: 10, score: 0, steps: 0, player: true, torches: 0"}
     )
   end
 

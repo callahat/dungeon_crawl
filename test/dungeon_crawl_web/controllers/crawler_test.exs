@@ -70,9 +70,10 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
     assert %Player.Location{} = location = Repo.preload(Crawler.leave_and_broadcast(location), :tile)
 
+    expected_row = location.tile.row
+    expected_col = location.tile.col
     rendering = "<div style='color: gray;background-color: linen'>Д</div>"
-    assert_broadcast "full_render", payload
-    assert String.contains?(payload.level_render, rendering)
+    assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^rendering}]}
 
     # It unregisters the player location
     {:ok, instance} = Registrar.instance_process(di.id, level_instance.id)

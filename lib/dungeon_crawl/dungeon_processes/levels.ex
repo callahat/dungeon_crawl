@@ -30,7 +30,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             inactive_players: %{},
             players_visible_coords: %{},
             full_rerender: false,
-            author: nil
+            author: nil,
+            light_sources: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.Tile
@@ -174,7 +175,6 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
-
   @doc """
   Creates the given tile for the player location in the parent instance state if it does not already exist.
   Returns a tuple containing the created (or already existing) tile, and the updated (or same) state.
@@ -221,6 +221,10 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       # Tile already registered
       {by_id[tile.id], state}
     else
+      state = if tile.parsed_state[:light_source] == true,
+                do: %{ state | light_sources: Map.put(state.light_sources, tile.id, true) },
+                else: state
+
       z_index_map = by_coords[{tile.row, tile.col}] || %{}
       if Map.has_key?(z_index_map, tile.z_index) do
         # don't overwrite and add the tile if there's already one registered there
@@ -316,6 +320,16 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   def update_tile_state(%Levels{map_by_ids: by_id} = state, %{id: tile_id}, state_attributes) do
     tile = by_id[tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(tile.parsed_state, state_attributes))
+
+    # handle change to light sources
+    state = cond do
+              state_attributes[:light_source] == true ->
+                %{state | light_sources: Map.put_new(state.light_sources, tile_id, true)}
+              Map.has_key?(state_attributes, :light_source) ->
+                %{state | light_sources: Map.delete(state.light_sources, tile_id)}
+              true ->
+                state
+            end
 
     if state.player_locations[tile_id] &&
        not Enum.any?(Map.keys(state_attributes), fn key -> Enum.member?(@ignorable_state_attrs, key) end) do
@@ -423,7 +437,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
                       players_visible_coords: players_visible_coords,
                       rerender_coords: rerender_coords,
                       new_ids: Map.delete(state.new_ids, tile_id),
-                      inactive_players: Map.delete(state.inactive_players, tile_id) }}
+                      inactive_players: Map.delete(state.inactive_players, tile_id),
+                      light_sources: Map.delete(state.light_sources, tile_id)}}
     else
       {nil, state}
     end

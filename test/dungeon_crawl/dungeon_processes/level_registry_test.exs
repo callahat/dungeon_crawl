@@ -68,9 +68,9 @@ defmodule DungeonCrawl.LevelRegistryTest do
                                                                          3 => [:text, [["*PimPom*"]]]},
                                                          labels: %{"touch" => [[2, true]]},
                                                          locked: false,
-                                                         pc: 1,
+                                                         pc: 0,
                                                          responses: [],
-                                                         status: :alive,
+                                                         status: :idle,
                                                          wait_cycles: 0
                                                 },
                                       event_sender: nil
@@ -88,7 +88,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
   test "create/3..9", %{instance_registry: instance_registry} do
     author = %{is_admin: false, id: 12345}
-    tile = %{id: 999, level_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: "", script: ""}
+    tile = %Tile{id: 999, level_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: "", script: ""}
 
     tiles = [tile]
 

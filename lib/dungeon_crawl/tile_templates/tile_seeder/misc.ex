@@ -45,7 +45,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
         %{character: char,
           name: "Beam Wall #{ dir }",
           description: "#{ dir } beam wall",
-          state: "blocking: true, facing: #{ facing }, wait_cycles: 5, damage: 5",
+          state: "blocking: true, facing: #{ facing }, wait_cycles: 5, damage: 5, blocking_light: false",
           public: false,
           active: true,
           script: """

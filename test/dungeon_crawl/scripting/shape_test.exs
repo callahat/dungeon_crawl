@@ -37,6 +37,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.line(runner_state, "south", 3, true, false) == [{0, 2}, {1, 2}]
       assert Shape.line(runner_state, "south", 3, true, "soft") == [{0, 2}, {1, 2}]
       assert Shape.line(runner_state, "south", 4, true, "once") == [{0, 2}, {1, 2}, {2, 2}]
+      assert Shape.line(runner_state, "south", 4, true, "visible") == [{0, 2}, {1, 2}, {2, 2}]
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
@@ -47,7 +48,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       runner_state = %Runner{object_id: 2, state: state}
 
       assert Shape.line(runner_state, "south", 4, true) == [{0, 2}, {1, 2}, {2, 2}]
-      assert Shape.line(runner_state, "south", 4, true, false) == [{0, 2}, {1, 2}]
+      assert Shape.line(runner_state, "south", 4, true, "soft") == [{0, 2}, {1, 2}, {2, 2}]
     end
 
     test "bypass_blocking value can be 'once' and does not count a low blocking tile against that once", %{state: state} do
@@ -58,6 +59,19 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       runner_state = %Runner{object_id: 2, state: state}
 
       assert Shape.line(runner_state, "south", 4, true, "once") == [{0, 2}, {1, 2}, {2, 2}, {3, 2}]
+    end
+
+    test "bypass_blocking value can be 'visible' which only bypasses blocking that do not block vision and the first blocking", %{state: state} do
+      thing = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "-", state: "blocking: true, blocking_light: false"}
+      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
+      past_wall = %Tile{id: 803, row: 4, col: 2, z_index: 1, character: ".", state: ""}
+      {_, state} = Levels.create_tile(state, thing)
+      {_, state} = Levels.create_tile(state, wall)
+      {_, state} = Levels.create_tile(state, past_wall)
+      runner_state = %Runner{object_id: 2, state: state}
+
+      assert Shape.line(runner_state, "south", 4, true, true) == [{0, 2}, {1, 2}, {2, 2}, {3, 2}, {4, 2}]
+      assert Shape.line(runner_state, "south", 4, true, "visible") == [{0, 2}, {1, 2}, {2, 2}, {3, 2}]
     end
   end
 

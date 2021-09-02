@@ -5,10 +5,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
   alias DungeonCrawl.TileTemplates
 
-  @stats [:health, :gems, :cash, :ammo, :score, :lives]
+  @stats [:health, :gems, :cash, :ammo, :score, :lives, :torches]
 
   @doc """
-  Returns the current stats (health, gems, cash, and ammo) for the player.
+  Returns the current stats (health, gems, cash, ammo, torches, torch_light) for the player.
   When the instance state object is already available, that along with the player
   tile should be used to get the player stats.
   When only the player location is available, or an instance state is not already available
@@ -45,10 +45,12 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                 "<pre class='tile_template_preview'><span style='color: #{color};'>♀</span>#{num}</pre>"
               end)
            |> Enum.join("")
+    torch_light = _torch_light(tile)
 
-    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0, lives: -1}
+    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0, lives: -1, torches: 0}
     |> Map.merge(Map.take(tile.parsed_state, @stats))
     |> Map.put(:keys, keys)
+    |> Map.put(:torch_light, torch_light)
   end
 
   defp _door_keys(%{parsed_state: parsed_state} = _tile), do: _door_keys(parsed_state)
@@ -56,6 +58,17 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     parsed_state
     |> Map.to_list
     |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
+  end
+
+  defp _torch_light(%{parsed_state: parsed_state} = _tile), do: _torch_light(parsed_state)
+  defp _torch_light(parsed_state) do
+    if is_nil(parsed_state[:torch_light]) || parsed_state[:torch_light] == 0 do
+      ""
+    else
+      meter_length = min(parsed_state[:torch_light], 6)
+      chars = String.duplicate("█", meter_length) <> String.duplicate("░", 6 - meter_length)
+      "<pre class='tile_template_preview'><span class='torch-bar'>#{chars}</span></pre>"
+    end
   end
 
   @doc """
@@ -78,7 +91,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
              end
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
-                |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, buried: true, deaths: deaths})
+                |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, torches: 0, torch_light: 0, buried: true, deaths: deaths})
     {player_tile, state} = Levels.update_tile_state(state, player_tile, new_state)
 
     script_fn = fn items -> """
@@ -134,7 +147,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _spawn_loot_tile(%Levels{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
-    items_stolen = Map.take(original_state, [:gems, :cash, :ammo])
+    items_stolen = Map.take(original_state, [:gems, :cash, :ammo, :torches])
                    |> Map.to_list
                    |> Enum.concat(_door_keys(original_state))
                    |> Enum.reject(fn {_, count} -> count <= 0 end)

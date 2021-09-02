@@ -21,15 +21,6 @@ defmodule DungeonCrawl.Action.Travel do
   the spawn tiles (if any exist on the target level), otherwise the location will be choosen at random
   from a floor space.
   """
-  # TODO: this should probably not be called in a blocking manner; could run into a lock where A is moving to Map B, and B is moving to Map A
-  # maybe wrap passage and the Levels.run_with from the caller
-  # Probably not practical to do when running from the context of the script Runner. Maybe have a way to defer transport when something is blocked.
-  # 1. can the change be sent as a message to be executed later when the other instance is not blcoked? Is this actually goign to be a problem?
-  # try do
-  #   passage
-  # catch
-  #   :exit, _value -> sleep very short random time, then try again
-  # end
   def passage(%Location{} = player_location, %{match_key: _} = passage, level_number, %Levels{} = state) do
     target_level = DungeonInstances.get_level(state.dungeon_instance_id, level_number)
 
@@ -39,10 +30,10 @@ defmodule DungeonCrawl.Action.Travel do
   def passage(%Location{} = player_location, %{adjacent_level_id: adjacent_level_id, edge: _} = passage, %Levels{} = state) do
     target_level = DungeonInstances.get_level(adjacent_level_id)
 
-    _passage(player_location, passage, target_level, state)
+    _passage(player_location, passage, target_level, state, true)
   end
 
-  defp _passage(player_location, passage, target_level, state) do
+  defp _passage(player_location, passage, target_level, state, adjacent_level \\ false) do
     player_tile = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
     cond do
       is_nil(target_level)->
@@ -61,7 +52,7 @@ defmodule DungeonCrawl.Action.Travel do
 
             level_table = DungeonCrawlWeb.SharedView.level_as_table(other_instance_state, target_level.height, target_level.width)
             player_coord_id = "#{updated_tile.row}_#{updated_tile.col}"
-            fade_overlay_table = unless Enum.member?(["fog"], other_instance_state.state_values[:visibility]),
+            fade_overlay_table = unless _no_overlay?(other_instance_state.state_values, adjacent_level),
                                    do: DungeonCrawlWeb.SharedView.fade_overlay_table(target_level.height, target_level.width, player_coord_id)
             DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                                "change_level",
@@ -103,5 +94,11 @@ defmodule DungeonCrawl.Action.Travel do
       Dungeons.get_level(dungeon.id, state.number)
       |> Dungeons.delete_level()
     end
+  end
+
+  defp _no_overlay?(instance_state_values, adjacent_level) do
+    Enum.member?(["fog", "dark"], instance_state_values[:visibility]) or
+      instance_state_values[:fade_overlay] == "off" or
+      (Enum.member?(["passages", nil], instance_state_values[:fade_overlay]) and adjacent_level)
   end
 end

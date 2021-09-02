@@ -12,8 +12,10 @@ defmodule DungeonCrawl.StateValue.StandardVariablesTest do
 
   test "level" do
     assert [
+             "fade_overlay",
              "fog_range",
              "reset_player_when_damaged",
+             "reset_when_no_players",
              "pacifism",
              "visibility",
            ] == StandardVariables.level
@@ -22,10 +24,13 @@ defmodule DungeonCrawl.StateValue.StandardVariablesTest do
   test "tile" do
     assert [
              "blocking",
+             "blocking_light",
              "damage",
              "destroyable",
              "flying",
              "health",
+             "light_range",
+             "light_source",
              "low",
              "not_pushing",
              "not_squishing",

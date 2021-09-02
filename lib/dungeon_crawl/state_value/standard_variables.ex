@@ -4,17 +4,22 @@ defmodule DungeonCrawl.StateValue.StandardVariables do
              "starting_lives",
            ]
   @level   [
+             "fade_overlay",
              "fog_range",
              "reset_player_when_damaged",
+             "reset_when_no_players",
              "pacifism",
              "visibility",
            ]
   @tile    [
              "blocking",
+             "blocking_light",
              "damage",
              "destroyable",
              "flying",
              "health",
+             "light_range",
+             "light_source",
              "low",
              "not_pushing",
              "not_squishing",
