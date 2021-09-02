@@ -206,6 +206,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     if adjacent["west"], do: LevelProcess.set_adjacent_level_id(instance_process, adjacent["west"].id, "west")
 
     send(instance_process, :perform_actions)
+    send(instance_process, :player_torch_timeout)
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, instance_id)
     instance_ids = Map.put(instance_ids, instance_id, instance_process)

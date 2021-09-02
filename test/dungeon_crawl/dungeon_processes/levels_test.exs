@@ -200,17 +200,18 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "create_tile/2 creates a tile" do
-    new_tile = %{id: 1, row: 4, col: 4, z_index: 0, character: "M", state: "", script: ""}
+    new_tile = %{id: 1, row: 4, col: 4, z_index: 0, character: "M", state: "light_source: true", script: ""}
 
     {new_tile, state} = Levels.create_tile(%Levels{}, new_tile)
 
     assert %{id: 1, character: "M"} = new_tile
     assert %Levels{
       program_contexts: %{},
-      map_by_ids: %{1 =>  Map.put(new_tile, :parsed_state, %{})},
+      map_by_ids: %{1 =>  Map.put(new_tile, :parsed_state, %{light_source: true})},
       map_by_coords: %{ {4, 4} => %{0 => 1} },
       new_pids: [],
-      rerender_coords: %{%{col: 4, row: 4} => true}
+      rerender_coords: %{%{col: 4, row: 4} => true},
+      light_sources: %{new_tile.id => true}
     } == state
 
     # assigns a temporary id when it does not have one, which indicates this tile has not been persisted to the database yet
@@ -228,10 +229,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert capture_log(fn ->
              assert {_tile, updated_state} = Levels.create_tile(state, tile_bad_script)
              assert %Levels{ program_contexts: %{},
-                                map_by_ids: %{1 => Map.put(new_tile, :parsed_state, %{}),
-                                              123 => Map.put(tile_bad_script, :parsed_state, %{})},
-                                map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}},
-                                rerender_coords: %{%{col: 4, row: 1} => true, %{col: 4, row: 4} => true} } == updated_state
+                             map_by_ids: %{1 => Map.put(new_tile, :parsed_state, %{light_source: true}),
+                                           123 => Map.put(tile_bad_script, :parsed_state, %{})},
+                             map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}},
+                             rerender_coords: %{%{col: 4, row: 1} => true, %{col: 4, row: 4} => true},
+                             light_sources: %{new_tile.id => true} } == updated_state
            end) =~ ~r/Possible corrupt script for tile instance:/
 
     # If there's a program that starts, adds the tile_id to new_pids, so Levels._cycle_program
@@ -244,8 +246,10 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
       map_by_ids: %{123 => ^new_tile},
       map_by_coords: %{ {1, 4} => %{0 => 123} },
       new_pids: [ 123 ],
-      rerender_coords: %{%{col: 4, row: 1} => true}
+      rerender_coords: %{%{col: 4, row: 1} => true},
+      light_sources: light_sources
     } = state
+    assert light_sources == %{}
   end
 
   test "set_tile_id/3" do
@@ -309,6 +313,19 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert tile.parsed_state[:hamburders] == 4
     assert tile.parsed_state[:coffee] == 2
     assert tile.state == "coffee: 2, hamburders: 4"
+
+    # light sources
+    assert {tile, updated_state} = Levels.update_tile_state(state, tile, %{light_source: true})
+    assert tile.parsed_state[:light_source] == true
+    assert updated_state.light_sources[tile.id] == true
+
+    assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{other: false})
+    assert tile.parsed_state[:light_source] == true
+    assert updated_state.light_sources[tile.id] == true
+
+    assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{light_source: false})
+    assert tile.parsed_state[:light_source] == false
+    refute Map.has_key?(updated_state.light_sources, tile.id)
   end
 
   test "update_tile/3 updates the tile", %{state: state} do
@@ -448,7 +465,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   test "delete_tile/2 deletes the tile", %{state: state} do
     tile_id = 999
     tile = state.map_by_ids[tile_id]
-    state = %{ state | passage_exits: [{tile_id, "tunnel_a"}] }
+    state = %{ state | passage_exits: [{tile_id, "tunnel_a"}], light_sources: %{tile_id => true} }
 
     %Levels{ program_contexts: programs,
              map_by_ids: by_id,
@@ -465,11 +482,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
              map_by_ids: by_id,
              map_by_coords: by_coord,
              dirty_ids: %{^tile_id => :deleted},
-             passage_exits: passage_exits } = state
+             passage_exits: passage_exits,
+             light_sources: light_sources} = state
     refute programs[tile_id]
     refute by_id[tile_id]
     assert passage_exits == []
     assert %{ {1, 2} => %{} } = by_coord
+    assert light_sources == %{}
   end
 
   test "direction_of_tile/3" do

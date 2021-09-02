@@ -37,6 +37,13 @@
             <span>If you have ammo, press <pre>shift</pre> and a direction to fire a bullet in that direction.</span>
           </div>
         </div>
+        <hr/>
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Light Torch</strong>
+            <span>If you have a torch, press <pre>T</pre> to light your way in the dark for a time.</span>
+          </div>
+        </div>
       </div>
 
       <div class="modal-footer">

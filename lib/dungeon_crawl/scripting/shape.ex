@@ -6,11 +6,16 @@ defmodule DungeonCrawl.Scripting.Shape do
 
   `include_origin` may be true or false by default. This will include origin in the shape's
   coordinates that are returned.
-  `bypass_blocking` will be "soft" by default. This parameter can be true, false, or "soft".
-  When false, any tile that is "blocking" will end the ray from the origin, instead of allowing
-  the ray reach the full length of the range. When "soft", it will behave similar to false
-  except when that tile also has "soft: true", in which case the ray from origin may include
-  that soft blocking tile and continue towards full distance of the range.
+  `bypass_blocking` will be "soft" by default. This parameter can one of the following values:
+  false - any tile that is "blocking" will end the ray from the origin, instead of allowing
+          the ray reach the full length of the range
+  true - blocking tiles will not inhibit the ray
+  "soft" - similar to false, however a blocking tile that also has "soft: true" will not
+           be treated as a blocking tile
+  "once" - the ray will continue and include the first tile that is blocking
+  "visible" - similar to "soft", however it will treat "blocking_light: false" tiles as
+              non blocking AND will include the first blocking tile encountered by the ray that
+              does not have "blocking_light: false" set
   """
 
   alias DungeonCrawl.DungeonProcesses.Levels
@@ -57,9 +62,10 @@ defmodule DungeonCrawl.Scripting.Shape do
         coords
       !next_tile.parsed_state[:blocking] ||
           (next_tile.parsed_state[:soft] && bypass_blocking == "soft") ||
-          (next_tile.parsed_state[:low] && bypass_blocking == "once") ->
+          (next_tile.parsed_state[:low] && (bypass_blocking == "once" || bypass_blocking == "visible")) ||
+          (next_tile.parsed_state[:blocking_light] == false && bypass_blocking == "visible") ->
         _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [coord | coords], est)
-      bypass_blocking == "once" ->
+      bypass_blocking == "once" || bypass_blocking == "visible"->
         [coord | coords]
       true ->
         coords

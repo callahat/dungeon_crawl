@@ -49,7 +49,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     level_instance = Enum.sort(Repo.preload(dungeon_instance, :levels).levels, fn(a, b) -> a.number < b.number end)
                      |> Enum.at(0)
 
-    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true"})
+    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true, torches: #{config[:torches] || 0}"})
                       |> Repo.preload(:tile)
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
@@ -116,6 +116,46 @@ defmodule DungeonCrawl.LevelChannelTest do
   test "broadcasts are pushed to the client", %{socket: socket} do
     broadcast_from! socket, "broadcast", %{"some" => "data"}
     assert_push "broadcast", %{"some" => "data"}
+  end
+
+  @tag torches: 1
+  test "light_torch", %{instance: instance, socket: socket, player_location: player_location} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    push socket, "light_torch", %{}
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "message",
+      payload: %{message: "Don't need a torch here"}}
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      assert player_tile.parsed_state[:torches] == 1
+      assert player_tile.parsed_state[:torch_light] == nil
+      {:ok, %{ instance_state | state_values: Map.put(instance_state.state_values, :visibility, "dark")}}
+    end)
+
+    # Only lights a torch in the dark provided player has one
+    push socket, "light_torch", %{}
+
+    assert_receive %Phoenix.Socket.Broadcast{}
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      assert player_tile.parsed_state[:torches] == 0
+      assert player_tile.parsed_state[:torch_light] == 6
+      {:ok, instance_state}
+    end)
+
+    # no more torches to light
+    push socket, "light_torch", %{}
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "message",
+      payload: %{message: "Don't have any torches"}}
   end
 
   @tag up_tile: "."

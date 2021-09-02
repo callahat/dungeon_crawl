@@ -69,6 +69,31 @@ defmodule DungeonCrawlWeb.LevelChannel do
     {:noreply, socket}
   end
 
+  def handle_in("light_torch", _, socket) do
+    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
+
+      cond do
+        is_nil(player_location) || is_nil(player_tile) ->
+          {:ok, instance_state}
+        instance_state.state_values[:visibility] != "dark" ->
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "Don't need a torch here"}
+          {:ok, instance_state}
+        player_tile.parsed_state[:torches] > 0 ->
+          new_torch_count = player_tile.parsed_state[:torches] - 1
+          {_player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{torches: new_torch_count, torch_light: 6, light_source: true, light_range: 6})
+          {:ok, instance_state}
+        true ->
+          DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "Don't have any torches"}
+          {:ok, instance_state}
+      end
+    end)
+
+    {:noreply, socket}
+  end
+
   # Channels can be used in a request/response fashion
   # by sending replies to requests from the client
   def handle_in("move", %{"direction" => direction}, socket) do

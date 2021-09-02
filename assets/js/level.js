@@ -133,6 +133,9 @@ let Level = {
         case(72): // h
           $('#helpDetailModal').modal('show')
           break
+        case(84): // t
+          this.lightTorch()
+          break
         case(79): // o
           this.renderMessage("Open Direction?")
           this.actionMethod = this.open
@@ -191,6 +194,10 @@ let Level = {
   },
   close(direction, shift = false){
     this._useDoor(direction, "CLOSE")
+  },
+  lightTorch(){
+    this.levelChannel.push("light_torch", {})
+        .receive("error", e => console.log(e))
   },
   renderMessage(msg){
     if(msg == this.lastMessage) { return }

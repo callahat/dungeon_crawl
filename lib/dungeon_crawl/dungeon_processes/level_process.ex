@@ -17,6 +17,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
 
   @timeout 50
   @inactive_player_timeout 60_000
+  @player_torch_timeout 5_000
 
   @doc """
   Starts the instance process.
@@ -85,14 +86,6 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     |> Enum.each( fn(spawn_coordinate) ->
          GenServer.cast(instance, {:create_spawn_coordinate, {spawn_coordinate}})
        end )
-  end
-
-  @doc """
-  Starts the scheduler
-  """
-  def start_scheduler(instance) do
-    Process.send_after(instance, :perform_actions, @timeout)
-    Process.send_after(instance, :check_on_inactive_players, @inactive_player_timeout)
   end
 
   @doc """
@@ -366,6 +359,35 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     _petrify_old_inactive_players(stone, %{ state | inactive_players: inactive_players})
   end
 
+  @impl true
+  def handle_info(:player_torch_timeout, %Levels{player_locations: player_locations} = state) do
+    state = \
+    player_locations
+    |> Map.keys # get player map tile ids
+    |> Enum.reduce(state, fn player_tile_id, state ->
+      player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
+      torch_light = (player_tile && player_tile.parsed_state[:torch_light]) || 0
+
+      cond do
+        torch_light == 2 ->
+          {_, state} = Levels.update_tile_state(state, player_tile, %{torch_light: torch_light - 1, light_range: 2})
+          state
+        torch_light > 1 ->
+          {_, state} = Levels.update_tile_state(state, player_tile, %{torch_light: torch_light - 1})
+          state
+        torch_light == 1 ->
+          {_, state} = Levels.update_tile_state(state, player_tile, %{torch_light: 0, light_source: false, light_range: nil})
+          state
+        true ->
+          state
+      end
+    end)
+
+    Process.send_after(self(), :player_torch_timeout, @player_torch_timeout)
+
+    {:noreply, state}
+  end
+
   # TODO: maybe there really isn't any need to write to the DB periodically. It is expensive and not really ever
   # read back. It might be ok to to when all players leave and the processes are being shut down AND the instance
   # is a permanent one. Currently when everyone is out of the instance, the DB and processes for the map set are
@@ -481,7 +503,6 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     end
     _broadcast_stat_updates(pmt_ids, state)
   end
-
 
   defp _check_for_players(state) do
     if state.player_locations != %{}, do:   state,

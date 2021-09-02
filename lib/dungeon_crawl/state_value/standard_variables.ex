@@ -13,10 +13,13 @@ defmodule DungeonCrawl.StateValue.StandardVariables do
            ]
   @tile    [
              "blocking",
+             "blocking_light",
              "damage",
              "destroyable",
              "flying",
              "health",
+             "light_range",
+             "light_source",
              "low",
              "not_pushing",
              "not_squishing",
