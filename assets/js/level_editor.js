@@ -305,18 +305,15 @@ let LevelEditor = {
 
     if(target.classList.contains("placeholder") || target.classList.contains("edge")) { return }
 
-    document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
-
-    document.getElementById("active_tile_character").innerHTML = tag.innerHTML
-    document.getElementById("active_tile_description").innerText = tag.getAttribute("data-tile-template-description")
-
-    this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileId = tag.getAttribute("data-tile-template-id")
+
+    let description = document.querySelector("#tileListModal [data-tile-template-id='" + this.selectedTileId + "']")?.getAttribute("data-tile-template-description")
+    this.historicTile = !!tag.getAttribute("data-historic-template")
     this.selectedTileHtml = tag.children[0] || target
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
-    this.selectedTileDescription = tag.getAttribute("data-tile-template-description")
+    this.selectedTileDescription = tag.getAttribute("data-tile-template-description") || description || ""
     this.selectedTileSlug = tag.getAttribute("data-slug")
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
@@ -326,6 +323,11 @@ let LevelEditor = {
     this.selectedTileAnimateCharacters = tag.getAttribute("data-characters")
     this.selectedTileAnimateColors = tag.getAttribute("data-colors")
     this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-background-colors")
+
+    document.getElementById("active_tile_name").innerText = this.selectedTileName
+
+    document.getElementById("active_tile_character").innerHTML = tag.innerHTML
+    document.getElementById("active_tile_description").innerText = this.selectedTileDescription
 
     document.getElementById("tile_color").value = this.selectedTileColor
     document.getElementById("tile_background_color").value = this.selectedTileBackgroundColor
