@@ -34,14 +34,14 @@ defmodule DungeonCrawl.TileShortlists do
   end
 
   @doc """
-  Creates a tile_shortlist.
+  Adds a tile to a users shortlist.
 
   ## Examples
 
-      iex> create_tile_shortlist(%{field: value})
+      iex> add_to_shortlist(user, %{field: value})
       {:ok, %TileShortlist{}}
 
-      iex> create_tile_shortlist(%{field: bad_value})
+      iex> add_to_shortlist(user, %{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
   """
@@ -88,6 +88,34 @@ defmodule DungeonCrawl.TileShortlists do
     end
 
     result
+  end
+
+
+  @doc """
+  Removes a tile from the users shortlist.
+
+  ## Examples
+
+      iex> delete_from_shortlist(user, %{id: id})
+      {:ok, %TileShortlist{}}
+
+      iex> delete_from_shortlist(user, %{id: id})
+      {:error, <error message>}
+
+  """
+  def remove_from_shortlist(%{id: user_id}, id) do
+    remove_from_shortlist(user_id, id)
+  end
+  def remove_from_shortlist(user_id, %{id: id}) do
+    remove_from_shortlist(user_id, id)
+  end
+  def remove_from_shortlist(user_id, id) do
+    case Repo.one(from ts in TileShortlist,
+                  where: ts.user_id == ^user_id,
+                  where: ts.id == ^id) do
+      nil -> {:error, "Not found"}
+      record -> Repo.delete(record)
+    end
   end
 
   @doc """

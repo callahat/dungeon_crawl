@@ -27,7 +27,7 @@ defmodule DungeonCrawlWeb.LevelView do
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
     |> Enum.map(fn(tt) ->
-         render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: tt, historic: historic})
+         render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: tt, historic: historic, shortlist_id: tt.id})
        end)
     |> Enum.join("\n")
     |> _make_it_safe()

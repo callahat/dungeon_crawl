@@ -10,7 +10,7 @@
     <%= for tt <- @tile_templates do %>
       <tr>
         <td><button type="button" data-target-id="shortlist_ttid_<%= tt.id %>" class="btn btn-success btn-sm add-tile-to-shortlist" title="Add <%= tt.name %> to shortlist">&plus;</button></td>
-        <td id="shortlist_ttid_<%= tt.id %>"><%= {:safe, render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: tt, historic: false})} %></td>
+        <td id="shortlist_ttid_<%= tt.id %>"><%= {:safe, render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: tt, historic: false, shortlist_id: nil})} %></td>
         <td><%= tt.name %></td>
         <td><%= tt.description %></td>
       </tr>

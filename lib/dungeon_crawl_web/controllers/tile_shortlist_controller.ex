@@ -13,5 +13,14 @@ defmodule DungeonCrawlWeb.TileShortlistController do
         render(conn, "tile_shortlist.json", errors: changeset.errors)
     end
   end
+
+  def delete(conn, %{"tile_shortlist_id" => tile_shortlist_id}) do
+    case TileShortlists.remove_from_shortlist(conn.assigns.current_user, tile_shortlist_id) do
+      {:ok, _} ->
+        text(conn, "")
+      {:error, msg} ->
+        render(conn, "tile_shortlist.json", error: msg)
+    end
+  end
 end
 
