@@ -817,9 +817,9 @@ let LevelEditor = {
       visibleTile = tiles.filter((a)=> (!a.classList.contains("deleted-map-tile")) && a.getAttribute("data-z-index") <= currentZIndex )
                          .sort(function(a,b){
                                  if(a.classList.contains("placeholder") != b.classList.contains("placeholder")){
-                                   return(a.classList.contains("placeholder"))
+                                   return(a.classList.contains("placeholder") ? 1 : -1)
                                  }
-                                 return(a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))
+                                 return(a.getAttribute("data-z-index") < b.getAttribute("data-z-index") ? 1 : -1)
                                })[0]
     }
 
