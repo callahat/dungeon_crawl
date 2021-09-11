@@ -15,7 +15,6 @@ let Level = {
     })
 
     this.handleLevelChange = function(msg) {
-      clearTimeout(this.fadeTimeout);
       this.levelChannel.leave()
       console.log("Left dungeon, joining " + msg.level_id)
 
@@ -24,6 +23,7 @@ let Level = {
       this.tuneInToChannel(socket, msg.level_id)
 
       if(msg.fade_overlay) {
+        clearTimeout(this.fadeTimeout);
         document.getElementById("fade_overlay").innerHTML = msg.fade_overlay
         this.fadeTimeout = setTimeout(() => { this.removeFade(1) }, 100)
       }
