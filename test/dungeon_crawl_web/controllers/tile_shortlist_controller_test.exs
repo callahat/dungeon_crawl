@@ -12,7 +12,7 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
     end
   end
 
-  describe "validate_tile" do
+  describe "create" do
     setup [:create_user]
 
     test "returns empty array of errors when its all good", %{conn: conn} do
@@ -43,6 +43,21 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
                                                         %{"detail" => "Error parsing around: derp", "field" => "state"},
                                                         %{"detail" => "should be at most 1 character(s)", "field" => "character"}]
                                          }
+    end
+  end
+
+  describe "delete" do
+    setup [:create_user]
+
+    test "returns nothing when its all good", %{conn: conn, user: user} do
+      {:ok, shortlist} = DungeonCrawl.TileShortlists.add_to_shortlist(user, %{character: "x"})
+      conn = delete conn, tile_shortlist_path(conn, :delete), tile_shortlist_id: shortlist.id
+      assert "" = text_response(conn, 200)
+    end
+
+    test "returns error message when there are problems", %{conn: conn} do
+      conn = delete conn, tile_shortlist_path(conn, :delete), tile_shortlist_id: 1
+      assert json_response(conn, 200) == %{"error" => "Not found"}
     end
   end
 

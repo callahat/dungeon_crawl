@@ -41,6 +41,7 @@ defmodule DungeonCrawlWeb.Router do
       post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl
 
     post "/tile_shortlists", TileShortlistController, :create
+    delete "/tile_shortlists", TileShortlistController, :delete
 
     resources "/tile_templates", ManageTileTemplateController
       post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version

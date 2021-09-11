@@ -194,6 +194,10 @@ let LevelEditor = {
       this.shortlistActiveTile()
     })
 
+    document.getElementById("unshortlist_active_tile").addEventListener("click", event => {
+      this.remoteActiveTileFromShortlist()
+    })
+
     // Tile listing
     document.getElementById("tile_list_tool").addEventListener("click", function(event){
       $('#tileListModal').modal({show: true})
@@ -305,19 +309,29 @@ let LevelEditor = {
 
     if(target.classList.contains("placeholder") || target.classList.contains("edge")) { return }
 
-    document.getElementById("active_tile_name").innerText = tag.getAttribute("title")
+    this.selectedTileId = tag.getAttribute("data-tile-template-id")
 
-    document.getElementById("active_tile_character").innerHTML = tag.innerHTML
-    document.getElementById("active_tile_description").innerText = tag.getAttribute("data-tile-template-description")
+    let tileTemplate = document.querySelector("#tileListModal [data-tile-template-id='" + this.selectedTileId + "']"),
+        description = tileTemplate?.getAttribute("data-tile-template-description"),
+        slug = tileTemplate?.getAttribute("data-slug")
+
+    // Not handling the case of removing a tile selected from the map, leaving the "shortlist" button which
+    // will bump it to the top of the list should the user click it
+    if(tag.getAttribute("name") == "paintable_tile_template" &&
+        !!document.querySelector("#tile_pallette_entries [data-attr-hash='" + tag.getAttribute("data-attr-hash") + "']")) {
+      this.active_shortlist_id = tag.getAttribute("data-shortlist-id")
+    } else {
+      this.active_shortlist_id = null
+    }
+    this.updateShortlistAddRemoveButton()
 
     this.historicTile = !!tag.getAttribute("data-historic-template")
-    this.selectedTileId = tag.getAttribute("data-tile-template-id")
     this.selectedTileHtml = tag.children[0] || target
     this.selectedTileColor = tag.getAttribute("data-color")
     this.selectedTileBackgroundColor = tag.getAttribute("data-background-color")
     this.selectedTileName = tag.getAttribute("data-name")
-    this.selectedTileDescription = tag.getAttribute("data-tile-template-description")
-    this.selectedTileSlug = tag.getAttribute("data-slug")
+    this.selectedTileDescription = tag.getAttribute("data-tile-template-description") || description || ""
+    this.selectedTileSlug = tag.getAttribute("data-slug") || slug || ""
     this.selectedTileCharacter = tag.getAttribute("data-character")
     this.selectedTileState = tag.getAttribute("data-state")
     this.selectedTileScript = tag.getAttribute("data-script")
@@ -326,6 +340,11 @@ let LevelEditor = {
     this.selectedTileAnimateCharacters = tag.getAttribute("data-characters")
     this.selectedTileAnimateColors = tag.getAttribute("data-colors")
     this.selectedTileAnimateBackgroundColors = tag.getAttribute("data-background-colors")
+
+    document.getElementById("active_tile_name").innerText = this.selectedTileName
+
+    document.getElementById("active_tile_character").innerHTML = tag.innerHTML
+    document.getElementById("active_tile_description").innerText = this.selectedTileDescription
 
     document.getElementById("tile_color").value = this.selectedTileColor
     document.getElementById("tile_background_color").value = this.selectedTileBackgroundColor
@@ -798,9 +817,9 @@ let LevelEditor = {
       visibleTile = tiles.filter((a)=> (!a.classList.contains("deleted-map-tile")) && a.getAttribute("data-z-index") <= currentZIndex )
                          .sort(function(a,b){
                                  if(a.classList.contains("placeholder") != b.classList.contains("placeholder")){
-                                   return(a.classList.contains("placeholder"))
+                                   return(a.classList.contains("placeholder") ? 1 : -1)
                                  }
-                                 return(a.getAttribute("data-z-index") < b.getAttribute("data-z-index"))
+                                 return(a.getAttribute("data-z-index") < b.getAttribute("data-z-index") ? 1 : -1)
                                })[0]
     }
 
@@ -902,6 +921,9 @@ let LevelEditor = {
         if(resp.errors && resp.errors.length > 0){
           alert(resp.errors[0].detail)
         } else {
+          context.active_shortlist_id = resp.tile_shortlist.id
+          context.updateShortlistAddRemoveButton()
+
           document.getElementById("tile_shortlist_entries").insertAdjacentHTML("afterbegin", resp.tile_pre)
           document.querySelector("#tile_shortlist_entries pre:first-of-type")
                   .addEventListener('click', e => { context.updateActiveTile(e.target) });
@@ -918,6 +940,33 @@ let LevelEditor = {
      .fail(function(resp){
         console.log(resp.status)
      })
+  },
+  remoteActiveTileFromShortlist(){
+    document.querySelector("#tile_shortlist_entries [data-shortlist-id='" + this.active_shortlist_id + "']")?.remove()
+    let context = this
+    $.ajax("/tile_shortlists",
+           {data: {tile_shortlist_id: this.active_shortlist_id,
+                          _csrf_token: document.getElementsByName("_csrf_token")[0].value},
+                          type: 'DELETE'})
+        .done(function(resp){
+          if(resp.error){
+            alert(resp.error)
+          }
+          context.active_shortlist_id = null
+          context.updateShortlistAddRemoveButton()
+        })
+        .fail(function(resp){
+          console.log(resp.status)
+        })
+  },
+  updateShortlistAddRemoveButton(){
+    if(!!this.active_shortlist_id) {
+      document.getElementById("shortlist_active_tile").hidden = "hidden"
+      document.getElementById("unshortlist_active_tile").hidden = ""
+    } else {
+      document.getElementById("shortlist_active_tile").hidden = ""
+      document.getElementById("unshortlist_active_tile").hidden = "hidden"
+    }
   },
   validateTileEditorFields(successFunction, context){
     let map_tile_attrs = {
@@ -1207,7 +1256,8 @@ let LevelEditor = {
   lineScoreMap: { 0: "⋅",  1: "╡",  2: "╞",  3: "═",  4: "╥",  5: "╗",
                   6: "╔",  7: "╦",  8: "╨",  9: "╝", 10: "╚", 11: "╩",
                  12: "║", 13: "╣", 14: "╠", 15: "╬"},
-  state_variable_subform: null
+  state_variable_subform: null,
+  active_shortlist_id: null
 }
 
 export default LevelEditor

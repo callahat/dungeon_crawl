@@ -8,7 +8,7 @@ let Level = {
 
     this.tuneInToChannel(socket, levelId)
 
-    setTimeout(() => { this.removeFade(1) }, 1000)
+    this.fadeTimeout = setTimeout(() => { this.removeFade(1) }, 1000)
 
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
@@ -23,8 +23,9 @@ let Level = {
       this.tuneInToChannel(socket, msg.level_id)
 
       if(msg.fade_overlay) {
+        clearTimeout(this.fadeTimeout);
         document.getElementById("fade_overlay").innerHTML = msg.fade_overlay
-        setTimeout(() => { this.removeFade(1) }, 100)
+        this.fadeTimeout = setTimeout(() => { this.removeFade(1) }, 100)
       }
     }
   },
@@ -37,7 +38,7 @@ let Level = {
         td.classList = []
       }
       let new_range = count < 10 ? range : range + 1
-      setTimeout(() => { this.removeFade(count + range, new_range) }, 100)
+      this.fadeTimeout = setTimeout(() => { this.removeFade(count + range, new_range) }, 100)
     } else {
       document.getElementById("fade_overlay").innerHTML = ""
     }
@@ -318,7 +319,8 @@ let Level = {
   dungeonId: null,
   typing: false,
   textLinks: null,
-  textLinkPointer: null
+  textLinkPointer: null,
+  fadeTimeout: null
 }
 
 export default Level

@@ -101,6 +101,16 @@ defmodule DungeonCrawl.TileShortlistsTest do
       assert errors_on(changeset).tile_template_id == ["cannot shortlist an historic tile template"]
     end
 
+    test "remove_from_shortlist/2", config do
+      tile_template = insert_tile_template()
+      assert {:ok, tile_shortlist} = TileShortlists.add_to_shortlist(config.user1, %{tile_template_id: tile_template.id})
+      # Cant delete someone else's shortlist
+      assert {:error, _} = TileShortlists.remove_from_shortlist(%{id: config.user1.id + 1}, tile_shortlist)
+      # Cant delete invalid shortlist
+      assert {:error, _} = TileShortlists.remove_from_shortlist(config.user1, %{id: 0})
+      assert {:ok, _} = TileShortlists.remove_from_shortlist(config.user1, tile_shortlist)
+   end
+
     test "seed_shortlist/1", config do
       assert [tile1, tile2] = TileShortlists.list_tiles(config.user1)
       assert :ok = TileShortlists.seed_shortlist(config.user1)

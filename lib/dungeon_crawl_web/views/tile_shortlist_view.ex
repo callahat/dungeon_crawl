@@ -17,8 +17,9 @@ defmodule DungeonCrawlWeb.TileShortlistView do
                     :animate_background_colors,
                     :animate_characters,
                     :animate_period,
-                    :tile_template_id])
-    tile_pre = render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: details, historic: false})
+                    :tile_template_id,
+                    :id])
+    tile_pre = render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: details, historic: false, shortlist_id: tile_shortlist.id})
 
     %{tile_shortlist: details,
       tile_pre: tile_pre,
@@ -34,6 +35,10 @@ defmodule DungeonCrawlWeb.TileShortlistView do
     end)
 
     %{errors: errors}
+  end
+
+  def render("tile_shortlist.json", %{error: error}) do
+    %{error: error}
   end
 
   defp _render_detail({message, values}) do
