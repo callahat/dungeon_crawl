@@ -55,6 +55,19 @@ defmodule Lighting.Benchmark do
 
     {_, initial_state} = Levels.create_player_tile(initial_state, player_tile, player_location)
 
+    other_player_count = 10
+
+    other_players = Enum.shuffle(floor_tiles)
+                    |> Enum.take(other_player_count)
+
+    initial_state = Enum.reduce(other_players, initial_state, fn other_player_tile, state ->
+        tile_id = 9_000_001 + Enum.find_index(other_players, fn i -> i == other_player_tile end)
+        {other_player_tile, state} = Levels.create_tile(state, %{other_player_tile | z_index: 1, id: tile_id})
+        player_location = %Location{id: tile_id, tile_instance_id: other_player_tile.id}
+        {_, state} = Levels.create_player_tile(state, other_player_tile, player_location)
+        state
+      end)
+
     fog_state = %{ initial_state | state_values: Map.put(initial_state.state_values, :visibility, "fog")}
 
     {_, dark_state_1_light} = %{ initial_state | state_values: Map.put(initial_state.state_values, :visibility, "dark")}

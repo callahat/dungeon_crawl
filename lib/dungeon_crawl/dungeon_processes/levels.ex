@@ -29,6 +29,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             tile_template_slug_cache: %{},
             inactive_players: %{},
             players_visible_coords: %{},
+            players_los_coords: %{},
             full_rerender: false,
             author: nil,
             light_sources: %{}
@@ -222,7 +223,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       {by_id[tile.id], state}
     else
       state = if tile.parsed_state[:light_source] == true,
-                do: %{ state | light_sources: Map.put(state.light_sources, tile.id, true) },
+                do: %{ state | light_sources: Map.put(state.light_sources, tile.id, true), players_visible_coords: %{} },
                 else: state
 
       z_index_map = by_coords[{tile.row, tile.col}] || %{}
@@ -324,9 +325,11 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     # handle change to light sources
     state = cond do
               state_attributes[:light_source] == true ->
-                %{state | light_sources: Map.put_new(state.light_sources, tile_id, true)}
+                %{state | light_sources: Map.put_new(state.light_sources, tile_id, true), players_los_coords: %{}}
               Map.has_key?(state_attributes, :light_source) ->
-                %{state | light_sources: Map.delete(state.light_sources, tile_id)}
+                %{state | light_sources: Map.delete(state.light_sources, tile_id), players_los_coords: %{}}
+              Map.has_key?(state_attributes, :light_range) ->
+                %{state | players_los_coords: %{}}
               true ->
                 state
             end
@@ -343,6 +346,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   @doc """
   Updates the given tile in the parent instance process, and returns the updated tile and new state.
   If the new attributes include a script, the program will be updated if the script is valid.
+  `update_tile_state` should be used instead when there are state updates to be merged in with
+  the tiles current state.
   """
   def update_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: tile_id}, new_attributes) do
     new_attributes = Map.delete(new_attributes, :id)
@@ -368,9 +373,17 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
         {nil, state}
       else
+        players_los_coords = if Map.has_key?(updated_tile.parsed_state, :light_source),
+                               do: %{},
+                               else: state.players_los_coords
+
         by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
                     |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), tile_id)
-        {updated_tile, %Levels{ state | map_by_ids: by_id, map_by_coords: by_coords, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
+        {updated_tile, %Levels{ state | map_by_ids: by_id,
+                                        map_by_coords: by_coords,
+                                        dirty_ids: dirty_ids,
+                                        rerender_coords: rerender_coords,
+                                        players_los_coords: players_los_coords}}
         |> _update_program(script_changed)
       end
     else
@@ -412,6 +425,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
                           map_by_coords: by_coords,
                           player_locations: player_locations,
                           players_visible_coords: players_visible_coords,
+                          players_los_coords: players_los_coords,
                           passage_exits: passage_exits} = state,
                       %{id: tile_id},
                       mark_as_dirty \\ true) do
@@ -427,6 +441,10 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       by_id = Map.delete(by_id, tile_id)
       player_locations = Map.delete(player_locations, tile_id)
       players_visible_coords = Map.delete(players_visible_coords, tile_id)
+      players_los_coords = if tile.parsed_state[:light_source] == true,
+                             do: %{},
+                             else: Map.delete(players_los_coords, tile_id)
+
       {tile, %Levels{ state |
                       program_contexts: program_contexts,
                       passage_exits: passage_exits,
@@ -435,6 +453,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
                       dirty_ids: dirty_ids,
                       player_locations: player_locations,
                       players_visible_coords: players_visible_coords,
+                      players_los_coords: players_los_coords,
                       rerender_coords: rerender_coords,
                       new_ids: Map.delete(state.new_ids, tile_id),
                       inactive_players: Map.delete(state.inactive_players, tile_id),

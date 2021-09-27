@@ -132,7 +132,8 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
       current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "visible", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
 
-      _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords)
+      _broadcast_update(state, location_id, visible_coords, current_visible_coords)
+      %{ state | players_visible_coords: Map.put(state.players_visible_coords, player_tile_id, current_visible_coords) }
     else
       state
     end
@@ -143,11 +144,14 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
                                location_id,
                                illuminated_tiles) do
     visible_coords = state.players_visible_coords[player_tile_id] || []
+    los_coords = state.players_los_coords[player_tile_id] || []
     player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
 
-    range = floor(:math.sqrt(rows * cols))
 
-    if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
+    if player_tile &&
+         (_should_update_visible_tiles(visible_coords, state.rerender_coords) ||
+          _should_update_visible_tiles(los_coords, state.rerender_coords)) do
+      range = floor(:math.sqrt(rows * cols))
       coords_in_los = Shape.circle(%{state: state, origin: player_tile}, range, true, "visible", 0.33)
       possibly_visible = coords_in_los -- (Map.keys(illuminated_tiles) -- coords_in_los)
 
@@ -160,8 +164,11 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
                            coords == {player_tile.row, player_tile.col}
                        end)
         |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
+      player_los_coords = Enum.map(coords_in_los, fn {row, col} -> %{row: row, col: col} end)
 
-      _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords)
+      _broadcast_update(state, location_id, visible_coords, current_visible_coords)
+      %{ state | players_visible_coords: Map.put(state.players_visible_coords, player_tile_id, current_visible_coords),
+                 players_los_coords: Map.put(state.players_los_coords, player_tile_id, player_los_coords)}
     else
       state
     end
@@ -182,7 +189,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     |> Enum.any?(fn coord -> Enum.member?(visible_coords, coord) end)
   end
 
-  defp _broadcast_and_update(state, player_tile_id, location_id, visible_coords, current_visible_coords) do
+  defp _broadcast_update(state, location_id, visible_coords, current_visible_coords) do
     fogged_coords = visible_coords -- current_visible_coords
     newly_visible_coords = current_visible_coords -- visible_coords
     rerender_coords = Map.keys(state.rerender_coords)
@@ -196,7 +203,6 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     if visible_tiles != [] || fogged_coords != [] do
       DungeonCrawlWeb.Endpoint.broadcast("players:#{location_id}", "visible_tiles", %{tiles: visible_tiles, fog: fogged_coords})
     end
-    %{ state | players_visible_coords: Map.put(state.players_visible_coords, player_tile_id, current_visible_coords) }
   end
 
   @doc """
