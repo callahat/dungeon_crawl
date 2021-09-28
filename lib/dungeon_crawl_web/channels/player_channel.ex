@@ -42,7 +42,8 @@ defmodule DungeonCrawlWeb.PlayerChannel do
     case Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id) do
       {:ok, instance_process} ->
         LevelProcess.run_with(instance_process, fn (state) ->
-          {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id)}}
+          {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id),
+                           players_los_coords: Map.delete(state.players_los_coords, socket.assigns.player_tile_id)}}
         end)
       _ ->
         nil

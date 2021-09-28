@@ -12,6 +12,11 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                     dungeon_instance_id: 1,
                     instance_id: 2}
 
+    # 01234567890
+    #0 . .O      _
+    #1 .#.      O_
+    #2 . @       _
+
     tiles = [
         %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
         %Tile{id: 109, character: ".", row: 2, col: 1, z_index: 0},
@@ -88,7 +93,8 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       state: state} do
       state = %{state | state_values: Map.put(state.state_values, :visibility, "dark"), rerender_coords: %{%{col: 10, row: 1} => true}}
       assert updated_state = Render.rerender_tiles(state)
-      assert Map.delete(updated_state, :players_visible_coords) == Map.delete(state, :players_visible_coords)
+      assert Map.drop(updated_state, [:players_visible_coords, :players_los_coords]) ==
+               Map.drop(state, [:players_visible_coords, :players_los_coords])
       assert updated_state.players_visible_coords != state.players_visible_coords
 
       refute_receive %Phoenix.Socket.Broadcast{topic: ^level_channel}
@@ -334,7 +340,12 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       # nothing is rendered except for the players own tile (which is NOT automatically a light source)
       state = %{state | players_visible_coords: %{}, light_sources: %{108 => true}} # 0, 1, player cant see
       illuminated_tiles = Render.illuminated_tile_map(state)
-      assert %{state | players_visible_coords: %{1 => [%{col: 3, row: 2}]}} ==
+      assert %{state | players_visible_coords: %{1 => [%{col: 3, row: 2}]},
+                       players_los_coords: %{1 => [%{col: 3, row: 2},
+                                                   %{col: 3, row: 0},
+                                                   %{col: 2, row: 1},
+                                                   %{col: 3, row: 1},
+                                                   %{col: 4, row: 1}]}} ==
              Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id, illuminated_tiles)
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
