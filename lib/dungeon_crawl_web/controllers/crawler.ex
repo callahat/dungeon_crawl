@@ -45,15 +45,9 @@ defmodule DungeonCrawlWeb.Crawler do
     {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.id)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
-      {top, instance_state} = Levels.create_player_tile(instance_state, tile, location)
-      top_tile = if top, do: DungeonCrawlWeb.SharedView.tile_and_style(top), else: ""
-#    DungeonCrawlWeb.Endpoint.broadcast("level:#{instance_state.dungeon_instance_id}:#{location.tile.level_instance_id}",
-#                                    "player_joined",
-#                                    %{row: top.row, col: top.col, tile: tile})
-      DungeonCrawlWeb.Endpoint.broadcast("level:#{instance_state.dungeon_instance_id}:#{tile.level_instance_id}",
-                                         "tile_changes",
-                                         %{ tiles: [%{row: top.row, col: top.col, rendering: top_tile}] })
-      {tile, instance_state}
+      {_, instance_state} = Levels.create_player_tile(instance_state, tile, location)
+      # "player_joined" could be broadcast here should it be needed for a future feature
+      {:ok, instance_state}
     end)
   end
 
