@@ -114,6 +114,42 @@ ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.dungeons.id;
 
 
 --
+-- Name: items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.items (
+    id bigint NOT NULL,
+    name character varying(32),
+    description character varying(255),
+    slug character varying(255),
+    script character varying(2048),
+    public boolean DEFAULT false NOT NULL,
+    user_id bigint,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.items_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.items_id_seq OWNED BY public.items.id;
+
+
+--
 -- Name: level_instances; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -580,6 +616,13 @@ ALTER TABLE ONLY public.dungeons ALTER COLUMN id SET DEFAULT nextval('public.dun
 
 
 --
+-- Name: items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items ALTER COLUMN id SET DEFAULT nextval('public.items_id_seq'::regclass);
+
+
+--
 -- Name: level_instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -670,6 +713,14 @@ ALTER TABLE ONLY public.dungeon_instances
 
 ALTER TABLE ONLY public.dungeons
     ADD CONSTRAINT dungeons_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: items items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_pkey PRIMARY KEY (id);
 
 
 --
@@ -787,6 +838,13 @@ CREATE INDEX dungeons_deleted_at_index ON public.dungeons USING btree (deleted_a
 --
 
 CREATE INDEX dungeons_line_identifier_index ON public.dungeons USING btree (line_identifier);
+
+
+--
+-- Name: items_slug_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX items_slug_index ON public.items USING btree (slug);
 
 
 --
@@ -975,6 +1033,14 @@ ALTER TABLE ONLY public.dungeons
 
 
 --
+-- Name: items items_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.items
+    ADD CONSTRAINT items_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: level_instances level_instances_dungeon_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1135,3 +1201,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210515021252);
 INSERT INTO public."schema_migrations" (version) VALUES (20210605224807);
 INSERT INTO public."schema_migrations" (version) VALUES (20210612225130);
 INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
+INSERT INTO public."schema_migrations" (version) VALUES (20211009194149);
