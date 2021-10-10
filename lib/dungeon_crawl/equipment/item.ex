@@ -9,6 +9,7 @@ defmodule DungeonCrawl.Equipment.Item do
     field :public, :boolean, default: false
     field :script, :string
     field :slug, :string
+    field :program, :map, virtual: true
 
     belongs_to :user, DungeonCrawl.Account.User
 

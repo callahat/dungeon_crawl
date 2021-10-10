@@ -1,12 +1,11 @@
-defmodule DungeonCrawl.Equipment.Seeder do
-  alias DungeonCrawl.Repo
+defmodule DungeonCrawl.Equipment.Seeder.Item do
   alias DungeonCrawl.Equipment
 
-  def ammo do
+  def gun do
     Equipment.update_or_create_item!(
       "gun",
-      %{name: "gun",
-        description: "A box of ammo",
+      %{name: "Gun",
+        description: "It shoots bullets",
         public: true,
         script: """
         #if @ammo <= 0, error
@@ -18,5 +17,4 @@ defmodule DungeonCrawl.Equipment.Seeder do
         """
       })
   end
-
 end

@@ -32,7 +32,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             players_los_coords: %{},
             full_rerender: false,
             author: nil,
-            light_sources: %{}
+            light_sources: %{},
+            item_slug_cache: %{}
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.Tile
@@ -659,6 +660,32 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def get_tile_template(_slug, state), do: {nil, state, :not_found}
+
+  @doc """
+  Looks up an item from the cache, falling back to getting it from the database and saving for later.
+  Returns a three part tuple, the first being the item if found, the instance state, and an atom indicating if it
+  exists in cache, was created in the cache, or not_found.
+  """
+  def get_item(slug, %Levels{item_slug_cache: cache, author: author} = state) when is_binary(slug) do
+    if item = cache[slug] do
+      {item, state, :exists}
+    else
+      with item when not is_nil(item) <- DungeonCrawl.Equipment.get_item(slug),
+           true <- is_nil(author) ||
+             is_nil(item.user_id) ||
+             item.public ||
+             author.is_admin ||
+             author.id == item.user_id do
+        {:ok, program} = Scripting.Parser.parse(item.script)
+        item = Map.put item, :program, program
+        {item, %{ state | item_slug_cache: Map.put(cache, slug, item) }, :created}
+      else
+        _ -> {nil, state, :not_found}
+      end
+    end
+  end
+
+  def get_item(_slug, state), do: {nil, state, :not_found}
 
   @doc """
   Update the given player tile to gameover. Broadcasts the gameover message to the appropriate channel.
