@@ -8,13 +8,18 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
         description: "It shoots bullets",
         public: true,
         script: """
-        #if @ammo <= 0, error
-        @ammo -= 1
+        #take ammo, 1, ?self, error
         #shoot @facing
         #end
         :error
         Out of ammo!
         """
       })
+  end
+
+  defmacro __using__(_params) do
+    quote do
+      def gun(), do: unquote(__MODULE__).gun()
+    end
   end
 end

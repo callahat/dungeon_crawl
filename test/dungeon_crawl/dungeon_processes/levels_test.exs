@@ -693,12 +693,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert updated_state == %{ state | item_slug_cache: updated_state.item_slug_cache}
     assert updated_state.item_slug_cache["gun"] == item
     assert %{program: %Program{instructions: instructions}} = updated_state.item_slug_cache["gun"]
-    assert %{1 => [:jump_if, [[{:state_variable, :ammo}, "<=", 0], "error"]],
-             2 => [:change_state, [:ammo, "-=", 1]],
-             3 => [:shoot, [state_variable: :facing]],
-             4 => [:halt, [""]],
-             5 => [:noop, "error"],
-             6 => [:text, [["Out of ammo!"]]]} == instructions
+    assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
+             2 => [:shoot, [state_variable: :facing]],
+             3 => [:halt, [""]],
+             4 => [:noop, "error"],
+             5 => [:text, [["Out of ammo!"]]]} == instructions
 
     # finds it in the cache and returns it
     assert {^item, ^updated_state, :exists} = Levels.get_item("gun", updated_state)
@@ -706,10 +705,10 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     # an id is given instead / template not found
     assert {nil, ^updated_state, :not_found} = Levels.get_item(item.id, updated_state)
 
-    # template cannot be since dungeon has author whom is not an admin nor owner of the non public slug
-    DungeonCrawl.Equipment.update_item(item, %{user_id: insert_user().id})
+    # item cannot be used since dungeon has author whom is not an admin nor owner of the non public slug
+    DungeonCrawl.Equipment.update_item(item, %{user_id: insert_user().id, public: false})
     state = %{state | author: %{id: 1, is_admin: false}}
-    assert {nil, ^state, :not_found} = Levels.get_item("bullet", state)
+    assert {nil, ^state, :not_found} = Levels.get_item("gun", state)
   end
 
   test "gameover/3 - ends game for all players in instance" do

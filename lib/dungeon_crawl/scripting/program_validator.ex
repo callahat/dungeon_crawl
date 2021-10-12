@@ -72,7 +72,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     if @valid_facings |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
-      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{inspect direction}`" | errors], user)
+      _validate(program, instructions, ["Line #{line_no}: FACING command references invalid direction `#{as_binary direction}`" | errors], user)
     end
   end
 
@@ -89,8 +89,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_boolean(victory) or is_tuple(victory),
                do: ["Line #{line_no}: GAMEOVER command has invalid 1st parameter `#{victory}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or is_tuple(who) or who == "all",
-               do: ["Line #{line_no}: GAMEOVER command has invalid 3rd parameter `#{who}`" | errors],
+    errors = unless Enum.member?([[:event_sender], [:self]], who) or is_tuple(who) or who == "all",
+               do: ["Line #{line_no}: GAMEOVER command has invalid 3rd parameter `#{as_binary who}`" | errors],
                else: errors
     _validate(program, instructions, errors, user)
   end
@@ -105,8 +105,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
-               do: ["Line #{line_no}: GIVE command references invalid direction `#{who}`" | errors],
+    errors = unless Enum.member?([[:event_sender], [:self]], who) or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
+               do: ["Line #{line_no}: GIVE command references invalid direction `#{as_binary who}`" | errors],
                else: errors
     errors = unless is_nil(max) or (is_number(max) and max > 0 || is_tuple(max)),
                do: ["Line #{line_no}: GIVE command has invalid maximum amount `#{max}`" | errors],
@@ -139,7 +139,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
         _validate(program, instructions, ["Line #{line_no}: IF command malformed" | errors], user)
       is_integer(label) ->
         if label < 1 do
-          _validate(program, instructions, ["Line #{line_no}: IF command jump distance must be positive `#{inspect label}`" | errors], user)
+          _validate(program, instructions, ["Line #{line_no}: IF command jump distance must be positive `#{as_binary label}`" | errors], user)
         else
           _validate(program, instructions, errors, user)
         end
@@ -168,7 +168,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
   defp _validate(program, [ {line_no, [ :passage, bad_params ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: PASSAGE command has invalid params `#{inspect bad_params}`" | errors], user)
+    _validate(program, instructions, ["Line #{line_no}: PASSAGE command has invalid params `#{as_binary bad_params}`" | errors], user)
   end
 
   defp _validate(program, [ {_line_no, [:push, [{_state_variable, _var}, {_state_variable2, _var2}] ]} | instructions], errors, user) do
@@ -205,7 +205,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       {:instance_state_variable, _} -> _validate(program, instructions, errors, user)
       {:dungeon_instance_state_variable, _} -> _validate(program, instructions, errors, user)
       var when is_binary(var) -> _validate(program, instructions, errors, user)
-      var -> _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid variable specified #{inspect var}" | errors], user)
+      var -> _validate(program, instructions, ["Line #{line_no}: RANDOM command has an invalid variable specified #{as_binary var}" | errors], user)
     end
   end
   defp _validate(program, [ {line_no, [:random, _]} | instructions], errors, user) do
@@ -269,8 +269,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
-               do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
+    errors = unless Enum.member?([[:event_sender], [:self]], who) or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
+               do: ["Line #{line_no}: TAKE command references invalid direction `#{as_binary who}`" | errors],
                else: errors
     _validate(program, instructions, errors, user)
   end
@@ -279,8 +279,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],
                else: errors
-    errors = unless who == [:event_sender] or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
-               do: ["Line #{line_no}: TAKE command references invalid direction `#{who}`" | errors],
+    errors = unless Enum.member?([[:event_sender], [:self]], who) or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
+               do: ["Line #{line_no}: TAKE command references invalid direction `#{as_binary who}`" | errors],
                else: errors
     errors = unless Program.line_for(program, label),
                do: ["Line #{line_no}: TAKE command references nonexistant label `#{label}`" | errors],
@@ -309,13 +309,13 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
   defp _validate(program, [ {line_no, [:transport, [_who, level, _match_key] ]} | instructions], errors, user) do
     errors = if !is_integer(level) && level != "up" && level != "down" && !is_tuple(level),
-               do:   ["Line #{line_no}: TRANSPORT command level kwarg is invalid: `#{inspect level}`" | errors],
+               do:   ["Line #{line_no}: TRANSPORT command level kwarg is invalid: `#{as_binary level}`" | errors],
                else: errors
 
     _validate(program, instructions, errors, user)
   end
   defp _validate(program, [ {line_no, [:transport, params ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: TRANSPORT command has invalid number of params: `#{inspect params}`" | errors], user)
+    _validate(program, instructions, ["Line #{line_no}: TRANSPORT command has invalid number of params: `#{as_binary params}`" | errors], user)
   end
 
   defp _validate(program, [ {line_no, [:try, [direction] ]} | instructions], errors, user) do
@@ -368,7 +368,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
                end
       errors = if (command == "REMOVE" || command == "REPLACE") &&
                     !Enum.any?(Map.keys(params), fn k -> Atom.to_string(k) =~ ~r/^target/ end ) do
-                 ["Line #{line_no}: #{command} command has no target KWARGs: `#{inspect params}`" | errors]
+                 ["Line #{line_no}: #{command} command has no target KWARGs: `#{as_binary params}`" | errors]
                else
                  errors
                end
@@ -389,7 +389,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
         _validate(program, instructions, ["Line #{line_no}: #{command} command has errors: `#{error_messages}`" | errors], user)
       end
     else
-      _validate(program, instructions, ["Line #{line_no}: #{command} command params not being detected as kwargs `#{inspect params}`" | errors], user)
+      _validate(program, instructions, ["Line #{line_no}: #{command} command params not being detected as kwargs `#{as_binary params}`" | errors], user)
     end
   end
 
@@ -409,4 +409,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
         ["Line #{line_no}: #{command} command references a SLUG that you can't use `#{params[:slug]}`" | errors]
     end
   end
+
+  defp as_binary(what) when is_binary(what), do: what
+  defp as_binary(what), do: inspect(what)
 end

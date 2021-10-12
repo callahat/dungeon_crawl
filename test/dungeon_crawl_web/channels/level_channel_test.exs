@@ -8,6 +8,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileSeeder
 
@@ -16,6 +17,7 @@ defmodule DungeonCrawl.LevelChannelTest do
 
   setup config do
     TileSeeder.BasicTiles.bullet_tile
+    Equipment.Seeder.Item.gun
 
     message_tile = TileTemplates.create_tile_template!(
                      %{name: "message",
@@ -49,7 +51,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     level_instance = Enum.sort(Repo.preload(dungeon_instance, :levels).levels, fn(a, b) -> a.number < b.number end)
                      |> Enum.at(0)
 
-    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true, torches: #{config[:torches] || 0}"})
+    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true, torches: #{config[:torches] || 0}, equipped: gun"})
                       |> Repo.preload(:tile)
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
@@ -346,7 +348,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     push socket, "shoot", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
-    assert_broadcast "message", %{message: "Out of ammo"}
+    assert_broadcast "message", %{message: "Out of ammo!"}
   end
 
   @tag up_tile: "."
@@ -360,6 +362,39 @@ defmodule DungeonCrawl.LevelChannelTest do
     push socket, "shoot", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
     assert_broadcast "message", %{message: "Can't shoot here!"}
+  end
+
+  test "sends a message if the item does not exist", %{socket: socket,
+                                                       player_location: player_location,
+                                                       instance: instance} do
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: "missingo"})
+    end)
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    assert_broadcast "message", %{message: "Error: item 'missingo' not found"}
+  end
+
+  test "sends a message when nothing equipped", %{socket: socket,
+                                                  player_location: player_location,
+                                                  instance: instance} do
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: nil})
+    end)
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    assert_broadcast "message", %{message: "You have nothing equipped"}
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: ""})
+    end)
+    push socket, "shoot", %{"direction" => "up"}
+    refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
+    assert_broadcast "message", %{message: "You have nothing equipped"}
   end
 
   @tag up_tile: ".", health: 0
@@ -398,7 +433,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   @tag up_tile: " "
   test "shoot into a nil space or idle does nothing", %{socket: socket} do
     push socket, "shoot", %{"direction" => "gibberish_which_becomes_idle"}
-    refute_broadcast "tile_changes", _anything_really
+    refute_broadcast "tile_changes", %{payload: %{tiles: [%{col: _, rendering: "<div>◦</div>", row: _}]}}
   end
 
   @tag up_tile: ".", ammo: 1

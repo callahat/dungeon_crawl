@@ -666,6 +666,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   Returns a three part tuple, the first being the item if found, the instance state, and an atom indicating if it
   exists in cache, was created in the cache, or not_found.
   """
+  def get_item("", state), do: {nil, state, :nothing_equipped}
+  def get_item(nil, state), do: {nil, state, :nothing_equipped}
   def get_item(slug, %Levels{item_slug_cache: cache, author: author} = state) when is_binary(slug) do
     if item = cache[slug] do
       {item, state, :exists}
