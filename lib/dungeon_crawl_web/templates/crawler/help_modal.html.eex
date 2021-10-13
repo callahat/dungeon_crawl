@@ -33,8 +33,8 @@
         <hr/>
         <div class="row">
           <div class="col-12 help">
-            <strong>Shoot</strong>
-            <span>If you have ammo, press <pre>shift</pre> and a direction to fire a bullet in that direction.</span>
+            <strong>Use Item</strong>
+            <span>Press <pre>shift</pre> and a direction to use an equipped item.</span>
           </div>
         </div>
         <hr/>

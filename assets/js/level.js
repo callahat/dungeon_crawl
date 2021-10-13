@@ -175,12 +175,12 @@ let Level = {
   move(direction, keysPressed){
     // console.log(direction)
     let payload = {direction: direction},
-        shoot = keysPressed[16], // shift key
+        use_item = keysPressed[16], // shift key
         pull = keysPressed[80],  // p
         action
 
-    if(shoot) {
-      action = "shoot"
+    if(use_item) {
+      action = "use_item"
     } else if(pull) {
       action = "pull"
     } else {

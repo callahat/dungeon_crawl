@@ -31,7 +31,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
       if player_location && player_location.user_id_hash == socket.assigns.user_id_hash do
         socket = assign(socket, :instance_id, instance_id)
                  |> assign(:instance_registry, instance_registry)
-                 |> assign(:last_action_at, 0)
+                 |> assign(:item_last_used_at, 0)
         {
           {:ok, %{instance_id: instance_id}, socket},
           %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }
@@ -150,14 +150,14 @@ defmodule DungeonCrawlWeb.LevelChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("shoot", %{"direction" => direction}, socket) do
+  def handle_in("use_item", %{"direction" => direction}, socket) do
     {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     socket = \
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = Levels.remove_message_actions(instance_state, player_tile.id)
 
-      if _shot_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) do
+      if _item_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) do
         player_channel = "players:#{player_location.id}"
 
         {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{facing: direction})
@@ -339,8 +339,8 @@ defmodule DungeonCrawlWeb.LevelChannel do
   # TODO: this might be able to go away when every program is isolated to its own process.
   # although bullets will still probably collide if fired faster than every 100ms
   # since thats the rate at which they move.
-  defp _shot_ready(socket) do
-    :os.system_time(:millisecond) - socket.assigns[:last_action_at] > 100
+  defp _item_ready(socket) do
+    :os.system_time(:millisecond) - socket.assigns[:item_last_used_at] > 100
   end
 
   defp _send_message_to_other_players_in_range(player_tile, player_location, safe_msg, instance_state) do
@@ -413,7 +413,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
     player_channel = "players:#{player_location.id}"
 
     if instance_state.state_values[:pacifism] && item.weapon do
-      DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Can't shoot here!"}
+      DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Can't use that here!"}
       {socket, instance_state}
     else
       # providing player_location as event_sender ensures any messages from executing the item's program
@@ -432,7 +432,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
       updated_stats = Player.current_stats(updated_state, %{id: player_location.tile_instance_id})
       DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
 
-      {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
+      {assign(socket, :item_last_used_at, :os.system_time(:millisecond)), updated_state}
     end
   end
 end

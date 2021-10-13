@@ -326,42 +326,42 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "."
-  test "shoot replies with status ok", %{socket: socket} do
-    ref = push socket, "shoot", %{"direction" => "up"}
+  test "use_item replies with status ok", %{socket: socket} do
+    ref = push socket, "use_item", %{"direction" => "up"}
     assert_reply ref, :ok, %{}
   end
 
   @tag up_tile: "."
-  test "shoot into an empty space spawns a bullet but does not broadcast", %{socket: socket} do
+  test "use_item - gun shoots into an empty space spawns a bullet but does not broadcast", %{socket: socket} do
     # Not sure how to check that something was set in the socket
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 2, rendering: "<div>◦</div>", row: 2}] }
 
     # but not if one has been fired in the last 100ms
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 2, rendering: "<div>◦</div>", row: 2}] }
   end
 
   @tag up_tile: ".", ammo: 0
-  test "does not let the player shoot if out of ammo", %{socket: socket, player_location: player_location} do
+  test "does not let the player use_item - gun - if out of ammo", %{socket: socket, player_location: player_location} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
     assert_broadcast "message", %{message: "Out of ammo!"}
   end
 
   @tag up_tile: "."
-  test "does not let the player shoot if dungeon to pacifism", %{socket: socket,
-                                                                 player_location: player_location,
-                                                                 instance_registry: instance_registry} do
+  test "does not let the player use weapon item if dungeon to pacifism", %{socket: socket,
+                                                                           player_location: player_location,
+                                                                           instance_registry: instance_registry} do
     {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
     LevelProcess.set_state_values(instance, %{pacifism: true})
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
-    assert_broadcast "message", %{message: "Can't shoot here!"}
+    assert_broadcast "message", %{message: "Can't use that here!"}
   end
 
   test "sends a message if the item does not exist", %{socket: socket,
@@ -372,7 +372,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     end)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
     assert_broadcast "message", %{message: "Error: item 'missingo' not found"}
   end
@@ -385,64 +385,64 @@ defmodule DungeonCrawl.LevelChannelTest do
     end)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
     assert_broadcast "message", %{message: "You have nothing equipped"}
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: ""})
     end)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
     assert_broadcast "message", %{message: "You have nothing equipped"}
   end
 
   @tag up_tile: ".", health: 0
-  test "does not let the player shoot if dead", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
+  test "does not let the player use item if dead", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
     {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     assert LevelProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
     refute_broadcast "tile_changes", _anything
     refute_broadcast "message", _anything
   end
 
   @tag up_tile: ".", gameover: true
-  test "does not let the player shoot if gameover", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
+  test "does not let the player use item if gameover", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
     {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     assert LevelProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
     refute_broadcast "tile_changes", _anything
     refute_broadcast "message", _anything
   end
 
   @tag up_tile: ".", ammo: 1
-  test "updates the players stats including ammo count after shooting", %{socket: socket, player_location: player_location} do
+  test "updates the players stats including ammo count after using an item", %{socket: socket, player_location: player_location} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "message", %{message: "Out of ammo"}
     assert_broadcast "stat_update", %{stats: %{ammo: 0}}
   end
 
   @tag up_tile: " "
-  test "shoot into a nil space or idle does nothing", %{socket: socket} do
-    push socket, "shoot", %{"direction" => "gibberish_which_becomes_idle"}
+  test "use_item - gun shoot into a nil space or idle does nothing", %{socket: socket} do
+    push socket, "use_item", %{"direction" => "gibberish_which_becomes_idle"}
     refute_broadcast "tile_changes", %{payload: %{tiles: [%{col: _, rendering: "<div>◦</div>", row: _}]}}
   end
 
   @tag up_tile: ".", ammo: 1
-  test "shoot clears the message_actions for that player", %{socket: socket, player_location: player_location, instance: instance} do
+  test "use_item - gun shoot clears the message_actions for that player", %{socket: socket, player_location: player_location, instance: instance} do
     LevelProcess.run_with(instance, fn (instance_state) ->
       instance_state = Levels.set_message_actions(instance_state, player_location.tile_instance_id, ["messaged"])
       {:ok, instance_state}
     end)
-    push socket, "shoot", %{"direction" => "up"}
+    push socket, "use_item", %{"direction" => "up"}
     LevelProcess.run_with(instance, fn (instance_state) ->
       refute Map.has_key?(instance_state, player_location.tile_instance_id)
       {:ok, instance_state}

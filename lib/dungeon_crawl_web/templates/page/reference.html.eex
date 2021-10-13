@@ -326,8 +326,8 @@
           </tr>
           <tr>
             <td>pacifism</td>
-            <td>Defaults as false. When this is set to true, a player may not shoot (ie, shift+direction will
-                not spawn a bullet).</td>
+            <td>Defaults as false. When this is set to true, a player may not use a weapon item (ie, shift+direction
+                will not spawn a bullet or activate the currently equipped weapon).</td>
           </tr>
           <tr>
             <td>visibility</td>

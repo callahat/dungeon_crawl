@@ -37,7 +37,7 @@
       </div>
       <div class="d-flex flex-row no-gutters">
         <div class="col-6 text-right mr-2"><span class="command_help">Shift WASD/↑←↓→</span></div>
-        <div id="keys" class="col-5 text-left">Shoot</div>
+        <div id="keys" class="col-5 text-left">Use Item</div>
       </div>
       <div class="d-flex flex-row no-gutters">
         <div class="col-6 text-right mr-2"><span class="command_help">O/C and WASD/↑←↓→</span></div>
