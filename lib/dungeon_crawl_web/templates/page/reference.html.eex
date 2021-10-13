@@ -150,7 +150,7 @@
           <tr>
             <td>teleporter</td>
             <td>This indicates that the tile is a teleporter. For it to be active, the tile also needs "facing" set.
-                When a player moves (or something is pushed) onto one of these tiles from the opposite direction direction
+                When a player moves (or something is pushed) onto one of these tiles from the opposite direction
                 it is facing, it may be teleported to a tile farther away but still in line. Candidate destinations include
                 the tile past the teleporter, and tiles on the other side of other teleporters facing the activated transporter.
                 If no candidates are available, it will not transport (pushables may be pushed out of the way on the teleport
@@ -303,6 +303,11 @@
             <td>These can be used to open colored doors that match the color of the key. Gone
                 after one use, but sometimes the player may carry more than one of the same color
                 key.</td>
+          </tr>
+          <tr>
+            <td>equipped</td>
+            <td>The item (represented as the item's "slug"ified name) the player currently has equipped,
+                which may be used by holding shift and pressing a direction.</td>
           </tr>
         </table>
 
