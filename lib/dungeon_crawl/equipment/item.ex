@@ -7,6 +7,8 @@ defmodule DungeonCrawl.Equipment.Item do
     field :name, :string
     field :description, :string
     field :public, :boolean, default: false
+    field :weapon, :boolean, default: false
+    field :consumable, :boolean, default: false
     field :script, :string
     field :slug, :string
     field :program, :map, virtual: true
@@ -19,7 +21,7 @@ defmodule DungeonCrawl.Equipment.Item do
   @doc false
   def changeset(item, attrs) do
     item
-    |> cast(attrs, [:name, :description, :script, :public, :user_id])
+    |> cast(attrs, [:name, :description, :script, :public, :user_id, :weapon, :consumable])
     |> validate_required([:name, :script, :public])
     |> validate_script(item.user_id || attrs[:user_id])
   end

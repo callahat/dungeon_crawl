@@ -7,6 +7,7 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
       %{name: "Gun",
         description: "It shoots bullets",
         public: true,
+        weapon: true,
         script: """
         #take ammo, 1, ?self, error
         #shoot @facing

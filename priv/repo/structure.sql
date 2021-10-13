@@ -124,6 +124,8 @@ CREATE TABLE public.items (
     slug character varying(255),
     script character varying(2048),
     public boolean DEFAULT false NOT NULL,
+    weapon boolean DEFAULT false NOT NULL,
+    consumable boolean DEFAULT false NOT NULL,
     user_id bigint,
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL
