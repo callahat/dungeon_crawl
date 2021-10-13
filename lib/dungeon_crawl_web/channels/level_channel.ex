@@ -157,49 +157,26 @@ defmodule DungeonCrawlWeb.LevelChannel do
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = Levels.remove_message_actions(instance_state, player_tile.id)
 
-      cond do
-        instance_state.state_values[:pacifism] ->
-          player_channel = "players:#{player_location.id}"
-          DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Can't shoot here!"}
-          {socket, instance_state}
+      if _shot_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) do
+        player_channel = "players:#{player_location.id}"
 
-        _shot_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) ->
-          player_channel = "players:#{player_location.id}"
+        {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{facing: direction})
+        slug = player_tile.parsed_state[:equipped] # TODO: get it from the players equipped_item state variable
 
-          {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{facing: direction})
-          slug = player_tile.parsed_state[:equipped] # TODO: get it from the players equipped_item state variable
+        case Levels.get_item(slug, instance_state) do
+          {nil, _, :nothing_equipped} ->
+            DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "You have nothing equipped"}
+            {socket, instance_state}
 
-          case Levels.get_item(slug, instance_state) do
-            {nil, _, :nothing_equipped} ->
-              DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "You have nothing equipped"}
-              {socket, instance_state}
+          {nil, _, _} ->
+            DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Error: item '#{slug}' not found"}
+            {socket, instance_state}
 
-            {nil, _, _} ->
-              DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Error: item '#{slug}' not found"}
-              {socket, instance_state}
-
-            {item, instance_state, _} ->
-              # providing player_location as event_sender ensures any messages from executing the item's program
-              # are sent to the proper player channel.
-              # Run is called twice just in case a "take" or "give" command with a label jumps to that label
-              # on insufficient/max thing reached which would put it into a wait state. Otherwise, the second
-              # Runner.run is a noop.
-              %{state: updated_state} =
-                Runner.run(%Runner{program: item.program,
-                                   object_id: player_tile.id,
-                                   state: instance_state,
-                                   event_sender: player_location})
-                |> Runner.run()
-                |> Levels.handle_broadcasting() # any nontile_update broadcasts left
-
-              updated_stats = Player.current_stats(updated_state, %{id: player_location.tile_instance_id})
-              DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
-
-              {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
-          end
-
-        true ->
-          {socket, instance_state}
+          {item, instance_state, _} ->
+            _use_item(socket, instance_state, item, player_location)
+        end
+      else
+        {socket, instance_state}
       end
     end)
 
@@ -431,4 +408,31 @@ defmodule DungeonCrawlWeb.LevelChannel do
   defp _adjacent_level_id(instance_state, player_tile, "west"),
     do: player_tile.col == 0 && instance_state.adjacent_level_ids["west"]
   defp _adjacent_level_id(_,_,_), do: nil
+
+  defp _use_item(socket, instance_state, item, player_location) do
+    player_channel = "players:#{player_location.id}"
+
+    if instance_state.state_values[:pacifism] && item.weapon do
+      DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Can't shoot here!"}
+      {socket, instance_state}
+    else
+      # providing player_location as event_sender ensures any messages from executing the item's program
+      # are sent to the proper player channel.
+      # Run is called twice just in case a "take" or "give" command with a label jumps to that label
+      # on insufficient/max thing reached which would put it into a wait state. Otherwise, the second
+      # Runner.run is a noop.
+      %{state: updated_state} =
+        Runner.run(%Runner{program: item.program,
+          object_id: player_location.tile_instance_id,
+          state: instance_state,
+          event_sender: player_location})
+        |> Runner.run()
+        |> Levels.handle_broadcasting() # any nontile_update broadcasts left
+
+      updated_stats = Player.current_stats(updated_state, %{id: player_location.tile_instance_id})
+      DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
+
+      {assign(socket, :last_action_at, :os.system_time(:millisecond)), updated_state}
+    end
+  end
 end
