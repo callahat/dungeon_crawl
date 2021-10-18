@@ -17,8 +17,19 @@ defmodule DungeonCrawl.Equipment do
       [%Item{}, ...]
 
   """
-  def list_items do
-    Repo.all(Item)
+  def list_items(%DungeonCrawl.Account.User{} = user) do
+    Repo.all(from i in Item,
+             where: i.user_id == ^user.id,
+             order_by: :slug)
+  end
+  def list_items(:nouser) do
+    Repo.all(from i in Item,
+             where: is_nil(i.user_id),
+             order_by: :slug)
+  end
+  def list_items() do
+    Repo.all(from i in Item,
+             order_by: :slug)
   end
 
   @doc """
@@ -40,6 +51,8 @@ defmodule DungeonCrawl.Equipment do
   """
   def get_item(id) when is_integer(id), do: Repo.get(Item, id)
   def get_item(slug), do: Repo.get_by(Item, %{slug: slug})
+  def get_item!(id) when is_integer(id), do: Repo.get!(Item, id)
+  def get_item!(slug), do: Repo.get_by!(Item, %{slug: slug})
 
   @doc """
   Creates a item.

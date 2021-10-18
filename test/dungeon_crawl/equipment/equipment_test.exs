@@ -24,6 +24,21 @@ defmodule DungeonCrawl.EquipmentTest do
       assert Equipment.list_items() == [item]
     end
 
+    test "list_items/0 returns all items owned by the given user" do
+      user = insert_user()
+      different_user = insert_user()
+      item = item_fixture(%{user_id: user.id})
+      item_fixture(%{user_id: different_user.id})
+      assert Equipment.list_items(user) == [item]
+    end
+
+    test "list_items/0 returns all items owned by no one" do
+      user = insert_user()
+      item = item_fixture(%{user_id: nil})
+      item_fixture(%{user_id: user.id})
+      assert Equipment.list_items(:nouser) == [item]
+    end
+
     test "get_item/1 returns the item with given id" do
       item = item_fixture()
       assert Equipment.get_item(item.id) == item

@@ -40,6 +40,8 @@ defmodule DungeonCrawlWeb.Router do
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
       post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl
 
+    resources "/equipment", EquipmentController
+
     post "/tile_shortlists", TileShortlistController, :create
     delete "/tile_shortlists", TileShortlistController, :delete
 
