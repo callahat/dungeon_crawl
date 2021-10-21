@@ -150,5 +150,31 @@ defmodule DungeonCrawl.PlayerTest do
       dungeon = Repo.preload(location, [tile: [level: [dungeon: :dungeon]]]).tile.level.dungeon.dungeon
       assert dungeon == Player.get_dungeon(location)
     end
+
+    test "give_item/2" do
+      location = Repo.preload(location_fixture(), :items)
+      item = insert_item()
+      assert %{items: [^item]} = Player.give_item(location, item)
+      assert [item] == Repo.preload(Player.get_location(location), :items).items
+    end
+
+    test "list_items/1" do
+      location = Repo.preload(location_fixture(), :items)
+      item = insert_item()
+      Player.give_item(location, item)
+      assert [^item] = Player.list_items(location)
+    end
+
+    test "delete_item/2" do
+      location = Repo.preload(location_fixture(), :items)
+      item1 = insert_item(%{name: "item one"})
+      item2 = insert_item(%{name: "item two"})
+      Player.give_item(location, item1)
+      Player.give_item(location, item2)
+      Player.give_item(location, item2)
+      assert [^item1, ^item2, ^item2] = Player.list_items(location)
+      assert %Location{} = Player.delete_item(location, item2)
+      assert [^item1, ^item2] = Player.list_items(location)
+    end
   end
 end

@@ -236,6 +236,36 @@ ALTER SEQUENCE public.levels_id_seq OWNED BY public.levels.id;
 
 
 --
+-- Name: locations_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.locations_items (
+    id bigint NOT NULL,
+    location_id bigint,
+    item_id bigint
+);
+
+
+--
+-- Name: locations_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.locations_items_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: locations_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.locations_items_id_seq OWNED BY public.locations_items.id;
+
+
+--
 -- Name: player_locations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -639,6 +669,13 @@ ALTER TABLE ONLY public.levels ALTER COLUMN id SET DEFAULT nextval('public.level
 
 
 --
+-- Name: locations_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations_items ALTER COLUMN id SET DEFAULT nextval('public.locations_items_id_seq'::regclass);
+
+
+--
 -- Name: player_locations id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -739,6 +776,14 @@ ALTER TABLE ONLY public.level_instances
 
 ALTER TABLE ONLY public.levels
     ADD CONSTRAINT levels_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: locations_items locations_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations_items
+    ADD CONSTRAINT locations_items_pkey PRIMARY KEY (id);
 
 
 --
@@ -882,6 +927,13 @@ CREATE INDEX levels_dungeon_id_index ON public.levels USING btree (dungeon_id);
 --
 
 CREATE UNIQUE INDEX levels_dungeon_id_number_index ON public.levels USING btree (dungeon_id, number);
+
+
+--
+-- Name: locations_items_location_id_item_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX locations_items_location_id_item_id_index ON public.locations_items USING btree (location_id, item_id);
 
 
 --
@@ -1067,6 +1119,22 @@ ALTER TABLE ONLY public.levels
 
 
 --
+-- Name: locations_items locations_items_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations_items
+    ADD CONSTRAINT locations_items_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.items(id) ON DELETE CASCADE;
+
+
+--
+-- Name: locations_items locations_items_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locations_items
+    ADD CONSTRAINT locations_items_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.player_locations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: player_locations player_locations_tile_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1204,3 +1272,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210605224807);
 INSERT INTO public."schema_migrations" (version) VALUES (20210612225130);
 INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
 INSERT INTO public."schema_migrations" (version) VALUES (20211009194149);
+INSERT INTO public."schema_migrations" (version) VALUES (20211021012059);

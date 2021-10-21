@@ -10,6 +10,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
+  alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.TileTemplates
 
@@ -206,5 +207,73 @@ defmodule DungeonCrawl.Player do
   """
   def get_dungeon(%Location{} = location) do
     Repo.preload(location, [tile: [level: [dungeon: :dungeon]]]).tile.level.dungeon.dungeon
+  end
+
+  @doc """
+  Gives an item to a player_location.
+
+  ## Examples
+
+      iex> give_item(%Location{}, %Item{})
+      %Location{}
+  """
+  def give_item(%Location{} = location, %Item{} = item) do
+    location = Repo.preload(location, :items)
+IO.puts "why no worky"
+IO.inspect [item | location.items]
+    changeset = Location.changeset(location, %{items: [item | location.items]})
+
+    IO.puts "HERE"
+    IO.inspect changeset
+    DungeonCrawl.Repo.update changeset
+  end
+
+  @doc """
+  Lists the items a player_location has.
+
+  ## Examples
+
+      iex> list_items(%Location{})
+      [%Item{}, %Item{}, ...]
+  """
+  def list_items(%Location{} = location) do
+    Repo.preload(location, :items).items
+  end
+
+  @doc """
+  Deletes an item from a player_location. Does nothing if that item is
+  not associated with the player_location. If there are many of those items
+  associated, only deletes one of them.
+
+  ## Examples
+
+      iex> delete_item(%Location{}, %Item{})
+      %Location{}
+  """
+  def delete_item(%Location{} = location, %Item{} = item) do
+    location = Repo.preload(location, :items)
+
+    items = _delete_item(item, location.items)
+    IO.puts "HUH"
+    IO.inspect items
+    Location.changeset(location, %{})
+    |> Map.put(:items, [])
+    |> DungeonCrawl.Repo.update!
+    |> Location.changeset(%{})
+    |> Map.put(:items, items)
+    |> DungeonCrawl.Repo.update!
+  end
+
+  defp _delete_item(_, []), do: []
+  defp _delete_item(item, [candidate_item | items]) do
+    IO.puts "HERE"
+    IO.puts item.id
+    IO.puts candidate_item.id
+    if item.id == candidate_item.id do
+      IO.inspect items
+      items
+    else
+      [candidate_item | _delete_item(item, items)]
+    end
   end
 end
