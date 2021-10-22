@@ -12,6 +12,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
   alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.Player.Location
+  alias DungeonCrawl.Player.LocationsItems
   alias DungeonCrawl.TileTemplates
 
   @doc """
@@ -215,17 +216,14 @@ defmodule DungeonCrawl.Player do
   ## Examples
 
       iex> give_item(%Location{}, %Item{})
-      %Location{}
+      :ok
   """
   def give_item(%Location{} = location, %Item{} = item) do
-    location = Repo.preload(location, :items)
-IO.puts "why no worky"
-IO.inspect [item | location.items]
-    changeset = Location.changeset(location, %{items: [item | location.items]})
+    LocationsItems.changeset(%LocationsItems{},
+                             %{location_id: location.id, item_id: item.id})
+    |> DungeonCrawl.Repo.insert()
 
-    IO.puts "HERE"
-    IO.inspect changeset
-    DungeonCrawl.Repo.update changeset
+    :ok
   end
 
   @doc """
@@ -237,7 +235,7 @@ IO.inspect [item | location.items]
       [%Item{}, %Item{}, ...]
   """
   def list_items(%Location{} = location) do
-    Repo.preload(location, :items).items
+    Repo.preload(location, :items, force: true).items
   end
 
   @doc """
@@ -248,32 +246,17 @@ IO.inspect [item | location.items]
   ## Examples
 
       iex> delete_item(%Location{}, %Item{})
-      %Location{}
+      :ok
   """
-  def delete_item(%Location{} = location, %Item{} = item) do
-    location = Repo.preload(location, :items)
-
-    items = _delete_item(item, location.items)
-    IO.puts "HUH"
-    IO.inspect items
-    Location.changeset(location, %{})
-    |> Map.put(:items, [])
-    |> DungeonCrawl.Repo.update!
-    |> Location.changeset(%{})
-    |> Map.put(:items, items)
-    |> DungeonCrawl.Repo.update!
-  end
-
-  defp _delete_item(_, []), do: []
-  defp _delete_item(item, [candidate_item | items]) do
-    IO.puts "HERE"
-    IO.puts item.id
-    IO.puts candidate_item.id
-    if item.id == candidate_item.id do
-      IO.inspect items
-      items
+  def delete_item(%Location{id: lid}, %Item{id: iid}) do
+    location_item = Repo.one(from li in LocationsItems,
+                             where: li.location_id == ^lid and li.item_id == ^iid,
+                             limit: 1)
+    if location_item do
+      Repo.delete!(location_item)
+      :ok
     else
-      [candidate_item | _delete_item(item, items)]
+      :invalid
     end
   end
 end

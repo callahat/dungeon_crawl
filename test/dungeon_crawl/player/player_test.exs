@@ -154,8 +154,8 @@ defmodule DungeonCrawl.PlayerTest do
     test "give_item/2" do
       location = Repo.preload(location_fixture(), :items)
       item = insert_item()
-      assert %{items: [^item]} = Player.give_item(location, item)
-      assert [item] == Repo.preload(Player.get_location(location), :items).items
+      assert :ok = Player.give_item(location, item)
+      assert [item] == Repo.preload(Player.get_location(location), :items, force: true).items
     end
 
     test "list_items/1" do
@@ -169,12 +169,20 @@ defmodule DungeonCrawl.PlayerTest do
       location = Repo.preload(location_fixture(), :items)
       item1 = insert_item(%{name: "item one"})
       item2 = insert_item(%{name: "item two"})
+      item1_id = item1.id
+      item2_id = item2.id
       Player.give_item(location, item1)
       Player.give_item(location, item2)
       Player.give_item(location, item2)
-      assert [^item1, ^item2, ^item2] = Player.list_items(location)
-      assert %Location{} = Player.delete_item(location, item2)
-      assert [^item1, ^item2] = Player.list_items(location)
+      assert [%{id: ^item1_id}, %{id: ^item2_id}, %{id: ^item2_id}] = Player.list_items(location)
+      assert :ok = Player.delete_item(location, item2)
+      assert [%{id: ^item1_id}, %{id: ^item2_id}] = Player.list_items(location)
+
+      # safely handles item that is not there, deletes the last one, then
+      # doesnt break when it tries to delete it again
+      assert :ok = Player.delete_item(location, item2)
+      assert :invalid = Player.delete_item(location, item2)
+      assert [%{id: ^item1_id}] = Player.list_items(location)
     end
   end
 end

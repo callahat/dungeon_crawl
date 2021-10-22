@@ -12,14 +12,8 @@ defmodule DungeonCrawl.Player.Location do
 
   @doc false
   def changeset(location, attrs) do
-    IO.puts "changeset"
-    IO.inspect attrs[:items]
     location
     |> cast(attrs, [:user_id_hash, :tile_instance_id])
-    |> _maybe_update_items(attrs[:items])
     |> validate_required([:user_id_hash, :tile_instance_id])
   end
-
-  defp _maybe_update_items(changeset, nil), do: changeset
-  defp _maybe_update_items(changeset, items), do: put_assoc(changeset, :items, items)
 end
