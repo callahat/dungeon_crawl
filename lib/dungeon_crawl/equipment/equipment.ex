@@ -37,6 +37,9 @@ defmodule DungeonCrawl.Equipment do
 
   Returns nil if the Item does not exist.
 
+  When given an author (%User{}), only returns the item if it may
+  be used given the author of the level.
+
   ## Examples
 
       iex> get_item(123)
@@ -48,11 +51,30 @@ defmodule DungeonCrawl.Equipment do
       iex> get_item("slug_thing")
       %Item{}
 
+      iex> get_item("slug_thing", %Account.User{is_admin: true})
+      %Item{}
+
+      iex> get_item("slug_thing", %Account.User{username: "someone else})
+      nil
   """
   def get_item(id) when is_integer(id), do: Repo.get(Item, id)
   def get_item(slug), do: Repo.get_by(Item, %{slug: slug})
   def get_item!(id) when is_integer(id), do: Repo.get!(Item, id)
   def get_item!(slug), do: Repo.get_by!(Item, %{slug: slug})
+
+  def get_item(identifier, author) do
+    item = get_item(identifier)
+
+    if item && (is_nil(author) ||
+         is_nil(item.user_id) ||
+         item.public ||
+         author.is_admin ||
+         author.id == item.user_id) do
+      item
+    else
+      nil
+    end
+  end
 
   @doc """
   Creates a item.

@@ -10,6 +10,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Player.LocationsItems
@@ -66,13 +67,17 @@ defmodule DungeonCrawl.Player do
       {:ok, %Location{}}
   """
   def create_location_on_spawnable_space(%Dungeon{} = di, user_id_hash, user_avatar) do
+    di = Repo.preload(di, [dungeon: :user, levels: [level: :spawn_locations]])
+         |> Map.put(:parsed_state, DungeonCrawl.StateValue.Parser.parse!(di.state))
+
     tile = _create_tile_for_location(di, user_id_hash, user_avatar)
 
-    create_location(%{tile_instance_id: tile.id, user_id_hash: user_id_hash})
+    create_location!(%{tile_instance_id: tile.id, user_id_hash: user_id_hash})
+    |> _set_player_equipment(tile, di)
   end
 
   defp _create_tile_for_location(%Dungeon{} = di, user_id_hash, user_avatar) do
-    instance_levels = Repo.preload(di, levels: [level: :spawn_locations]).levels
+    instance_levels = di.levels
     entrance = _entrance(instance_levels) || _random_entrance(instance_levels)
     spawn_location = _spawn_location(entrance) || _random_floor(entrance)
     top_tile = DungeonInstances.get_tile(entrance.id, spawn_location.row, spawn_location.col)
@@ -115,10 +120,31 @@ defmodule DungeonCrawl.Player do
   end
 
   defp _set_player_lives(player_tile, di) do
-    {:ok, dungeon_parsed_state} = DungeonCrawl.StateValue.Parser.parse(di.state)
-    starting_lives = "lives: #{ dungeon_parsed_state[:starting_lives] || -1 }"
+    starting_lives = "lives: #{ di.parsed_state[:starting_lives] || -1 }"
 
     Repo.update!(Tile.changeset(player_tile, %{state: player_tile.state <> ", " <> starting_lives }))
+  end
+
+  defp _set_player_equipment(location, player_tile, di) do
+    author = di.dungeon.user
+    equipment = String.split("#{di.parsed_state[:starting_equipment]}")
+                |> Enum.map(fn item_slug ->
+                     Equipment.get_item(item_slug, author)
+                   end)
+                |> Enum.reject(fn item -> is_nil(item) end)
+
+    equipment = if equipment == [], do: [Equipment.get_item("gun")],
+                                    else: equipment
+
+    Enum.each(equipment, fn item -> give_item(location, item) end)
+
+    equipped_item = Enum.at(equipment, 0)
+
+    equipped_item = "equipped_item: #{equipped_item.slug}"
+
+    Repo.update!(Tile.changeset(player_tile, %{state: player_tile.state <> ", " <> equipped_item }))
+
+    location
   end
 
   @doc """

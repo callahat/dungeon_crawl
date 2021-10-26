@@ -19,6 +19,7 @@ defmodule DungeonCrawl.DungeonInstances.Tile do
     field :state, :string
     field :script, :string, default: ""
     field :parsed_state, :map, virtual: true
+    field :items, {:array, :string}, virtual: true
 
     field :animate_random, :boolean
     field :animate_colors, :string

@@ -3,7 +3,6 @@ defmodule DungeonCrawlWeb.EquipmentControllerTest do
 
   import Plug.Conn, only: [assign: 3]
 
-  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Equipment.Item
 
   @valid_attrs %{name: "ray gnu", description: "A device that shoots rays", script: "pew pew"}

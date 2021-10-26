@@ -54,6 +54,26 @@ defmodule DungeonCrawl.EquipmentTest do
       refute Equipment.get_item("fake_item")
     end
 
+    test "get_item!/1 returns the item with given id" do
+      item = item_fixture()
+      assert Equipment.get_item!(item.id) == item
+      assert_raise Ecto.NoResultsError, fn -> Equipment.get_item!(item.id+1) end
+    end
+
+    test "get_item!/1 returns the item with given slug" do
+      item = item_fixture()
+      assert Equipment.get_item!(item.slug) == item
+      assert_raise Ecto.NoResultsError, fn -> Equipment.get_item!("fakeslug") end
+    end
+
+    test "get_item/2 takes into consideration the author" do
+      user = insert_user()
+      item = item_fixture(%{user_id: user.id})
+      other_item = item_fixture(%{name: "other thing", public: false, user_id: user.id})
+      assert Equipment.get_item(item.slug, user) == item
+      refute Equipment.get_item(other_item.id, %{ user | id: user.id + 1})
+    end
+
     test "create_item/1 with valid data creates a item" do
       assert {:ok, %Item{} = item} = Equipment.create_item(@valid_attrs)
       assert item.name == "thing"
