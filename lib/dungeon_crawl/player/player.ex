@@ -10,10 +10,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
-  alias DungeonCrawl.Equipment
-  alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.Player.Location
-  alias DungeonCrawl.Player.LocationsItems
   alias DungeonCrawl.TileTemplates
 
   @doc """
@@ -67,13 +64,12 @@ defmodule DungeonCrawl.Player do
       {:ok, %Location{}}
   """
   def create_location_on_spawnable_space(%Dungeon{} = di, user_id_hash, user_avatar) do
-    di = Repo.preload(di, [dungeon: :user, levels: [level: :spawn_locations]])
+    di = Repo.preload(di, [levels: [level: :spawn_locations]])
          |> Map.put(:parsed_state, DungeonCrawl.StateValue.Parser.parse!(di.state))
 
     tile = _create_tile_for_location(di, user_id_hash, user_avatar)
 
     create_location!(%{tile_instance_id: tile.id, user_id_hash: user_id_hash})
-    |> _set_player_equipment(tile, di)
   end
 
   defp _create_tile_for_location(%Dungeon{} = di, user_id_hash, user_avatar) do
@@ -93,6 +89,7 @@ defmodule DungeonCrawl.Player do
     |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonInstances.create_tile!()
     |> _set_player_lives(di)
+    |> _set_player_equipment(di)
   end
 
   defp _entrance(instance_levels) do
@@ -125,26 +122,18 @@ defmodule DungeonCrawl.Player do
     Repo.update!(Tile.changeset(player_tile, %{state: player_tile.state <> ", " <> starting_lives }))
   end
 
-  defp _set_player_equipment(location, player_tile, di) do
-    author = di.dungeon.user
+  defp _set_player_equipment(player_tile, di) do
     equipment = String.split("#{di.parsed_state[:starting_equipment]}")
-                |> Enum.map(fn item_slug ->
-                     Equipment.get_item(item_slug, author)
-                   end)
-                |> Enum.reject(fn item -> is_nil(item) end)
 
-    equipment = if equipment == [], do: [Equipment.get_item("gun")],
+    equipment = if equipment == [], do: ["gun"],
                                     else: equipment
 
-    Enum.each(equipment, fn item -> give_item(location, item) end)
+    equipped = "equipped: #{Enum.at(equipment, 0)}"
+    equipment = "equipment: #{Enum.join(equipment, " ")}"
 
-    equipped_item = Enum.at(equipment, 0)
+    tile_state = Enum.join([player_tile.state, equipped, equipment], ", ")
 
-    equipped_item = "equipped_item: #{equipped_item.slug}"
-
-    Repo.update!(Tile.changeset(player_tile, %{state: player_tile.state <> ", " <> equipped_item }))
-
-    location
+    Repo.update!(Tile.changeset(player_tile, %{state: tile_state }))
   end
 
   @doc """
@@ -234,55 +223,5 @@ defmodule DungeonCrawl.Player do
   """
   def get_dungeon(%Location{} = location) do
     Repo.preload(location, [tile: [level: [dungeon: :dungeon]]]).tile.level.dungeon.dungeon
-  end
-
-  @doc """
-  Gives an item to a player_location.
-
-  ## Examples
-
-      iex> give_item(%Location{}, %Item{})
-      :ok
-  """
-  def give_item(%Location{} = location, %Item{} = item) do
-    LocationsItems.changeset(%LocationsItems{},
-                             %{location_id: location.id, item_id: item.id})
-    |> DungeonCrawl.Repo.insert()
-
-    :ok
-  end
-
-  @doc """
-  Lists the items a player_location has.
-
-  ## Examples
-
-      iex> list_items(%Location{})
-      [%Item{}, %Item{}, ...]
-  """
-  def list_items(%Location{} = location) do
-    Repo.preload(location, :items, force: true).items
-  end
-
-  @doc """
-  Deletes an item from a player_location. Does nothing if that item is
-  not associated with the player_location. If there are many of those items
-  associated, only deletes one of them.
-
-  ## Examples
-
-      iex> delete_item(%Location{}, %Item{})
-      :ok
-  """
-  def delete_item(%Location{id: lid}, %Item{id: iid}) do
-    location_item = Repo.one(from li in LocationsItems,
-                             where: li.location_id == ^lid and li.item_id == ^iid,
-                             limit: 1)
-    if location_item do
-      Repo.delete!(location_item)
-      :ok
-    else
-      :invalid
-    end
   end
 end

@@ -5,7 +5,6 @@ defmodule DungeonCrawl.Player.Location do
   schema "player_locations" do
     field :user_id_hash, :string
     belongs_to :tile, DungeonCrawl.DungeonInstances.Tile, foreign_key: :tile_instance_id
-    many_to_many :items, DungeonCrawl.Equipment.Item, join_through: "locations_items", on_delete: :delete_all, on_replace: :delete
 
     timestamps()
   end

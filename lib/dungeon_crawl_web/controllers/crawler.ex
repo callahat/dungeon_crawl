@@ -45,10 +45,8 @@ defmodule DungeonCrawlWeb.Crawler do
     {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.id)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
-      tile = %{ tile | items: Enum.map(Player.list_items(location), &(&1.slug)) }
-      {_, instance_state} = Levels.create_player_tile(instance_state, tile, location)
       # "player_joined" could be broadcast here should it be needed for a future feature
-      {:ok, instance_state}
+      Levels.create_player_tile(instance_state, tile, location)
     end)
   end
 

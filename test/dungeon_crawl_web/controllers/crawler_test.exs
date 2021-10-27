@@ -27,7 +27,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert %Levels{player_locations: %{^location_tile_id => ^location},
                    map_by_ids: %{^location_tile_id => player_tile}}
            = LevelProcess.get_state(instance)
-    assert player_tile.items == ["gun", "fists"]
+    assert player_tile.items == ["fists", "gun"]
 
     # cleanup
     DungeonRegistry.remove(DungeonInstanceRegistry, tile.level.dungeon_instance_id)

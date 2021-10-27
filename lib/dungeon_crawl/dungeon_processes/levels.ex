@@ -216,7 +216,13 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       {:ok, state} -> Map.put(tile, :parsed_state, state)
       _            -> tile
     end
+    |> _with_items()
   end
+
+  defp _with_items(%{parsed_state: %{equipment: equipment}} = tile) do
+    Map.put(tile, :items, String.split(equipment))
+  end
+  defp _with_items(tile), do: tile
 
   defp _register_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, tile) do
      if Map.has_key?(by_id, tile.id) do

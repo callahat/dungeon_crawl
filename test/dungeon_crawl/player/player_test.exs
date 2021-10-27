@@ -55,8 +55,8 @@ defmodule DungeonCrawl.PlayerTest do
       assert Repo.preload(location, :tile).tile.character == "@" # its in the basic tile template seeds
       assert Repo.preload(location, :tile).tile.name == "AnonPlayer" # the default when no player account
       assert Repo.preload(location, :tile).tile.state =~ ~r/lives: 3/
-      assert Repo.preload(location, :tile).tile.state =~ ~r/equipped_item: fists/
-      assert Enum.map(Repo.preload(location, :items).items, &(&1.slug)) == ["gun", "fists"] # sorts based on the id of the item, not the id of the join table
+      assert Repo.preload(location, :tile).tile.state =~ ~r/equipped: fists/
+      assert Repo.preload(location, :tile).tile.state =~ ~r/equipment: fists gun/
 
       # works when entrance is not set
       Repo.preload(dungeon_instance, [levels: :level]).levels
@@ -157,40 +157,6 @@ defmodule DungeonCrawl.PlayerTest do
       location = location_fixture()
       dungeon = Repo.preload(location, [tile: [level: [dungeon: :dungeon]]]).tile.level.dungeon.dungeon
       assert dungeon == Player.get_dungeon(location)
-    end
-
-    test "give_item/2" do
-      location = Repo.preload(location_fixture(), :items)
-      item = insert_item()
-      assert :ok = Player.give_item(location, item)
-      assert [item] == Repo.preload(Player.get_location(location), :items, force: true).items
-    end
-
-    test "list_items/1" do
-      location = Repo.preload(location_fixture(), :items)
-      item = insert_item()
-      Player.give_item(location, item)
-      assert [^item] = Player.list_items(location)
-    end
-
-    test "delete_item/2" do
-      location = Repo.preload(location_fixture(), :items)
-      item1 = insert_item(%{name: "item one"})
-      item2 = insert_item(%{name: "item two"})
-      item1_id = item1.id
-      item2_id = item2.id
-      Player.give_item(location, item1)
-      Player.give_item(location, item2)
-      Player.give_item(location, item2)
-      assert [%{id: ^item1_id}, %{id: ^item2_id}, %{id: ^item2_id}] = Player.list_items(location)
-      assert :ok = Player.delete_item(location, item2)
-      assert [%{id: ^item1_id}, %{id: ^item2_id}] = Player.list_items(location)
-
-      # safely handles item that is not there, deletes the last one, then
-      # doesnt break when it tries to delete it again
-      assert :ok = Player.delete_item(location, item2)
-      assert :invalid = Player.delete_item(location, item2)
-      assert [%{id: ^item1_id}] = Player.list_items(location)
     end
   end
 end

@@ -161,7 +161,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
         player_channel = "players:#{player_location.id}"
 
         {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{facing: direction})
-        slug = player_tile.parsed_state[:equipped] # TODO: get it from the players equipped_item state variable
+        slug = player_tile.parsed_state[:equipped]
 
         case Levels.get_item(slug, instance_state) do
           {nil, _, :nothing_equipped} ->

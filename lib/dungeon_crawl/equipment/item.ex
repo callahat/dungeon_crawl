@@ -14,7 +14,6 @@ defmodule DungeonCrawl.Equipment.Item do
     field :program, :map, virtual: true
 
     belongs_to :user, DungeonCrawl.Account.User
-    many_to_many :locations, DungeonCrawl.Player.Location, join_through: "locations_items", on_delete: :delete_all, on_replace: :delete
 
     timestamps()
   end
