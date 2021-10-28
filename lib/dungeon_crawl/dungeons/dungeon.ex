@@ -6,8 +6,11 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Account.User
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Scores.Score
+  alias DungeonCrawl.StateValue
 
   schema "dungeons" do
     field :name, :string
@@ -65,5 +68,30 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
     |> validate_inclusion(:default_map_height, 20..max_height, message: "must be between 20 and #{max_height}")
     |> validate_inclusion(:default_map_width, 20..max_width, message: "must be between 20 and #{max_width}")
     |> TileTemplate.validate_state_values
+    |> _validate_starting_equipment()
+  end
+
+  defp _validate_starting_equipment(changeset) do
+    user_id = if Map.has_key?(changeset.changes, :user_id),
+                do: changeset.changes[:user_id],
+                else: changeset.data.user_id
+
+    with {:ok, parsed_state} <- StateValue.Parser.parse(changeset.changes[:state]),
+         %{starting_equipment: se} <- parsed_state,
+         author <- Account.get_user(user_id),
+         invalid_equipment when invalid_equipment != [] <- _invalid_equipment(se, author) do
+      add_error(changeset, :base, "starting_equipment contains invalid items: `#{inspect invalid_equipment}}`")
+    else
+      _ -> changeset
+    end
+  end
+
+  defp _invalid_equipment(equipment, author) do
+    String.split(equipment)
+    |> Enum.map(fn item_slug ->
+         {item_slug, Equipment.get_item(item_slug, author)}
+       end)
+    |> Enum.reject(fn {_, item} -> item end)
+    |> Enum.map( fn {item_slug, _} -> item_slug end)
   end
 end

@@ -30,5 +30,19 @@ defmodule DungeonCrawl.Dungeons.DungeonTest do
     refute changeset.valid?
   end
 
+  test "changeset with invalid items in equipment" do
+    user = insert_user(%{name: "me", user_id_hash: "234"})
+    other_user = insert_user(%{name: "other", user_id_hash: "123"})
+    good_item = insert_item(%{user_id: user.id, name: "ok item"})
+    bad_item = insert_item(%{user_id: other_user.id, name: "bad item"})
+
+    starting_equipment = "starting_equipment: not_real #{good_item.slug} #{bad_item.slug}"
+
+    changeset = Dungeon.changeset(%Dungeon{}, Elixir.Map.merge(@valid_attrs, %{user_id: user.id, state: starting_equipment}))
+
+    refute changeset.valid?
+    assert changeset.errors == [base: {"starting_equipment contains invalid items: `[\"not_real\", \"#{bad_item.slug}\"]}`", []}]
+  end
+
   DungeonCrawl.SharedTests.handles_state_variables_and_values_correctly(Dungeon)
 end

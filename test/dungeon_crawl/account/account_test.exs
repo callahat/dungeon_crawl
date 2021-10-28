@@ -25,6 +25,19 @@ defmodule DungeonCrawl.AccountTest do
       assert Account.list_users() == [user]
     end
 
+    test "get_user/1" do
+      user = user_fixture()
+      assert Account.get_user(user.id) == user
+    end
+
+    test "get_user/1 with nil returns nil" do
+      refute Account.get_user(nil)
+    end
+
+    test "get_user!/1 with nil returns nil" do
+      refute Account.get_user!(nil)
+    end
+
     test "get_user!/1 returns the user with given id" do
       user = user_fixture()
       assert Account.get_user!(user.id) == user
