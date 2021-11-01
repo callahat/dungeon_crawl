@@ -23,6 +23,10 @@ defmodule DungeonCrawl.StateValue.ParserTest do
     test "bad state string" do
       assert {:error, "Error parsing around: blaaahhhh"} == Parser.parse("blocking: true, blaaahhhh, good: false")
     end
+
+    test "state item that is equipment" do
+      assert {:ok, %{equipment: ["hand", "saw", "pickaxe"]}} == Parser.parse("equipment: hand saw pickaxe")
+    end
   end
 
   describe "parse!" do
@@ -46,6 +50,10 @@ defmodule DungeonCrawl.StateValue.ParserTest do
 
     test "map with several items" do
       assert "a: 1, b: two, d: false, pasta: spaghetti" == Parser.stringify(%{a: 1, b: "two", d: false, pasta: "spaghetti"})
+    end
+
+    test "map with equipment" do
+      assert "equipment: file cabinet" == Parser.stringify(%{equipment: ["file", "cabinet"]})
     end
   end
 end
