@@ -68,6 +68,26 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, ["Line #{line_no}: CYCLE command has invalid param `#{wait_cycles}`" | errors], user)
   end
 
+  defp _validate(program, [ {line_no, [:equip, [what, who] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:equip, [what, who, nil, nil] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:equip, [what, who, max] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:equip, [what, who, max, nil] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:equip, [_what, who, max, label] ]} | instructions], errors, user) do
+    errors = unless Enum.member?([[:event_sender], [:self]], who) or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
+                    do: ["Line #{line_no}: EQUIP command references invalid direction `#{as_binary who}`" | errors],
+                    else: errors
+    errors = unless is_nil(max) or (is_number(max) and max > 0 || is_tuple(max)),
+                    do: ["Line #{line_no}: EQUIP command has invalid maximum amount `#{max}`" | errors],
+                    else: errors
+    errors = unless is_nil(label) or Program.line_for(program, label),
+                    do: ["Line #{line_no}: EQUIP command references nonexistant label `#{label}`" | errors],
+                    else: errors
+
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
     if @valid_facings |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)

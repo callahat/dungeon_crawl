@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Scripting.Command
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Runner
@@ -36,6 +37,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:cycle) == :cycle
     assert Command.get_command(:die) == :die
     assert Command.get_command(:end) == :halt    # exception to the naming convention, cant "def end do"
+    assert Command.get_command(:equip) == :equip
     assert Command.get_command(:gameover) == :gameover
     assert Command.get_command(:give) == :give
     assert Command.get_command(:go) == :go
@@ -56,6 +58,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:text) == :text
     assert Command.get_command(:transport) == :transport
     assert Command.get_command(:try) == :try
+    assert Command.get_command(:unequip) == :unequip
     assert Command.get_command(:unlock) == :unlock
     assert Command.get_command(:walk) == :walk
     assert Command.get_command(:zap) == :zap
@@ -375,6 +378,82 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     refute updated_tile
     assert [] = program.broadcasts
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
+  end
+
+  test "EQUIP" do
+    Equipment.Seeder.gun()
+    other_item = insert_item(%{name: "other"})
+
+    script = """
+    #END
+    :fullhealth
+    Already at full health
+    """
+    {receiving_tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 1, equipment: gun"})
+    {giver, state} = Levels.create_tile(state, %Tile{id: 3, character: "c", row: 2, col: 1, z_index: 1, state: "thing: #{other_item.slug}", script: script, color: "red"})
+
+    program = program_fixture(script)
+
+    runner_state = %Runner{object_id: giver.id, state: state, program: program}
+
+    # equip state var in direction
+    %Runner{state: %{map_by_ids: map}} = Command.equip(runner_state, [{:state_variable, :thing}, "north"])
+    assert map[receiving_tile.id].parsed_state[:equipment] == [other_item.slug, "gun"]
+
+    # Does nothing when item slug invalid
+    %Runner{state: updated_state} = Command.equip(runner_state, ["noitem", "north"])
+    assert updated_state == state
+
+    # Does nothing when there's no tile, but updates the item slug cache
+    %Runner{state: updated_state} = Command.equip(runner_state, [other_item.slug, "south"])
+    assert updated_state.item_slug_cache["other"].id == other_item.id
+    assert %{updated_state | item_slug_cache: %{}} == state
+
+    # Does nothing when the direction is invalid, but updates the item slug cache
+    %Runner{state: updated_state} = Command.equip(runner_state, [other_item.slug, "norf"])
+    assert updated_state.item_slug_cache["other"].id == other_item.id
+    assert %{updated_state | item_slug_cache: %{}} == state
+
+    # give state var to event sender (tile)
+    %Runner{state: %{map_by_ids: map}} = Command.equip(%{runner_state | event_sender: %{tile_id: receiving_tile.id}},
+      [other_item.slug, [:event_sender]])
+    assert map[receiving_tile.id].parsed_state[:equipment] == [other_item.slug, "gun"]
+
+    # give state var to event sender (player)
+    runner_state_with_player = %{ runner_state |
+      state: %{ runner_state.state |
+        player_locations: %{receiving_tile.id => %Location{tile_instance_id: receiving_tile.id} }}}
+    %Runner{state: %{map_by_ids: map}} = Command.equip(%{runner_state_with_player | event_sender: %Location{tile_instance_id: receiving_tile.id}},
+      [other_item.slug, [:event_sender]])
+    assert map[receiving_tile.id].parsed_state[:equipment] == [other_item.slug, "gun"]
+
+    # give handles null state variable
+    %Runner{state: %{map_by_ids: map}} = Command.equip(%{runner_state_with_player | event_sender: %Location{tile_instance_id: receiving_tile.id}},
+      [{:state_variable, :nonexistant}, [:event_sender]])
+    assert map[receiving_tile.id].parsed_state[:equipment] == ["gun"]
+
+    # Does nothing when there is no event sender
+    %Runner{state: updated_state} = Command.equip(%{runner_state | event_sender: nil}, ["gun", [:event_sender]])
+    assert %{updated_state | item_slug_cache: %{}} == state
+    assert updated_state == state
+
+    # Give up to the max
+    assert map[receiving_tile.id].parsed_state[:equipment] == ["gun"]
+    %Runner{state: %{map_by_ids: map}} = Command.equip(runner_state, [other_item.slug, "north", 1, "fullhealth"])
+    assert map[receiving_tile.id].parsed_state[:equipment] == [other_item.slug, "gun"]
+    updated_runner = Command.equip(runner_state, ["gun", "north", 10])
+    %Runner{state: %{map_by_ids: map}} = Command.equip(updated_runner, ["gun", "north", 10])
+    assert map[receiving_tile.id].parsed_state[:equipment] == ["gun", "gun", "gun"]
+
+    # Give no more than the max
+    %Runner{state: %{map_by_ids: map}} = Command.equip(runner_state, ["gun", "north", 1])
+    assert map[receiving_tile.id].parsed_state[:equipment] == ["gun"]
+
+    # If already at max and there's a label, jump to it
+    %Runner{state: updated_state, program: up} = Command.equip(runner_state, ["gun", "north", 1, "fullhealth"])
+    assert updated_state.map_by_ids[receiving_tile.id].parsed_state[:equipment] == ["gun"]
+    assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
+    assert [] = updated_state.program_messages
   end
 
   test "GAMEOVER" do

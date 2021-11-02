@@ -30,6 +30,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SHIFT clockwise
     #GAMEOVER
     #GAMEOVER false
+    #EQUIP gun, ?sender
     """
   end
 
@@ -121,6 +122,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GAMEOVER blah, ok, nigeria
     #GAMEOVER true, WIN
     &ALL ++= 42
+    #EQUIP gun, norf, banana, nigeria
     """
   end
 
@@ -202,6 +204,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
                "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
                "Line 86: CHANGE command ++ takes only one operand, got `= 42`",
+               "Line 87: EQUIP command references invalid direction `norf`",
+               "Line 87: EQUIP command has invalid maximum amount `banana`",
+               "Line 87: EQUIP command references nonexistant label `nigeria`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -258,6 +263,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
                "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
                "Line 86: CHANGE command ++ takes only one operand, got `= 42`",
+               "Line 87: EQUIP command references invalid direction `norf`",
+               "Line 87: EQUIP command has invalid maximum amount `banana`",
+               "Line 87: EQUIP command references nonexistant label `nigeria`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end
