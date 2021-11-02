@@ -37,6 +37,7 @@ let Player = {
 
     playerChannel.join()
       .receive("ok", (resp) => {
+        console.log("joined the players channel!")
         levelJs.renderMessage("Entered the level")
 
         playerChannel.push("refresh_level", {})

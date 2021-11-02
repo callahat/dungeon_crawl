@@ -40,6 +40,7 @@ let commands = [
     "cycle",
     "die",
     "end",
+    "equip",
     "facing",
     "gameover",
     "give",

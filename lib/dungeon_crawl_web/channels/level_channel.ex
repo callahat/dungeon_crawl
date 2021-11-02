@@ -182,14 +182,17 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
     {:reply, :ok, socket}
   end
-
   def handle_in("speak", %{"words" => words}, socket) do
     {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     instance_state = LevelProcess.get_state(instance)
     {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
-
     safe_words = \
-    case String.split(words, ~r/^\/(?:level|dungeon)\b/, include_captures: true, trim: true, parts: 2) do
+    case String.split(words, ~r/^\/(?:level|dungeon|items)\b/, include_captures: true, trim: true, parts: 2) do
+      ["/items"] ->
+        msg = "* Equipment: #{ Enum.join(player_tile.parsed_state[:equipment] || [], ", ")}"
+        _send_message_to_player([player_location.id], msg)
+        ""
+
       ["/level", words] ->
         {:safe, safe_words} = html_escape String.trim(words)
         _send_message_to_other_players_in_instance(player_location, safe_words, instance_state)

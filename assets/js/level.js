@@ -92,7 +92,7 @@ let Level = {
 
     this.levelChannel.join()
       .receive("ok", (resp) => {
-        console.log("joined the dungeons channel!")
+        console.log("joined the levels channel!")
       })
       .receive("error", resp => console.log("join failed", resp))
   },
@@ -239,6 +239,10 @@ let Level = {
                        .receive("error", e => console.log(e))
   },
   sendMessage(){
+    if(this.sendingMessage) { return }
+
+    this.sendingMessage = true
+
     let words = document.getElementById("message_field").value.trim(),
         payload
     if(words != ""){
@@ -246,11 +250,15 @@ let Level = {
       this.levelChannel.push("speak", payload)
         .receive("error", resp => this.renderMessage("Could not send message") )
         .receive("ok", resp => {
-                         this.renderMessage("<b>Me:</b> " + resp.safe_words)
+                         if(resp.safe_words != "") {
+                           this.renderMessage("<b>Me:</b> " + resp.safe_words)
+                         }
                          document.getElementById("message_field").value = ""
+                         this.sendingMessage = false
                        } )
     } else {
       document.getElementById("message_field").value = ""
+      this.sendingMessage = false
     }
   },
   tileFogger(tiles){
@@ -320,7 +328,8 @@ let Level = {
   typing: false,
   textLinks: null,
   textLinkPointer: null,
-  fadeTimeout: null
+  fadeTimeout: null,
+  sendingMessage: false
 }
 
 export default Level
