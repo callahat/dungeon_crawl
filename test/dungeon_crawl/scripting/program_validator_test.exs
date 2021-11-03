@@ -31,6 +31,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GAMEOVER
     #GAMEOVER false
     #EQUIP gun, ?sender
+    #EQUIP gun, ?sender, 2
+    #UNEQUIP gun, north, MORE
     """
   end
 
@@ -123,6 +125,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GAMEOVER true, WIN
     &ALL ++= 42
     #EQUIP gun, norf, banana, nigeria
+    #UNEQUIP gun, norf, nigeria
     """
   end
 
@@ -207,6 +210,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 87: EQUIP command references invalid direction `norf`",
                "Line 87: EQUIP command has invalid maximum amount `banana`",
                "Line 87: EQUIP command references nonexistant label `nigeria`",
+               "Line 88: UNEQUIP command references invalid direction `norf`",
+               "Line 88: UNEQUIP command references nonexistant label `nigeria`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -266,6 +271,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 87: EQUIP command references invalid direction `norf`",
                "Line 87: EQUIP command has invalid maximum amount `banana`",
                "Line 87: EQUIP command references nonexistant label `nigeria`",
+               "Line 88: UNEQUIP command references invalid direction `norf`",
+               "Line 88: UNEQUIP command references nonexistant label `nigeria`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

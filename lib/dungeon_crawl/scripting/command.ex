@@ -392,22 +392,13 @@ defmodule DungeonCrawl.Scripting.Command do
     _equip(runner_state, [what, to_whom, max, label])
   end
 
-  defp _equip(%Runner{event_sender: event_sender} = runner_state, [what, [:event_sender], max, label]) do
-    case event_sender do
-      %{tile_id: id} -> _equip(runner_state, [what, id, max, label])
-
-      %Location{tile_instance_id: id} -> _equip(runner_state, [what, id, max, label])
-
-      nil -> runner_state
-    end
-  end
-
   defp _equip(%Runner{object_id: object_id, state: state} = runner_state, [%Item{} = what, target, max, label]) do
     target = resolve_variable(runner_state, target)
     if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
       _equip_via_id(runner_state, [what, target, max, label])
     else
-      with direction when is_valid_orthogonal(direction) <- target,
+      with false <- is_nil(target),
+           direction when is_valid_orthogonal(direction) <- target,
            object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
            tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
         _equip_via_id(runner_state, [what, tile.id, max, label])
@@ -548,22 +539,13 @@ defmodule DungeonCrawl.Scripting.Command do
     _give(runner_state, [what, amount, to_whom, max, label])
   end
 
-  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender], max, label]) do
-    case event_sender do
-      %{tile_id: id} -> _give(runner_state, [what, amount, id, max, label])
-
-      %Location{tile_instance_id: id} -> _give(runner_state, [what, amount, id, max, label])
-
-      nil              -> runner_state
-    end
-  end
-
   defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, target, max, label]) do
     target = resolve_variable(runner_state, target)
     if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
       _give_via_id(runner_state, [what, amount, target, max, label])
     else
-      with direction when is_valid_orthogonal(direction) <- target,
+      with false <- is_nil(target),
+           direction when is_valid_orthogonal(direction) <- target,
            object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
            tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
         _give_via_id(runner_state, [what, amount, tile.id, max, label])
@@ -1577,22 +1559,13 @@ defmodule DungeonCrawl.Scripting.Command do
     _take(runner_state, what, amount, from_whom, label)
   end
 
-  defp _take(%Runner{event_sender: event_sender} = runner_state, what, amount, [:event_sender], label) do
-    case event_sender do
-      %{tile_id: id} -> _take(runner_state, what, amount, id, label)
-
-      %Location{tile_instance_id: id} -> _take(runner_state, what, amount, id, label)
-
-      nil              -> runner_state
-    end
-  end
-
   defp _take(%Runner{state: state, object_id: object_id} = runner_state, what, amount, target, label) do
     target = resolve_variable(runner_state, target)
     if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
       _take_via_id(runner_state, what, amount, target, label)
     else
-      with direction when is_valid_orthogonal(direction) <- target,
+      with false <- is_nil(target),
+           direction when is_valid_orthogonal(direction) <- target,
            object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
            tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
         _take_via_id(runner_state, what, amount, tile.id, label)
@@ -1851,6 +1824,78 @@ defmodule DungeonCrawl.Scripting.Command do
   """
   def try(runner_state, [direction]) do
     move(runner_state, [direction, false])
+  end
+
+
+  @doc """
+  Takes from a tile an equippable item. This will remove the item slug to the tiles `equipment` list,
+  and clears the `equipped_item` if the tile no longer has any of that slug in its `equipment` list.
+  If the item_slug is invalid, this command will do nothing.
+  The first parameter is the item_slug, second parameter is from whom to take the equipment.
+  The third parameter is the label to jump to if the tile does not have this item.
+  """
+  def unequip(%Runner{} = runner_state, [what, to_whom]) do
+    _unequip(runner_state, [what, to_whom, nil])
+  end
+
+  def unequip(%Runner{} = runner_state, [what, to_whom, label]) do
+    _unequip(runner_state, [what, to_whom, label])
+  end
+
+  defp _unequip(%Runner{object_id: object_id, state: state} = runner_state, [%Item{} = what, target, label]) do
+    target = resolve_variable(runner_state, target)
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      _unequip_via_id(runner_state, [what, target, label])
+    else
+      with false <- is_nil(target),
+           direction when is_valid_orthogonal(direction) <- target,
+           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
+           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
+        _unequip_via_id(runner_state, [what, tile.id, label])
+      else
+        _ ->
+          runner_state
+      end
+    end
+  end
+
+  defp _unequip(%Runner{state: state} = runner_state, [what, to_whom, label]) do
+    item_slug = resolve_variable(runner_state, what)
+
+    case Levels.get_item(item_slug, state) do
+      {item, _state, :exists} -> _unequip(runner_state, [item, to_whom, label])
+      {item, state, :created} -> _unequip(%{runner_state | state: state}, [item, to_whom, label])
+      _ -> runner_state
+    end
+  end
+
+  defp _unequip_via_id(%Runner{state: state, program: program} = runner_state, [item, id, label]) do
+    loser = Levels.get_tile_by_id(state, %{id: id})
+
+    equipment = loser.parsed_state[:equipment] || []
+    updated_equipment = equipment -- [item.slug]
+
+    count = Enum.reduce(updated_equipment, 0,
+      fn(i,acc) -> if i == item.slug, do: acc + 1, else: acc end)
+
+    cond do
+      loser && count > 0 ->
+        {_loser, state} = Levels.update_tile_state(state, loser, %{equipment: updated_equipment})
+        %{ runner_state | state: state }
+
+      loser && count == 0 && length(equipment -- updated_equipment) == 1 ->
+        equipped_item = Enum.at(updated_equipment, 0)
+        tile_state_changes = %{equipment: updated_equipment, equipped_item: equipped_item}
+        {_loser, state} = Levels.update_tile_state(state, loser, tile_state_changes)
+        %{ runner_state | state: state }
+
+      label ->
+        updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+        %{ runner_state | state: state, program: updated_program }
+
+      true ->
+        runner_state
+    end
   end
 
   @doc """

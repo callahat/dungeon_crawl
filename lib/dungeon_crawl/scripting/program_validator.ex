@@ -346,6 +346,20 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:unequip, [what, who] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:unequip, [what, who, nil] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:unequip, [_what, who, label] ]} | instructions], errors, user) do
+    errors = unless Enum.member?([[:event_sender], [:self]], who) or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
+                    do: ["Line #{line_no}: UNEQUIP command references invalid direction `#{as_binary who}`" | errors],
+                    else: errors
+    errors = unless is_nil(label) or Program.line_for(program, label),
+                    do: ["Line #{line_no}: UNEQUIP command references nonexistant label `#{label}`" | errors],
+                    else: errors
+
+    _validate(program, instructions, errors, user)
+  end
+
   defp _validate(program, [ {line_no, [:zap, [label] ]} | instructions], errors, user) do
     if program.labels[String.downcase(label)] do
       _validate(program, instructions, errors, user)

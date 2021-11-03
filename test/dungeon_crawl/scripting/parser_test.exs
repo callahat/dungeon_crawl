@@ -111,6 +111,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF &di_thing > 10, TOUCH
                #GAMEOVER
                #EQUIP gun, ?sender, 1, TOUCH
+               #UNEQUIP gun, south, TOUCH
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -190,6 +191,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  75 => [:jump_if, [[{:dungeon_instance_state_variable, :di_thing}, ">", 10], "TOUCH"]],
                                                  76 => [:gameover, [""]],
                                                  77 => [:equip, ["gun", [:event_sender], 1, "TOUCH"]],
+                                                 78 => [:unequip, ["gun", "south", "TOUCH"]],
                                                  },
                                  status: :alive,
                                  pc: 1,

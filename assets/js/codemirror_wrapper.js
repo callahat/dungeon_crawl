@@ -67,6 +67,7 @@ let commands = [
     "text",
     "transport",
     "try",
+    "unequip",
     "unlock",
     "walk",
     "zap"
