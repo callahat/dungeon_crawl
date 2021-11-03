@@ -392,21 +392,8 @@ defmodule DungeonCrawl.Scripting.Command do
     _equip(runner_state, [what, to_whom, max, label])
   end
 
-  defp _equip(%Runner{object_id: object_id, state: state} = runner_state, [%Item{} = what, target, max, label]) do
-    target = resolve_variable(runner_state, target)
-    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _equip_via_id(runner_state, [what, target, max, label])
-    else
-      with false <- is_nil(target),
-           direction when is_valid_orthogonal(direction) <- target,
-           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
-           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
-        _equip_via_id(runner_state, [what, tile.id, max, label])
-      else
-        _ ->
-          runner_state
-      end
-    end
+  defp _equip(%Runner{} = runner_state, [%Item{} = what, target, max, label]) do
+    _via_helper(runner_state, %{what: what, target: target, max: max, label: label}, &_equip_via_id/2)
   end
 
   defp _equip(%Runner{state: state} = runner_state, [what, to_whom, max, label]) do
@@ -419,7 +406,8 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _equip_via_id(%Runner{state: state, program: program} = runner_state, [item, id, max, label]) do
+  defp _equip_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: item, target: id, max: max, label: label} = data
     max = resolve_variable(runner_state, max)
     receiver = Levels.get_tile_by_id(state, %{id: id})
 
@@ -539,24 +527,12 @@ defmodule DungeonCrawl.Scripting.Command do
     _give(runner_state, [what, amount, to_whom, max, label])
   end
 
-  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, target, max, label]) do
-    target = resolve_variable(runner_state, target)
-    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _give_via_id(runner_state, [what, amount, target, max, label])
-    else
-      with false <- is_nil(target),
-           direction when is_valid_orthogonal(direction) <- target,
-           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
-           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
-        _give_via_id(runner_state, [what, amount, tile.id, max, label])
-      else
-        _ ->
-          runner_state
-      end
-    end
+  defp _give(%Runner{} = runner_state, [what, amount, target, max, label]) do
+    _via_helper(runner_state, %{what: what, amount: amount, target: target, max: max, label: label}, &_give_via_id/2)
   end
 
-  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, id, max, label]) do
+  defp _give_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: what, amount: amount, target: id, max: max, label: label} = data
     amount = resolve_variable(runner_state, amount)
     what = resolve_variable(runner_state, what)
 
@@ -1559,24 +1535,12 @@ defmodule DungeonCrawl.Scripting.Command do
     _take(runner_state, what, amount, from_whom, label)
   end
 
-  defp _take(%Runner{state: state, object_id: object_id} = runner_state, what, amount, target, label) do
-    target = resolve_variable(runner_state, target)
-    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _take_via_id(runner_state, what, amount, target, label)
-    else
-      with false <- is_nil(target),
-           direction when is_valid_orthogonal(direction) <- target,
-           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
-           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
-        _take_via_id(runner_state, what, amount, tile.id, label)
-      else
-        _ ->
-          runner_state
-      end
-    end
+  defp _take(%Runner{} = runner_state, what, amount, target, label) do
+    _via_helper(runner_state, %{what: what, amount: amount, target: target, label: label}, &_take_via_id/2)
   end
 
-  defp _take_via_id(%Runner{state: state, program: program} = runner_state, what, amount, id, label) do
+  defp _take_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: what, amount: amount, target: id, label: label} = data
     amount = resolve_variable(runner_state, amount)
     what = resolve_variable(runner_state, what)
 
@@ -1842,21 +1806,8 @@ defmodule DungeonCrawl.Scripting.Command do
     _unequip(runner_state, [what, to_whom, label])
   end
 
-  defp _unequip(%Runner{object_id: object_id, state: state} = runner_state, [%Item{} = what, target, label]) do
-    target = resolve_variable(runner_state, target)
-    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _unequip_via_id(runner_state, [what, target, label])
-    else
-      with false <- is_nil(target),
-           direction when is_valid_orthogonal(direction) <- target,
-           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
-           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
-        _unequip_via_id(runner_state, [what, tile.id, label])
-      else
-        _ ->
-          runner_state
-      end
-    end
+  defp _unequip(%Runner{} = runner_state, [%Item{} = what, target, label]) do
+    _via_helper(runner_state, %{what: what, target: target, label: label}, &_unequip_via_id/2)
   end
 
   defp _unequip(%Runner{state: state} = runner_state, [what, to_whom, label]) do
@@ -1869,7 +1820,8 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  defp _unequip_via_id(%Runner{state: state, program: program} = runner_state, [item, id, label]) do
+  defp _unequip_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: item, target: id, label: label} = data
     loser = Levels.get_tile_by_id(state, %{id: id})
 
     equipment = loser.parsed_state[:equipment] || []
@@ -1988,6 +1940,23 @@ defmodule DungeonCrawl.Scripting.Command do
       [ [line_number, !active] | labels]
     else
       [ [line_number, active] | _label_toggle(labels, toggle_value)]
+    end
+  end
+
+  defp _via_helper(%Runner{object_id: object_id, state: state} = runner_state, %{target: target} = data, via_function) do
+    target = resolve_variable(runner_state, target)
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      via_function.(runner_state, %{data | target: target})
+    else
+      with false <- is_nil(target),
+           direction when is_valid_orthogonal(direction) <- target,
+           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
+           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
+        via_function.(runner_state, %{data | target: tile.id})
+      else
+        _ ->
+          runner_state
+      end
     end
   end
 end

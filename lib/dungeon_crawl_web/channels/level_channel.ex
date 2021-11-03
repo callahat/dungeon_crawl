@@ -182,6 +182,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
     {:reply, :ok, socket}
   end
+
   def handle_in("speak", %{"words" => words}, socket) do
     {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     instance_state = LevelProcess.get_state(instance)
