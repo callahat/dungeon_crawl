@@ -6,9 +6,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.Levels
 
+  alias DungeonCrawl.Equipment
+
   @user_id_hash "goodhash"
 
   setup do
+    Equipment.Seeder.gun()
+
     instance = insert_stubbed_level_instance(%{},
       [%Tile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: "blocking: false"},
        %Tile{name: "Floor", character: ".", row: 2, col: 3, z_index: 0, state: "blocking: false"}])
@@ -16,7 +20,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     player_location = insert_player_location(%{level_instance_id: instance.id,
                                                row: 23,
                                                col: 24,
-                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3",
+                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: gun, equipment: gun",
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 
@@ -34,7 +38,15 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/2", %{state: state, player_tile: player_tile} do
-    assert %{ammo: 4, cash: 420, gems: 1, health: 100, keys: keys, torches: 1, torch_light: torch_light} =
+    assert %{ammo: 4,
+             cash: 420,
+             gems: 1,
+             health: 100,
+             keys: keys,
+             torches: 1,
+             torch_light: torch_light,
+             equipped: ["gun", "Gun"],
+             equipment: [["gun", "Gun"]]} =
              Player.current_stats(state, player_tile)
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" == keys
     assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light
@@ -45,7 +57,15 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/1" do
-    assert %{ammo: 4, cash: 420, gems: 1, health: 100, keys: keys} = Player.current_stats(@user_id_hash)
+    assert stats = Player.current_stats(@user_id_hash)
+    assert %{ammo: 4,
+             cash: 420,
+             gems: 1,
+             health: 100,
+             keys: keys,
+             equipped: ["gun", "Gun"]} = stats
+    refute stats[:equipment]
+
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" = keys
   end
 

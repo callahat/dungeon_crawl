@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.DungeonProcesses.Player do
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
@@ -8,12 +9,23 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   @stats [:health, :gems, :cash, :ammo, :score, :lives, :torches]
 
   @doc """
-  Returns the current stats (health, gems, cash, ammo, torches, torch_light) for the player.
+  Returns the current stats (health, gems, cash, ammo, torches, torch_light, etc) for the player.
   When the instance state object is already available, that along with the player
   tile should be used to get the player stats.
   When only the player location is available, or an instance state is not already available
   (ie, stats are needed outside of `LevelProcess.run_with` or outside of a `Command` method)
   a `user_id_hash` should be used along to get the stats for that player's current location.
+  `equipped` will be populated with a list of [<slug>, <name>] from the item, and is returned
+  for both forms of `current_stats`. `equipment` is included when an instance state and player_tile
+  are given, and will be a list of [<slug>, <name>] tuples for the player tile's current equipment.
+
+  ## Examples
+
+      iex> current_stats(%Levels{}, player_tile)
+      %{health: 100, gems: 0, ... , equipped: {"gun", "Gun"}, equipment: [{"gun", "Gun"}, {"hands", "Fisticuffs"}]}
+
+      iex> current_stats("useridhash123")
+      %{health: 100, gems: 0, ... , equipped: {"gun", "Gun"}}
   """
   def current_stats(%Levels{} = state, %{id: tile_id} = _player_tile) do
     case Levels.get_tile_by_id(state, %{id: tile_id}) do
@@ -21,6 +33,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
         %{}
       player_tile ->
         _current_stats(player_tile)
+        |> _with_equipped_and_equipment(player_tile, state)
     end
   end
 
@@ -31,6 +44,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
          {:ok, instance_process} <- Registrar.instance_process(player_level_instance.dungeon_instance_id, player_level_instance.id),
          player_tile when not is_nil(player_tile) <- LevelProcess.get_tile(instance_process, player_location.tile_instance_id) do
       _current_stats(player_tile)
+      |> _with_equipped(player_tile)
     else
       _ ->
         %{}
@@ -69,6 +83,25 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
       chars = String.duplicate("█", meter_length) <> String.duplicate("░", 6 - meter_length)
       "<pre class='tile_template_preview'><span class='torch-bar'>#{chars}</span></pre>"
     end
+  end
+
+  def _with_equipped_and_equipment(stats, player_tile, state) do
+    {equipped, _, _} = Levels.get_item(player_tile.parsed_state[:equipped], state)
+    equipment = (player_tile.parsed_state[:equipment] || [])
+                |> Enum.map(fn item_slug ->
+                     {item, _, _} = Levels.get_item(item_slug, state)
+                     item
+                   end)
+                |> Enum.reject(&(is_nil(&1)))
+                |> Enum.map(fn item -> [item.slug, item.name] end)
+
+    Map.merge(stats, %{equipped: equipped && [equipped.slug, equipped.name],
+                       equipment: equipment })
+  end
+
+  def _with_equipped(stats, player_tile) do
+    equipped = Equipment.get_item(player_tile.parsed_state[:equipped])
+    Map.put(stats, :equipped, equipped && [equipped.slug, equipped.name])
   end
 
   @doc """

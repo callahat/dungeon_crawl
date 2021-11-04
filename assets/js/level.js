@@ -131,6 +131,9 @@ let Level = {
       keysPressed[direction] = true
 
       switch(direction){
+        case(69): // e
+          $('#messageModal').modal('show')
+          break
         case(72): // h
           $('#helpDetailModal').modal('show')
           break
@@ -329,7 +332,8 @@ let Level = {
   textLinks: null,
   textLinkPointer: null,
   fadeTimeout: null,
-  sendingMessage: false
+  sendingMessage: false,
+  equippableItems: [],
 }
 
 export default Level

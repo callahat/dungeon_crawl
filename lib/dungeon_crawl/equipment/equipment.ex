@@ -57,6 +57,7 @@ defmodule DungeonCrawl.Equipment do
       iex> get_item("slug_thing", %Account.User{username: "someone else})
       nil
   """
+  def get_item(nil), do: nil
   def get_item(id) when is_integer(id), do: Repo.get(Item, id)
   def get_item(slug), do: Repo.get_by(Item, %{slug: slug})
   def get_item!(id) when is_integer(id), do: Repo.get!(Item, id)
