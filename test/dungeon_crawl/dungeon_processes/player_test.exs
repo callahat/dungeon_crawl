@@ -38,6 +38,11 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/2", %{state: state, player_tile: player_tile} do
+    zap_item = insert_item(%{name: "Zapper"})
+    other_item = insert_item(%{name: "Other Item"})
+
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipment: [zap_item.slug, other_item.slug]})
+
     assert %{ammo: 4,
              cash: 420,
              gems: 1,
@@ -46,8 +51,11 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              torches: 1,
              torch_light: torch_light,
              equipped: "Gun",
-             equipment: ["<span class='btn-link messageLink' data-item-slug='gun'>▶Gun</span>"]} =
-             Player.current_stats(state, player_tile)
+             equipment: [
+               "<span>-Gun (Equipped)</span>",
+               "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
+               "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item</span>"]
+           } = Player.current_stats(state, player_tile)
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" == keys
     assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light
   end

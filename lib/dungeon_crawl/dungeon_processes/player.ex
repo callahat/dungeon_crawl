@@ -87,15 +87,20 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   def _with_equipped_and_equipment(stats, player_tile, state) do
     {equipped, _, _} = Levels.get_item(player_tile.parsed_state[:equipped], state)
-    equipment = (player_tile.parsed_state[:equipment] || [])
+    equipped_slug = equipped && equipped.slug
+    equipped_name = equipped && equipped.name
+    equipment = ((player_tile.parsed_state[:equipment] || []) -- [equipped_slug])
                 |> Enum.map(fn item_slug ->
                      {item, _, _} = Levels.get_item(item_slug, state)
                      item
                    end)
                 |> Enum.reject(&(is_nil(&1)))
                 |> Enum.map(fn item -> _item_span_decorator(item) end)
+    equipment = if is_nil(equipped),
+                   do: equipment,
+                   else: ["<span>-#{ equipped_name } (Equipped)</span>" | equipment]
 
-    Map.merge(stats, %{equipped: equipped && equipped.name,
+    Map.merge(stats, %{equipped: equipped_name,
                        equipment: equipment })
   end
 
