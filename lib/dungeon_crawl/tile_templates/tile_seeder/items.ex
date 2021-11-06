@@ -53,6 +53,29 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     })
   end
 
+  def fireball_wand do
+    TileTemplates.update_or_create_tile_template!(
+      "fireball_wand",
+      %{character: "/",
+        name: "Fireball Wand",
+        description: "A wand you can use to shoot fireballs",
+        state: "blocking: false, soft: true, pushable: true, blocking_light: false",
+        color: "brown",
+        public: true,
+        active: true,
+        group_name: "items",
+        script: """
+        :main
+        #end
+        :touch
+        #if ! ?sender@player, main
+        You found a magic wand!
+        #equip fireball_wand, ?sender
+        #die
+        """
+      })
+  end
+
   def gem do
     TileTemplates.update_or_create_tile_template!(
       "gem",
@@ -176,6 +199,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     quote do
       def ammo(), do: unquote(__MODULE__).ammo()
       def cash(), do: unquote(__MODULE__).cash()
+      def fireball_wand(), do: unquote(__MODULE__).fireball_wand()
       def gem(), do: unquote(__MODULE__).gem()
       def heart(), do: unquote(__MODULE__).heart()
       def medkit(), do: unquote(__MODULE__).medkit()

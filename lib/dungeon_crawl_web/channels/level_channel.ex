@@ -100,7 +100,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
     _motion(direction, &Move.go/3, socket)
   end
 
-  def handle_in("message_action", %{"item_slug" => item_slug}, socket) do
+  def handle_in("message_action", %{"item_slug" => item_slug}, socket) when not is_nil(item_slug) do
     {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
     LevelProcess.run_with(instance, fn (instance_state) ->
       with {player_location, player_tile} when not is_nil(player_location) <-

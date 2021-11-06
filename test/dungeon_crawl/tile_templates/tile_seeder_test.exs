@@ -82,6 +82,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
   test "items" do
     assert TileSeeder.ammo
     assert TileSeeder.cash
+    assert TileSeeder.fireball_wand()
     assert TileSeeder.gem
     assert TileSeeder.heart
     assert TileSeeder.medkit
@@ -89,6 +90,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     assert TileSeeder.torch
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Ammo")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Cash")
+    assert Repo.one(from tt in TileTemplate, where: tt.name == "Fireball Wand")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Gem")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "Heart")
     assert Repo.one(from tt in TileTemplate, where: tt.name == "MedKit")
@@ -178,11 +180,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
     initial_count = Repo.one(from t in TileTemplate, select: count(t.id))
     TileSeeder.seed_all()
     seeded_count = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count - initial_count == 80
+    assert seeded_count - initial_count == 81
 
     # does not add the seeds again
     TileSeeder.seed_all()
     seeded_count2 = Repo.one(from t in TileTemplate, select: count(t.id))
-    assert seeded_count2 - initial_count == 80
+    assert seeded_count2 - initial_count == 81
   end
 end

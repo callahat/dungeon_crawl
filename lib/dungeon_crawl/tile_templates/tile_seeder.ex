@@ -46,6 +46,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     # items
     ammo()
     cash()
+    fireball_wand()
     gem()
     heart()
     medkit()
