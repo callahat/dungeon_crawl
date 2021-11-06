@@ -42,6 +42,25 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
     })
   end
 
+  def fireball() do
+    TileTemplates.update_or_create_tile_template!(
+      "fireball",
+      %{character: "◦",
+        name: "Fireball",
+        description: "Its a bullet.",
+        state: "blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2",
+        color: "orange",
+        active: true,
+        script: """
+        :MAIN
+        #WALK @facing
+        :THUD
+        #PUT slug: explosion, shape: circle, range: 2, damage: 10, owner: @owner
+        #DIE
+        """
+      })
+  end
+
   def explosion do
     TileTemplates.update_or_create_tile_template!(
       "explosion",
@@ -164,6 +183,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
     quote do
       def bomb(), do: unquote(__MODULE__).bomb()
       def explosion(), do: unquote(__MODULE__).explosion()
+      def fireball(), do: unquote(__MODULE__).fireball()
       def smoke(), do: unquote(__MODULE__).smoke()
       def star(), do: unquote(__MODULE__).star()
       def star_emitter(), do: unquote(__MODULE__).star_emitter()

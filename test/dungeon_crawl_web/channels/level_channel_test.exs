@@ -307,6 +307,28 @@ defmodule DungeonCrawl.LevelChannelTest do
         topic: ^player_channel }
   end
 
+  test "message_action handles an equipped item change", %{socket: socket, player_location: player_location, instance: instance} do
+    item = insert_item(%{name: "Cool Thing"})
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      Levels.update_tile_state(instance_state, player_tile, %{equipment: [item.slug]})
+    end)
+
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+    push socket, "message_action", %{"item_slug" => item.slug}
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "stat_update",
+      payload: %{stats: %{equipped: "Cool Thing"}}}
+
+    # when the message is not valid for the player to send, nothing happens
+    push socket, "message_action", %{"item_slug" => "invalid item"}
+    refute_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel }
+  end
+
   test "message_action handles bad inbound messages ok", %{socket: socket, player_location: player_location} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)

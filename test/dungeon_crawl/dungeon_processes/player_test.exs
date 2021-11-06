@@ -45,8 +45,8 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              keys: keys,
              torches: 1,
              torch_light: torch_light,
-             equipped: ["gun", "Gun"],
-             equipment: [["gun", "Gun"]]} =
+             equipped: "Gun",
+             equipment: ["<span class='btn-link messageLink' data-item-slug='gun'>▶Gun</span>"]} =
              Player.current_stats(state, player_tile)
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" == keys
     assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light
@@ -63,7 +63,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              gems: 1,
              health: 100,
              keys: keys,
-             equipped: ["gun", "Gun"]} = stats
+             equipped: "Gun"} = stats
     refute stats[:equipment]
 
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" = keys

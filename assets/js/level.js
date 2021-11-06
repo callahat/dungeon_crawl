@@ -82,9 +82,10 @@ let Level = {
       multilineMessageEl.addEventListener('click', (e) => {
         if(e.target.matches(".messageLink")){
           let label = e.target.getAttribute("data-label"),
-              tile_id = e.target.getAttribute("data-tile-id")
+              tile_id = e.target.getAttribute("data-tile-id"),
+              item_slug = e.target.getAttribute("data-item-slug")
           $('#messageModal').modal('hide')
-          this.levelChannel.push("message_action", {label: label, tile_id: tile_id})
+          this.levelChannel.push("message_action", {label: label, tile_id: tile_id, item_slug: item_slug})
           multilineMessageEl.innerHTML = ""
         }
       })
@@ -132,6 +133,7 @@ let Level = {
 
       switch(direction){
         case(69): // e
+          this.renderMessageModal(["Equippable Items:"].concat(this.equippableItems))
           $('#messageModal').modal('show')
           break
         case(72): // h

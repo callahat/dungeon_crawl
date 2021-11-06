@@ -318,7 +318,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   values already in the state. An existing state attribute (ie, `blocking`) that is not
   included in this map will be unaffected.
   """
-  @ignorable_state_attrs [:entry_row, :entry_col]
+  @ignorable_state_attrs [:entry_row, :entry_col, :steps, :already_touched]
   def update_tile_state(%Levels{map_by_ids: by_id} = state, %{id: tile_id}, state_attributes) do
     tile = by_id[tile_id]
     state_str = StateValue.Parser.stringify(Map.merge(tile.parsed_state, state_attributes))

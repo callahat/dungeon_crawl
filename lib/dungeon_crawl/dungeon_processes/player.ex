@@ -93,15 +93,19 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                      item
                    end)
                 |> Enum.reject(&(is_nil(&1)))
-                |> Enum.map(fn item -> [item.slug, item.name] end)
+                |> Enum.map(fn item -> _item_span_decorator(item) end)
 
-    Map.merge(stats, %{equipped: equipped && [equipped.slug, equipped.name],
+    Map.merge(stats, %{equipped: equipped && equipped.name,
                        equipment: equipment })
   end
 
   def _with_equipped(stats, player_tile) do
     equipped = Equipment.get_item(player_tile.parsed_state[:equipped])
-    Map.put(stats, :equipped, equipped && [equipped.slug, equipped.name])
+    Map.put(stats, :equipped, equipped && equipped.name)
+  end
+
+  def _item_span_decorator(item) do
+    "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name }</span>"
   end
 
   @doc """

@@ -65,6 +65,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # ordinance
     bomb()
+    fireball()
     explosion()
     smoke()
     star()

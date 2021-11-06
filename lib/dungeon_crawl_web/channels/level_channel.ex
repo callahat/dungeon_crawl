@@ -100,6 +100,22 @@ defmodule DungeonCrawlWeb.LevelChannel do
     _motion(direction, &Move.go/3, socket)
   end
 
+  def handle_in("message_action", %{"item_slug" => item_slug}, socket) do
+    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      with {player_location, player_tile} when not is_nil(player_location) <-
+             _player_location_and_tile(instance_state, socket.assigns.user_id_hash),
+           true <- Enum.member?(player_tile.parsed_state[:equipment] || [], item_slug),
+           {item, instance_state, _} when not is_nil(item) <- Levels.get_item(item_slug, instance_state) do
+        Levels.update_tile_state(instance_state, player_tile, %{equipped: item_slug})
+      else
+        _ -> {:ok, instance_state}
+      end
+    end)
+
+    {:noreply, socket}
+  end
+
   def handle_in("message_action", %{"label" => label, "tile_id" => tile_id}, socket) do
     tile_id = case Integer.parse(tile_id) do
                 {tile_id, ""} -> tile_id
@@ -189,11 +205,6 @@ defmodule DungeonCrawlWeb.LevelChannel do
     {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
     safe_words = \
     case String.split(words, ~r/^\/(?:level|dungeon|items)\b/, include_captures: true, trim: true, parts: 2) do
-      ["/items"] ->
-        msg = "* Equipment: #{ Enum.join(player_tile.parsed_state[:equipment] || [], ", ")}"
-        _send_message_to_player([player_location.id], msg)
-        ""
-
       ["/level", words] ->
         {:safe, safe_words} = html_escape String.trim(words)
         _send_message_to_other_players_in_instance(player_location, safe_words, instance_state)
