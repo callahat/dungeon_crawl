@@ -129,7 +129,7 @@ defmodule DungeonCrawl.Player do
                                     else: equipment
 
     equipped = "equipped: #{Enum.at(equipment, 0)}"
-    equipment = "equipment: #{Enum.join(equipment, " ")}"
+    equipment = "equipment: #{Enum.join(equipment, " ")}, starting_equipment: #{Enum.join(equipment, " ")}"
 
     tile_state = Enum.join([player_tile.state, equipped, equipment], ", ")
 

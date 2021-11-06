@@ -131,9 +131,22 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                nil    -> 1
                deaths -> deaths + 1
              end
+
+    starting_equipment = String.split(player_tile.parsed_state[:starting_equipment] || "")
+
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
-                |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, torches: 0, torch_light: 0, buried: true, deaths: deaths})
+                |> Map.merge(%{pushable: false,
+                               health: 0,
+                               gems: 0,
+                               cash: 0,
+                               ammo: 0,
+                               torches: 0,
+                               torch_light: 0,
+                               buried: true,
+                               deaths: deaths,
+                               equipment: starting_equipment,
+                               equipped: Enum.at(starting_equipment || [], 0)})
     {player_tile, state} = Levels.update_tile_state(state, player_tile, new_state)
 
     script_fn = fn items -> """
@@ -189,6 +202,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _spawn_loot_tile(%Levels{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
+    # items that really are stored as state variables
     items_stolen = Map.take(original_state, [:gems, :cash, :ammo, :torches])
                    |> Map.to_list
                    |> Enum.concat(_door_keys(original_state))
@@ -197,8 +211,18 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                         [ ["Found #{count} #{item}" | words],
                           ["#GIVE #{item}, #{count}, ?sender" | gives] ]
                       end)
-                   |> Enum.flat_map(&(&1))
-                   |> Enum.join("\n")
+
+    # add the equippable items
+    items_stolen = ((original_state[:equipment] || []) -- (player_tile.parsed_state[:equipment] || []))
+                   |> Enum.reduce(items_stolen, fn item_slug, [words, equips] ->
+    Logger.info "HERE"
+    Logger.info inspect item_slug
+                           {item, _, _} = Levels.get_item(item_slug, state)
+                           [ [ "Found a #{item.name}" | words],
+                             [ "#EQUIP #{item_slug}, ?sender" | equips]]
+                         end)
+                      |> Enum.flat_map(&(&1))
+                      |> Enum.join("\n")
 
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
     tile_template = apply(DungeonCrawl.TileTemplates.TileSeeder, tile_template, [])

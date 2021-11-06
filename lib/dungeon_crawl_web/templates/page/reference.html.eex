@@ -276,8 +276,8 @@
           <tr>
             <td>health</td>
             <td>The players HP; when it reaches zero the player dies and is replaced by a grave.
-                Depending on the dungeon they may have the opporunity to respawn, although their stuff
-                will be buried in the grave.</td>
+                Depending on the dungeon they may have the opportunity to respawn, although their stuff
+                will be buried in the grave, including equippable items they did not start with.</td>
           </tr>
           <tr>
             <td>gems</td>
@@ -308,6 +308,12 @@
             <td>equipped</td>
             <td>The item (represented as the item's "slug"ified name) the player currently has equipped,
                 which may be used by holding shift and pressing a direction.</td>
+          </tr>
+          <tr>
+            <td>equiment</td>
+            <td>The items (represented by the item's "slug"ified names) the player currently has.
+                By pressing e, a dialog will open allowing the user to equip anything from their
+                equipment.</td>
           </tr>
         </table>
 
@@ -377,6 +383,12 @@
                 their lives reach zero the game ends. Defaults to -1 (infinite lives), but can be set to
                 a positive integer. Players can gain lives (ie, the GIVE command may increase the number of
                 lives); their starting lives are set when they join the dungeon.</td>
+          </tr>
+          <tr>
+            <td>starting_equipment</td>
+            <td>What items a player starts in the dungeon with. This should be a space separated list
+                of item slugs. The first item in the list will also be the default item equipped.
+                When not explicitly set, defaults to "gun".</td>
           </tr>
         </table>
 

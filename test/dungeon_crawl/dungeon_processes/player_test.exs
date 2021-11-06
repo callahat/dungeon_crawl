@@ -20,7 +20,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     player_location = insert_player_location(%{level_instance_id: instance.id,
                                                row: 23,
                                                col: 24,
-                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: gun, equipment: gun",
+                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: gun, equipment: gun, starting_equipment: gun",
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 

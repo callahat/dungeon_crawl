@@ -6,6 +6,7 @@ defmodule DungeonCrawl.StateValue.StandardVariablesTest do
   test "dungeon" do
     assert [
              "no_scoring",
+             "starting_equipment",
              "starting_lives",
            ] == StandardVariables.dungeon
   end

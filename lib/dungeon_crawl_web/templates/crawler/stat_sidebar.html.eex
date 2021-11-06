@@ -50,6 +50,10 @@
         <div class="col-6 text-right mr-2"><span class="command_help">T</span></div>
         <div id="keys" class="col-5 text-left">Light a torch</div>
       </div>
+      <div class="d-flex flex-row no-gutters">
+        <div class="col-6 text-right mr-2"><span class="command_help">E</span></div>
+        <div id="keys" class="col-5 text-left">Equip an item</div>
+      </div>
       <div>
       <hr/>
       </div>
