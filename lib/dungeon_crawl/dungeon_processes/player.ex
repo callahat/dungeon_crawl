@@ -215,8 +215,6 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     # add the equippable items
     items_stolen = ((original_state[:equipment] || []) -- (player_tile.parsed_state[:equipment] || []))
                    |> Enum.reduce(items_stolen, fn item_slug, [words, equips] ->
-    Logger.info "HERE"
-    Logger.info inspect item_slug
                            {item, _, _} = Levels.get_item(item_slug, state)
                            [ [ "Found a #{item.name}" | words],
                              [ "#EQUIP #{item_slug}, ?sender" | equips]]
