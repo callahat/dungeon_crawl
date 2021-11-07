@@ -374,7 +374,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   @doc """
   Give a tile an equippable item. This will add the item slug to the tiles `equipment` list,
-  but does not set it as the `equipped_item`. If the item_slug is invalid, this command will
+  but does not set it as `equipped`. If the item_slug is invalid, this command will
   do nothing. The third and fourth parameters are optional, but the fourth parameter requires the third.
   The first parameter is the item_slug, second parameter is whom to give the equipment.
   The third parameter is the max number of that equipment the tile may have, and the fourth
@@ -1793,7 +1793,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
   @doc """
   Takes from a tile an equippable item. This will remove the item slug to the tiles `equipment` list,
-  and clears the `equipped_item` if the tile no longer has any of that slug in its `equipment` list.
+  and clears `equipped` if the tile no longer has any of that slug in its `equipment` list.
   If the item_slug is invalid, this command will do nothing.
   The first parameter is the item_slug, second parameter is from whom to take the equipment.
   The third parameter is the label to jump to if the tile does not have this item.
@@ -1837,7 +1837,7 @@ defmodule DungeonCrawl.Scripting.Command do
 
       loser && count == 0 && length(equipment -- updated_equipment) == 1 ->
         equipped_item = Enum.at(updated_equipment, 0)
-        tile_state_changes = %{equipment: updated_equipment, equipped_item: equipped_item}
+        tile_state_changes = %{equipment: updated_equipment, equipped: equipped_item}
         {_loser, state} = Levels.update_tile_state(state, loser, tile_state_changes)
         %{ runner_state | state: state }
 
