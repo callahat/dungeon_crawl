@@ -73,6 +73,18 @@ defmodule DungeonCrawl.Scripting.Maths do
     true
     iex> Maths.check(4, "quijibo", 9)
     true
+    iex> Maths.check(["one", "two", "three"], "=~", "none")
+    false
+    iex> Maths.check(["one", "two", "three"], "=~", "two")
+    true
+    iex> Maths.check(["one", "two", "three"], "!~", "none")
+    true
+    iex> Maths.check(["one", "two", "three"], "!~", "two")
+    false
+    iex> Maths.check("one two three", "=~", "two")
+    true
+    iex> Maths.check("one two three", "!~", "bob")
+    true
   """
   def check("!", a, op, :truthy), do: !check(a, op, :truthy)
   def check(_, a, op, :truthy), do: check(a, op, :truthy)
@@ -86,6 +98,10 @@ defmodule DungeonCrawl.Scripting.Maths do
   def check(a, ">=", b) when is_number(a) and is_number(b), do: a >= b
   def check(a, "<",  b) when is_number(a) and is_number(b), do: a <  b
   def check(a, ">",  b) when is_number(a) and is_number(b), do: a > b
+  def check(a, "!~", b) when is_list(a),   do: !Enum.member?(a, b)
+  def check(a, "=~", b) when is_list(a),   do: Enum.member?(a, b)
+  def check(a, "!~", b) when is_binary(a), do: !String.contains?(a, b)
+  def check(a, "=~", b) when is_binary(a), do: String.contains?(a, b)
   def check(a, _,    _),    do: !!a
 
 end

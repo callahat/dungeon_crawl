@@ -355,7 +355,7 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^false$/i, param) -> false
       Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
       Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
-      Regex.match?(~r/^(not |! ?)?(\?[^@]*?@|@@|@|&).+?((!=|==|<=|>=|<|>).+)?$/i, param) -> _normalize_conditional(param)
+      Regex.match?(~r/^(not |! ?)?(\?[^@]*?@|@@|@|&).+?((!=|==|<=|>=|<|>|=~|!~).+)?$/i, param) -> _normalize_conditional(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
     end
@@ -377,7 +377,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   # conditional state value
   defp _normalize_conditional(param) do
     # todo: look into relaxing the left/right charcters for the capture groups
-    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?&@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>)\s*(?<right>[?&@_A-Za-z0-9\+ ]+?))?$/i,
+    case Regex.named_captures(~r/^(?<neg>not |! ?|)?(?<left>[?&@_A-Za-z0-9\+{}]+?)\s*((?<op>!=|==|<=|>=|<|>|=~|!~)\s*(?<right>[?&@_A-Za-z0-9\+ ]+?))?$/i,
                               String.trim(param)) do
       %{"neg" => "", "left" => left, "op" => "", "right" => ""} ->
         _normalize_state_arg(left)

@@ -709,7 +709,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "JUMP_IF when state check is TRUE" do
-    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, state: "thing: true, truthy: 1", color: "red", background_color: "white"})
+    Equipment.Seeder.gun()
+    insert_item(%{name: "Other"})
+    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, state: "thing: true, truthy: 1, equipment: gun other", color: "red", background_color: "white"})
     program = program_fixture()
 #    tile = %{id: 1, state: "thing: true", parsed_state: %{thing: true}}
 #    state = %Levels{map_by_ids: %{1 => stubbed_object}}
@@ -735,6 +737,15 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     params = [[{:state_variable, :color}, "==", "red"], "TOUCH"]
     %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
     assert updated_program.pc == 3
+
+    # check equipment
+    params = [[{:state_variable, :equipment}, "=~", "gun"], "TOUCH"]
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
+    assert updated_program.pc == 3
+
+    params = [[{:state_variable, :equipment}, "!~", "gun"], "TOUCH"]
+    %Runner{program: updated_program} = Command.jump_if(%Runner{program: program, object_id: tile.id, state: state}, params)
+    assert updated_program.pc == 1
   end
 
   test "JUMP_IF when state check is FALSE" do

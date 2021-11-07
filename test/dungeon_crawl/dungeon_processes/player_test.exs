@@ -12,6 +12,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
   setup do
     Equipment.Seeder.gun()
+    insert_item(%{name: "knife"})
 
     instance = insert_stubbed_level_instance(%{},
       [%Tile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: "blocking: false"},
@@ -20,7 +21,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     player_location = insert_player_location(%{level_instance_id: instance.id,
                                                row: 23,
                                                col: 24,
-                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: gun, equipment: gun, starting_equipment: gun",
+                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: gun, equipment: gun knife, starting_equipment: gun",
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 
@@ -92,11 +93,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     assert String.contains? grave.script, """
                                           You defile the grave
+                                          Found a knife
                                           Found 1 red_key
                                           Found 1 torches
                                           Found 1 gems
                                           Found 420 cash
                                           Found 4 ammo
+                                          #EQUIP knife, ?sender
                                           #GIVE red_key, 1, ?sender
                                           #GIVE torches, 1, ?sender
                                           #GIVE gems, 1, ?sender
