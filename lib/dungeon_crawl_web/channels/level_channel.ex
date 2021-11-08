@@ -8,7 +8,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.Player
   alias DungeonCrawl.DungeonProcesses.Registrar
-  alias DungeonCrawl.Scripting.{Runner, Shape}
+  alias DungeonCrawl.Scripting.{Runner, Program, Shape}
 
   alias DungeonCrawl.Scripting.Direction
 
@@ -436,7 +436,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
       # Run is called twice just in case a "take" or "give" command with a label jumps to that label
       # on insufficient/max thing reached which would put it into a wait state. Otherwise, the second
       # Runner.run is a noop.
-      %{state: updated_state} =
+      %{state: updated_state, program: program} =
         Runner.run(%Runner{program: item.program,
           object_id: player_location.tile_instance_id,
           state: instance_state,
@@ -444,10 +444,26 @@ defmodule DungeonCrawlWeb.LevelChannel do
         |> Runner.run()
         |> Levels.handle_broadcasting() # any nontile_update broadcasts left
 
-      updated_stats = Player.current_stats(updated_state, %{id: player_location.tile_instance_id})
+      player_tile = Levels.get_tile_by_id(updated_state, %{id: player_location.tile_instance_id})
+
+      {player_tile, updated_state} =
+        _update_equipment(player_tile, item.slug, program, updated_state)
+
+      updated_stats = Player.current_stats(updated_state, player_tile)
       DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
 
       {assign(socket, :item_last_used_at, :os.system_time(:millisecond)), updated_state}
     end
+  end
+
+  defp _update_equipment(player_tile, item_slug, %Program{status: :dead}, state) do
+    equipment = player_tile.parsed_state[:equipment] -- [item_slug]
+    equipped = Enum.at(equipment, 0)
+
+    Levels.update_tile_state(state, player_tile, %{equipment: equipment, equipped: equipped})
+  end
+
+  defp _update_equipment(player_tile, _item_slug, %Program{}, state) do
+    {player_tile, state}
   end
 end

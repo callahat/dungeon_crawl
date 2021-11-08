@@ -380,6 +380,22 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
   end
 
+  test "DIE when its on an item script from player usage" do
+    {tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 123, row: 1, col: 2, z_index: 1, character: "@", state: "player: true"})
+    {_under_tile, state} = Levels.create_tile(state, %Tile{id: 45, row: 1, col: 2, z_index: 0, character: "."})
+    program = program_fixture()
+
+    %Runner{program: program, state: state} = Command.die(%Runner{program: program, object_id: tile.id, state: state})
+    updated_tile = Levels.get_tile_by_id(state, tile)
+    assert tile == Levels.get_tile(state, tile)
+    assert program.status == :dead
+    assert program.pc == -1
+    # tile is not deleted, but program still marked as dead
+    assert updated_tile
+    assert [] = program.broadcasts
+    assert Map.has_key? state.rerender_coords, %{row: 1, col: 2}
+  end
+
   test "EQUIP" do
     Equipment.Seeder.gun()
     other_item = insert_item(%{name: "other"})

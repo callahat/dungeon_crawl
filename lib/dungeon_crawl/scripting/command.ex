@@ -365,11 +365,15 @@ defmodule DungeonCrawl.Scripting.Command do
             state: %Levels{ map_by_ids: %{ ... } } }
   """
   def die(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
-    {_deleted_object, updated_state} = Levels.delete_tile(state, %{id: object_id})
+    {deleted_object, updated_state} = Levels.delete_tile(state, %{id: object_id})
 
-    %Runner{runner_state |
-            program: %{program | status: :dead, pc: -1},
-            state: updated_state}
+    if deleted_object.parsed_state[:player] do
+      terminate(runner_state)
+    else
+      %Runner{runner_state |
+              program: %{program | status: :dead, pc: -1},
+              state: updated_state}
+    end
   end
 
   @doc """

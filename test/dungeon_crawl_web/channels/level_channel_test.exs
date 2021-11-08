@@ -374,6 +374,29 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "."
+  test "use_item - equipped item has limited uses", %{socket: socket, player_location: player_location, instance: instance} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    item = insert_item(%{name: "Cool Thing", script: "This is real cool!\n#DIE"})
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      Levels.update_tile_state(instance_state, player_tile, %{equipment: [item.slug, "gun"], equipped: item.slug})
+    end)
+
+    # Not sure how to check that something was set in the socket
+    push socket, "use_item", %{"direction" => "up"}
+    assert_broadcast "message", %{message: "This is real cool!"}
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      assert player_tile.parsed_state[:equipped] == "gun"
+      assert player_tile.parsed_state[:equipment] == ["gun"]
+      {:ok, instance_state}
+    end)
+  end
+
+  @tag up_tile: "."
   test "does not let the player use weapon item if dungeon to pacifism", %{socket: socket,
                                                                            player_location: player_location,
                                                                            instance_registry: instance_registry} do
