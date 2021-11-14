@@ -123,6 +123,29 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     })
   end
 
+  def levitation_potion do
+    TileTemplates.update_or_create_tile_template!(
+      "levitation_potion",
+      %{character: "!",
+        name: "Levitation Potion",
+        description: "It'll make you float",
+        state: "blocking: false, soft: true, pushable: true, blocking_light: false",
+        color: "blue",
+        public: true,
+        active: true,
+        group_name: "items",
+        script: """
+        :main
+        #end
+        :touch
+        #if ! ?sender@player, main
+        You found a magic potion of levitation!
+        #equip levitation_potion, ?sender
+        #die
+        """
+      })
+  end
+
   def medkit do
     TileTemplates.update_or_create_tile_template!(
       "medkit",
@@ -202,6 +225,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
       def fireball_wand(), do: unquote(__MODULE__).fireball_wand()
       def gem(), do: unquote(__MODULE__).gem()
       def heart(), do: unquote(__MODULE__).heart()
+      def levitation_potion(), do: unquote(__MODULE__).levitation_potion()
       def medkit(), do: unquote(__MODULE__).medkit()
       def scroll(), do: unquote(__MODULE__).scroll()
       def torch(), do: unquote(__MODULE__).torch()

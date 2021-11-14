@@ -10,17 +10,20 @@ defmodule DungeonCrawl.Equipment.SeederTest do
 
     assert %Item{name: "Fireball Wand"} = Seeder.fireball_wand()
     assert Repo.one(from i in Item, where: i.name == "Fireball Wand")
+
+    assert %Item{name: "Levitation Potion"} = Seeder.levitation_potion()
+    assert Repo.one(from i in Item, where: i.name == "Levitation Potion")
   end
 
   test "seed_all/0" do
     initial_count = Repo.one(from i in Item, select: count(i.id))
     Seeder.seed_all()
     seeded_count = Repo.one(from i in Item, select: count(i.id))
-    assert seeded_count - initial_count == 2
+    assert seeded_count - initial_count == 3
 
     # does not add the seeds again
     Seeder.seed_all()
     seeded_count2 = Repo.one(from i in Item, select: count(i.id))
-    assert seeded_count2 - initial_count == 2
+    assert seeded_count2 - initial_count == 3
   end
 end

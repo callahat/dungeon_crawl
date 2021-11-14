@@ -49,6 +49,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     fireball_wand()
     gem()
     heart()
+    levitation_potion()
     medkit()
     scroll()
     torch()

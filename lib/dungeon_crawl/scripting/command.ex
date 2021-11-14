@@ -260,8 +260,11 @@ defmodule DungeonCrawl.Scripting.Command do
     _change_state(runner_state, target, var, op, value)
   end
 
-  def _change_state(%Runner{state: state} = runner_state, %{} = target, var, op, value) do
-    if(target.parsed_state[:player]) do
+  @immutable_player_state_variables [:player , :equipped, :equipment | PlayerInstance.stats()]
+
+  defp _change_state(%Runner{state: state} = runner_state, %{} = target, var, op, value) do
+    if(target.parsed_state[:player] &&
+        (Enum.member?(@immutable_player_state_variables, var)) || String.ends_with?(to_string(var), "_key")) do
       runner_state
     else
       update_var = %{ var => Maths.calc(target.parsed_state[var] || 0, op, value) }
@@ -270,7 +273,7 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  def _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) do
+  defp _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) do
     target_tile = if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
                     Levels.get_tile_by_id(state, %{id: target})
                   else

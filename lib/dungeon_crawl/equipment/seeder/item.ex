@@ -31,10 +31,25 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
       })
   end
 
+  def levitation_potion do
+    Equipment.update_or_create_item!(
+      "levitation_potion",
+      %{name: "Levitation Potion",
+        description: "You feel light",
+        public: true,
+        weapon: false,
+        consumable: true,
+        script: """
+        @flying = true
+        """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def fireball_wand(), do: unquote(__MODULE__).fireball_wand()
       def gun(), do: unquote(__MODULE__).gun()
+      def levitation_potion(), do: unquote(__MODULE__).levitation_potion()
     end
   end
 end

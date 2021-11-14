@@ -447,7 +447,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
       player_tile = Levels.get_tile_by_id(updated_state, %{id: player_location.tile_instance_id})
 
       {player_tile, updated_state} =
-        _update_equipment(player_tile, item.slug, program, updated_state)
+        _update_equipment(player_tile, item, program, updated_state)
 
       updated_stats = Player.current_stats(updated_state, player_tile)
       DungeonCrawlWeb.Endpoint.broadcast player_channel, "stat_update", %{stats: updated_stats}
@@ -456,14 +456,22 @@ defmodule DungeonCrawlWeb.LevelChannel do
     end
   end
 
-  defp _update_equipment(player_tile, item_slug, %Program{status: :dead}, state) do
-    equipment = player_tile.parsed_state[:equipment] -- [item_slug]
+  defp _update_equipment(player_tile, %{consumable: true} = item, %Program{}, state) do
+    _item_used_up(player_tile, item, state)
+  end
+
+  defp _update_equipment(player_tile, item, %Program{status: :dead}, state) do
+    _item_used_up(player_tile, item, state)
+  end
+
+  defp _update_equipment(player_tile, _item, %Program{}, state) do
+    {player_tile, state}
+  end
+
+  defp _item_used_up(player_tile, item, state) do
+    equipment = player_tile.parsed_state[:equipment] -- [item.slug]
     equipped = Enum.at(equipment, 0)
 
     Levels.update_tile_state(state, player_tile, %{equipment: equipment, equipped: equipped})
-  end
-
-  defp _update_equipment(player_tile, _item_slug, %Program{}, state) do
-    {player_tile, state}
   end
 end

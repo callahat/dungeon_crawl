@@ -260,10 +260,19 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: updated_state} = Command.change_other_state(runner_state, ["north", :new, "+=", 1])
     updated_tile = Levels.get_tile_by_id(updated_state, tile_2)
     assert updated_tile.state == "new: 1, one: 1"
-    %Runner{state: updated_state} = Command.change_other_state(runner_state, ["south", :new, "+=", 1])
+    # certain state variables for a player tile may not be changed, such as ammo and the other standard ones
+    # note this is behavior is common to all the change state commands
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, ["south", :ammo, "+=", 1])
     assert updated_state == runner_state.state
-    %Runner{state: updated_state} = Command.change_other_state(runner_state, [tile_1.id, :new, "+=", 1])
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, [tile_1.id, :health, "+=", 1])
     assert updated_state == runner_state.state
+    # but other ones may be changed
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, [tile_1.id, :foo, "+=", 1])
+    updated_tile = Levels.get_tile_by_id(updated_state, tile_1)
+    assert updated_tile.state == "add: 8, foo: 1, one: 100, player: true"
+    %Runner{state: updated_state} = Command.change_other_state(runner_state, [tile_1.id, :one, "=", 432])
+    updated_tile = Levels.get_tile_by_id(updated_state, tile_1)
+    assert updated_tile.state == "add: 8, one: 432, player: true"
   end
 
   test "CYCLE" do

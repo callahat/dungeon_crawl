@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Equipment.Seeder do
   def seed_all do
     fireball_wand()
     gun()
+    levitation_potion()
 
     :ok
   end
