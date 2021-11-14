@@ -133,7 +133,7 @@ let Level = {
 
       switch(direction){
         case(69): // e
-          this.renderMessageModal(["Equippable Items:"].concat(this.equippableItems))
+          this.renderMessageModal(this.equippableItems)
           $('#messageModal').modal('show')
           break
         case(72): // h

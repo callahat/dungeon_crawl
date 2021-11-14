@@ -53,9 +53,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              torch_light: torch_light,
              equipped: "Gun",
              equipment: [
+               "<span>Equippable Items:</span>",
                "<span>-Gun (Equipped)</span>",
-               "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
-               "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item</span>"]
+               "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item</span>",
+               "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>"]
            } = Player.current_stats(state, player_tile)
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" == keys
     assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light

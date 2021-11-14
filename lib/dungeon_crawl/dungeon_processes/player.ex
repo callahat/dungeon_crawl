@@ -85,7 +85,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     end
   end
 
-  def _with_equipped_and_equipment(stats, player_tile, state) do
+  defp _with_equipped_and_equipment(stats, player_tile, state) do
     {equipped, _, _} = Levels.get_item(player_tile.parsed_state[:equipped], state)
     equipped_slug = equipped && equipped.slug
     equipped_name = equipped && equipped.name
@@ -95,23 +95,68 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                      item
                    end)
                 |> Enum.reject(&(is_nil(&1)))
-                |> Enum.map(fn item -> _item_span_decorator(item) end)
-    equipment = if is_nil(equipped),
-                   do: equipment,
-                   else: ["<span>-#{ equipped_name } (Equipped)</span>" | equipment]
+                |> _unique_counts()
+                |> _partition_by_item_type()
+                |> _maybe_add_equipped(equipped_name)
+                |> _partition_titles()
+                |> _flatten_and_decorate()
 
     Map.merge(stats, %{equipped: equipped_name,
                        equipment: equipment })
   end
 
-  def _with_equipped(stats, player_tile) do
+  defp _unique_counts(equipment) do
+    Enum.uniq(equipment)
+    |> Enum.map(fn item ->
+      {item, Enum.count(equipment, &(&1 ==item))}
+    end)
+    |> Enum.sort()
+  end
+
+  defp _partition_by_item_type(equipment) do
+    Enum.reduce(equipment, %{equippable: [], consumable: []}, fn {item, count}, acc ->
+      bucket = if item.consumable, do: :consumable, else: :equippable
+      Map.put(acc, bucket, [{item, count} | acc[bucket]])
+    end)
+  end
+
+  defp _maybe_add_equipped(equipment, nil), do: equipment
+  defp _maybe_add_equipped(equipment, equipped_name) do
+    %{ equipment | equippable: ["<span>-#{ equipped_name } (Equipped)</span>" | equipment[:equippable]]}
+  end
+
+  defp _partition_titles(equipment) do
+    equipment
+    |> _equippables_with_title()
+    |> _consumables_with_title()
+  end
+
+  defp _equippables_with_title(%{equippable: []} = equipment), do: equipment
+  defp _equippables_with_title(%{equippable: equippables} = equipment) do
+    %{ equipment | equippable: ["<span>Equippable Items:</span>" | equippables]}
+  end
+  defp _consumables_with_title(%{consumable: []} = equipment), do: equipment
+  defp _consumables_with_title(%{consumable: consumables} = equipment) do
+    %{ equipment | consumable: ["<span>Consumable Items:</span>" | consumables]}
+  end
+
+  defp _flatten_and_decorate(equipment) do
+    (equipment[:equippable] ++ equipment[:consumable])
+    |> Enum.map(&(_item_span_decorator(&1)))
+  end
+
+  defp _with_equipped(stats, player_tile) do
     equipped = Equipment.get_item(player_tile.parsed_state[:equipped])
     Map.put(stats, :equipped, equipped && equipped.name)
   end
 
-  def _item_span_decorator(item) do
+  defp _item_span_decorator({item, 1}) do
     "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name }</span>"
   end
+  defp _item_span_decorator({item, count}) do
+    "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name } (x#{count})</span>"
+  end
+  defp _item_span_decorator(title_text), do: title_text
 
   @doc """
   Buries the [dead] player. This places a grave tile above the players current location,
