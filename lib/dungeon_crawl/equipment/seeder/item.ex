@@ -45,11 +45,27 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
       })
   end
 
+  def stone do
+    Equipment.update_or_create_item!(
+      "stone",
+      %{name: "Stone",
+        description: "A small chunk of the planets crust, easily tossed.",
+        public: true,
+        weapon: true,
+        consumable: true,
+        script: """
+        #if ?{direction}@blocking, 1
+        #put direction: @facing, slug: stone, facing: @facing, thrown: true
+        """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def fireball_wand(), do: unquote(__MODULE__).fireball_wand()
       def gun(), do: unquote(__MODULE__).gun()
       def levitation_potion(), do: unquote(__MODULE__).levitation_potion()
+      def stone(), do: unquote(__MODULE__).stone()
     end
   end
 end

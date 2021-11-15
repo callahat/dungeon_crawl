@@ -52,6 +52,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     levitation_potion()
     medkit()
     scroll()
+    stone()
     torch()
 
     # misc

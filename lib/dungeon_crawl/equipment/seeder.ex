@@ -5,6 +5,7 @@ defmodule DungeonCrawl.Equipment.Seeder do
     fireball_wand()
     gun()
     levitation_potion()
+    stone()
 
     :ok
   end
