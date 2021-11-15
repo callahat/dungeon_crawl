@@ -9,7 +9,11 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
         public: true,
         weapon: true,
         script: """
-        #put direction: @facing, slug: fireball, facing: @facing
+        #put direction: here, slug: fireball, facing: @facing
+        #if ?random@10 != 10, 1
+        #end
+        The wand broke!
+        #die
         """
       })
   end
@@ -54,8 +58,7 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
         weapon: true,
         consumable: true,
         script: """
-        #if ?{direction}@blocking, 1
-        #put direction: @facing, slug: stone, facing: @facing, thrown: true
+        #put direction: here, slug: stone, facing: @facing, thrown: true
         """
       })
   end

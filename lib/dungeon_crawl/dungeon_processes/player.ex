@@ -87,9 +87,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   defp _with_equipped_and_equipment(stats, player_tile, state) do
     {equipped, _, _} = Levels.get_item(player_tile.parsed_state[:equipped], state)
-    equipped_slug = equipped && equipped.slug
     equipped_name = equipped && equipped.name
-    equipment = ((player_tile.parsed_state[:equipment] || []) -- [equipped_slug])
+    equipment = (player_tile.parsed_state[:equipment] || [])
                 |> Enum.map(fn item_slug ->
                      {item, _, _} = Levels.get_item(item_slug, state)
                      item
@@ -97,9 +96,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                 |> Enum.reject(&(is_nil(&1)))
                 |> _unique_counts()
                 |> _partition_by_item_type()
-                |> _maybe_add_equipped(equipped_name)
                 |> _partition_titles()
-                |> _flatten_and_decorate()
+                |> _flatten_and_decorate(equipped_name)
 
     Map.merge(stats, %{equipped: equipped_name,
                        equipment: equipment })
@@ -120,11 +118,6 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     end)
   end
 
-  defp _maybe_add_equipped(equipment, nil), do: equipment
-  defp _maybe_add_equipped(equipment, equipped_name) do
-    %{ equipment | equippable: ["<span>-#{ equipped_name } (Equipped)</span>" | equipment[:equippable]]}
-  end
-
   defp _partition_titles(equipment) do
     equipment
     |> _equippables_with_title()
@@ -140,9 +133,9 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     %{ equipment | consumable: ["<span>Consumable Items:</span>" | consumables]}
   end
 
-  defp _flatten_and_decorate(equipment) do
+  defp _flatten_and_decorate(equipment, equipped_name) do
     (equipment[:equippable] ++ equipment[:consumable])
-    |> Enum.map(&(_item_span_decorator(&1)))
+    |> Enum.map(&(_item_span_decorator(&1, equipped_name)))
   end
 
   defp _with_equipped(stats, player_tile) do
@@ -150,13 +143,17 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     Map.put(stats, :equipped, equipped && equipped.name)
   end
 
-  defp _item_span_decorator({item, 1}) do
-    "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name }</span>"
+  defp _item_span_decorator({item, 1}, equipped_name) do
+    if equipped_name == item.name,
+      do: "<span>-#{ equipped_name } (Equipped)</span>",
+      else: "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name }</span>"
   end
-  defp _item_span_decorator({item, count}) do
-    "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name } (x#{count})</span>"
+  defp _item_span_decorator({item, count}, equipped_name) do
+    if equipped_name == item.name,
+       do: "<span>-#{ equipped_name } (x#{count}) (Equipped)</span>",
+       else: "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name } (x#{count})</span>"
   end
-  defp _item_span_decorator(title_text), do: title_text
+  defp _item_span_decorator(title_text, _), do: title_text
 
   @doc """
   Buries the [dead] player. This places a grave tile above the players current location,
