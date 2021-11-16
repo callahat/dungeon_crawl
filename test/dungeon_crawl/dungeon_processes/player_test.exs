@@ -54,7 +54,6 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              equipped: "Gun",
              equipment: [
                "<span>Equippable Items:</span>",
-               "<span>-Gun (Equipped)</span>",
                "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item</span>",
                "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>"]
            } = Player.current_stats(state, player_tile)
