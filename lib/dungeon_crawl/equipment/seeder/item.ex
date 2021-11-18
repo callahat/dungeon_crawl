@@ -5,14 +5,19 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
     Equipment.update_or_create_item!(
       "fireball_wand",
       %{name: "Fireball Wand",
-        description: "It shoots exploding fireballs",
+        description: "It shoots exploding fireballs, may break if a gem cannot be consumed",
         public: true,
         weapon: true,
         script: """
+        #take gems, 1, ?sender, it_might_break
         #put direction: here, slug: fireball, facing: @facing
+        #end
+        :it_might_break
         #if ?random@10 != 10, 1
         #end
         The wand broke!
+        #if ?random@4 != 4, 1
+        #put slug: explosion, shape: circle, range: 3, damage: 10, owner: ?self
         #die
         """
       })
