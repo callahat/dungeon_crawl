@@ -32,6 +32,7 @@
                     <a class='nav-link' href='#cycle'>cycle</a>
                     <a class='nav-link' href='#die'>die</a>
                     <a class='nav-link' href='#end'>end</a>
+                    <a class='nav-link' href='#equip'>equip</a>
                     <a class='nav-link' href='#facing'>facing</a>
                     <a class='nav-link' href='#gameover'>gameover</a>
                     <a class='nav-link' href='#give'>give</a>
@@ -54,6 +55,7 @@
                     <a class='nav-link' href='#terminate'>terminate</a>
                     <a class='nav-link' href='#transport'>transport</a>
                     <a class='nav-link' href='#try'>try</a>
+                    <a class='nav-link' href='#unequip'>unequip</a>
                     <a class='nav-link' href='#unlock'>unlock</a>
                     <a class='nav-link' href='#walk'>walk</a>
                     <a class='nav-link' href='#zap'>zap</a>
@@ -681,6 +683,22 @@
             <td colspan="3" class="examples">
                 <pre class="script">#END</pre></td>
           </tr>
+          <tr id="equip">
+            <td>EQUIP</td>
+            <td>list - 2, 3, or 4</td>
+            <td>Give a tile an equippable item. This will add the item slug to the tiles `equipment` list,
+                but does not set it as `equipped`. If the item_slug is invalid, this command will
+                do nothing. The third and fourth parameters are optional, but the fourth parameter requires the third.
+                The first parameter is the item_slug, second parameter is whom to give the equipment.
+                The third parameter is the max number of that equipment the tile may have, and the fourth
+                is the label to jump to if the tile is at the max number.</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+              <pre class="script">#EQUIP gun, ?sender</pre>
+              <pre class="script">#EQUIP gun, ?sender</pre>
+              <pre class="script">#EQUIP bucket, ?sender, 3, MAX_BUCKET</pre></td>
+          </tr>
           <tr id="facing">
             <td>FACING</td>
             <td>list - 1</td>
@@ -1041,6 +1059,20 @@
                 <pre class="script">#TRY west</pre>
                 <pre class="script">?w?w?c</pre>
                 <pre class="script">?i</pre></td>
+          </tr>
+          <tr id="unequip">
+            <td>UNEQUIP</td>
+            <td>list - 2, 3, or 4</td>
+            <td>Takes from a tile an equippable item. This will remove the item slug from the tiles in
+                the `equipment` list, and clears `equipped` if the tile no longer has any of that slug
+                in its `equipment` list. If the item_slug is invalid, this command will do nothing.
+                The first parameter is the item_slug, second parameter is from whom to take the equipment.
+                The third parameter is the label to jump to if the tile does not have this item.</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+              <pre class="script">#UNEQUIP stone, ?sender</pre>
+              <pre class="script">#UNEQUIP bucket, ?sender, NO_BUCKET</pre></td>
           </tr>
           <tr id="unlock">
             <td>UNLOCK</td>

@@ -386,6 +386,17 @@ defmodule DungeonCrawl.Scripting.Command do
   The first parameter is the item_slug, second parameter is whom to give the equipment.
   The third parameter is the max number of that equipment the tile may have, and the fourth
   is the label to jump to if the tile is at the max number.
+
+  ## Examples
+
+     iex> equip(%Runner{}, ["healing_potion", [:event_sender]])
+     %Runner{}
+
+     iex> equip(%Runner{}, ["healing_potion", [:event_sender], 1])
+     %Runner{}
+
+     iex> equip(%Runner{}, ["healing_potion", [:event_sender], 1, "ALREADY_HAVE"])
+     %Runner{}
   """
   def equip(%Runner{} = runner_state, [what, to_whom]) do
     _equip(runner_state, [what, to_whom, nil, nil])
@@ -1799,11 +1810,19 @@ defmodule DungeonCrawl.Scripting.Command do
 
 
   @doc """
-  Takes from a tile an equippable item. This will remove the item slug to the tiles `equipment` list,
-  and clears `equipped` if the tile no longer has any of that slug in its `equipment` list.
-  If the item_slug is invalid, this command will do nothing.
+  Takes from a tile an equippable item. This will remove the item slug from the tiles
+  in the `equipment` list, and clears `equipped` if the tile no longer has any of that slug
+  in its `equipment` list. If the item_slug is invalid, this command will do nothing.
   The first parameter is the item_slug, second parameter is from whom to take the equipment.
   The third parameter is the label to jump to if the tile does not have this item.
+
+  ## Examples
+
+     iex> unequip(%Runner{}, ["healing_potion", [:event_sender]])
+     %Runner{}
+
+     iex> unequip(%Runner{}, ["healing_potion", [:event_sender], "NO_POTION"])
+     %Runner{}
   """
   def unequip(%Runner{} = runner_state, [what, to_whom]) do
     _unequip(runner_state, [what, to_whom, nil])
