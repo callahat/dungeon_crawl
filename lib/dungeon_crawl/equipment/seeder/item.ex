@@ -9,8 +9,8 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
         public: true,
         weapon: true,
         script: """
-        #put direction: here, slug: fireball, facing: @facing
-        #take gems, 1, ?sender, it_might_break
+        #put direction: here, slug: fireball, facing: @facing, owner: ?self
+        #take gems, 1, ?self, it_might_break
         #end
         :it_might_break
         #if ?random@10 != 10, 1
