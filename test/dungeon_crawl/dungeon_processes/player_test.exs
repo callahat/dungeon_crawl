@@ -62,6 +62,22 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light
   end
 
+  test "current_stats/2 duplicates among equipment", %{state: state, player_tile: player_tile} do
+    zap_item = insert_item(%{name: "Zapper"})
+    other_item = insert_item(%{name: "Other Item", consumable: true})
+
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipment: ["gun", "gun", zap_item.slug, other_item.slug, other_item.slug]})
+
+    assert %{equipment: [
+               "<span>Equippable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
+               "<span>-Gun (x2) (Equipped)</span>",
+               "<span>Consumable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item (x2)</span>"
+             ],
+           } = Player.current_stats(state, player_tile)
+  end
+
   test "current_stats/2 when the tile does not exist (this path should not happen)", %{player_tile: player_tile} do
     assert %{} == Player.current_stats(%Levels{}, player_tile)
   end
