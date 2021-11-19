@@ -413,6 +413,15 @@
 
         <p>One instruction per line. Each line may have a prefix, denoting what that line is.</p>
 
+        <p>A script for an equippable item is similar to the script for a tile (which is described above).
+           The main difference to keep in mind, is that when an equipped item is activated, its script will
+           run and behave as if the player's (or whomever used the item's) tile is the context. Ie, any
+           tile state attributes referenced will be those of the tile using the item (as the item itself
+           does not have any state). Item scripts should be kept short, and will run starting from the first
+           line each time the item is used. Additionally, the "DIE" command will remove,
+           or <a href='#unequip'>unequip</a>, the item. And any item that
+           is "consumable" will also be unequipped after use.</p>
+
         <table class="table table-sm table-bordered">
           <tr>
             <th>Prefix</th>
