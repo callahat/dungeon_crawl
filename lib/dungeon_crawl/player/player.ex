@@ -64,13 +64,16 @@ defmodule DungeonCrawl.Player do
       {:ok, %Location{}}
   """
   def create_location_on_spawnable_space(%Dungeon{} = di, user_id_hash, user_avatar) do
+    di = Repo.preload(di, [levels: [level: :spawn_locations]])
+         |> Map.put(:parsed_state, DungeonCrawl.StateValue.Parser.parse!(di.state))
+
     tile = _create_tile_for_location(di, user_id_hash, user_avatar)
 
-    create_location(%{tile_instance_id: tile.id, user_id_hash: user_id_hash})
+    create_location!(%{tile_instance_id: tile.id, user_id_hash: user_id_hash})
   end
 
   defp _create_tile_for_location(%Dungeon{} = di, user_id_hash, user_avatar) do
-    instance_levels = Repo.preload(di, levels: [level: :spawn_locations]).levels
+    instance_levels = di.levels
     entrance = _entrance(instance_levels) || _random_entrance(instance_levels)
     spawn_location = _spawn_location(entrance) || _random_floor(entrance)
     top_tile = DungeonInstances.get_tile(entrance.id, spawn_location.row, spawn_location.col)
@@ -86,6 +89,7 @@ defmodule DungeonCrawl.Player do
     |> Map.put(:name, Account.get_name(user_id_hash))
     |> DungeonInstances.create_tile!()
     |> _set_player_lives(di)
+    |> _set_player_equipment(di)
   end
 
   defp _entrance(instance_levels) do
@@ -113,10 +117,23 @@ defmodule DungeonCrawl.Player do
   end
 
   defp _set_player_lives(player_tile, di) do
-    {:ok, dungeon_parsed_state} = DungeonCrawl.StateValue.Parser.parse(di.state)
-    starting_lives = "lives: #{ dungeon_parsed_state[:starting_lives] || -1 }"
+    starting_lives = "lives: #{ di.parsed_state[:starting_lives] || -1 }"
 
     Repo.update!(Tile.changeset(player_tile, %{state: player_tile.state <> ", " <> starting_lives }))
+  end
+
+  defp _set_player_equipment(player_tile, di) do
+    equipment = String.split("#{di.parsed_state[:starting_equipment]}")
+
+    equipment = if equipment == [], do: ["gun"],
+                                    else: equipment
+
+    equipped = "equipped: #{Enum.at(equipment, 0)}"
+    equipment = "equipment: #{Enum.join(equipment, " ")}, starting_equipment: #{Enum.join(equipment, " ")}"
+
+    tile_state = Enum.join([player_tile.state, equipped, equipment], ", ")
+
+    Repo.update!(Tile.changeset(player_tile, %{state: tile_state }))
   end
 
   @doc """

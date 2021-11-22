@@ -33,8 +33,8 @@
         <hr/>
         <div class="row">
           <div class="col-12 help">
-            <strong>Shoot</strong>
-            <span>If you have ammo, press <pre>shift</pre> and a direction to fire a bullet in that direction.</span>
+            <strong>Use Item</strong>
+            <span>Press <pre>shift</pre> and a direction to use an equipped item.</span>
           </div>
         </div>
         <hr/>
@@ -42,6 +42,15 @@
           <div class="col-12 help">
             <strong>Light Torch</strong>
             <span>If you have a torch, press <pre>T</pre> to light your way in the dark for a time.</span>
+          </div>
+        </div>
+        <hr/>
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Equip Item</strong>
+            <span>If you have other items, pressing <pre>E</pre> will bring up a modal allowing you to
+                  equip a different one. Escape key cancels, or use the up and down arrow keys or use
+                  the mouse to make your selection.</span>
           </div>
         </div>
       </div>

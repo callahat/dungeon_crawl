@@ -40,6 +40,7 @@ let commands = [
     "cycle",
     "die",
     "end",
+    "equip",
     "facing",
     "gameover",
     "give",
@@ -66,6 +67,7 @@ let commands = [
     "text",
     "transport",
     "try",
+    "unequip",
     "unlock",
     "walk",
     "zap"

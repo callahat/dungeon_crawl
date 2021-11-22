@@ -32,6 +32,7 @@
                     <a class='nav-link' href='#cycle'>cycle</a>
                     <a class='nav-link' href='#die'>die</a>
                     <a class='nav-link' href='#end'>end</a>
+                    <a class='nav-link' href='#equip'>equip</a>
                     <a class='nav-link' href='#facing'>facing</a>
                     <a class='nav-link' href='#gameover'>gameover</a>
                     <a class='nav-link' href='#give'>give</a>
@@ -54,6 +55,7 @@
                     <a class='nav-link' href='#terminate'>terminate</a>
                     <a class='nav-link' href='#transport'>transport</a>
                     <a class='nav-link' href='#try'>try</a>
+                    <a class='nav-link' href='#unequip'>unequip</a>
                     <a class='nav-link' href='#unlock'>unlock</a>
                     <a class='nav-link' href='#walk'>walk</a>
                     <a class='nav-link' href='#zap'>zap</a>
@@ -150,7 +152,7 @@
           <tr>
             <td>teleporter</td>
             <td>This indicates that the tile is a teleporter. For it to be active, the tile also needs "facing" set.
-                When a player moves (or something is pushed) onto one of these tiles from the opposite direction direction
+                When a player moves (or something is pushed) onto one of these tiles from the opposite direction
                 it is facing, it may be teleported to a tile farther away but still in line. Candidate destinations include
                 the tile past the teleporter, and tiles on the other side of other teleporters facing the activated transporter.
                 If no candidates are available, it will not transport (pushables may be pushed out of the way on the teleport
@@ -276,8 +278,8 @@
           <tr>
             <td>health</td>
             <td>The players HP; when it reaches zero the player dies and is replaced by a grave.
-                Depending on the dungeon they may have the opporunity to respawn, although their stuff
-                will be buried in the grave.</td>
+                Depending on the dungeon they may have the opportunity to respawn, although their stuff
+                will be buried in the grave, including equippable items they did not start with.</td>
           </tr>
           <tr>
             <td>gems</td>
@@ -304,6 +306,17 @@
                 after one use, but sometimes the player may carry more than one of the same color
                 key.</td>
           </tr>
+          <tr>
+            <td>equipped</td>
+            <td>The item (represented as the item's "slug"ified name) the player currently has equipped,
+                which may be used by holding shift and pressing a direction.</td>
+          </tr>
+          <tr>
+            <td>equiment</td>
+            <td>The items (represented by the item's "slug"ified names) the player currently has.
+                By pressing e, a dialog will open allowing the user to equip anything from their
+                equipment.</td>
+          </tr>
         </table>
 
         <h5 id="level_state_values">Level State Attributes and Values</h5>
@@ -326,8 +339,8 @@
           </tr>
           <tr>
             <td>pacifism</td>
-            <td>Defaults as false. When this is set to true, a player may not shoot (ie, shift+direction will
-                not spawn a bullet).</td>
+            <td>Defaults as false. When this is set to true, a player may not use a weapon item (ie, shift+direction
+                will not spawn a bullet or activate the currently equipped weapon).</td>
           </tr>
           <tr>
             <td>visibility</td>
@@ -373,6 +386,12 @@
                 a positive integer. Players can gain lives (ie, the GIVE command may increase the number of
                 lives); their starting lives are set when they join the dungeon.</td>
           </tr>
+          <tr>
+            <td>starting_equipment</td>
+            <td>What items a player starts in the dungeon with. This should be a space separated list
+                of item slugs. The first item in the list will also be the default item equipped.
+                When not explicitly set, defaults to "gun".</td>
+          </tr>
         </table>
 
         <h5 id="scripting">Scripting</h5>
@@ -393,6 +412,15 @@
            that program, and the program status is `idle` or `waiting`, then the next program will be run.</p>
 
         <p>One instruction per line. Each line may have a prefix, denoting what that line is.</p>
+
+        <p>A script for an equippable item is similar to the script for a tile (which is described above).
+           The main difference to keep in mind, is that when an equipped item is activated, its script will
+           run and behave as if the player's (or whomever used the item's) tile is the context. Ie, any
+           tile state attributes referenced will be those of the tile using the item (as the item itself
+           does not have any state). Item scripts should be kept short, and will run starting from the first
+           line each time the item is used. Additionally, the "DIE" command will remove,
+           or <a href='#unequip'>unequip</a>, the item. And any item that
+           is "consumable" will also be unequipped after use.</p>
 
         <table class="table table-sm table-bordered">
           <tr>
@@ -664,6 +692,22 @@
             <td colspan="3" class="examples">
                 <pre class="script">#END</pre></td>
           </tr>
+          <tr id="equip">
+            <td>EQUIP</td>
+            <td>list - 2, 3, or 4</td>
+            <td>Give a tile an equippable item. This will add the item slug to the tiles `equipment` list,
+                but does not set it as `equipped`. If the item_slug is invalid, this command will
+                do nothing. The third and fourth parameters are optional, but the fourth parameter requires the third.
+                The first parameter is the item_slug, second parameter is whom to give the equipment.
+                The third parameter is the max number of that equipment the tile may have, and the fourth
+                is the label to jump to if the tile is at the max number.</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+              <pre class="script">#EQUIP gun, ?sender</pre>
+              <pre class="script">#EQUIP gun, ?sender</pre>
+              <pre class="script">#EQUIP bucket, ?sender, 3, MAX_BUCKET</pre></td>
+          </tr>
           <tr id="facing">
             <td>FACING</td>
             <td>list - 1</td>
@@ -740,7 +784,16 @@
             <td>Conditionally jump to a label. If the expression evalutes to true, instructions will be executed
                 starting next at the first active matching label (nothing happens if there is no matching active label).<br/>
                 When no label is given, or an integer is given instead, if the expression is false, then the following N instruction(s)
-                will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).</td>
+                will be skipped over. This is useful for when you want to conditionally skip over the next N instruction(s).<br>
+                Several comparison operators are supported: <br/>
+                == - both sides are equal<br/>
+                != - both sides are not equal<br/>
+                < - left is less than the right<br/>
+                > - left is greater than the right<br/>
+                <= - less than or equal<br/>
+                >= - greater than or equal<br/>
+                =~ - true when the right is included in the left (useful for seeing if a tile has a certain piece of equipment)<br/>
+                !~ - true when the right is not included in the left</td>
           </tr>
           <tr>
             <td colspan="3" class="examples">
@@ -749,7 +802,8 @@
                 <pre class="script">#IF @timer > 0, CONTINUE</pre>
                 <pre class="script">#IF ?{@facing}@blocking, TOUCH</pre>
                 <pre class="script">#IF @north</pre>
-                <pre class="script">#IF @skiptext, 10</pre></td>
+                <pre class="script">#IF @skiptext, 10</pre>
+                <pre class="script">#IF ?sender@equipment =~ gun, ARMED</pre></td>
           </tr>
           <tr id="lock">
             <td>LOCK</td>
@@ -1014,6 +1068,20 @@
                 <pre class="script">#TRY west</pre>
                 <pre class="script">?w?w?c</pre>
                 <pre class="script">?i</pre></td>
+          </tr>
+          <tr id="unequip">
+            <td>UNEQUIP</td>
+            <td>list - 2, 3, or 4</td>
+            <td>Takes from a tile an equippable item. This will remove the item slug from the tiles in
+                the `equipment` list, and clears `equipped` if the tile no longer has any of that slug
+                in its `equipment` list. If the item_slug is invalid, this command will do nothing.
+                The first parameter is the item_slug, second parameter is from whom to take the equipment.
+                The third parameter is the label to jump to if the tile does not have this item.</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+              <pre class="script">#UNEQUIP stone, ?sender</pre>
+              <pre class="script">#UNEQUIP bucket, ?sender, NO_BUCKET</pre></td>
           </tr>
           <tr id="unlock">
             <td>UNLOCK</td>

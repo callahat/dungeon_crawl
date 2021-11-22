@@ -45,6 +45,7 @@
           <%=  if user_can_edit_dungeons(@current_user) do %>
           <li class="nav-item"><%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %></li>
           <%   end %>
+          <li class="nav-item"><%= link "Items", to: Routes.equipment_path(@conn, :index), class: "nav-link" %></li>
           <li class="nav-item"><%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index), class: "nav-link" %></li>
           <% end %>
 

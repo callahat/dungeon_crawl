@@ -8,8 +8,11 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.Equipment
 
   setup %{conn: _conn} = config do
+    Equipment.Seeder.gun()
+
     if username = config[:login_as] do
       user = insert_user(%{username: username, is_admin: !config[:not_admin]})
       conn = assign(build_conn(), :current_user, user)

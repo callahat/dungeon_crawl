@@ -30,6 +30,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SHIFT clockwise
     #GAMEOVER
     #GAMEOVER false
+    #EQUIP gun, ?sender
+    #EQUIP gun, ?sender, 2
+    #UNEQUIP gun, north, MORE
     """
   end
 
@@ -121,6 +124,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #GAMEOVER blah, ok, nigeria
     #GAMEOVER true, WIN
     &ALL ++= 42
+    #EQUIP gun, norf, banana, nigeria
+    #UNEQUIP gun, norf, nigeria
     """
   end
 
@@ -154,7 +159,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 12: MOVE command references invalid direction `sooth`",
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
-               "Line 18: FACING command references invalid direction `\"inward\"`",
+               "Line 18: FACING command references invalid direction `inward`",
                "Line 19: IF command malformed",
                "Line 20: CYCLE command has invalid param `0`",
                "Line 21: CYCLE command has invalid param `false`",
@@ -189,7 +194,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
                "Line 62: PASSAGE command has invalid params `[\"\"]`",
-               "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
+               "Line 65: TRANSPORT command level kwarg is invalid: `derp`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`",
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
                "Line 70: RANDOM command has an invalid number of parameters",
@@ -202,6 +207,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
                "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
                "Line 86: CHANGE command ++ takes only one operand, got `= 42`",
+               "Line 87: EQUIP command references invalid direction `norf`",
+               "Line 87: EQUIP command has invalid maximum amount `banana`",
+               "Line 87: EQUIP command references nonexistant label `nigeria`",
+               "Line 88: UNEQUIP command references invalid direction `norf`",
+               "Line 88: UNEQUIP command references nonexistant label `nigeria`",
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -212,7 +222,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 12: MOVE command references invalid direction `sooth`",
                "Line 13: TRY command references invalid direction `banana`",
                "Line 16: GO command references invalid direction `hotpockets`",
-               "Line 18: FACING command references invalid direction `\"inward\"`",
+               "Line 18: FACING command references invalid direction `inward`",
                "Line 19: IF command malformed",
                "Line 20: CYCLE command has invalid param `0`",
                "Line 21: CYCLE command has invalid param `false`",
@@ -245,7 +255,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 58: SHIFT command references invalid rotation `neutral`",
                "Line 60: IF command malformed",
                "Line 62: PASSAGE command has invalid params `[\"\"]`",
-               "Line 65: TRANSPORT command level kwarg is invalid: `\"derp\"`",
+               "Line 65: TRANSPORT command level kwarg is invalid: `derp`",
                "Line 66: TRANSPORT command has invalid number of params: `[[:event_sender], \"up\", \"green\", \"blue\"]`",
                "Line 68: TEXT command references nonexistant label `NOLABEL`",
                "Line 70: RANDOM command has an invalid number of parameters",
@@ -258,6 +268,11 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 84: GAMEOVER command has invalid 1st parameter `blah`",
                "Line 84: GAMEOVER command has invalid 3rd parameter `nigeria`",
                "Line 86: CHANGE command ++ takes only one operand, got `= 42`",
+               "Line 87: EQUIP command references invalid direction `norf`",
+               "Line 87: EQUIP command has invalid maximum amount `banana`",
+               "Line 87: EQUIP command references nonexistant label `nigeria`",
+               "Line 88: UNEQUIP command references invalid direction `norf`",
+               "Line 88: UNEQUIP command references nonexistant label `nigeria`",
               ],
               program} == ProgramValidator.validate(program, admin)
     end

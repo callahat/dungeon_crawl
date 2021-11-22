@@ -6,9 +6,14 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.Levels
 
+  alias DungeonCrawl.Equipment
+
   @user_id_hash "goodhash"
 
   setup do
+    Equipment.Seeder.gun()
+    insert_item(%{name: "knife"})
+
     instance = insert_stubbed_level_instance(%{},
       [%Tile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: "blocking: false"},
        %Tile{name: "Floor", character: ".", row: 2, col: 3, z_index: 0, state: "blocking: false"}])
@@ -16,7 +21,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     player_location = insert_player_location(%{level_instance_id: instance.id,
                                                row: 23,
                                                col: 24,
-                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3",
+                                               state: "ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: gun, equipment: gun knife, starting_equipment: gun",
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 
@@ -34,10 +39,43 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/2", %{state: state, player_tile: player_tile} do
-    assert %{ammo: 4, cash: 420, gems: 1, health: 100, keys: keys, torches: 1, torch_light: torch_light} =
-             Player.current_stats(state, player_tile)
+    zap_item = insert_item(%{name: "Zapper"})
+    other_item = insert_item(%{name: "Other Item"})
+
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipment: ["gun", zap_item.slug, other_item.slug]})
+
+    assert %{ammo: 4,
+             cash: 420,
+             gems: 1,
+             health: 100,
+             keys: keys,
+             torches: 1,
+             torch_light: torch_light,
+             equipped: "Gun",
+             equipment: [
+               "<span>Equippable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item</span>",
+               "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
+               "<span>-Gun (Equipped)</span>"],
+           } = Player.current_stats(state, player_tile)
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" == keys
     assert "<pre class='tile_template_preview'><span class='torch-bar'>███░░░</span></pre>" == torch_light
+  end
+
+  test "current_stats/2 duplicates among equipment", %{state: state, player_tile: player_tile} do
+    zap_item = insert_item(%{name: "Zapper"})
+    other_item = insert_item(%{name: "Other Item", consumable: true})
+
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipment: ["gun", "gun", zap_item.slug, other_item.slug, other_item.slug]})
+
+    assert %{equipment: [
+               "<span>Equippable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
+               "<span>-Gun (x2) (Equipped)</span>",
+               "<span>Consumable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item (x2)</span>"
+             ],
+           } = Player.current_stats(state, player_tile)
   end
 
   test "current_stats/2 when the tile does not exist (this path should not happen)", %{player_tile: player_tile} do
@@ -45,7 +83,15 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/1" do
-    assert %{ammo: 4, cash: 420, gems: 1, health: 100, keys: keys} = Player.current_stats(@user_id_hash)
+    assert stats = Player.current_stats(@user_id_hash)
+    assert %{ammo: 4,
+             cash: 420,
+             gems: 1,
+             health: 100,
+             keys: keys,
+             equipped: "Gun"} = stats
+    refute stats[:equipment]
+
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" = keys
   end
 
@@ -64,11 +110,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     assert String.contains? grave.script, """
                                           You defile the grave
+                                          Found a knife
                                           Found 1 red_key
                                           Found 1 torches
                                           Found 1 gems
                                           Found 420 cash
                                           Found 4 ammo
+                                          #EQUIP knife, ?sender
                                           #GIVE red_key, 1, ?sender
                                           #GIVE torches, 1, ?sender
                                           #GIVE gems, 1, ?sender

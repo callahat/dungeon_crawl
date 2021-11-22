@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.DungeonProcesses.{LevelProcess, Registrar}
+  alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
 
   def join("players:" <> location_id, _payload, socket) do
     user_id_hash = socket.assigns.user_id_hash
@@ -34,6 +35,9 @@ defmodule DungeonCrawlWeb.PlayerChannel do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
                                        "change_level",
                                        %{level_id: socket.assigns.level_instance_id, level_render: level_table}
+    DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
+                                       "stat_update",
+                                       %{stats: PlayerInstance.current_stats(state, %{id: socket.assigns.player_tile_id})}
 
     {:noreply, socket}
   end

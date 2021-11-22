@@ -45,6 +45,8 @@ defmodule DungeonCrawl.PlayerChannelTest do
     instance_id = location.tile.level_instance_id
     push socket, "refresh_level", %{}
     assert_broadcast "change_level", %{level_id: ^instance_id, level_render: _html}
+    assert_broadcast "stat_update", %{stats: stats}
+    assert Map.keys(stats) == [:ammo, :cash, :equipment, :equipped, :gems, :health, :keys, :lives, :score, :torch_light, :torches]
   end
 
   @tag visibility: "fog"

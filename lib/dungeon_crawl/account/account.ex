@@ -42,8 +42,12 @@ defmodule DungeonCrawl.Account do
       ** (Ecto.NoResultsError)
 
   """
-  def get_user(id, repo \\ Repo),  do: repo.get(User, id)
-  def get_user!(id, repo \\ Repo), do: repo.get!(User, id)
+  def get_user(id, repo \\ Repo)
+  def get_user(nil, _repo), do: nil
+  def get_user(id, repo),  do: repo.get(User, id)
+  def get_user!(id, repo \\ Repo)
+  def get_user!(nil, _repo), do: nil
+  def get_user!(id, repo), do: repo.get!(User, id)
 
   @doc """
   Gets a single user by their username.

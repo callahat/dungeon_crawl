@@ -24,7 +24,7 @@ defmodule DungeonCrawlWeb.Crawler do
       {<dungeon_instance_id>, %Player.Location{}}
   """
   def join_and_broadcast(%DungeonInstances.Dungeon{} = where, user_id_hash, user_avatar, _) do
-    {:ok, location} = Player.create_location_on_spawnable_space(where, user_id_hash, user_avatar)
+    location = Player.create_location_on_spawnable_space(where, user_id_hash, user_avatar)
     _broadcast_join_event(location)
 
     {where.id, location}
@@ -45,9 +45,8 @@ defmodule DungeonCrawlWeb.Crawler do
     {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.id)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
-      {_, instance_state} = Levels.create_player_tile(instance_state, tile, location)
       # "player_joined" could be broadcast here should it be needed for a future feature
-      {:ok, instance_state}
+      Levels.create_player_tile(instance_state, tile, location)
     end)
   end
 

@@ -46,10 +46,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
     # items
     ammo()
     cash()
+    fireball_wand()
     gem()
     heart()
+    levitation_potion()
     medkit()
     scroll()
+    stone()
     torch()
 
     # misc
@@ -65,6 +68,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # ordinance
     bomb()
+    fireball()
     explosion()
     smoke()
     star()

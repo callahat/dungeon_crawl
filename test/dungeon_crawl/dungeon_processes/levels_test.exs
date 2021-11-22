@@ -7,6 +7,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scores
+  alias DungeonCrawl.Scripting.Program
 
   setup do
     tile =        %Tile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TAKE health, 100, ?sender\n#DIE"}
@@ -679,6 +680,35 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     DungeonCrawl.TileTemplates.update_tile_template(bullet, %{user_id: insert_user().id})
     state = %{state | author: %{id: 1, is_admin: false}}
     assert {nil, ^state, :not_found} = Levels.get_tile_template("bullet", state)
+  end
+
+  test "get_item/2", %{state: state} do
+    assert {nil, ^state, :not_found} = Levels.get_item("fake_slug", state)
+
+    DungeonCrawl.Equipment.Seeder.Item.gun
+
+    # looks up from the database and caches it
+    assert {item, updated_state, :created} = Levels.get_item("gun", state)
+    assert item.name == "Gun"
+    assert updated_state == %{ state | item_slug_cache: updated_state.item_slug_cache}
+    assert updated_state.item_slug_cache["gun"] == item
+    assert %{program: %Program{instructions: instructions}} = updated_state.item_slug_cache["gun"]
+    assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
+             2 => [:shoot, [state_variable: :facing]],
+             3 => [:halt, [""]],
+             4 => [:noop, "error"],
+             5 => [:text, [["Out of ammo!"]]]} == instructions
+
+    # finds it in the cache and returns it
+    assert {^item, ^updated_state, :exists} = Levels.get_item("gun", updated_state)
+
+    # an id is given instead / template not found
+    assert {nil, ^updated_state, :not_found} = Levels.get_item(item.id, updated_state)
+
+    # item cannot be used since dungeon has author whom is not an admin nor owner of the non public slug
+    DungeonCrawl.Equipment.update_item(item, %{user_id: insert_user().id, public: false})
+    state = %{state | author: %{id: 1, is_admin: false}}
+    assert {nil, ^state, :not_found} = Levels.get_item("gun", state)
   end
 
   test "gameover/3 - ends game for all players in instance" do

@@ -3,6 +3,8 @@ let Player = {
     let playerUserIdHash = element.getAttribute("data-location-id")
     socket.connect()
 
+    this.levelJs = levelJs
+
     let playerChannel = socket.channel("players:" + playerUserIdHash)
 
     playerChannel.on("change_level", (msg) => {
@@ -37,6 +39,7 @@ let Player = {
 
     playerChannel.join()
       .receive("ok", (resp) => {
+        console.log("joined the players channel!")
         levelJs.renderMessage("Entered the level")
 
         playerChannel.push("refresh_level", {})
@@ -61,6 +64,8 @@ let Player = {
     document.getElementById("keys").innerHTML = stats.keys
     document.getElementById("torches").innerHTML = stats.torches
     document.getElementById("torch_light").innerHTML = stats.torch_light
+    document.getElementById("equipped").innerHTML = stats.equipped
+    this.levelJs.equippableItems = stats.equipment
     if(parseInt(stats.health) <= 0 && !document.gameover) {
       $('#respawnModal').modal('show')
     }
@@ -76,7 +81,8 @@ let Player = {
       scoreboard.setAttribute("data-to", scoreboard.getAttribute("data-to") + params)
     }
     $('#gameoverModal').modal('show')
-  }
+  },
+  levelJs: null,
 }
 
 export default Player

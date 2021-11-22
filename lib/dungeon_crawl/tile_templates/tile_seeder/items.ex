@@ -53,6 +53,29 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     })
   end
 
+  def fireball_wand do
+    TileTemplates.update_or_create_tile_template!(
+      "fireball_wand",
+      %{character: "/",
+        name: "Fireball Wand",
+        description: "A wand you can use to shoot fireballs",
+        state: "blocking: false, soft: true, pushable: true, blocking_light: false",
+        color: "brown",
+        public: true,
+        active: true,
+        group_name: "items",
+        script: """
+        :main
+        #end
+        :touch
+        #if ! ?sender@player, main
+        You found a magic wand!
+        #equip fireball_wand, ?sender
+        #die
+        """
+      })
+  end
+
   def gem do
     TileTemplates.update_or_create_tile_template!(
       "gem",
@@ -98,6 +121,29 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 #die
                 """
     })
+  end
+
+  def levitation_potion do
+    TileTemplates.update_or_create_tile_template!(
+      "levitation_potion",
+      %{character: "!",
+        name: "Levitation Potion",
+        description: "It'll make you float",
+        state: "blocking: false, soft: true, pushable: true, blocking_light: false",
+        color: "blue",
+        public: true,
+        active: true,
+        group_name: "items",
+        script: """
+        :main
+        #end
+        :touch
+        #if ! ?sender@player, main
+        You found a magic potion of levitation!
+        #equip levitation_potion, ?sender
+        #die
+        """
+      })
   end
 
   def medkit do
@@ -149,6 +195,41 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     })
   end
 
+  def stone do
+    TileTemplates.update_or_create_tile_template!(
+      "stone",
+      %{character: "*",
+        name: "Stone",
+        description: "A small stone fits nicely in the palm of your hand",
+        state: "blocking: false, soft: true, pushable: true, blocking_light: false, damage: 5, not_pushing: true, wait_cycles: 2",
+        color: "gray",
+        public: true,
+        active: true,
+        group_name: "items",
+        script: """
+        #if @thrown, thrown
+        :main
+        #end
+        :touch
+        #if ! ?sender@player, main
+        Picked up a stone
+        #equip stone, ?sender
+        #die
+        :thrown
+        #zap touch
+        @flying = true
+        #walk @facing
+        :thud
+        :touch
+        @flying=false
+        #restore thrown
+        #restore touch
+        #send shot, ?sender
+        #send main
+        """
+      })
+  end
+
   def torch do
     TileTemplates.update_or_create_tile_template!(
       "torch",
@@ -176,10 +257,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
     quote do
       def ammo(), do: unquote(__MODULE__).ammo()
       def cash(), do: unquote(__MODULE__).cash()
+      def fireball_wand(), do: unquote(__MODULE__).fireball_wand()
       def gem(), do: unquote(__MODULE__).gem()
       def heart(), do: unquote(__MODULE__).heart()
+      def levitation_potion(), do: unquote(__MODULE__).levitation_potion()
       def medkit(), do: unquote(__MODULE__).medkit()
       def scroll(), do: unquote(__MODULE__).scroll()
+      def stone(), do: unquote(__MODULE__).stone()
       def torch(), do: unquote(__MODULE__).torch()
     end
   end

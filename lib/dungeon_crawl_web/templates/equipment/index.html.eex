@@ -1,0 +1,51 @@
+<div class="d-flex flex-column listing-full-height">
+  <div class="d-flex flex-row">
+    <h2 class="inline">Listing items</h2>
+  </div>
+  <div class="d-flex flex-row">
+    <%= link "New item", to: Routes.equipment_path(@conn, :new) %>
+  </div>
+
+<%= if @conn.assigns.current_user.is_admin do %>
+  <div class="d-flex flex-row">
+    <%= link "All", to: Routes.equipment_path(@conn, :index) %> |
+    <%= link "Mine", to: Routes.equipment_path(@conn, :index, %{list: "mine"}) %> |
+    <%= link "Unowned", to: Routes.equipment_path(@conn, :index, %{list: "nil"}) %>
+  </div>
+<% end %>
+
+  <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Slug</th>
+          <th>Name</th>
+          <th>Public</th>
+          <th>Weapon</th>
+          <th>Consumable</th>
+
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  <%= for item <- @items do %>
+        <tr>
+          <td><%= item.id %></td>
+          <td><%= item.slug %></td>
+          <td><%= item.name %></td>
+          <td><%= if item.public, do: "Y", else: "N" %></td>
+          <td><%= if item.weapon, do: "Y", else: "N" %></td>
+          <td><%= if item.consumable, do: "Y", else: "N" %></td>
+
+          <td class="text-right">
+            <%= link "Show", to: Routes.equipment_path(@conn, :show, item), class: "btn btn-light btn-sm" %>
+            <%= link "Edit", to: Routes.equipment_path(@conn, :edit, item), class: "btn btn-light btn-sm" %>
+            <%= link "Delete", to: Routes.equipment_path(@conn, :delete, item), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+          </td>
+        </tr>
+  <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, LevelRegistry,
                                        DungeonRegistry, DungeonProcess, Registrar}
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Direction
   alias DungeonCrawl.Scripting.Maths
@@ -51,6 +52,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :cycle        -> :cycle
       :die          -> :die
       :end          -> :halt
+      :equip        -> :equip
       :facing       -> :facing
       :gameover     -> :gameover
       :give         -> :give
@@ -77,6 +79,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :text         -> :text
       :transport    -> :transport
       :try          -> :try
+      :unequip      -> :unequip
       :unlock       -> :unlock
       :walk         -> :walk
       :zap          -> :zap
@@ -257,8 +260,11 @@ defmodule DungeonCrawl.Scripting.Command do
     _change_state(runner_state, target, var, op, value)
   end
 
-  def _change_state(%Runner{state: state} = runner_state, %{} = target, var, op, value) do
-    if(target.parsed_state[:player]) do
+  @immutable_player_state_variables [:player , :equipped, :equipment | PlayerInstance.stats()]
+
+  defp _change_state(%Runner{state: state} = runner_state, %{} = target, var, op, value) do
+    if(target.parsed_state[:player] &&
+        (Enum.member?(@immutable_player_state_variables, var)) || String.ends_with?(to_string(var), "_key")) do
       runner_state
     else
       update_var = %{ var => Maths.calc(target.parsed_state[var] || 0, op, value) }
@@ -267,7 +273,7 @@ defmodule DungeonCrawl.Scripting.Command do
     end
   end
 
-  def _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) do
+  defp _change_state(%Runner{object_id: object_id, state: state} = runner_state, target, var, op, value) do
     target_tile = if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
                     Levels.get_tile_by_id(state, %{id: target})
                   else
@@ -362,11 +368,86 @@ defmodule DungeonCrawl.Scripting.Command do
             state: %Levels{ map_by_ids: %{ ... } } }
   """
   def die(%Runner{program: program, object_id: object_id, state: state} = runner_state, _ignored \\ nil) do
-    {_deleted_object, updated_state} = Levels.delete_tile(state, %{id: object_id})
+    {deleted_object, updated_state} = Levels.delete_tile(state, %{id: object_id})
 
-    %Runner{runner_state |
-            program: %{program | status: :dead, pc: -1},
-            state: updated_state}
+    if deleted_object.parsed_state[:player] do
+      terminate(runner_state)
+    else
+      %Runner{runner_state |
+              program: %{program | status: :dead, pc: -1},
+              state: updated_state}
+    end
+  end
+
+  @doc """
+  Give a tile an equippable item. This will add the item slug to the tiles `equipment` list,
+  but does not set it as `equipped`. If the item_slug is invalid, this command will
+  do nothing. The third and fourth parameters are optional, but the fourth parameter requires the third.
+  The first parameter is the item_slug, second parameter is whom to give the equipment.
+  The third parameter is the max number of that equipment the tile may have, and the fourth
+  is the label to jump to if the tile is at the max number.
+
+  ## Examples
+
+     iex> equip(%Runner{}, ["healing_potion", [:event_sender]])
+     %Runner{}
+
+     iex> equip(%Runner{}, ["healing_potion", [:event_sender], 1])
+     %Runner{}
+
+     iex> equip(%Runner{}, ["healing_potion", [:event_sender], 1, "ALREADY_HAVE"])
+     %Runner{}
+  """
+  def equip(%Runner{} = runner_state, [what, to_whom]) do
+    _equip(runner_state, [what, to_whom, nil, nil])
+  end
+
+  def equip(%Runner{} = runner_state, [what, to_whom, max]) do
+    _equip(runner_state, [what, to_whom, max, nil])
+  end
+
+  def equip(%Runner{} = runner_state, [what, to_whom, max, label]) do
+    _equip(runner_state, [what, to_whom, max, label])
+  end
+
+  defp _equip(%Runner{} = runner_state, [%Item{} = what, target, max, label]) do
+    _via_helper(runner_state, %{what: what, target: target, max: max, label: label}, &_equip_via_id/2)
+  end
+
+  defp _equip(%Runner{state: state} = runner_state, [what, to_whom, max, label]) do
+    item_slug = resolve_variable(runner_state, what)
+
+    case Levels.get_item(item_slug, state) do
+      {item, _state, :exists} -> _equip(runner_state, [item, to_whom, max, label])
+      {item, state, :created} -> _equip(%{runner_state | state: state}, [item, to_whom, max, label])
+      _ -> runner_state
+    end
+  end
+
+  defp _equip_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: item, target: id, max: max, label: label} = data
+    max = resolve_variable(runner_state, max)
+    receiver = Levels.get_tile_by_id(state, %{id: id})
+
+    count = receiver && Enum.reduce(receiver.parsed_state[:equipment] || [], 0,
+                          fn(i,acc) -> if i == item.slug, do: acc + 1, else: acc end)
+              || 0
+
+    cond do
+      receiver && count < max ->
+        updated_equipment = [ item.slug | receiver.parsed_state[:equipment] || [] ]
+
+        {_receiver, state} = Levels.update_tile_state(state, receiver, %{equipment: updated_equipment})
+
+        %{ runner_state | state: state }
+
+      label ->
+        updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+        %{ runner_state | state: state, program: updated_program }
+
+      true ->
+        runner_state
+    end
   end
 
   @doc """
@@ -445,11 +526,11 @@ defmodule DungeonCrawl.Scripting.Command do
 
   ## Examples
 
-    iex> Command.give(%Runner{}, [:cash, :420, [:event_sender]])
+    iex> Command.give(%Runner{}, ["cash", 420, [:event_sender]])
     %Runner{}
-    iex> Command.give(%Runner{}, [:ammo, {:state_variable, :rounds}, "north"])
+    iex> Command.give(%Runner{}, ["ammo", {:state_variable, :rounds}, "north"])
     %Runner{}
-    iex> Command.give(%Runner{}, [:health, 100, "north", 100, "HEALEDUP"])
+    iex> Command.give(%Runner{}, ["health", 100, "north", 100, "HEALEDUP"])
     %Runner{}
   """
   def give(%Runner{} = runner_state, [what, amount, to_whom]) do
@@ -464,33 +545,12 @@ defmodule DungeonCrawl.Scripting.Command do
     _give(runner_state, [what, amount, to_whom, max, label])
   end
 
-  defp _give(%Runner{event_sender: event_sender} = runner_state, [what, amount, [:event_sender], max, label]) do
-    case event_sender do
-      %{tile_id: id} -> _give(runner_state, [what, amount, id, max, label])
-
-      %Location{tile_instance_id: id} -> _give(runner_state, [what, amount, id, max, label])
-
-      nil              -> runner_state
-    end
+  defp _give(%Runner{} = runner_state, [what, amount, target, max, label]) do
+    _via_helper(runner_state, %{what: what, amount: amount, target: target, max: max, label: label}, &_give_via_id/2)
   end
 
-  defp _give(%Runner{object_id: object_id, state: state} = runner_state, [what, amount, target, max, label]) do
-    target = resolve_variable(runner_state, target)
-    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _give_via_id(runner_state, [what, amount, target, max, label])
-    else
-      with direction when is_valid_orthogonal(direction) <- target,
-           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
-           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
-        _give_via_id(runner_state, [what, amount, tile.id, max, label])
-      else
-        _ ->
-          runner_state
-      end
-    end
-  end
-
-  defp _give_via_id(%Runner{state: state, program: program} = runner_state, [what, amount, id, max, label]) do
+  defp _give_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: what, amount: amount, target: id, max: max, label: label} = data
     amount = resolve_variable(runner_state, amount)
     what = resolve_variable(runner_state, what)
 
@@ -1493,33 +1553,12 @@ defmodule DungeonCrawl.Scripting.Command do
     _take(runner_state, what, amount, from_whom, label)
   end
 
-  defp _take(%Runner{event_sender: event_sender} = runner_state, what, amount, [:event_sender], label) do
-    case event_sender do
-      %{tile_id: id} -> _take(runner_state, what, amount, id, label)
-
-      %Location{tile_instance_id: id} -> _take(runner_state, what, amount, id, label)
-
-      nil              -> runner_state
-    end
+  defp _take(%Runner{} = runner_state, what, amount, target, label) do
+    _via_helper(runner_state, %{what: what, amount: amount, target: target, label: label}, &_take_via_id/2)
   end
 
-  defp _take(%Runner{state: state, object_id: object_id} = runner_state, what, amount, target, label) do
-    target = resolve_variable(runner_state, target)
-    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _take_via_id(runner_state, what, amount, target, label)
-    else
-      with direction when is_valid_orthogonal(direction) <- target,
-           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
-           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
-        _take_via_id(runner_state, what, amount, tile.id, label)
-      else
-        _ ->
-          runner_state
-      end
-    end
-  end
-
-  defp _take_via_id(%Runner{state: state, program: program} = runner_state, what, amount, id, label) do
+  defp _take_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: what, amount: amount, target: id, label: label} = data
     amount = resolve_variable(runner_state, amount)
     what = resolve_variable(runner_state, what)
 
@@ -1769,6 +1808,74 @@ defmodule DungeonCrawl.Scripting.Command do
     move(runner_state, [direction, false])
   end
 
+
+  @doc """
+  Takes from a tile an equippable item. This will remove the item slug from the tiles
+  in the `equipment` list, and clears `equipped` if the tile no longer has any of that slug
+  in its `equipment` list. If the item_slug is invalid, this command will do nothing.
+  The first parameter is the item_slug, second parameter is from whom to take the equipment.
+  The third parameter is the label to jump to if the tile does not have this item.
+
+  ## Examples
+
+     iex> unequip(%Runner{}, ["healing_potion", [:event_sender]])
+     %Runner{}
+
+     iex> unequip(%Runner{}, ["healing_potion", [:event_sender], "NO_POTION"])
+     %Runner{}
+  """
+  def unequip(%Runner{} = runner_state, [what, to_whom]) do
+    _unequip(runner_state, [what, to_whom, nil])
+  end
+
+  def unequip(%Runner{} = runner_state, [what, to_whom, label]) do
+    _unequip(runner_state, [what, to_whom, label])
+  end
+
+  defp _unequip(%Runner{} = runner_state, [%Item{} = what, target, label]) do
+    _via_helper(runner_state, %{what: what, target: target, label: label}, &_unequip_via_id/2)
+  end
+
+  defp _unequip(%Runner{state: state} = runner_state, [what, to_whom, label]) do
+    item_slug = resolve_variable(runner_state, what)
+
+    case Levels.get_item(item_slug, state) do
+      {item, _state, :exists} -> _unequip(runner_state, [item, to_whom, label])
+      {item, state, :created} -> _unequip(%{runner_state | state: state}, [item, to_whom, label])
+      _ -> runner_state
+    end
+  end
+
+  defp _unequip_via_id(%Runner{state: state, program: program} = runner_state, data) do
+    %{what: item, target: id, label: label} = data
+    loser = Levels.get_tile_by_id(state, %{id: id})
+
+    equipment = loser.parsed_state[:equipment] || []
+    updated_equipment = equipment -- [item.slug]
+
+    count = Enum.reduce(updated_equipment, 0,
+      fn(i,acc) -> if i == item.slug, do: acc + 1, else: acc end)
+
+    cond do
+      loser && count > 0 ->
+        {_loser, state} = Levels.update_tile_state(state, loser, %{equipment: updated_equipment})
+        %{ runner_state | state: state }
+
+      loser && count == 0 && length(equipment -- updated_equipment) == 1 ->
+        equipped_item = Enum.at(updated_equipment, 0)
+        tile_state_changes = %{equipment: updated_equipment, equipped: equipped_item}
+        {_loser, state} = Levels.update_tile_state(state, loser, tile_state_changes)
+        %{ runner_state | state: state }
+
+      label ->
+        updated_program = %{ runner_state.program | pc: Program.line_for(program, label), status: :wait, wait_cycles: 1 }
+        %{ runner_state | state: state, program: updated_program }
+
+      true ->
+        runner_state
+    end
+  end
+
   @doc """
   Unlocks the object. This will allow it to receive and act on any
   message/event it may receive. The underlying state value `locked`
@@ -1859,6 +1966,23 @@ defmodule DungeonCrawl.Scripting.Command do
       [ [line_number, !active] | labels]
     else
       [ [line_number, active] | _label_toggle(labels, toggle_value)]
+    end
+  end
+
+  defp _via_helper(%Runner{object_id: object_id, state: state} = runner_state, %{target: target} = data, via_function) do
+    target = resolve_variable(runner_state, target)
+    if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
+      via_function.(runner_state, %{data | target: target})
+    else
+      with false <- is_nil(target),
+           direction when is_valid_orthogonal(direction) <- target,
+           object when not is_nil(object) <- Levels.get_tile_by_id(state, %{id: object_id}),
+           tile when not is_nil(tile) <- Levels.get_tile(state, object, direction) do
+        via_function.(runner_state, %{data | target: tile.id})
+      else
+        _ ->
+          runner_state
+      end
     end
   end
 end

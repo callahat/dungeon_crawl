@@ -1,0 +1,83 @@
+<%= form_for @changeset, @action, fn f -> %>
+  <%= if @changeset.action do %>
+    <div class="alert alert-danger">
+      <p>Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
+
+  <div class="tab-content" id="tool_tab_content">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-group">
+          <%= label f, :name, class: "control-label" %>
+          <%= text_input f, :name, class: "form-control" %>
+          <%= error_tag f, :name %>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-group">
+          <%= label f, :slug, class: "control-label" %>
+          <%= text_input f, :slug, class: "form-control", disabled: :disabled %>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="form-group">
+          <%= label f, :description, class: "control-label" %>
+          <%= text_input f, :description, class: "form-control" %>
+          <%= error_tag f, :description %>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+    <%= if @conn.assigns.current_user.is_admin && (f.data.user_id == @conn.assigns.current_user.id || f.data.user_id == nil) do %>
+      <div class="col-md-3">
+        <div class="form-group">
+          <label class="control-label" for="self_owned">Owned by self</label>
+          <input id="self_owned" name="self_owned" type="hidden" value="false">
+          <input id="self_owned" name="self_owned" type="checkbox" value="true" <%= if f.data.user_id == @conn.assigns.current_user.id, do: "checked" %>>
+        </div>
+      </div>
+    <% end %>
+      <div class="col-md-3">
+        <div class="form-group">
+          <%= label f, :public, class: "control-label" %>
+          <%= checkbox f, :public %>
+          <%= error_tag f, :public %>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="form-group">
+          <%= label f, :weapon, class: "control-label" %>
+          <%= checkbox f, :weapon %>
+          <%= error_tag f, :weapon %>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="form-group">
+          <%= label f, :consumable, class: "control-label" %>
+          <%= checkbox f, :consumable %>
+          <%= error_tag f, :consumable %>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="form-group">
+          <%= label f, :script, class: "control-label" %>
+          <%= textarea f, :script, class: "form-control script" %>
+          <%= error_pre_tag f, :script %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <%= submit "Submit", class: "btn btn-primary" %>
+  </div>
+<% end %>
+

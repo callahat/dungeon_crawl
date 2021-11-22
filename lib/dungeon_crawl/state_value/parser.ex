@@ -39,7 +39,9 @@ defmodule DungeonCrawl.StateValue.Parser do
 
       [key,value] ->
         case _key_value_pairs(tail) do
-          {:ok, pairs}  -> {:ok, Map.put(pairs, String.to_atom(key), _cast_param(value))}
+          {:ok, pairs}  ->
+            {key, value} = _normalize_key_and_value(key, value)
+            {:ok, Map.put(pairs, key, value)}
           {:error, msg} -> {:error, msg}
         end
     end
@@ -49,6 +51,13 @@ defmodule DungeonCrawl.StateValue.Parser do
     String.split(str, char)
     |> Enum.map(fn(s) -> String.trim(s) end)
   end
+
+  defp _normalize_key_and_value(key, value) when is_binary(key),
+    do: _normalize_key_and_value(String.to_atom(key), value)
+  defp _normalize_key_and_value(:equipment, value),
+    do: {:equipment, String.split(value)}
+  defp _normalize_key_and_value(key, value),
+    do: {key, _cast_param(value)}
 
   defp _cast_param(param) do
     cond do
@@ -76,7 +85,14 @@ defmodule DungeonCrawl.StateValue.Parser do
   def stringify(state_map) do
     state_map
     |> Map.to_list
-    |> Enum.map(fn({k,v}) -> if(is_nil(v), do: "#{k}: nil", else: "#{k}: #{v}") end)
+    |> Enum.map(&(_stringify_key_value(&1)))
     |> Enum.join(", ")
   end
+
+  defp _stringify_key_value({:equipment, value}),
+    do: "equipment: #{Enum.join(value, " ")}"
+  defp _stringify_key_value({key, nil}),
+    do: "#{key}: nil"
+  defp _stringify_key_value({key, value}),
+    do: "#{key}: #{value}"
 end

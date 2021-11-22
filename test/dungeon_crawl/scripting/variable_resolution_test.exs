@@ -3,18 +3,19 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.Levels
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.VariableResolution
 
-  # TODO
-
   describe "resolve_variable" do
     test "resolves state_variable" do
+      Equipment.Seeder.gun()
+
       dungeon_instance = insert_stubbed_dungeon_instance(%{state: "di_thing1: 999, di_flag: false"})
       {tile_1, state} = Levels.create_tile(%Levels{state_values: %{rows: 20, cols: 40},
                                                                  dungeon_instance_id: dungeon_instance.id},
-                                                      %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north"})
+                                                      %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north, equipped: gun, equipment: gun"})
       {tile_2, state} = Levels.create_tile(state,
                           %Tile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"})
 
@@ -35,6 +36,10 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       # other values are taken from the state, no state value nil is returned
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :pass}) == nil
       assert VariableResolution.resolve_variable(runner_state2, {:state_variable, :pass}) == "bob"
+
+      # equipped / equipment
+      assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :equipped}) == "gun"
+      assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :equipment}) == ["gun"]
 
       # variables can be obtained from the event sender map (which will only contain tile_id and parsed_state)
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass}) == "bob"

@@ -82,9 +82,10 @@ let Level = {
       multilineMessageEl.addEventListener('click', (e) => {
         if(e.target.matches(".messageLink")){
           let label = e.target.getAttribute("data-label"),
-              tile_id = e.target.getAttribute("data-tile-id")
+              tile_id = e.target.getAttribute("data-tile-id"),
+              item_slug = e.target.getAttribute("data-item-slug")
           $('#messageModal').modal('hide')
-          this.levelChannel.push("message_action", {label: label, tile_id: tile_id})
+          this.levelChannel.push("message_action", {label: label, tile_id: tile_id, item_slug: item_slug})
           multilineMessageEl.innerHTML = ""
         }
       })
@@ -92,7 +93,7 @@ let Level = {
 
     this.levelChannel.join()
       .receive("ok", (resp) => {
-        console.log("joined the dungeons channel!")
+        console.log("joined the levels channel!")
       })
       .receive("error", resp => console.log("join failed", resp))
   },
@@ -131,6 +132,10 @@ let Level = {
       keysPressed[direction] = true
 
       switch(direction){
+        case(69): // e
+          this.renderMessageModal(this.equippableItems)
+          $('#messageModal').modal('show')
+          break
         case(72): // h
           $('#helpDetailModal').modal('show')
           break
@@ -175,12 +180,12 @@ let Level = {
   move(direction, keysPressed){
     // console.log(direction)
     let payload = {direction: direction},
-        shoot = keysPressed[16], // shift key
+        use_item = keysPressed[16], // shift key
         pull = keysPressed[80],  // p
         action
 
-    if(shoot) {
-      action = "shoot"
+    if(use_item) {
+      action = "use_item"
     } else if(pull) {
       action = "pull"
     } else {
@@ -239,6 +244,10 @@ let Level = {
                        .receive("error", e => console.log(e))
   },
   sendMessage(){
+    if(this.sendingMessage) { return }
+
+    this.sendingMessage = true
+
     let words = document.getElementById("message_field").value.trim(),
         payload
     if(words != ""){
@@ -246,11 +255,15 @@ let Level = {
       this.levelChannel.push("speak", payload)
         .receive("error", resp => this.renderMessage("Could not send message") )
         .receive("ok", resp => {
-                         this.renderMessage("<b>Me:</b> " + resp.safe_words)
+                         if(resp.safe_words != "") {
+                           this.renderMessage("<b>Me:</b> " + resp.safe_words)
+                         }
                          document.getElementById("message_field").value = ""
+                         this.sendingMessage = false
                        } )
     } else {
       document.getElementById("message_field").value = ""
+      this.sendingMessage = false
     }
   },
   tileFogger(tiles){
@@ -320,7 +333,9 @@ let Level = {
   typing: false,
   textLinks: null,
   textLinkPointer: null,
-  fadeTimeout: null
+  fadeTimeout: null,
+  sendingMessage: false,
+  equippableItems: [],
 }
 
 export default Level

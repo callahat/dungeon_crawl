@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.DungeonProcesses.Player do
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
@@ -8,12 +9,23 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   @stats [:health, :gems, :cash, :ammo, :score, :lives, :torches]
 
   @doc """
-  Returns the current stats (health, gems, cash, ammo, torches, torch_light) for the player.
+  Returns the current stats (health, gems, cash, ammo, torches, torch_light, etc) for the player.
   When the instance state object is already available, that along with the player
   tile should be used to get the player stats.
   When only the player location is available, or an instance state is not already available
   (ie, stats are needed outside of `LevelProcess.run_with` or outside of a `Command` method)
   a `user_id_hash` should be used along to get the stats for that player's current location.
+  `equipped` will be populated with a list of [<slug>, <name>] from the item, and is returned
+  for both forms of `current_stats`. `equipment` is included when an instance state and player_tile
+  are given, and will be a list of [<slug>, <name>] tuples for the player tile's current equipment.
+
+  ## Examples
+
+      iex> current_stats(%Levels{}, player_tile)
+      %{health: 100, gems: 0, ... , equipped: {"gun", "Gun"}, equipment: [{"gun", "Gun"}, {"hands", "Fisticuffs"}]}
+
+      iex> current_stats("useridhash123")
+      %{health: 100, gems: 0, ... , equipped: {"gun", "Gun"}}
   """
   def current_stats(%Levels{} = state, %{id: tile_id} = _player_tile) do
     case Levels.get_tile_by_id(state, %{id: tile_id}) do
@@ -21,6 +33,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
         %{}
       player_tile ->
         _current_stats(player_tile)
+        |> _with_equipped_and_equipment(player_tile, state)
     end
   end
 
@@ -31,6 +44,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
          {:ok, instance_process} <- Registrar.instance_process(player_level_instance.dungeon_instance_id, player_level_instance.id),
          player_tile when not is_nil(player_tile) <- LevelProcess.get_tile(instance_process, player_location.tile_instance_id) do
       _current_stats(player_tile)
+      |> _with_equipped(player_tile)
     else
       _ ->
         %{}
@@ -71,6 +85,76 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     end
   end
 
+  defp _with_equipped_and_equipment(stats, player_tile, state) do
+    {equipped, _, _} = Levels.get_item(player_tile.parsed_state[:equipped], state)
+    equipped_name = equipped && equipped.name
+    equipment = (player_tile.parsed_state[:equipment] || [])
+                |> Enum.map(fn item_slug ->
+                     {item, _, _} = Levels.get_item(item_slug, state)
+                     item
+                   end)
+                |> Enum.reject(&(is_nil(&1)))
+                |> _unique_counts()
+                |> _partition_by_item_type()
+                |> _partition_titles()
+                |> _flatten_and_decorate(equipped_name)
+
+    Map.merge(stats, %{equipped: equipped_name,
+                       equipment: equipment })
+  end
+
+  defp _unique_counts(equipment) do
+    Enum.uniq(equipment)
+    |> Enum.map(fn item ->
+      {item, Enum.count(equipment, &(&1 ==item))}
+    end)
+    |> Enum.sort()
+  end
+
+  defp _partition_by_item_type(equipment) do
+    Enum.reduce(equipment, %{equippable: [], consumable: []}, fn {item, count}, acc ->
+      bucket = if item.consumable, do: :consumable, else: :equippable
+      Map.put(acc, bucket, [{item, count} | acc[bucket]])
+    end)
+  end
+
+  defp _partition_titles(equipment) do
+    equipment
+    |> _equippables_with_title()
+    |> _consumables_with_title()
+  end
+
+  defp _equippables_with_title(%{equippable: []} = equipment), do: equipment
+  defp _equippables_with_title(%{equippable: equippables} = equipment) do
+    %{ equipment | equippable: ["<span>Equippable Items:</span>" | equippables]}
+  end
+  defp _consumables_with_title(%{consumable: []} = equipment), do: equipment
+  defp _consumables_with_title(%{consumable: consumables} = equipment) do
+    %{ equipment | consumable: ["<span>Consumable Items:</span>" | consumables]}
+  end
+
+  defp _flatten_and_decorate(equipment, equipped_name) do
+    (equipment[:equippable] ++ equipment[:consumable])
+    |> Enum.map(&(_item_span_decorator(&1, equipped_name)))
+  end
+
+  defp _with_equipped(stats, player_tile) do
+    equipped = Equipment.get_item(player_tile.parsed_state[:equipped])
+    Map.put(stats, :equipped, equipped && equipped.name)
+  end
+
+  defp _item_span_decorator({item, 1}, equipped_name) do
+    if equipped_name == item.name,
+      do: "<span>-#{ equipped_name } (Equipped)</span>",
+      else: "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name }</span>"
+  end
+  defp _item_span_decorator({item, count}, equipped_name) do
+    if equipped_name == item.name,
+       do: "<span>-#{ equipped_name } (x#{count}) (Equipped)</span>",
+       else: "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name } (x#{count})</span>"
+  end
+  defp _item_span_decorator(title_text, _), do: title_text
+
   @doc """
   Buries the [dead] player. This places a grave tile above the players current location,
   taking all the players items (ammo, cash, keys, etc), making them available to be picked up.
@@ -89,9 +173,22 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                nil    -> 1
                deaths -> deaths + 1
              end
+
+    starting_equipment = String.split(player_tile.parsed_state[:starting_equipment] || "")
+
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
-                |> Map.merge(%{pushable: false, health: 0, gems: 0, cash: 0, ammo: 0, torches: 0, torch_light: 0, buried: true, deaths: deaths})
+                |> Map.merge(%{pushable: false,
+                               health: 0,
+                               gems: 0,
+                               cash: 0,
+                               ammo: 0,
+                               torches: 0,
+                               torch_light: 0,
+                               buried: true,
+                               deaths: deaths,
+                               equipment: starting_equipment,
+                               equipped: Enum.at(starting_equipment || [], 0)})
     {player_tile, state} = Levels.update_tile_state(state, player_tile, new_state)
 
     script_fn = fn items -> """
@@ -147,6 +244,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _spawn_loot_tile(%Levels{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
+    # items that really are stored as state variables
     items_stolen = Map.take(original_state, [:gems, :cash, :ammo, :torches])
                    |> Map.to_list
                    |> Enum.concat(_door_keys(original_state))
@@ -155,8 +253,16 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                         [ ["Found #{count} #{item}" | words],
                           ["#GIVE #{item}, #{count}, ?sender" | gives] ]
                       end)
-                   |> Enum.flat_map(&(&1))
-                   |> Enum.join("\n")
+
+    # add the equippable items
+    items_stolen = ((original_state[:equipment] || []) -- (player_tile.parsed_state[:equipment] || []))
+                   |> Enum.reduce(items_stolen, fn item_slug, [words, equips] ->
+                           {item, _, _} = Levels.get_item(item_slug, state)
+                           [ [ "Found a #{item.name}" | words],
+                             [ "#EQUIP #{item_slug}, ?sender" | equips]]
+                         end)
+                      |> Enum.flat_map(&(&1))
+                      |> Enum.join("\n")
 
     # TODO: tile spawning (including player character tile) should probably live somewhere else once a pattern emerges
     tile_template = apply(DungeonCrawl.TileTemplates.TileSeeder, tile_template, [])
