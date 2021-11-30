@@ -185,6 +185,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                                ammo: 0,
                                torches: 0,
                                torch_light: 0,
+                               light_source: false,
                                buried: true,
                                deaths: deaths,
                                equipment: starting_equipment,
