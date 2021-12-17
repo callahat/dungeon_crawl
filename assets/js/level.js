@@ -1,7 +1,8 @@
 let Level = {
-  init(socket, element){ if(!element){ return }
+  init(socket, zzfx, element){ if(!element){ return }
     let levelId = element.getAttribute("data-level-id")
     this.dungeonId = element.getAttribute("data-dungeon-id")
+    this.zzfx = zzfx
     socket.connect()
 
     this.setupWindowListeners()
@@ -189,6 +190,7 @@ let Level = {
     } else if(pull) {
       action = "pull"
     } else {
+      this.zzfx(...[2.25,,8,,.06,.01,2,2.25,-19,-79,409,.01,,,6.6,,.2,.57,,.8]); // bit footstep
       action = "move"
     }
 
@@ -336,6 +338,7 @@ let Level = {
   fadeTimeout: null,
   sendingMessage: false,
   equippableItems: [],
+  zzfx: null,
 }
 
 export default Level
