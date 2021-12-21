@@ -114,6 +114,41 @@ ALTER SEQUENCE public.dungeons_id_seq OWNED BY public.dungeons.id;
 
 
 --
+-- Name: effects; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.effects (
+    id bigint NOT NULL,
+    name character varying(32),
+    slug character varying(45),
+    zzfx_params character varying(120),
+    public boolean DEFAULT false NOT NULL,
+    user_id bigint,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: effects_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.effects_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: effects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.effects_id_seq OWNED BY public.effects.id;
+
+
+--
 -- Name: items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -618,6 +653,13 @@ ALTER TABLE ONLY public.dungeons ALTER COLUMN id SET DEFAULT nextval('public.dun
 
 
 --
+-- Name: effects id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.effects ALTER COLUMN id SET DEFAULT nextval('public.effects_id_seq'::regclass);
+
+
+--
 -- Name: items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -715,6 +757,14 @@ ALTER TABLE ONLY public.dungeon_instances
 
 ALTER TABLE ONLY public.dungeons
     ADD CONSTRAINT dungeons_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: effects effects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.effects
+    ADD CONSTRAINT effects_pkey PRIMARY KEY (id);
 
 
 --
@@ -840,6 +890,20 @@ CREATE INDEX dungeons_deleted_at_index ON public.dungeons USING btree (deleted_a
 --
 
 CREATE INDEX dungeons_line_identifier_index ON public.dungeons USING btree (line_identifier);
+
+
+--
+-- Name: effects_slug_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX effects_slug_index ON public.effects USING btree (slug);
+
+
+--
+-- Name: effects_user_id_slug_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX effects_user_id_slug_index ON public.effects USING btree (user_id, slug);
 
 
 --
@@ -1035,6 +1099,14 @@ ALTER TABLE ONLY public.dungeons
 
 
 --
+-- Name: effects effects_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.effects
+    ADD CONSTRAINT effects_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: items items_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1204,3 +1276,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210605224807);
 INSERT INTO public."schema_migrations" (version) VALUES (20210612225130);
 INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
 INSERT INTO public."schema_migrations" (version) VALUES (20211009194149);
+INSERT INTO public."schema_migrations" (version) VALUES (20211220033222);
