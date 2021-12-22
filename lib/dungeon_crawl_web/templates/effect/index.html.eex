@@ -1,0 +1,47 @@
+<div class="d-flex flex-column listing-full-height">
+  <div class="d-flex flex-row">
+    <h2 class="inline">Listing Effects</h2>
+  </div>
+  <div class="d-flex flex-row">
+    <%= link "New effect", to: Routes.effect_path(@conn, :new) %>
+  </div>
+
+  <%= if @conn.assigns.current_user.is_admin do %>
+  <div class="d-flex flex-row">
+    <%= link "All", to: Routes.effect_path(@conn, :index) %> |
+    <%= link "Mine", to: Routes.effect_path(@conn, :index, %{list: "mine"}) %> |
+    <%= link "Unowned", to: Routes.effect_path(@conn, :index, %{list: "nil"}) %>
+  </div>
+  <% end %>
+
+  <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
+    <table class="table">
+      <thead>
+      <tr>
+        <th>Id</th>
+        <th>Slug</th>
+        <th>Name</th>
+        <th>Public</th>
+
+        <th></th>
+      </tr>
+      </thead>
+      <tbody>
+      <%= for effect <- @effects do %>
+      <tr>
+        <td><%= effect.id %></td>
+        <td><%= effect.slug %></td>
+        <td><%= effect.name %></td>
+        <td><%= if effect.public, do: "Y", else: "N" %></td>
+
+        <td class="text-right">
+          <%= link "Show", to: Routes.effect_path(@conn, :show, effect), class: "btn btn-light btn-sm" %>
+          <%= link "Edit", to: Routes.effect_path(@conn, :edit, effect), class: "btn btn-light btn-sm" %>
+          <%= link "Delete", to: Routes.effect_path(@conn, :delete, effect), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+        </td>
+      </tr>
+      <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

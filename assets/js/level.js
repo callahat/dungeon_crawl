@@ -1,8 +1,8 @@
 let Level = {
-  init(socket, zzfx, element){ if(!element){ return }
+  init(socket, sound, element){ if(!element){ return }
     let levelId = element.getAttribute("data-level-id")
     this.dungeonId = element.getAttribute("data-dungeon-id")
-    this.zzfx = zzfx
+    this.sound = sound
     socket.connect()
 
     this.setupWindowListeners()
@@ -190,12 +190,12 @@ let Level = {
     } else if(pull) {
       action = "pull"
     } else {
-      this.zzfx(...[2.25,,8,,.06,.01,2,2.25,-19,-79,409,.01,,,6.6,,.2,.57,,.8]); // bit footstep
       action = "move"
     }
 
     this.levelChannel.push(action, payload)
-                       .receive("error", e => console.log(e))
+      .receive("ok", (_) => this.sound.zzfx(...this.soundFootstep))
+      .receive("error", e => console.log(e))
   },
   open(direction, shift = false){
     this._useDoor(direction, "OPEN")
@@ -338,7 +338,8 @@ let Level = {
   fadeTimeout: null,
   sendingMessage: false,
   equippableItems: [],
-  zzfx: null,
+  sound: null,
+  soundFootstep: [2.25,,8,,.06,.01,2,2.25,-19,-79,409,.01,,,6.6,,.2,.57,,.8], // bit footstep
 }
 
 export default Level

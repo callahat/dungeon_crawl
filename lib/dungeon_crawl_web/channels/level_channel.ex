@@ -242,6 +242,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   defp _continue_motion(_ok, direction, move_func, socket) do
     {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
 
+    move_result = \
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
@@ -264,14 +265,14 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
             {:invalid, _tile_changes, instance_state} ->
               {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
-              {:ok, instance_state}
+              {:invalid, instance_state}
           end
 
         true -> {:ok, instance_state}
       end
     end)
 
-    {:reply, :ok, socket}
+    {:reply, move_result, socket}
   end
 
   # todo: is sending a TOUCH message to all tiles (and not just the top one) a good idea?

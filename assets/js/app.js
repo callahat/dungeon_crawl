@@ -40,12 +40,14 @@ import CharacterPicker from "./character_picker"
 import CodemirrorWrapper from "./codemirror_wrapper"
 import TileAnimation from "./tile_animation"
 import AvatarPreview from "./avatar_preview"
+import Sound from "./sound"
 import StateVariableSubform from "./state_variable_subform"
 
+Sound.init(zzfx)
 StateVariableSubform.init(document.getElementById("dungeon_state_variables"))
 StateVariableSubform.init(document.getElementById("level_state_variables"))
 StateVariableSubform.init(document.getElementById("tile_template_state_variables"))
-Level.init(socket, zzfx, document.getElementById("level_instance"))
+Level.init(socket, Sound, document.getElementById("level_instance"))
 LevelAdmin.init(socket, document.getElementById("level_admin"))
 Player.init(socket, Level, document.getElementById("player"))
 TileTemplatePreview.init(document.getElementById("character_preview"))

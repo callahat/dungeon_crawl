@@ -1,0 +1,24 @@
+<h1>Show Effect</h1>
+
+<ul>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @effect.name %>
+  </li>
+
+  <li>
+    <strong>Zzfx params:</strong>
+    <%= @effect.zzfx_params %>
+  </li>
+
+  <li>
+    <strong>Public:</strong>
+    <%= @effect.public %>
+  </li>
+
+</ul>
+
+<%= link "Edit", to: Routes.effect_path(@conn, :edit, @effect) %> |
+<%= link "Back", to: Routes.effect_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.effect_path(@conn, :delete, @effect), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>

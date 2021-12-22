@@ -42,6 +42,8 @@ defmodule DungeonCrawlWeb.Router do
 
     resources "/equipment", EquipmentController
 
+    resources "/sound/effects", EffectController
+
     post "/tile_shortlists", TileShortlistController, :create
     delete "/tile_shortlists", TileShortlistController, :delete
 
