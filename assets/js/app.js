@@ -58,4 +58,3 @@ LevelEditor.init(document.getElementById("level_editor"), StateVariableSubform)
 CharacterPicker.init(document.getElementById("show_character_picker"))
 CodemirrorWrapper.init(document.getElementById("tile_template_script"), document.getElementById("script-tab"))
 TileAnimation.init()
-

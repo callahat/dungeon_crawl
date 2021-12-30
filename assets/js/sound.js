@@ -2,11 +2,14 @@ let Sound = {
   init(zzfx){
     this.zzfx = zzfx
 
-    let effectInput = document.getElementById('effect_zzfx_params')
+    let effectPreviewElement = document.getElementById("sound_effect_previews")
 
-    if(effectInput) {
-      document.getElementById('play_effect').addEventListener('click', () => {
-        this.playEffectString(effectInput.value) })
+    if(effectPreviewElement){
+      effectPreviewElement.addEventListener("click", (e) => {
+        if(e.target.classList.contains("play-effect")){
+          this.playEffectString(e.target.parentElement.nextElementSibling.value)
+        }
+      })
     }
   },
   playEffectString(str, volumeModifier = 1){
@@ -24,7 +27,7 @@ let Sound = {
     params[0] = params[0] ? params[0] * volumeModifier : volumeModifier
     this.zzfx(...params)
   },
-  paramsRegex: /[,\d][,\d\.]+/,
+  paramsRegex: /[,\d\-][,\d\.\-]+/,
   zzfx: null
 }
 

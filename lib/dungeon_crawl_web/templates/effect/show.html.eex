@@ -8,9 +8,9 @@
   </li>
 
   <li>
-    <div class="input-group">
+    <div class="input-group" id="sound_effect_previews">
       <div class="input-group-prepend noselect">
-        <span class="input-group-text" id="play_effect" title="Click to preview the sound effect">▶</span>
+        <span class="input-group-text play-effect" title="Click to preview the sound effect">▶</span>
       </div>
       <%= text_input :effect, :zzfx_params, class: "form-control", placeholder: "Copy the ZzFX JavaScript generated on the linked page above here", disabled: true, value: @effect.zzfx_params %>
     </div>

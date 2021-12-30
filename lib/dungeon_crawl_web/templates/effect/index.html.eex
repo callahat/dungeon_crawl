@@ -15,12 +15,13 @@
   <% end %>
 
   <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
-    <table class="table">
+    <table class="table" id="sound_effect_previews">
       <thead>
       <tr>
         <th>Id</th>
         <th>Slug</th>
         <th>Name</th>
+        <th>Play</th>
         <th>Public</th>
 
         <th></th>
@@ -32,6 +33,14 @@
         <td><%= effect.id %></td>
         <td><%= effect.slug %></td>
         <td><%= effect.name %></td>
+        <td>
+          <div class="input-group">
+            <div class="input-group-prepend noselect">
+              <span class="input-group-text play-effect" title="Click to preview the sound effect">▶</span>
+            </div>
+            <%= hidden_input :effect, :zzfx_params, class: "form-control", placeholder: "Copy the ZzFX JavaScript generated on the linked page above here", disabled: true, value: effect.zzfx_params %>
+          </div>
+        </td>
         <td><%= if effect.public, do: "Y", else: "N" %></td>
 
         <td class="text-right">
