@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.TileTemplates.TileTemplate do
+  use DungeonCrawl.Sluggable
   use Ecto.Schema
   import Ecto.Changeset
 

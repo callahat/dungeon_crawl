@@ -70,6 +70,7 @@ defmodule DungeonCrawl.SoundTest do
       assert Sound.get_effect_by_slug!(effect.slug) == effect
     end
 
+    # tests around setting the slug may be redundant since this is tested in sluggable
     test "create_effect/1 with valid data and no user creates a effect and sets slug" do
       assert {:ok, %Effect{} = effect} = Sound.create_effect(@valid_attrs)
       assert effect.name == "Some Name"

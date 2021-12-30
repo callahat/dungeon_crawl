@@ -93,42 +93,14 @@ defmodule DungeonCrawl.Equipment do
     %Item{}
     |> Item.changeset(attrs)
     |> Repo.insert()
-    |> _add_slug()
+    |> Item.add_slug()
   end
 
   def create_item!(attrs \\ %{}) do
     %Item{}
     |> Item.changeset(attrs)
     |> Repo.insert!()
-    |> _add_slug!()
-  end
-
-  defp _add_slug({:ok, item}) do
-    _gen_slug_changeset(item)
-    |> Repo.update()
-  end
-  defp _add_slug(error), do: error
-
-  defp _add_slug!(tile_template) do
-    _gen_slug_changeset(tile_template)
-    |> Repo.update!()
-  end
-
-  defp _gen_slug_changeset(item) do
-    i = Repo.preload(item, :user)
-    slug = String.downcase(item.name)
-           |> String.replace(" ", "_")
-
-    slug = if (i.user && i.user.is_admin || is_nil(i.user)) &&
-                Repo.one(from i in Item, where: i.slug == ^slug, select: count()) == 0 do
-      slug
-    else
-      slug <> "_#{item.id}"
-    end
-
-    item
-    |> Item.changeset(%{})
-    |> Ecto.Changeset.put_change(:slug, slug)
+    |> Item.add_slug!()
   end
 
   @doc """

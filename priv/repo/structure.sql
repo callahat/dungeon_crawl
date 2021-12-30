@@ -910,7 +910,14 @@ CREATE INDEX effects_user_id_slug_index ON public.effects USING btree (user_id, 
 -- Name: items_slug_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX items_slug_index ON public.items USING btree (slug);
+CREATE UNIQUE INDEX items_slug_index ON public.items USING btree (slug);
+
+
+--
+-- Name: items_user_id_slug_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX items_user_id_slug_index ON public.items USING btree (user_id, slug);
 
 
 --
@@ -1277,3 +1284,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210612225130);
 INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
 INSERT INTO public."schema_migrations" (version) VALUES (20211009194149);
 INSERT INTO public."schema_migrations" (version) VALUES (20211220033222);
+INSERT INTO public."schema_migrations" (version) VALUES (20211230042239);

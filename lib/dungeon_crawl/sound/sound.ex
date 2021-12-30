@@ -95,35 +95,7 @@ defmodule DungeonCrawl.Sound do
     %Effect{}
     |> Effect.changeset(attrs)
     |> Repo.insert()
-    |> _add_slug()
-  end
-
-  defp _add_slug({:ok, effect}) do
-    _gen_slug_changeset(effect)
-    |> Repo.update()
-  end
-  defp _add_slug(error), do: error
-
-  defp _add_slug!(effect) do
-    _gen_slug_changeset(effect)
-    |> Repo.update!()
-  end
-
-  defp _gen_slug_changeset(effect) do
-    e = Repo.preload(effect, :user)
-    slug = String.downcase(effect.name)
-           |> String.replace(" ", "_")
-
-    slug = if (e.user && e.user.is_admin || is_nil(e.user)) &&
-                Repo.one(from e in Effect, where: e.slug == ^slug, select: count()) == 0 do
-      slug
-    else
-      slug <> "_#{effect.id}"
-    end
-
-    effect
-    |> Effect.changeset(%{})
-    |> Ecto.Changeset.put_change(:slug, slug)
+    |> Effect.add_slug()
   end
 
   @doc """
