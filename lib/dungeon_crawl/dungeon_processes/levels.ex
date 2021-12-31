@@ -637,6 +637,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
+  # TODO: relpace most of implementation with call to cache
   @doc """
   Looks up a tile template from the cache, falling back to getting it from the database and saving for later.
   Returns a three part tuple, the first being the tile template if found, the state, and an atom indicating if it
@@ -659,6 +660,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
+  # TODO: might not need this
   def get_tile_template(_slug, state), do: {nil, state, :not_found}
 
   @doc """
