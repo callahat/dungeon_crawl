@@ -92,47 +92,18 @@ defmodule DungeonCrawl.DungeonProcesses.Cache do
   end
 
   @impl true
-  def handle_call({:get_tile_template, {slug, author}}, _from, %Cache{tile_templates: cache} = state) do
-    if tile_template = cache[slug] do
-      {:reply, {tile_template, :exists}, state}
-    else
-      with tile_template when not is_nil(tile_template) <- TileTemplates.get_tile_template_by_slug(slug),
-           true <- _useable_record(tile_template, author) do
-        {:reply, {tile_template, :created}, %{ state | tile_templates: Map.put(cache, slug, tile_template) }}
-      else
-        _ -> {:reply, {nil, :not_found}, state}
-      end
-    end
+  def handle_call({:get_tile_template, {slug, author}}, _from, %Cache{} = state) do
+    _cache(state, :tile_templates, slug, author, &TileTemplates.get_tile_template_by_slug/1)
   end
 
   @impl true
-  def handle_call({:get_item, {slug, author}}, _from, %Cache{items: cache} = state) do
-    if item = cache[slug] do
-      {:reply, {item, :exists}, state}
-    else
-      with item when not is_nil(item) <- Equipment.get_item(slug),
-           true <- _useable_record(item, author) do
-        {:ok, program} = Parser.parse(item.script)
-        item = Map.put item, :program, program
-        {:reply, {item, :created}, %{ state | items: Map.put(cache, slug, item) }}
-      else
-        _ -> {:reply, {nil, :not_found}, state}
-      end
-    end
+  def handle_call({:get_item, {slug, author}}, _from, %Cache{} = state) do
+    _cache(state, :items, slug, author, &Equipment.get_item/1, &_parse_and_start_program/1)
   end
 
   @impl true
-  def handle_call({:get_sound_effect, {slug, author}}, _from, %Cache{sound_effects: cache} = state) do
-    if sound_effect = cache[slug] do
-      {:reply, {sound_effect, :exists}, state}
-    else
-      with sound_effect when not is_nil(sound_effect) <- Sound.get_effect_by_slug(slug),
-           true <- _useable_record(sound_effect, author) do
-        {:reply, {sound_effect, :created}, %{ state | sound_effects: Map.put(cache, slug, sound_effect) }}
-      else
-        _ -> {:reply, {nil, :not_found}, state}
-      end
-    end
+  def handle_call({:get_sound_effect, {slug, author}}, _from, %Cache{} = state) do
+    _cache(state, :sound_effects, slug, author, &Sound.get_effect_by_slug/1)
   end
 
   ## Defining useful helper functions
@@ -143,5 +114,26 @@ defmodule DungeonCrawl.DungeonProcesses.Cache do
       record.public ||
       author.is_admin ||
       author.id == record.user_id
+  end
+
+  defp _cache(state, cache_type, slug, author, get_record, record_prep \\ &_noop/1) do
+    cache = Map.fetch!(state, cache_type)
+    if record = cache[slug] do
+      {:reply, {record, :exists}, state}
+    else
+      with record when not is_nil(record) <- get_record.(slug),
+           true <- _useable_record(record, author) do
+        record = record_prep.(record)
+        {:reply, {record, :created}, %{ state | cache_type => Map.put(cache, slug, record) }}
+      else
+        _ -> {:reply, {nil, :not_found}, state}
+      end
+    end
+  end
+
+  defp _noop(record), do: record
+  defp _parse_and_start_program(item) do
+    {:ok, program} = Parser.parse(item.script)
+    Map.put item, :program, program
   end
 end
