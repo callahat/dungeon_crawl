@@ -3,6 +3,7 @@ defmodule DungeonCrawl.Action.ShootTest do
 
   alias DungeonCrawl.Action.Shoot
   alias DungeonCrawl.DungeonInstances.Tile
+  alias DungeonCrawl.DungeonProcesses.Cache
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.Player.Location
 
@@ -15,9 +16,12 @@ defmodule DungeonCrawl.Action.ShootTest do
        %Tile{character: "#", row: 3, col: 2, z_index: 0, state: "blocking: true"},
        %Tile{character: "@", row: 2, col: 2, z_index: 1, state: config[:ammo] || ""}])
 
+    {:ok, cache} = Cache.start_link([])
+
     # Quik and dirty state init
+    state = %Levels{cache: cache}
     state = Repo.preload(instance, :tiles).tiles
-            |> Enum.reduce(%Levels{}, fn(t, state) ->
+            |> Enum.reduce(state, fn(t, state) ->
                  {_, state} = Levels.create_tile(state, t)
                  state
                end)

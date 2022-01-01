@@ -48,6 +48,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @doc """
+  Sets the cache process
+  """
+  def set_cache(instance, cache_process) do
+    GenServer.cast(instance, {:set_cache, cache_process})
+  end
+
+  @doc """
   Sets the level number
   """
   def set_level_number(instance, number) do
@@ -254,6 +261,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   @impl true
   def handle_cast({:set_author, author}, %Levels{} = state) do
     {:noreply, %{ state | author: author }}
+  end
+
+  @impl true
+  def handle_cast({:set_cache, cache}, %Levels{} = state) do
+    {:noreply, %{ state | cache: cache }}
   end
 
   @impl true

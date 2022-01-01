@@ -3,13 +3,17 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
 
   require Logger
 
-  alias DungeonCrawl.DungeonProcesses.{Levels,LevelProcess}
+  alias DungeonCrawl.DungeonProcesses.{Cache,Levels,LevelProcess}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
 
-  defstruct instance_ids: %{}, refs: %{}, map_set_process: nil, supervisor: nil
+  defstruct instance_ids: %{},
+            refs: %{},
+            cache: nil,
+            map_set_process: nil,
+            supervisor: nil
 
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
 
@@ -103,8 +107,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   @impl true
   def init(map_set_process) do
     Process.flag(:trap_exit, true)
+    {:ok, cache_process} = Cache.start_link([])
     {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
-    level_registry = %LevelRegistry{map_set_process: map_set_process, supervisor: supervisor}
+    level_registry = %LevelRegistry{map_set_process: map_set_process,
+                                    supervisor: supervisor,
+                                    cache: cache_process}
     {:ok, level_registry}
   end
 
@@ -190,12 +197,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   end
 
   defp _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry) do
-    %{supervisor: supervisor, refs: refs, instance_ids: instance_ids} = level_registry
+    %{supervisor: supervisor, refs: refs, instance_ids: instance_ids, cache: cache} = level_registry
     {:ok, instance_process} = DynamicSupervisor.start_child(supervisor, LevelProcess)
     LevelProcess.set_instance_id(instance_process, instance_id)
     LevelProcess.set_dungeon_instance_id(instance_process, diid)
     LevelProcess.set_level_number(instance_process, number)
     LevelProcess.set_author(instance_process, author)
+    LevelProcess.set_cache(instance_process, cache)
     LevelProcess.set_state_values(instance_process, state_values)
     LevelProcess.load_level(instance_process, tiles)
     LevelProcess.load_spawn_coordinates(instance_process, spawn_coordinates)

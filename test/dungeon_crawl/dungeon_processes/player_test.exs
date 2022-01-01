@@ -4,6 +4,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   alias DungeonCrawl.DungeonProcesses.Player
 
   alias DungeonCrawl.DungeonInstances.Tile
+  alias DungeonCrawl.DungeonProcesses.Cache
   alias DungeonCrawl.DungeonProcesses.Levels
 
   alias DungeonCrawl.Equipment
@@ -25,9 +26,12 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 
+    {:ok, cache} = Cache.start_link([])
+
     # Quik and dirty state init
+    state = %Levels{instance_id: instance.id, cache: cache}
     state = Repo.preload(instance, :tiles).tiles
-            |> Enum.reduce(%Levels{instance_id: instance.id}, fn(t, state) ->
+            |> Enum.reduce(state, fn(t, state) ->
                  {_, state} = Levels.create_tile(state, t)
                  state
                end)

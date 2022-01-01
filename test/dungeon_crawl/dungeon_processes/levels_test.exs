@@ -3,7 +3,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   import ExUnit.CaptureLog
 
-  alias DungeonCrawl.DungeonProcesses.{Levels, DungeonRegistry, DungeonProcess}
+  alias DungeonCrawl.DungeonProcesses.{Cache, Levels, DungeonRegistry, DungeonProcess}
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scores
@@ -660,55 +660,62 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "get_tile_template/2", %{state: state} do
+    {:ok, cache} = Cache.start_link([])
+    state = %{ state | cache: cache }
+
     assert {nil, ^state, :not_found} = Levels.get_tile_template("fake_slug", state)
 
     DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
 
     # looks up from the database and caches it
-    assert {bullet, updated_state, :created} = Levels.get_tile_template("bullet", state)
+    assert %Cache{} == Cache.get_state(cache)
+    assert {bullet, ^state, :created} = Levels.get_tile_template("bullet", state)
     assert bullet.name == "Bullet"
-    assert updated_state == %{ state | tile_template_slug_cache: updated_state.tile_template_slug_cache}
-    assert updated_state.tile_template_slug_cache["bullet"] == bullet
-
-    # finds it in the cache and returns it
-    assert {^bullet, ^updated_state, :exists} = Levels.get_tile_template("bullet", updated_state)
-
-    # an id is given instead / template not found
-    assert {nil, ^updated_state, :not_found} = Levels.get_tile_template(bullet.id, updated_state)
-
-    # template cannot be since dungeon has author whom is not an admin nor owner of the non public slug
-    DungeonCrawl.TileTemplates.update_tile_template(bullet, %{user_id: insert_user().id})
-    state = %{state | author: %{id: 1, is_admin: false}}
-    assert {nil, ^state, :not_found} = Levels.get_tile_template("bullet", state)
+    assert %{tile_templates: %{"bullet" => ^bullet}} = Cache.get_state(cache)
+    assert {^bullet, ^state, :exists} = Levels.get_tile_template("bullet", state)
   end
 
   test "get_item/2", %{state: state} do
+    {:ok, cache} = Cache.start_link([])
+    state = %{ state | cache: cache }
+
     assert {nil, ^state, :not_found} = Levels.get_item("fake_slug", state)
 
     DungeonCrawl.Equipment.Seeder.Item.gun
 
     # looks up from the database and caches it
-    assert {item, updated_state, :created} = Levels.get_item("gun", state)
-    assert item.name == "Gun"
-    assert updated_state == %{ state | item_slug_cache: updated_state.item_slug_cache}
-    assert updated_state.item_slug_cache["gun"] == item
-    assert %{program: %Program{instructions: instructions}} = updated_state.item_slug_cache["gun"]
+    assert %Cache{} == Cache.get_state(cache)
+    assert {gun, ^state, :created} = Levels.get_item("gun", state)
+    assert gun.name == "Gun"
+
+    assert %{program: %Program{instructions: instructions}} = gun
     assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
              2 => [:shoot, [state_variable: :facing]],
              3 => [:halt, [""]],
              4 => [:noop, "error"],
              5 => [:text, [["Out of ammo!"]]]} == instructions
 
-    # finds it in the cache and returns it
-    assert {^item, ^updated_state, :exists} = Levels.get_item("gun", updated_state)
+    assert %{items: %{"gun" => ^gun}} = Cache.get_state(cache)
+    assert {^gun, ^state, :exists} = Levels.get_item("gun", state)
+    assert {nil, ^state, :not_found} = Levels.get_item(gun.id, state)
+    assert {nil, ^state, :nothing_equipped} = Levels.get_item("", state)
+  end
 
-    # an id is given instead / template not found
-    assert {nil, ^updated_state, :not_found} = Levels.get_item(item.id, updated_state)
+  test "get_sound_effect2/", %{state: state} do
+    {:ok, cache} = Cache.start_link([])
+    state = %{ state | cache: cache }
 
-    # item cannot be used since dungeon has author whom is not an admin nor owner of the non public slug
-    DungeonCrawl.Equipment.update_item(item, %{user_id: insert_user().id, public: false})
-    state = %{state | author: %{id: 1, is_admin: false}}
-    assert {nil, ^state, :not_found} = Levels.get_item("gun", state)
+    assert {nil, ^state, :not_found} = Levels.get_sound_effect("fake_slug", state)
+
+    insert_effect(%{name: "Boop"})
+
+    # looks up from the database and caches it
+    assert %Cache{} == Cache.get_state(cache)
+    assert {boop, ^state, :created} = Levels.get_sound_effect("boop", state)
+    assert boop.name == "Boop"
+    assert %{sound_effects: %{"boop" => ^boop}} = Cache.get_state(cache)
+    assert {^boop, ^state, :exists} = Levels.get_sound_effect("boop", state)
+    assert {nil, ^state, :not_found} = Levels.get_sound_effect(boop.id, state)
   end
 
   test "gameover/3 - ends game for all players in instance" do
