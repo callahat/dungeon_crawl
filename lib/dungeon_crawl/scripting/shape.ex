@@ -1,7 +1,7 @@
 defmodule DungeonCrawl.Scripting.Shape do
   @moduledoc """
-  The various functions relating to returning shapes (in terms of either coordinates or
-  tile ids). When determining coordinates in the shape, coordinates moving out
+  The various functions relating to returning shapes (in terms of coordinates).
+  When determining coordinates in the shape, coordinates moving out
   from the origin up to the range away are considered.
 
   `include_origin` may be true or false by default. This will include origin in the shape's
@@ -24,7 +24,7 @@ defmodule DungeonCrawl.Scripting.Shape do
 
 
   @doc """
-  Returns tile ids that fall on a line from the given origin.
+  Returns tile coordinate tuples that fall on a line from the given origin.
   """
   def line(%Runner{state: state, object_id: object_id}, direction, range, include_origin \\ false, bypass_blocking \\ "soft") do
     origin = Levels.get_tile_by_id(state, %{id: object_id})
@@ -81,7 +81,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   @doc """
-  Returns tile ids that form a cone emminating from the origin out to the range,
+  Returns tile coordinate tuples that form a cone emminating from the origin out to the range,
   and spanning about 45 degrees on either side of the center line.
   """
   def cone(%Runner{state: state, object_id: object_id}, direction, range, width, include_origin \\ false, bypass_blocking \\ "soft") do
@@ -102,7 +102,7 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   @doc """
-  Returns tile ids that from a circle around the origin out to the range.
+  Returns tile coordinate tuples that from a circle around the origin out to the range.
   Origin is included by default, and bypass blocking defaults to soft.
   coeff is useful for increasing the resolution of the circle, 1 to a lower fraction,
   but it shouldn't go too low as it will increase the number of "rays" send out to find valid circle coordinates.
@@ -154,8 +154,9 @@ defmodule DungeonCrawl.Scripting.Shape do
   end
 
   @doc """
-  Returns tile ids that are up to the range in steps from the origin. This will wrap around corners
-  and blocking tiles as long as the number of steps to get to that coordinate is within the range.
+  Returns tile coordinate tuples that are up to the range in steps from the origin. This will wrap
+  around corners and blocking tiles as long as the number of steps to get to that coordinate
+  is within the range.
   """
   def blob(_state, _range, include_origin \\ true, bypass_blocking \\ "soft")
   def blob(%Runner{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do

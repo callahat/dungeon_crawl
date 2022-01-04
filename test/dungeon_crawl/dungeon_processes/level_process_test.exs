@@ -497,6 +497,54 @@ defmodule DungeonCrawl.LevelProcessTest do
                                %{col: 4, rendering: "<div>.</div>", row: 1}]}}
   end
 
+  test "perform_actions broadcasting sound", %{instance_process: instance_process, level_instance: level_instance} do
+    expected_zzfx_params = ",0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04"
+    sound_effect = insert_effect(%{zzfx_params: expected_zzfx_params})
+
+    tiles = [
+              %{character: "O", row: 1, col: 2, z_index: 0, script: "#SOUND_EFFECT #{sound_effect.slug}, all"}
+            ]
+            |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
+            |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
+
+    assert :ok = LevelProcess.load_level(instance_process, tiles)
+    assert :ok = LevelProcess.set_state_values(instance_process, %{visibility: "fog"})
+
+    player_tile = DungeonInstances.create_tile!(
+      %{character: "@",
+        row: 2,
+        col: 3,
+        name: "player",
+        level_instance_id: level_instance.id})
+
+    player_location = %Location{id: player_tile.id, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {_, state} = Levels.create_player_tile(state, player_tile, player_location)
+      {:ok, state}
+    end)
+
+    # subscribe
+    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(level_channel)
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    # should have nothing until after sending :perform_actions
+    refute_receive %Phoenix.Socket.Broadcast{
+      topic: ^level_channel}
+    refute_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel}
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    refute_receive %Phoenix.Socket.Broadcast{
+      topic: ^level_channel}
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "sound_effect",
+      payload: %{volume_modifier: 1, zzfx_params: ^expected_zzfx_params}}
+  end
+
   test "perform_actions when reset when no players", %{instance_process: instance_process, level_instance: level_instance} do
     LevelProcess.run_with(instance_process, fn(state) ->
       {:ok, %{ state | count_to_idle: 0, state_values: Map.merge(state.state_values, %{reset_when_no_players: true}) }}

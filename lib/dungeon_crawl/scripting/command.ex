@@ -15,6 +15,7 @@ defmodule DungeonCrawl.Scripting.Command do
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Shape
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Sound.Effect
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
@@ -73,6 +74,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :sequence     -> :sequence
       :shift        -> :shift
       :shoot        -> :shoot
+      :sound_effect -> :sound_effect
       :take         -> :take
       :target_player -> :target_player
       :terminate    -> :terminate
@@ -1523,6 +1525,44 @@ defmodule DungeonCrawl.Scripting.Command do
 
       {:ok, updated_state} ->
         %{ runner_state | state: updated_state }
+    end
+  end
+
+  @doc """
+  Play a sound effect. This will be heard by players in the level instance.
+  The second optional parameter indicates who can hear it. May be set to
+  ?sender, a specific player, "all" (to play for everyone; volume constant
+  on the preceeding options), or "nearby" (to only play for players close
+  to the source and the further, the quieter it will be.
+  Default behavior is "nearby".
+
+  ## Examples
+
+     iex> sound_effect(%Runner{}, ["beep", [:event_sender]])
+     %Runner{}
+
+     iex> sound_effect(%Runner{}, ["bloop"])
+     %Runner{}
+
+  """
+  def sound_effect(%Runner{} = runner_state, [slug]) do
+    _sound_effect(runner_state, [slug, "nearby"])
+  end
+  def sound_effect(%Runner{} = runner_state, [slug, target]) do
+    _sound_effect(runner_state, [slug, target])
+  end
+
+  defp _sound_effect(%Runner{state: state, object_id: object_id} = runner_state, [slug, target]) do
+    target = resolve_variable(runner_state, target)
+
+    with source when not is_nil(source) <- Levels.get_tile_by_id(state, %{id: object_id}),
+         {sound, state, _} when not is_nil(sound) <- Levels.get_sound_effect(slug, state),
+         %{"params" => zzfx_params} <- Effect.extract_params(sound) do
+      effect_info = %{row: source.row, col: source.col, target: target, zzfx_params: zzfx_params}
+      updated_state = %{ state | sound_effects: [ effect_info | state.sound_effects]}
+      %{ runner_state | state: updated_state }
+    else
+      _ -> runner_state
     end
   end
 

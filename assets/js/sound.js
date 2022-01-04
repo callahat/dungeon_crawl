@@ -27,7 +27,7 @@ let Sound = {
     params[0] = params[0] ? params[0] * volumeModifier : volumeModifier
     this.zzfx(...params)
   },
-  paramsRegex: /[,\d\-][,\d\.\-]+/,
+  paramsRegex: /-?\d*\.?\d*(?:,-?\d*\.?\d*){15,19}/, // up to 19 parameters
   zzfx: null
 }
 

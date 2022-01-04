@@ -163,7 +163,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   @tag up_tile: "."
   test "move replies with status ok", %{socket: socket} do
     ref = push socket, "move", %{"direction" => "up"}
-    assert_reply ref, :ok, %{}
+    assert_reply ref, :moved, %{}
   end
 
   # move itself does not broadcast anymore, but the broadcast is sent from the instance_process for tiles that have changed since
@@ -344,7 +344,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     # Pull is tested more in depth elsewhere, this is just verifying the channel responds to this event.
     # as far as sending broadcasts this is sufficiently covered in the move tests
     ref = push socket, "pull", %{"direction" => "up"}
-    assert_reply ref, :ok, %{}
+    assert_reply ref, :moved, %{}
   end
 
   @tag up_tile: "."

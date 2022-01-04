@@ -261,7 +261,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
           case move_func.(player_tile, destination, instance_state) do
             {:ok, _tile_changes, instance_state} ->
               {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
-              {:ok, instance_state}
+              {:moved, instance_state}
 
             {:invalid, _tile_changes, instance_state} ->
               {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})

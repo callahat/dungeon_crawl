@@ -33,7 +33,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             full_rerender: false,
             author: nil,
             light_sources: %{},
-            cache: nil
+            cache: nil,
+            sound_effects: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.Tile

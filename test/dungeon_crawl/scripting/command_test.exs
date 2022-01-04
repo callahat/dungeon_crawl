@@ -52,7 +52,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Command.get_command(:replace) == :replace
     assert Command.get_command(:remove) == :remove
     assert Command.get_command(:restore) == :restore
+    assert Command.get_command(:send) == :send_message
+    assert Command.get_command(:sequence) == :sequence
     assert Command.get_command(:shift) == :shift
+    assert Command.get_command(:shoot) == :shoot
+    assert Command.get_command(:sound_effect) == :sound_effect
     assert Command.get_command(:target_player) == :target_player
     assert Command.get_command(:take) == :take
     assert Command.get_command(:text) == :text
@@ -1895,6 +1899,29 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert bullet = Levels.get_tile(updated_state, %{row: 2, col: 2})
 
     assert bullet.character == "◦"
+  end
+
+  test "SOUND_EFFECT" do
+    {:ok, cache} = Cache.start_link([])
+
+    zzfx_params = ",0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04"
+    sound = insert_effect(%{zzfx_params: "zzfx(...[#{zzfx_params}]); // alarm"})
+
+    {noise_tile, state} = Levels.create_tile(%Levels{cache: cache}, %Tile{id: 1, character: "E", row: 1, col: 1, z_index: 0})
+
+    runner_state = %Runner{object_id: noise_tile.id, state: state, event_sender: %{tile_id: 12345}}
+
+    # adds sound effects tothe list
+    updated_runner_state = Command.sound_effect(runner_state, [sound.slug])
+    %Runner{state: %{sound_effects: sfx}} = Command.sound_effect(updated_runner_state, [sound.slug, "all"])
+    assert [%{row: noise_tile.row, col: noise_tile.col, target: "all", zzfx_params: zzfx_params},
+             %{row: noise_tile.row, col: noise_tile.col, target: "nearby", zzfx_params: zzfx_params}] == sfx
+
+    %Runner{state: %{sound_effects: sfx}} = Command.sound_effect(runner_state, [sound.slug, [:event_sender]])
+    assert [%{row: noise_tile.row, col: noise_tile.col, target: 12345, zzfx_params: zzfx_params}] == sfx
+
+    # no change on bad sound
+    assert runner_state == Command.sound_effect(runner_state, ["nonexistant sound", "all"])
   end
 
   test "TAKE" do

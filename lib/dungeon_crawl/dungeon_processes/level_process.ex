@@ -9,6 +9,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.Render
+  alias DungeonCrawl.DungeonProcesses.Sound
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -344,6 +345,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
             |> _broadcast_stat_updates()
             |> Render.rerender_tiles()
             |> Render.rerender_tiles_for_admin()
+            |> Sound.broadcast_sound_effects()
             |> Map.put(:rerender_coords, %{})
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms

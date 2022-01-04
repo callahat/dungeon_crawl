@@ -194,7 +194,7 @@ let Level = {
     }
 
     this.levelChannel.push(action, payload)
-      .receive("ok", (_) => this.sound.zzfx(...this.soundFootstep))
+      .receive("moved", (_) => this.sound.zzfx(...this.soundFootstep))
       .receive("error", e => console.log(e))
   },
   open(direction, shift = false){

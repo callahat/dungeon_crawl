@@ -3,8 +3,8 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
   alias DungeonCrawl.Sound.Effect
 
-  @valid_attrs %{name: "some name", public: true, zzfx_params: "some zzfx_params"}
-  @update_attrs %{name: "some updated name", public: false, zzfx_params: "some updated zzfx_params"}
+  @valid_attrs %{name: "some name", public: true, zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"}
+  @update_attrs %{name: "some updated name", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
   @invalid_attrs %{name: nil, public: nil, zzfx_params: nil}
 
   describe "non registered users" do

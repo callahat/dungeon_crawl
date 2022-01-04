@@ -19,6 +19,24 @@ defmodule DungeonCrawl.Sound.Effect do
     effect
     |> cast(attrs, [:name, :zzfx_params, :public, :user_id])
     |> validate_required([:name, :zzfx_params])
+    |> _validate_zzfx_params()
     |> unique_constraint(:slug, name: :effects_slug_index, message: "Slug already exists")
   end
+
+  @zzfx_param_regex ~r/(?<params>-?\d*\.?\d*(?:,-?\d*\.?\d*){15,19})/
+
+  def extract_params(%{zzfx_params: zzfx_params}), do: extract_params(zzfx_params)
+  def extract_params(zzfx_params), do: Regex.named_captures(@zzfx_param_regex, zzfx_params)
+
+  defp _validate_zzfx_params(%{changes: %{zzfx_params: zzfx_params}} = changeset) do
+    with %{"params" => _} <- extract_params(zzfx_params) do
+      changeset
+    else
+      _ -> add_error(changeset,
+                     :zzfx_params,
+                     "input should be 19 comma separated values, no whitespace, blanks ok." <>
+                       " Should match `-?\\d*\\.?\\d*(?:,-?\\d*\\.?\\d*){15,19}`")
+    end
+  end
+  defp _validate_zzfx_params(changeset), do: changeset
 end

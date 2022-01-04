@@ -6,8 +6,8 @@ defmodule DungeonCrawl.SoundTest do
   describe "effects" do
     alias DungeonCrawl.Sound.Effect
 
-    @valid_attrs %{name: "Some Name", public: true, zzfx_params: "some zzfx_params"}
-    @update_attrs %{name: "some updated name", public: false, zzfx_params: "some updated zzfx_params"}
+    @valid_attrs %{name: "Some Name", public: true, zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"}
+    @update_attrs %{name: "some updated name", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
     @invalid_attrs %{name: nil, public: nil, zzfx_params: nil}
 
     def effect_fixture(attrs \\ %{}) do
@@ -75,7 +75,7 @@ defmodule DungeonCrawl.SoundTest do
       assert {:ok, %Effect{} = effect} = Sound.create_effect(@valid_attrs)
       assert effect.name == "Some Name"
       assert effect.public == true
-      assert effect.zzfx_params == "some zzfx_params"
+      assert effect.zzfx_params == @valid_attrs.zzfx_params
       assert effect.slug == "some_name"
       assert is_nil(effect.user_id)
     end
@@ -115,7 +115,7 @@ defmodule DungeonCrawl.SoundTest do
       assert {:ok, %Effect{} = effect} = Sound.update_effect(effect, @update_attrs)
       assert effect.name == "some updated name"
       assert effect.public == false
-      assert effect.zzfx_params == "some updated zzfx_params"
+      assert effect.zzfx_params == @update_attrs.zzfx_params
     end
 
     test "update_effect/2 with does not update the slug" do
