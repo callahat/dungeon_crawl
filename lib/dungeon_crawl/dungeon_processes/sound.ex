@@ -27,13 +27,14 @@ defmodule DungeonCrawl.DungeonProcesses.Sound do
   defp _broadcast_sound_effect([%{target: "nearby"} = sound_effect | sound_effects], state) do
     _broadcast_for_admin(state, sound_effect)
 
-    earshot_blob = Shape.blob({state, sound_effect}, 15) # 15 is a hardcoded, and the max for hearing other players speak
+    earshot_blob = Shape.blob_with_range({state, sound_effect}, 15) # 15 is a hardcoded, and the max for hearing other players speak
 
     state.player_locations
     |> Enum.each(fn({tile_id, location}) ->
          player_tile = Levels.get_tile_by_id(state, %{id: tile_id})
-         if player_tile && Enum.member?(earshot_blob, {player_tile.row, player_tile.col}) do
-           distance = _distance(sound_effect, player_tile)
+         earshot_square = Enum.find(earshot_blob, fn {row, col, _} -> {row, col} == {player_tile.row, player_tile.col} end)
+         if player_tile && earshot_square do
+           {_row, _col, distance} = earshot_square
            modifier = max((16 - distance) / 15.0, 0)
            _broadcast_for_player(location.id, sound_effect, modifier)
          end
@@ -64,10 +65,5 @@ defmodule DungeonCrawl.DungeonProcesses.Sound do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{location_id}",
                                        "sound_effect",
                                        %{zzfx_params: zzfx_params, volume_modifier: modifier}
-  end
-
-  defp _distance(a, b) do
-    :math.pow(a.row - b.row, 2) + :math.pow(a.col - b.col, 2)
-    |> :math.sqrt()
   end
 end

@@ -232,4 +232,88 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
       assert Shape.blob(runner_state, 4, true, "once") == [{1, 2}, {0, 3}, {1, 1}, {0, 2}, {1, 0}, {0, 1}, {0, 0}]
     end
   end
+
+  # Pretty much the same test as "blob", but with a distance number in the returned tuple
+  describe "blob_with_range/4" do
+    test "returns coordinates in a blob", %{state: state} do
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob_with_range(runner_state, 1, false) == [{1, 0, 1}, {0, 1, 1}]
+      assert Shape.blob_with_range(runner_state, 2) == [{2, 0, 2}, {1, 1, 2}, {0, 2, 2}, {1, 0, 1}, {0, 1, 1}, {0, 0, 0}]
+    end
+
+    test "returns coordinates in a blob where it may be blocked if bypass_blocking is false", %{state: state} do
+      wall1 = %Tile{id: 990, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
+      wall2 = %Tile{id: 991, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
+      wall3 = %Tile{id: 992, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall4 = %Tile{id: 993, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall5 = %Tile{id: 994, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      {_, state} = Levels.create_tile(state, wall1)
+      {_, state} = Levels.create_tile(state, wall2)
+      {_, state} = Levels.create_tile(state, wall3)
+      {_, state} = Levels.create_tile(state, wall4)
+      {_, state} = Levels.create_tile(state, wall5)
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob_with_range(runner_state, 2, true, true) == [{2, 0, 2}, {1, 1, 2}, {0, 2, 2}, {1, 0, 1}, {0, 1, 1}, {0, 0, 0}]
+      assert Shape.blob_with_range(runner_state, 2, false, false) == [{0, 2, 2}, {0, 0, 2}, {0, 1, 1}]
+      assert Shape.blob_with_range(runner_state, 2, false, "soft") == [{0, 2, 2}, {0, 0, 2}, {0, 1, 1}]
+      assert Shape.blob_with_range(runner_state, 2, false, "once") == [{1, 1, 2}, {0, 2, 2}, {0, 0, 2}, {1, 0, 1}, {0, 1, 1}]
+    end
+
+    test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
+      breakable_wall = %Tile{id: 80001, row: 0, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
+      wall1 = %Tile{id: 90090, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
+      wall2 = %Tile{id: 90091, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
+      wall3 = %Tile{id: 90092, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall4 = %Tile{id: 90093, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall5 = %Tile{id: 90094, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      {_, state} = Levels.create_tile(state, breakable_wall)
+      {_, state} = Levels.create_tile(state, wall1)
+      {_, state} = Levels.create_tile(state, wall2)
+      {_, state} = Levels.create_tile(state, wall3)
+      {_, state} = Levels.create_tile(state, wall4)
+      {_, state} = Levels.create_tile(state, wall5)
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob_with_range(runner_state, 4, true, true) ==
+               [{4, 0, 4}, {3, 1, 4}, {2, 2, 4}, {1, 3, 4}, {0, 4, 4},
+                {3, 0, 3}, {2, 1, 3}, {1, 2, 3}, {0, 3, 3},
+                {2, 0, 2}, {1, 1, 2}, {0, 2, 2},
+                {1, 0, 1}, {0, 1, 1},
+                {0, 0, 0}]
+      assert Shape.blob_with_range(runner_state, 4, false, false) == [{0, 0, 2}, {0, 1, 1}]
+      assert Shape.blob_with_range(runner_state, 4, false, "soft") ==
+               [{2, 2, 4}, {1, 2, 3}, {0, 2, 2}, {0, 0, 2}, {0, 1, 1}]
+    end
+
+    test "bypass_blocking value can be 'once' and does not count a low blocking tile against that once", %{state: state} do
+      water1 = %Tile{id: 80001, row: 0, col: 1, z_index: 1, character: "w", state: "blocking: true, low: true"}
+      water2 = %Tile{id: 90090, row: 0, col: 2, z_index: 1, character: "w", state: "blocking: true, low: true"}
+      wall1 = %Tile{id: 90091, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true, soft: true"}
+      wall2 = %Tile{id: 90092, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
+      wall3 = %Tile{id: 90093, row: 1, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      wall4 = %Tile{id: 90094, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      {_, state} = Levels.create_tile(state, water1)
+      {_, state} = Levels.create_tile(state, water2)
+      {_, state} = Levels.create_tile(state, wall1)
+      {_, state} = Levels.create_tile(state, wall2)
+      {_, state} = Levels.create_tile(state, wall3)
+      {_, state} = Levels.create_tile(state, wall4)
+      runner_state = %Runner{object_id: 0, state: state}
+
+      assert Shape.blob_with_range(runner_state, 4, true, true) ==
+               [{4, 0, 4}, {3, 1, 4}, {2, 2, 4}, {1, 3, 4}, {0, 4, 4},
+                {3, 0, 3}, {2, 1, 3}, {1, 2, 3}, {0, 3, 3},
+                {2, 0, 2}, {1, 1, 2}, {0, 2, 2},
+                {1, 0, 1}, {0, 1, 1},
+                {0, 0, 0}]
+      assert Shape.blob_with_range(runner_state, 4, false, false) == []
+      assert Shape.blob_with_range(runner_state, 4, true, "once") ==
+               [{1, 2, 3}, {0, 3, 3},
+                {1, 1, 2}, {0, 2, 2},
+                {1, 0, 1}, {0, 1, 1},
+                {0, 0, 0}]
+    end
+  end
 end

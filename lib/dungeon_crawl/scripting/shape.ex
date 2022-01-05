@@ -198,4 +198,60 @@ defmodule DungeonCrawl.Scripting.Shape do
                       end)
     _blob(state, range - 1, bypass_blocking, new_coords ++ coords, new_frontier)
   end
+
+
+  @doc """
+  Returns tile coordinate tuples (with the third element being the number of spaces from the origin)
+  that are up to the range in steps from the origin. This will wrap
+  around corners and blocking tiles as long as the number of steps to get to that coordinate
+  is within the range.
+  """
+  def blob_with_range(_state, _range, include_origin \\ true, bypass_blocking \\ "soft")
+  def blob_with_range(%Runner{state: state, object_id: object_id}, range, include_origin, bypass_blocking) do
+    origin = Levels.get_tile_by_id(state, %{id: object_id})
+    blob_with_range({state, origin}, range, include_origin, bypass_blocking)
+  end
+  def blob_with_range({%Levels{} = state, %{row: row, col: col} = _origin}, range, include_origin, bypass_blocking) do
+    coords = if include_origin, do: [{row, col, range}], else: []
+    _blob_with_range(state, range, bypass_blocking, coords, [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}])
+    |> _inverse_range(range)
+  end
+
+  defp _blob_with_range(_state, range, _, coords, _frontier) when range <= 0, do: coords
+  defp _blob_with_range(state, range, bypass_blocking, coords, frontier) do
+    new_coords = frontier
+                 |> Enum.filter(fn({row, col}) ->
+                                  candidate_tile = Levels.get_tile(state, %{row: row, col: col})
+                                  candidate_tile &&
+                                    (bypass_blocking == true ||
+                                       bypass_blocking == "once" ||
+                                       !candidate_tile.parsed_state[:blocking] ||
+                                       (candidate_tile.parsed_state[:soft] && bypass_blocking == "soft"))
+                                end)
+                 |> Enum.uniq
+                 |> Enum.map(fn({row, col}) -> {row, col, range - 1} end)
+    new_frontier = new_coords
+                   |> Enum.reject(fn({row, col, _range}) ->
+                              # not eligible for fronier if it was a bypass once and this tile is not low but blocking
+                              candidate_tile = Levels.get_tile(state, %{row: row, col: col})
+                              is_nil(candidate_tile) ||
+                                (candidate_tile.parsed_state[:blocking] &&
+                                   bypass_blocking == "once" &&
+                                   !candidate_tile.parsed_state[:low])
+                            end)
+                   |> Enum.flat_map(fn({row, col, _range}) ->
+                                      [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}]
+                                    end)
+                   |> Enum.uniq
+                   |> Enum.filter(fn(coord) ->
+                        ! Enum.find(coords, fn({row, col, _}) -> {row, col} == coord end)
+                        # ! Enum.member?(coords, coord)
+                      end)
+    _blob_with_range(state, range - 1, bypass_blocking, new_coords ++ coords, new_frontier)
+  end
+
+  defp _inverse_range(coords, range) do
+    coords
+    |> Enum.map(fn({row, col, r}) -> {row, col, range - r} end)
+  end
 end

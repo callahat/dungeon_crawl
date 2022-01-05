@@ -19,7 +19,7 @@ let Sound = {
         params
     if(paramString){
       params = paramString[0].split(",").map(i => i === "" ? undefined : parseFloat(i))
-      this.playEffect(params)
+      this.playEffect(params, volumeModifier)
     }
   },
   playEffect(params, volumeModifier = 1){
