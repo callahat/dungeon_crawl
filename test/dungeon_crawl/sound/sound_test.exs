@@ -8,7 +8,8 @@ defmodule DungeonCrawl.SoundTest do
 
     @valid_attrs %{name: "Some Name", public: true, zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"}
     @update_attrs %{name: "some updated name", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
-    @invalid_attrs %{name: nil, public: nil, zzfx_params: nil}
+    @invalid_attrs %{name: "Derp", public: false, zzfx_params: ""}
+    @other_zzfx_params "[3,,485,.02,.2,.2,4,.11,-3,.1,,,.05,1.1,,.4,,.57,.5]"
 
     def effect_fixture(attrs \\ %{}) do
       {:ok, effect} =
@@ -130,6 +131,70 @@ defmodule DungeonCrawl.SoundTest do
       effect = effect_fixture()
       assert {:error, %Ecto.Changeset{}} = Sound.update_effect(effect, @invalid_attrs)
       assert effect == Sound.get_effect!(effect.id)
+    end
+
+    test "find_or_create_effect/1 finds existing effect" do
+      {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
+
+      assert {:ok, existing_effect} == Sound.find_or_create_effect(@valid_attrs)
+    end
+
+    test "find_or_create_effect!/1 finds existing effect" do
+      {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
+
+      assert existing_effect == Sound.find_or_create_effect!(@valid_attrs)
+    end
+
+    test "find_or_create_effect/1 creates effect when matching one not found" do
+      {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
+      assert {:ok, %Effect{} = effect} = Sound.find_or_create_effect(%{@valid_attrs | zzfx_params: @other_zzfx_params})
+
+      refute existing_effect == effect
+      assert effect.zzfx_params == @other_zzfx_params
+      assert effect.name == "Some Name"
+      assert effect.slug == "some_name_#{effect.id}"
+    end
+
+    test "find_or_create_effect/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Sound.find_or_create_effect(@invalid_attrs)
+    end
+
+    test "update_or_create_effect/2" do
+      {:ok, existing_effect} = Sound.create_effect(@valid_attrs)
+      updated_attrs = Map.put(@valid_attrs, :zzfx_params, @other_zzfx_params)
+      # finds existing template by slug and updates it
+      assert {:ok, effect} = Sound.update_or_create_effect("some_name", updated_attrs)
+      assert effect.id == existing_effect.id
+      assert effect.zzfx_params == @other_zzfx_params
+
+      # does not find the slug, but finds a matching tile for the other attrs
+      assert {:ok, effect} = Sound.update_or_create_effect("thing2", updated_attrs)
+      assert effect.id == existing_effect.id
+      assert effect.slug == "some_name"
+
+      # creates the unfound tile
+      assert {:ok, effect} = Sound.update_or_create_effect("not", Map.merge(updated_attrs, %{name: "Big Z"}))
+      assert effect.id != existing_effect.id
+      assert effect.slug == "big_z"
+    end
+
+    test "update_or_create_effect!/2" do
+      {:ok, existing_effect} = Sound.create_effect(@valid_attrs)
+      updated_attrs = Map.put(@valid_attrs, :zzfx_params, @other_zzfx_params)
+      # finds existing template by slug and updates it
+      assert effect = Sound.update_or_create_effect!("some_name", updated_attrs)
+      assert effect.id == existing_effect.id
+      assert effect.zzfx_params == @other_zzfx_params
+
+      # does not find the slug, but finds a matching tile for the other attrs
+      assert effect = Sound.update_or_create_effect!("thing2", updated_attrs)
+      assert effect.id == existing_effect.id
+      assert effect.slug == "some_name"
+
+      # creates the unfound tile
+      assert effect = Sound.update_or_create_effect!("not", Map.merge(updated_attrs, %{name: "Big Z"}))
+      assert effect.id != existing_effect.id
+      assert effect.slug == "big_z"
     end
 
     test "delete_effect/1 deletes the effect" do

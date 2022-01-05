@@ -68,9 +68,11 @@ defmodule DungeonCrawl.DungeonProcesses.CacheTest do
     assert %{program: %Program{instructions: instructions}} = state.items["gun"]
     assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
              2 => [:shoot, [state_variable: :facing]],
-             3 => [:halt, [""]],
-             4 => [:noop, "error"],
-             5 => [:text, [["Out of ammo!"]]]} == instructions
+             3 => [:sound, ["shoot"]],
+             4 => [:halt, [""]],
+             5 => [:noop, "error"],
+             6 => [:text, [["Out of ammo!"]]],
+             7 => [:sound, ["click"]]} == instructions
 
     # finds it in the cache and returns it
     assert {item, :exists} == Cache.get_item(cache_process, "gun", author)

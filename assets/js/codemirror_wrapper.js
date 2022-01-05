@@ -61,7 +61,7 @@ let commands = [
     "sequence",
     "shift",
     "shoot",
-    "sound_effect",
+    "sound",
     "take",
     "target_player",
     "terminate",

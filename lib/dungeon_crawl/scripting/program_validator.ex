@@ -285,20 +285,20 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
-  defp _validate(program, [ {line_no, [:sound_effect, [slug] ]} | instructions], errors, user) do
-    _validate(program, [ {line_no, [:sound_effect, [slug, "nearby"] ]} | instructions], errors, user)
+  defp _validate(program, [ {line_no, [:sound, [slug] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:sound, [slug, "nearby"] ]} | instructions], errors, user)
   end
-  defp _validate(program, [ {line_no, [:sound_effect, [slug, target] ]} | instructions], errors, user) do
+  defp _validate(program, [ {line_no, [:sound, [slug, target] ]} | instructions], errors, user) do
     errors = unless is_binary(slug),
-                    do: ["Line #{line_no}: SOUND_EFFECT command references invalid slug `#{as_binary slug}`" | errors],
+                    do: ["Line #{line_no}: SOUND command references invalid slug `#{as_binary slug}`" | errors],
                     else: errors
     errors = unless Enum.member?(["all", "nearby", [:event_sender], [:self]], target) or is_tuple(target),
-                    do: ["Line #{line_no}: SOUND_EFFECT command references invalid target `#{as_binary target}`" | errors],
+                    do: ["Line #{line_no}: SOUND command references invalid target `#{as_binary target}`" | errors],
                     else: errors
     _validate(program, instructions, errors, user)
   end
-  defp _validate(program, [ {line_no, [:sound_effect, params ]} | instructions], errors, user) do
-    _validate(program, instructions, ["Line #{line_no}: SOUND_EFFECT command has invalid params `#{as_binary params}`" | errors], user)
+  defp _validate(program, [ {line_no, [:sound, params ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: SOUND command has invalid params `#{as_binary params}`" | errors], user)
   end
 
   defp _validate(program, [ {line_no, [:take, [_what, amount, who] ]} | instructions], errors, user) do

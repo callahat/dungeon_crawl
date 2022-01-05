@@ -36,6 +36,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 :BOMBED
                 @owner = ?sender@owner
                 :BOOM
+                #SOUND bomb
                 #PUT slug: explosion, shape: circle, range: 6, damage: @bomb_damage, owner: @owner
                 #DIE
                 """
@@ -55,6 +56,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         :MAIN
         #WALK @facing
         :THUD
+        #SOUND bomb
         #PUT slug: explosion, shape: circle, range: 2, damage: 10, owner: @owner
         #DIE
         """

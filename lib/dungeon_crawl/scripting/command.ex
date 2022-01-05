@@ -74,7 +74,7 @@ defmodule DungeonCrawl.Scripting.Command do
       :sequence     -> :sequence
       :shift        -> :shift
       :shoot        -> :shoot
-      :sound_effect -> :sound_effect
+      :sound        -> :sound
       :take         -> :take
       :target_player -> :target_player
       :terminate    -> :terminate
@@ -1538,21 +1538,21 @@ defmodule DungeonCrawl.Scripting.Command do
 
   ## Examples
 
-     iex> sound_effect(%Runner{}, ["beep", [:event_sender]])
+     iex> sound(%Runner{}, ["beep", [:event_sender]])
      %Runner{}
 
-     iex> sound_effect(%Runner{}, ["bloop"])
+     iex> sound(%Runner{}, ["bloop"])
      %Runner{}
 
   """
-  def sound_effect(%Runner{} = runner_state, [slug]) do
-    _sound_effect(runner_state, [slug, "nearby"])
+  def sound(%Runner{} = runner_state, [slug]) do
+    _sound(runner_state, [slug, "nearby"])
   end
-  def sound_effect(%Runner{} = runner_state, [slug, target]) do
-    _sound_effect(runner_state, [slug, target])
+  def sound(%Runner{} = runner_state, [slug, target]) do
+    _sound(runner_state, [slug, target])
   end
 
-  defp _sound_effect(%Runner{state: state, object_id: object_id} = runner_state, [slug, target]) do
+  defp _sound(%Runner{state: state, object_id: object_id} = runner_state, [slug, target]) do
     target = resolve_variable(runner_state, target)
 
     with source when not is_nil(source) <- Levels.get_tile_by_id(state, %{id: object_id}),

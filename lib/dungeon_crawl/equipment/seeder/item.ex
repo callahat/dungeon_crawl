@@ -16,8 +16,9 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
         #if ?random@10 != 10, 1
         #end
         The wand broke!
-        #if ?random@4 != 4, 1
+        #if ?random@4 != 4, 2
         #put slug: explosion, shape: circle, range: 3, damage: 10, owner: ?self
+        #sound bomb
         #die
         """
       })
@@ -33,9 +34,11 @@ defmodule DungeonCrawl.Equipment.Seeder.Item do
         script: """
         #take ammo, 1, ?self, error
         #shoot @facing
+        #sound shoot
         #end
         :error
         Out of ammo!
+        #sound click
         """
       })
   end

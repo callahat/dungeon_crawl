@@ -691,9 +691,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert %{program: %Program{instructions: instructions}} = gun
     assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
              2 => [:shoot, [state_variable: :facing]],
-             3 => [:halt, [""]],
-             4 => [:noop, "error"],
-             5 => [:text, [["Out of ammo!"]]]} == instructions
+             3 => [:sound, ["shoot"]],
+             4 => [:halt, [""]],
+             5 => [:noop, "error"],
+             6 => [:text, [["Out of ammo!"]]],
+             7 => [:sound, ["click"]]} == instructions
 
     assert %{items: %{"gun" => ^gun}} = Cache.get_state(cache)
     assert {^gun, ^state, :exists} = Levels.get_item("gun", state)

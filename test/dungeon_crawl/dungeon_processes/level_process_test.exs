@@ -502,7 +502,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     sound_effect = insert_effect(%{zzfx_params: expected_zzfx_params})
 
     tiles = [
-              %{character: "O", row: 1, col: 2, z_index: 0, script: "#SOUND_EFFECT #{sound_effect.slug}, all"}
+              %{character: "O", row: 1, col: 2, z_index: 0, script: "#SOUND #{sound_effect.slug}, all"}
             ]
             |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
             |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
