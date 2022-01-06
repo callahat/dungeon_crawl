@@ -27,8 +27,10 @@ let Player = {
       }
     })
 
-    playerChannel.on("sound_effect", (msg) => {
-      levelJs.sound.playEffectString(msg.zzfx_params, msg.volume_modifier)
+    playerChannel.on("sound_effects", (msg) => {
+      for(let sound of msg.sound_effects){
+        levelJs.sound.playEffectString(sound.zzfx_params, sound.volume_modifier)
+      }
     })
 
     playerChannel.on("ping", ({count}) => console.log("PING", count))

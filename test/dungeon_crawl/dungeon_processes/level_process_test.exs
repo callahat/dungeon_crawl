@@ -541,8 +541,8 @@ defmodule DungeonCrawl.LevelProcessTest do
       topic: ^level_channel}
     assert_receive %Phoenix.Socket.Broadcast{
       topic: ^player_channel,
-      event: "sound_effect",
-      payload: %{volume_modifier: 1, zzfx_params: ^expected_zzfx_params}}
+      event: "sound_effects",
+      payload: %{sound_effects: [%{volume_modifier: 1, zzfx_params: ^expected_zzfx_params}]}}
   end
 
   test "perform_actions when reset when no players", %{instance_process: instance_process, level_instance: level_instance} do

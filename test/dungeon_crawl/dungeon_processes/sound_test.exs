@@ -70,12 +70,12 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
 
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^level_admin_channel,
-        event: "sound_effect",
-        payload: %{zzfx_params: "stub", volume_modifier: 1}}
+        event: "sound_effects",
+        payload: %{sound_effects: [%{zzfx_params: "stub", volume_modifier: 1}]}}
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
-        event: "sound_effect",
-        payload: %{zzfx_params: "stub", volume_modifier: 1}}
+        event: "sound_effects",
+        payload: %{sound_effects: [%{zzfx_params: "stub", volume_modifier: 1}]}}
     end
 
     test "when the sound effect reaches nearby", %{level_admin_channel: level_admin_channel,
@@ -90,12 +90,12 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
 
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^level_admin_channel,
-        event: "sound_effect",
-        payload: %{zzfx_params: "stub", volume_modifier: 1}}
+        event: "sound_effects",
+        payload: %{sound_effects: [%{zzfx_params: "stub", volume_modifier: 1}]}}
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
-        event: "sound_effect",
-        payload: %{zzfx_params: "stub", volume_modifier: ^expected_modifier}}
+        event: "sound_effects",
+        payload: %{sound_effects: [%{zzfx_params: "stub", volume_modifier: ^expected_modifier}]}}
     end
 
     test "when the sound effect is for one specific player", %{level_admin_channel: level_admin_channel,
@@ -107,14 +107,53 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
       updated_state = Sound.broadcast_sound_effects(state)
       assert updated_state.sound_effects == []
 
-      refute_receive %Phoenix.Socket.Broadcast{
+      assert_receive %Phoenix.Socket.Broadcast{
         topic: ^level_admin_channel,
-        event: "sound_effect",
-        payload: %{zzfx_params: "stub", volume_modifier: 1}}
+        event: "sound_effects",
+        payload: %{sound_effects: [%{zzfx_params: "stub", volume_modifier: 1}]}}
       assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
-        event: "sound_effect",
-        payload: %{zzfx_params: "stub", volume_modifier: 1}}
+        event: "sound_effects",
+        payload: %{sound_effects: [%{zzfx_params: "stub", volume_modifier: 1}]}}
+    end
+
+    test "multiple sound effects", %{level_admin_channel: level_admin_channel,
+      state: state,
+      player_channel: player_channel,
+      player_tile: player_tile } do
+
+      state = %{ state | sound_effects: [
+                           %{row: 0, col: 3, zzfx_params: "stub1", target: "nearby"},
+                           %{row: 1, col: 3, zzfx_params: "stub2", target: "nearby"},
+                           %{row: 1, col: 10, zzfx_params: "stub3", target: "all"},
+                           %{row: 0, col: 1, zzfx_params: "stub4", target: player_tile.id},
+                           %{row: 2, col: 1, zzfx_params: "stub5", target: "nearby"},
+      ]}
+      expected_modifier1 = (16.0 - 2.0)/15.0
+      expected_modifier2 = (16.0 - 1.0)/15.0
+
+      updated_state = Sound.broadcast_sound_effects(state)
+      assert updated_state.sound_effects == []
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^level_admin_channel,
+        event: "sound_effects",
+        payload: %{sound_effects: [
+                     %{zzfx_params: "stub5", volume_modifier: 1},
+                     %{zzfx_params: "stub4", volume_modifier: 1},
+                     %{zzfx_params: "stub3", volume_modifier: 1},
+                     %{zzfx_params: "stub2", volume_modifier: 1},
+                     %{zzfx_params: "stub1", volume_modifier: 1},
+        ]}}
+      assert_receive %Phoenix.Socket.Broadcast{
+        topic: ^player_channel,
+        event: "sound_effects",
+        payload: %{sound_effects: [
+        %{zzfx_params: "stub4", volume_modifier: 1},
+                     %{zzfx_params: "stub3", volume_modifier: 1},
+                     %{zzfx_params: "stub2", volume_modifier: ^expected_modifier2},
+                     %{zzfx_params: "stub1", volume_modifier: ^expected_modifier1},
+        ]}}
     end
   end
 end
