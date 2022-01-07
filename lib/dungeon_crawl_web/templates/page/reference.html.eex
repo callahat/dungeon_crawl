@@ -51,6 +51,7 @@
                     <a class='nav-link' href='#sequence'>sequence</a>
                     <a class='nav-link' href='#shift'>shift</a>
                     <a class='nav-link' href='#shoot'>shoot</a>
+                    <a class='nav-link' href='#sound'>sound</a>
                     <a class='nav-link' href='#take'>take</a>
                     <a class='nav-link' href='#terminate'>terminate</a>
                     <a class='nav-link' href='#transport'>transport</a>
@@ -1001,6 +1002,23 @@
             <td colspan="3" class="examples">
                 <pre class="script">#SHOOT north</pre>
                 <pre class="script">#SHOOT @facing</pre></td>
+          </tr>
+          <tr id="sound">
+            <td>SOUND</td>
+            <td>list - 1 or 2</td>
+            <td>Play a sound effect. The first parameter is the slug of the sound to play.
+                This will be heard by players in the level instance.
+                The second optional parameter indicates who can hear it. May be set to
+                ?sender, a specific player, "all" (to play for everyone; volume constant
+                on the preceeding options), or "nearby" (to only play for players close
+                to the source and the further, the quieter it will be.
+                Default behavior is "nearby".</td>
+          </tr>
+          <tr>
+            <td colspan="3" class="examples">
+              <pre class="script">#SOUND beep</pre>
+              <pre class="script">#SOUND beep, all</pre>
+              <pre class="script">#SOUND beep, ?sender</pre></td>
           </tr>
           <tr id="take">
             <td>TAKE</td>

@@ -1529,7 +1529,8 @@ defmodule DungeonCrawl.Scripting.Command do
   end
 
   @doc """
-  Play a sound effect. This will be heard by players in the level instance.
+  Play a sound effect. The first parameter is the slug of the sound to play.
+  This will be heard by players in the level instance.
   The second optional parameter indicates who can hear it. May be set to
   ?sender, a specific player, "all" (to play for everyone; volume constant
   on the preceeding options), or "nearby" (to only play for players close
