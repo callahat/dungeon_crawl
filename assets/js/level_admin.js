@@ -1,5 +1,5 @@
 let LevelAdmin = {
-  init(socket, element){ if(!element){ return }
+  init(socket, sound, element){ if(!element){ return }
     let levelId = element.getAttribute("data-level-id")
     let readonly = element.getAttribute("data-readonly") == "true"
     this.dungeonId = element.getAttribute("data-dungeon-id")
@@ -8,6 +8,8 @@ let LevelAdmin = {
     window.addEventListener('beforeunload', (event) => {
       socket.disconnect()
     })
+
+    this.sound = sound
 
     this.tuneInToChannel(socket, levelId)
   },
@@ -34,6 +36,12 @@ let LevelAdmin = {
         console.log("joined the dungeon admin channel!")
       })
       .receive("error", resp => console.log("join failed", resp))
+
+    this.levelAdminChannel.on("sound_effects", (msg) => {
+      for(let sound of msg.sound_effects){
+        this.sound.playEffectString(sound.zzfx_params, sound.volume_modifier)
+      }
+    })
   },
   tileChanges(tiles){
     let location, tdEl;
@@ -47,7 +55,8 @@ let LevelAdmin = {
     }
   },
   levelAdminChannel: null,
-  dungeonId: null
+  dungeonId: null,
+  sound: null
 }
 
 export default LevelAdmin
