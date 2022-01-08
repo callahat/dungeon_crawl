@@ -20,7 +20,7 @@ defmodule DungeonCrawl.Sound.EffectTest do
                           |> Repo.update()
 
     assert :error == result
-    assert {"input should be 19 comma separated values, no whitespace, blanks ok." <>
+    assert {"input should be 13 to 19 comma separated values, no whitespace, blanks ok." <>
             " Should match `-?\\d*\\.?\\d*(?:,-?\\d*\\.?\\d*){15,19}`", _} =
            changeset.errors[:zzfx_params]
   end

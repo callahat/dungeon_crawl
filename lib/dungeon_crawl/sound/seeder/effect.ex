@@ -37,6 +37,69 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       })
   end
 
+  def door do
+    Sound.update_or_create_effect!(
+      "door",
+      %{name: "Pickup Door",
+        public: true,
+        zzfx_params: "[2.13,0,423,.01,.01,.05,4,2.51,,,,,,1.5,,.3,.12,.71,.01]"
+      })
+  end
+
+  def fuzz_pop do
+    Sound.update_or_create_effect!(
+      "fuzz_pop",
+      %{name: "Fuzz Pop",
+        public: true,
+        zzfx_params: "[1.05,,61,.03,.01,.09,,.21,,,646,.04,,.5,,,,.14,.07]"
+      })
+  end
+
+  def harp_down do
+    Sound.update_or_create_effect!(
+      "harp_down",
+      %{name: "Harp Down",
+        public: true,
+        zzfx_params: "[1.18,,305,.08,.2,.43,1,1.7,.5,-5,-17,.03,.04,,,,,.51,.03,.44]"
+      })
+  end
+
+  def harp_up do
+    Sound.update_or_create_effect!(
+      "harp_up",
+      %{name: "Harp Up",
+        public: true,
+        zzfx_params: "[1.18,,305,.08,.2,.43,1,1.7,.5,-5,17,.03,.04,,,,,.51,.03,.44]"
+      })
+  end
+
+  def ouch do
+    Sound.update_or_create_effect!(
+      "ouch",
+      %{name: "Ouch",
+        public: true,
+        zzfx_params: "[1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05]"
+      })
+  end
+
+  def open_locked_door do
+    Sound.update_or_create_effect!(
+      "open_locked_door",
+      %{name: "Open Locked Door",
+        public: true,
+        zzfx_params: "[1.13,,463,.01,.16,.24,1,1.82,,,40,.18,.17,,,.2,,.63,.03]"
+      })
+  end
+
+  def pickup_blip do
+    Sound.update_or_create_effect!(
+      "pickup_blip",
+      %{name: "Pickup Blip",
+        public: true,
+        zzfx_params: "[3.9,,83,,.01,.02,2,.46,-1.5,34.8,5,.18,,-0.1,-364,-0.1,.09,1.1,.01,.03]"
+      })
+  end
+
   def rumble do
     Sound.update_or_create_effect!(
       "rumble",
@@ -55,15 +118,53 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       })
   end
 
+  def slide_down do
+    Sound.update_or_create_effect!(
+      "slide_down",
+      %{name: "Slide Down",
+        public: true,
+        zzfx_params: "[,,108,,.16,.04,1,.06,-0.1,,,,,.2,,,,.43,.18,.04]"
+      })
+  end
+
+  def slide_up do
+    Sound.update_or_create_effect!(
+      "slide_up",
+      %{name: "Slide Up",
+        public: true,
+        zzfx_params: "[,,108,,.16,.04,1,.06,.1,,,,,.2,,,,.43,.18,.04]"
+      })
+  end
+
+  def star_fire do
+    Sound.update_or_create_effect!(
+      "star_fire",
+      %{name: "Star Fire",
+        public: true,
+        zzfx_params: "[1.16,,878,.17,,.19,4,.01,,,,,,,-24,,.07,,.09]"
+      })
+  end
+
 
   defmacro __using__(_params) do
     quote do
+
       def alarm(), do: unquote(__MODULE__).alarm()
       def bomb(), do: unquote(__MODULE__).bomb()
       def click(), do: unquote(__MODULE__).click()
       def computing(), do: unquote(__MODULE__).computing()
+      def door(), do: unquote(__MODULE__).door()
+      def fuzz_pop(), do: unquote(__MODULE__).fuzz_pop()
+      def harp_down(), do: unquote(__MODULE__).harp_down()
+      def harp_up(), do: unquote(__MODULE__).harp_up()
+      def ouch(), do: unquote(__MODULE__).ouch()
+      def open_locked_door(), do: unquote(__MODULE__).open_locked_door()
+      def pickup_blip(), do: unquote(__MODULE__).pickup_blip()
       def rumble(), do: unquote(__MODULE__).rumble()
       def shoot(), do: unquote(__MODULE__).shoot()
+      def slide_down(), do: unquote(__MODULE__).slide_down()
+      def slide_up(), do: unquote(__MODULE__).slide_up()
+      def star_fire(), do: unquote(__MODULE__).star_fire()
     end
   end
 end

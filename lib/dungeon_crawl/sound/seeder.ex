@@ -6,8 +6,18 @@ defmodule DungeonCrawl.Sound.Seeder do
     bomb()
     click()
     computing()
+    door()
+    fuzz_pop()
+    harp_down()
+    harp_up()
+    ouch()
+    open_locked_door()
+    pickup_blip()
     rumble()
     shoot()
+    slide_down()
+    slide_up()
+    star_fire()
 
     :ok
   end
