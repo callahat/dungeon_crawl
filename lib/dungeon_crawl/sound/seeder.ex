@@ -18,6 +18,7 @@ defmodule DungeonCrawl.Sound.Seeder do
     slide_down()
     slide_up()
     star_fire()
+    trudge()
 
     :ok
   end

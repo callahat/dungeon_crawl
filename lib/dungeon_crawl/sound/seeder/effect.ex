@@ -78,7 +78,7 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       "ouch",
       %{name: "Ouch",
         public: true,
-        zzfx_params: "[1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05]"
+        zzfx_params: "[,,239,,.04,.19,2,.62,-3.7,2.7,100,,1.99,.1,,,,.75,.05]"
       })
   end
 
@@ -145,6 +145,14 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       })
   end
 
+  def trudge do
+    Sound.update_or_create_effect!(
+      "trudge",
+      %{name: "Trudge",
+        public: true,
+        zzfx_params: "[,,1200,.01,.07,.01,4,.95,-78,,429,,,,,.1,,1.1]"
+    })
+  end
 
   defmacro __using__(_params) do
     quote do
@@ -165,6 +173,7 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       def slide_down(), do: unquote(__MODULE__).slide_down()
       def slide_up(), do: unquote(__MODULE__).slide_up()
       def star_fire(), do: unquote(__MODULE__).star_fire()
+      def trudge(), do: unquote(__MODULE__).trudge()
     end
   end
 end

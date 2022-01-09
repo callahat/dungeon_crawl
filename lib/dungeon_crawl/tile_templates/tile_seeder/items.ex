@@ -17,11 +17,13 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 #end
                 :touch
                 #if ! ?sender@player, main
+                #sound pickup_blip, ?sender
                 You found some ammo
                 #give ammo, 6, ?sender
                 #die
                 :shot
                 :bombed
+                #sound bomb
                 #put slug: explosion, shape: circle, range: 2, damage: 5
                 #die
                 """
@@ -48,6 +50,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 Dolla bills, make it rain
                 #random cash, 5-10
                 #give cash, @cash, ?sender
+                #sound pickup_blip, ?sender
                 #die
                 """
     })
@@ -71,6 +74,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         #if ! ?sender@player, main
         You found a magic wand!
         #equip fireball_wand, ?sender
+        #sound pickup_blip, ?sender
         #die
         """
       })
@@ -95,6 +99,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 You found a gem!
                 #give gems, 1, ?sender
                 #give score, 1, ?sender
+                #sound pickup_blip, ?sender
                 #die
                 """
     })
@@ -117,6 +122,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 :touch
                 #if ! ?sender@player, main
                 Restored some health
+                #sound heal, ?sender
                 #give health, 10, ?sender, 100
                 #die
                 """
@@ -141,6 +147,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         #if ! ?sender@player, main
         You found a magic potion of levitation!
         #equip levitation_potion, ?sender
+        #sound pickup_blip, ?sender
         #die
         """
       })
@@ -165,6 +172,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
                 #if ! ?sender@player, main
                 This will stop the bleeding
                 #give health, 50, ?sender, 100
+                #sound heal, ?sender
                 #die
                 """
     })
@@ -214,6 +222,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         #if ! ?sender@player, main
         Picked up a stone
         #equip stone, ?sender
+        #sound pickup_blip, ?sender
         #die
         :thrown
         #zap touch
@@ -248,6 +257,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Items do
         #if ! ?sender@player, main
         A torch to light the way
         #give torches, 1, ?sender
+        #sound pickup_blip, ?sender
         #die
         """
       })

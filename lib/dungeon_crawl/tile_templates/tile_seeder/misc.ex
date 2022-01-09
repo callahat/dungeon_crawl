@@ -81,6 +81,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
                 #push @facing, 1
                 #if not ?{@facing}@cloned, 2
                 #if not ?{@facing}@blocking
+                #sound alarm
                 #put direction: @facing, clone: @clone_id, cloned: true
                 #facing reverse
                 #send main
@@ -137,6 +138,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Misc do
                 #send spin
                 #end
                 :shoot
+                #sound shoot
                 #shoot @facing
                 #send spin
                 """

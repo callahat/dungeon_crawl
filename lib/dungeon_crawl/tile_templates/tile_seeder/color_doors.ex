@@ -20,6 +20,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
                   #IF ?sender@#{color}_key == 1, ALREADY_HAVE
                   #GIVE #{color}_key, 1, ?sender
                   You picked up a #{color} key
+                  #SOUND pickup_blip
                   #DIE
                   :ALREADY_HAVE
                   You already have a #{color} key.
@@ -43,9 +44,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
                   :TOUCH
                   #TAKE #{color}_key, 1, ?sender, NOKEY
                   You unlock the #{color} door
+                  #SOUND open_locked_door
                   #DIE
                   :NOKEY
                   You need a #{color} key to unlock.
+                  #SOUND fuzz_pop
                   :DONE
                   """
       })
@@ -70,6 +73,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
                 #IF ! ?sender@player, DONE
                 #GIVE @color+_key, 1, ?sender, 1, ALREADY_HAVE
                 You picked up a key
+                #SOUND pickup_blip
                 #DIE
                 :ALREADY_HAVE
                 You already have that key.
@@ -95,9 +99,11 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.ColorDoors do
                 :TOUCH
                 #TAKE @background_color+_key, 1, ?sender, NOKEY
                 You unlock the door
+                #SOUND open_locked_door
                 #DIE
                 :NOKEY
                 You need a matching key to unlock.
+                #SOUND fuzz_pop
                 :DONE
                 """
     })

@@ -609,6 +609,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         {_grave, state} = Player.bury(state, loser)
 
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
+        state = _add_sound_effect(state, loser, "harp_down")
+
         if lives == 0 do
           {:ok, gameover(state, loser.id, false, "Dead")}
         else
@@ -616,11 +618,15 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         end
 
       state.state_values[:reset_player_when_damaged] ->
+        state = _add_sound_effect(state, loser, "ouch")
+
         {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {_loser, state} = Player.reset(state, loser)
         {:ok, state}
 
       true ->
+        state = _add_sound_effect(state, loser, "ouch")
+
         {_loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
     end
@@ -638,7 +644,20 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
-  # TODO: relpace most of implementation with call to cache
+  def _add_sound_effect(state, player_tile, slug) do
+    {effect, state, _} = get_sound_effect(slug, state)
+
+    if effect do
+      effect_info = %{row: player_tile.row,
+                      col: player_tile.col,
+                      target: player_tile.id,
+                      zzfx_params: effect.zzfx_params}
+      %{ state | sound_effects: [ effect_info | state.sound_effects]}
+    else
+      state
+    end
+  end
+
   @doc """
   Looks up a tile template from the cache, falling back to getting it from the database and saving for later.
   Returns a three part tuple, the first being the tile template if found, the state, and an atom indicating if it

@@ -8,6 +8,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scores
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
 
   setup do
     tile =        %Tile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TAKE health, 100, ?sender\n#DIE"}
@@ -108,10 +109,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "send_event/4", %{state: state} do
+    SoundSeeder.ouch
+    harp_down = SoundSeeder.harp_down
+    {:ok, cache} = Cache.start_link([])
     li = insert_stubbed_level_instance()
     player_tile = %Tile{level_instance_id: li.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: "health: 100, lives: 3, player: true"}
     player_location = %Location{id: 555, user_id_hash: "dubs", tile_instance_id: 123}
-    {_player_tile, state} = Levels.create_player_tile(state, player_tile, player_location)
+    {_player_tile, state} = Levels.create_player_tile(%{state | cache: cache}, player_tile, player_location)
 
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -141,15 +145,20 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     updated_state_3 = Levels.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location)
     assert [new_tile_id] = Map.keys(updated_state_3.map_by_ids) -- Map.keys(updated_state_2.map_by_ids)
 
-    %Levels{ program_contexts: program_contexts ,
-                map_by_ids: _,
-                map_by_coords: _ } = updated_state_3
+    %Levels{
+      program_contexts: program_contexts,
+      map_by_ids: _,
+      map_by_coords: _,
+      sound_effects: sound_effects
+    } = updated_state_3
 
     # dead player gets buried, but this also validates that new tile with program actually gets
     # added to the program contexts (and not lost)
     refute program_contexts[999]
     assert program_contexts[new_tile_id]
     assert updated_state_3.map_by_ids[new_tile_id].name == "Grave"
+    assert sound_effects ==
+             [%{row: 4, col: 4, target: player_location.tile_instance_id, zzfx_params: harp_down.zzfx_params}]
   end
 
   test "add_message_action/3" do
@@ -599,10 +608,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "subtract/4 health on a player tile" do
+    ouch = SoundSeeder.ouch
+    harp_down = SoundSeeder.harp_down
+    {:ok, cache} = Cache.start_link([])
     instance = insert_stubbed_level_instance()
     player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", script: "", level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
-    state = %Levels{dungeon_instance_id: 14, instance_id: 123}
+    state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
 
     dungeon_channel = "level:14:123"
@@ -615,6 +627,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             topic: ^dungeon_channel,
             payload: _anything}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: player_tile.id, zzfx_params: ouch.zzfx_params}]
 
     assert {:ok, updated_state} = Levels.subtract(state, :health, 30, player_tile.id)
     assert Map.has_key? updated_state.rerender_coords, Map.take(player_tile, [:row, :col])
@@ -623,13 +636,17 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             event: "message",
             payload: %{message: "You died!"}}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: player_tile.id, zzfx_params: harp_down.zzfx_params}]
   end
 
   test "subtract/4 health on a player tile when instance reset_player_when_damaged sv is true" do
+    ouch = SoundSeeder.ouch
+    SoundSeeder.harp_down
+    {:ok, cache} = Cache.start_link([])
     instance = insert_stubbed_level_instance(%{state: "reset_player_when_damaged: true"})
     player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
-    state = %Levels{dungeon_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}
+    state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
     {player_tile, state} = Levels.update_tile_state(state, player_tile, %{entry_row: 1, entry_col: 9})
 
@@ -638,6 +655,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     player_tile = Levels.get_tile_by_id(updated_state, player_tile)
     assert %{row: 1, col: 9} = player_tile
     assert  %{%{col: 4, row: 4} => true, %{col: 9, row: 1} => true} = updated_state.rerender_coords
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: player_tile.id, zzfx_params: ouch.zzfx_params}]
   end
 
   test "subtract/4 non health on a player tile" do

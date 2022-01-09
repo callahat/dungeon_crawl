@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   alias DungeonCrawl.Scripting.Parser
   alias DungeonCrawl.Scripting.Runner
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
   alias DungeonCrawl.DungeonProcesses.{Cache, Levels, LevelProcess, DungeonRegistry, DungeonProcess, Registrar}
 
   alias DungeonCrawl.Test.LevelsMockFactory
@@ -1925,13 +1926,16 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "TAKE" do
+    ouch = SoundSeeder.ouch
+    {:ok, cache} = Cache.start_link([])
     script = """
              #END
              :toopoor
              /i
              You don't have enough
              """
-    {losing_tile, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1, cash: 2"})
+    state = %Levels{cache: cache}
+    {losing_tile, state} = Levels.create_tile(state, %Tile{id: 1, character: "E", row: 1, col: 1, z_index: 0, state: "health: 10, red: 1, cash: 2"})
     {taker, state} = Levels.create_tile(state, %Tile{id: 3, character: "c", color: "red", row: 2, col: 1, z_index: 1, state: "damage: 3", script: script})
 
     program = program_fixture(script)
@@ -1990,9 +1994,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map[losing_tile.id].parsed_state[:health] == 8
 
     # take state var to event sender (player)
-    %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: %Location{tile_instance_id: losing_tile.id}},
-                                                      ["health", 1, [:event_sender]])
+    %Runner{state: %{map_by_ids: map, sound_effects: sfx}} = \
+      Command.take(%{runner_state_with_player | event_sender: %Location{tile_instance_id: losing_tile.id}},
+                   ["health", 1, [:event_sender]])
     assert map[losing_tile.id].parsed_state[:health] == 9
+    assert sfx == [%{col: 1, row: 1, target: losing_tile.id, zzfx_params: ouch.zzfx_params}]
 
     # take handles null state variable
     %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: %Location{tile_instance_id: losing_tile.id}},
