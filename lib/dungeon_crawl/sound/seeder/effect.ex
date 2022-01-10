@@ -40,7 +40,7 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
   def door do
     Sound.update_or_create_effect!(
       "door",
-      %{name: "Pickup Door",
+      %{name: "Door",
         public: true,
         zzfx_params: "[2.13,0,423,.01,.01,.05,4,2.51,,,,,,1.5,,.3,.12,.71,.01]"
       })
@@ -71,6 +71,15 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
         public: true,
         zzfx_params: "[1.18,,305,.08,.2,.43,1,1.7,.5,-5,17,.03,.04,,,,,.51,.03,.44]"
       })
+  end
+
+  def heal do
+    Sound.update_or_create_effect!(
+      "heal",
+      %{name: "Heal",
+      public: true,
+      zzfx_params: "[1.18,,143,.05,.08,.06,,.09,25,4.1,,,,,,,.01,.52,.09]"
+    })
   end
 
   def ouch do
@@ -165,6 +174,7 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       def fuzz_pop(), do: unquote(__MODULE__).fuzz_pop()
       def harp_down(), do: unquote(__MODULE__).harp_down()
       def harp_up(), do: unquote(__MODULE__).harp_up()
+      def heal(), do: unquote(__MODULE__).heal()
       def ouch(), do: unquote(__MODULE__).ouch()
       def open_locked_door(), do: unquote(__MODULE__).open_locked_door()
       def pickup_blip(), do: unquote(__MODULE__).pickup_blip()

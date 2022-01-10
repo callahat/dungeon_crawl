@@ -39,6 +39,7 @@ defmodule DungeonCrawl.StateValue.StandardVariablesTest do
              "pullable",
              "pulling",
              "pushable",
+             "soft",
              "squishable",
              "teleporter",
              "wait_cycles",

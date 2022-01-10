@@ -10,6 +10,7 @@ defmodule DungeonCrawl.Sound.Seeder do
     fuzz_pop()
     harp_down()
     harp_up()
+    heal()
     ouch()
     open_locked_door()
     pickup_blip()

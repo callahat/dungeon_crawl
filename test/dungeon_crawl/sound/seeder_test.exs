@@ -14,6 +14,7 @@ defmodule DungeonCrawl.Sound.SeederTest do
       {"Fuzz Pop", :fuzz_pop},
       {"Harp Down", :harp_down},
       {"Harp Up", :harp_up},
+      {"Heal", :heal},
       {"Ouch", :ouch},
       {"Open Locked Door", :open_locked_door},
       {"Pickup Blip", :pickup_blip},
@@ -25,7 +26,7 @@ defmodule DungeonCrawl.Sound.SeederTest do
       {"Trudge", :trudge},
     ]
     |> Enum.each(fn {name, method} ->
-         assert %Effect{name: name} = apply(Seeder, method, [])
+         assert %Effect{name: ^name} = apply(Seeder, method, [])
          assert Repo.one(from i in Effect, where: i.name == ^name)
        end)
   end
@@ -34,11 +35,11 @@ defmodule DungeonCrawl.Sound.SeederTest do
     initial_count = Repo.one(from i in Effect, select: count(i.id))
     Seeder.seed_all()
     seeded_count = Repo.one(from i in Effect, select: count(i.id))
-    assert seeded_count - initial_count == 17
+    assert seeded_count - initial_count == 18
 
     # does not add the seeds again
     Seeder.seed_all()
     seeded_count2 = Repo.one(from i in Effect, select: count(i.id))
-    assert seeded_count2 - initial_count == 17
+    assert seeded_count2 - initial_count == 18
   end
 end
