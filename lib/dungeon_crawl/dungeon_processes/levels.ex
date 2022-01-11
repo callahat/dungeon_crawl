@@ -650,7 +650,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     if effect do
       effect_info = %{row: player_tile.row,
                       col: player_tile.col,
-                      target: player_tile.id,
+                      target: state.player_locations[player_tile.id],
                       zzfx_params: effect.zzfx_params}
       %{ state | sound_effects: [ effect_info | state.sound_effects]}
     else

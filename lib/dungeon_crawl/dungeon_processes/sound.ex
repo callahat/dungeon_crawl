@@ -5,6 +5,7 @@ defmodule DungeonCrawl.DungeonProcesses.Sound do
   """
 
   alias DungeonCrawl.DungeonProcesses.Levels
+  alias DungeonCrawl.Player.Location
   alias DungeonCrawl.Scripting.{Shape}
 
   @doc """
@@ -28,15 +29,15 @@ defmodule DungeonCrawl.DungeonProcesses.Sound do
     |> _collate_for_nearby_players(sound_effect, state)
     |> _collate_sound_effects(sound_effects, state)
   end
+  defp _collate_sound_effects(heard_sounds,[%{target: %Location{} = pl} = sound_effect | sound_effects], state) do
+    _heard_sound_for_player(heard_sounds, sound_effect, pl.id)
+    |> _heard_sound_for_admin(sound_effect, state)
+    |> _collate_sound_effects(sound_effects, state)
+  end
   defp _collate_sound_effects(heard_sounds, [%{target: tile_id} = sound_effect | sound_effects], state)
        when is_integer(tile_id) do
     player_location = state.player_locations[tile_id]
-
-    if(player_location,
-       do: _heard_sound_for_player(heard_sounds, sound_effect, player_location.id),
-       else: heard_sounds)
-    |> _heard_sound_for_admin(sound_effect, state)
-    |> _collate_sound_effects(sound_effects, state)
+    _collate_sound_effects(heard_sounds, [%{ sound_effect | target: player_location} | sound_effects], state)
   end
   defp _collate_sound_effects(heard_sounds, [_ | sound_effects], state) do
     # target was invalid

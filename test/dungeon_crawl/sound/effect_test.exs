@@ -21,7 +21,7 @@ defmodule DungeonCrawl.Sound.EffectTest do
 
     assert :error == result
     assert {"input should be 13 to 19 comma separated values, no whitespace, blanks ok." <>
-            " Should match `-?\\d*\\.?\\d*(?:,-?\\d*\\.?\\d*){15,19}`", _} =
+            " Should match `-?\\d*\\.?\\d*(?:,-?\\d*\\.?\\d*){13,19}`", _} =
            changeset.errors[:zzfx_params]
   end
 

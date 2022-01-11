@@ -1559,7 +1559,10 @@ defmodule DungeonCrawl.Scripting.Command do
     with source when not is_nil(source) <- Levels.get_tile_by_id(state, %{id: object_id}),
          {sound, state, _} when not is_nil(sound) <- Levels.get_sound_effect(slug, state),
          %{"params" => zzfx_params} <- Effect.extract_params(sound) do
-      effect_info = %{row: source.row, col: source.col, target: target, zzfx_params: zzfx_params}
+      effect_info = %{row: source.row,
+                      col: source.col,
+                      target: state.player_locations[target] || target,
+                      zzfx_params: zzfx_params}
       updated_state = %{ state | sound_effects: [ effect_info | state.sound_effects]}
       %{ runner_state | state: updated_state }
     else

@@ -37,7 +37,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
                 #PASSAGE stairs_up
                 #END
                 :TOUCH
-                #SOUND slide_up
+                #SOUND slide_up, ?sender
                 #TRANSPORT ?sender, up, stairs_down
                 """
     })
@@ -58,7 +58,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
                 #PASSAGE stairs_down
                 #END
                 :TOUCH
-                #SOUND slide_down
+                #SOUND slide_down, ?sender
                 #TRANSPORT ?sender, down, stairs_up
                 """
     })

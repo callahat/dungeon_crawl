@@ -1980,10 +1980,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_state == state
 
     # take but not enough and label given
+    player_location = %Location{tile_instance_id: losing_tile.id}
     runner_state_with_player = %{ runner_state |
                                     state: %{ runner_state.state |
-                                                player_locations: %{losing_tile.id => %Location{tile_instance_id: losing_tile.id} }}}
-    %Runner{state: updated_state, program: up} = Command.take(%{runner_state_with_player | event_sender: %Location{tile_instance_id: losing_tile.id}},
+                                                player_locations: %{losing_tile.id => player_location }}}
+    %Runner{state: updated_state, program: up} = Command.take(%{runner_state_with_player | event_sender: player_location},
                                                  ["gems", 2, "north", "toopoor"])
     assert up == %{ runner_state.program | pc: 2, status: :wait, wait_cycles: 1 }
     assert [] = updated_state.program_messages
@@ -1995,13 +1996,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # take state var to event sender (player)
     %Runner{state: %{map_by_ids: map, sound_effects: sfx}} = \
-      Command.take(%{runner_state_with_player | event_sender: %Location{tile_instance_id: losing_tile.id}},
+      Command.take(%{runner_state_with_player | event_sender: player_location},
                    ["health", 1, [:event_sender]])
     assert map[losing_tile.id].parsed_state[:health] == 9
-    assert sfx == [%{col: 1, row: 1, target: losing_tile.id, zzfx_params: ouch.zzfx_params}]
+    assert sfx == [%{col: 1, row: 1, target: player_location, zzfx_params: ouch.zzfx_params}]
 
     # take handles null state variable
-    %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: %Location{tile_instance_id: losing_tile.id}},
+    %Runner{state: %{map_by_ids: map}} = Command.take(%{runner_state_with_player | event_sender: player_location},
                                                       ["health", {:state_variable, :nonexistant}, [:event_sender]])
     assert map[losing_tile.id].parsed_state[:health] == 10
 

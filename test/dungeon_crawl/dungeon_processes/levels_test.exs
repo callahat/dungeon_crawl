@@ -158,7 +158,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert program_contexts[new_tile_id]
     assert updated_state_3.map_by_ids[new_tile_id].name == "Grave"
     assert sound_effects ==
-             [%{row: 4, col: 4, target: player_location.tile_instance_id, zzfx_params: harp_down.zzfx_params}]
+             [%{row: 4, col: 4, target: player_location, zzfx_params: harp_down.zzfx_params}]
   end
 
   test "add_message_action/3" do
@@ -627,7 +627,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             topic: ^dungeon_channel,
             payload: _anything}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
-    assert updated_state.sound_effects == [%{col: 4, row: 4, target: player_tile.id, zzfx_params: ouch.zzfx_params}]
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: ouch.zzfx_params}]
 
     assert {:ok, updated_state} = Levels.subtract(state, :health, 30, player_tile.id)
     assert Map.has_key? updated_state.rerender_coords, Map.take(player_tile, [:row, :col])
@@ -636,7 +636,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             event: "message",
             payload: %{message: "You died!"}}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
-    assert updated_state.sound_effects == [%{col: 4, row: 4, target: player_tile.id, zzfx_params: harp_down.zzfx_params}]
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: harp_down.zzfx_params}]
   end
 
   test "subtract/4 health on a player tile when instance reset_player_when_damaged sv is true" do
@@ -655,7 +655,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     player_tile = Levels.get_tile_by_id(updated_state, player_tile)
     assert %{row: 1, col: 9} = player_tile
     assert  %{%{col: 4, row: 4} => true, %{col: 9, row: 1} => true} = updated_state.rerender_coords
-    assert updated_state.sound_effects == [%{col: 4, row: 4, target: player_tile.id, zzfx_params: ouch.zzfx_params}]
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: ouch.zzfx_params}]
   end
 
   test "subtract/4 non health on a player tile" do
