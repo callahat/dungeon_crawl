@@ -35,7 +35,7 @@ defmodule DungeonCrawl.Sound.Effect do
       _ -> add_error(changeset,
                      :zzfx_params,
                      "input should be 13 to 19 comma separated values, no whitespace, blanks ok." <>
-                       " Should match `-?\\d*\\.?\\d*(?:,-?\\d*\\.?\\d*){15,19}`")
+                       " Should match `-?\\d*\\.?\\d*(?:,-?\\d*\\.?\\d*){13,19}`")
     end
   end
   defp _validate_zzfx_params(changeset), do: changeset
