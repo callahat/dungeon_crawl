@@ -267,11 +267,13 @@ let Level = {
         .receive("error", resp => this.renderMessage("Could not send message") )
         .receive("ok", resp => {
                          if(resp.safe_words != "") {
+                           this.sound.playEffect(this.soundSendMessage, this.soundEffectVolume / 100)
                            this.renderMessage("<b>Me:</b> " + resp.safe_words)
                          }
                          document.getElementById("message_field").value = ""
                          this.sendingMessage = false
                        } )
+      document.getElementById("message_field").blur()
     } else {
       document.getElementById("message_field").value = ""
       this.sendingMessage = false
@@ -354,6 +356,8 @@ let Level = {
   equippableItems: [],
   sound: null,
   soundFootstep: [2.25,,8,,.06,.01,2,2.25,-19,-79,409,.01,,,6.6,,.2,.57,,.8], // bit footstep
+  soundRecieveMessage: [,0,900,,.03,.03,1,1.03, 10,,,,,,,,,.31,.01],
+  soundSendMessage:    [,0,900,,.03,.03,1,1.03,-10,,,,,,,,,.31,.01],
   soundEffectVolume: 100,
 }
 

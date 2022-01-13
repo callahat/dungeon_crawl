@@ -21,6 +21,9 @@ let Player = {
 
     playerChannel.on("message", (resp) => {
       if(!resp.modal) {
+        if(resp.chime){
+          levelJs.sound.playEffect(levelJs.soundRecieveMessage, levelJs.soundEffectVolume / 100)
+        }
         levelJs.renderMessage(resp.message)
       } else {
         levelJs.renderMessageModal(resp.message)

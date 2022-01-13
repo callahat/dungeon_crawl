@@ -376,42 +376,54 @@ defmodule DungeonCrawlWeb.LevelChannel do
                                               end
        end)
 
+    heard_payload = %{
+      message: "<b>#{Account.get_name(player_location.user_id_hash)}:</b> #{safe_msg}",
+      chime: true
+    }
     (hearing_groups[:ok] || [])
     |> Enum.map(fn({_, location}) -> location.id end)
-    |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}:</b> #{safe_msg}")
+    |> _send_message_to_player(heard_payload)
 
     (hearing_groups[:quiet] || [])
     |> Enum.map(fn({_, location}) -> location.id end)
-    |> _send_message_to_player("You hear muffled voices")
+    |> _send_message_to_player(%{ message: "You hear muffled voices" })
 
     safe_msg
   end
 
   defp _send_message_to_other_players_in_instance(player_location, safe_msg, instance_state) do
+    payload = %{
+      message: "<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to level</i><b>:</b> #{safe_msg}",
+      chime: true
+    }
     instance_state.player_locations
     |> Map.to_list()
     |> Enum.reject(fn({tile_id, _location}) -> tile_id == player_location.tile_instance_id end)
     |> Enum.map(fn({_tile_id, location}) -> location.id end)
-    |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to level</i><b>:</b> #{safe_msg}")
+    |> _send_message_to_player(payload)
 
     safe_msg
   end
 
   defp _send_message_to_other_players_in_dungeon(player_location, safe_msg, instance_registry) do
+    payload = %{
+      message: "<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to dungeon</i><b>:</b> #{safe_msg}",
+      chime: true
+    }
     LevelRegistry.player_location_ids(instance_registry)
     |> Enum.reject(fn({_, tile_id, _number}) -> tile_id == player_location.tile_instance_id end)
     |> Enum.map(fn({location_id, _, _}) -> location_id end)
-    |> _send_message_to_player("<b>#{Account.get_name(player_location.user_id_hash)}</b> <i>to dungeon</i><b>:</b> #{safe_msg}")
+    |> _send_message_to_player(payload)
 
     safe_msg
   end
 
-  defp _send_message_to_player([], _safe_msg), do: []
-  defp _send_message_to_player([location_id | location_ids], safe_msg) do
+  defp _send_message_to_player([], payload), do: []
+  defp _send_message_to_player([location_id | location_ids], payload) do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{location_id}",
                                        "message",
-                                       %{message: safe_msg}
-    _send_message_to_player(location_ids, safe_msg)
+                                       payload
+    _send_message_to_player(location_ids, payload)
   end
 
   defp _adjacent_level_id(_, nil, _), do: nil
