@@ -29,6 +29,8 @@ let Level = {
         this.fadeTimeout = setTimeout(() => { this.removeFade(1) }, 100)
       }
     }
+
+    this._soundEffectVolumeUpdate(this.soundEffectVolume)
   },
   removeFade(count, range = 1) {
     let query = []
@@ -118,6 +120,10 @@ let Level = {
         return
       }
 
+      document.getElementById("soundEffectVolume").addEventListener("change", e => {
+        this._soundEffectVolumeUpdate(parseInt(e.target.value))
+      })
+
       let direction = e.keyCode || e.which
       if(suppressDefaultKeys.indexOf(direction) > 0) {
         e.preventDefault()
@@ -139,6 +145,9 @@ let Level = {
           break
         case(72): // h
           $('#helpDetailModal').modal('show')
+          break
+        case(86): // v
+          $('#volumeModal').modal('show')
           break
         case(84): // t
           this.lightTorch()
@@ -194,7 +203,7 @@ let Level = {
     }
 
     this.levelChannel.push(action, payload)
-      .receive("moved", (_) => this.sound.zzfx(...this.soundFootstep))
+      .receive("moved", (_) => this.sound.playEffect(this.soundFootstep, this.soundEffectVolume / 100))
       .receive("error", e => console.log(e))
   },
   open(direction, shift = false){
@@ -323,6 +332,11 @@ let Level = {
     $(".messageLink").text(function () { return $(this).text().replace(/^./, "-"); });
     $(".messageLink").eq(this.textLinkPointer).text(function () { return $(this).text().replace(/^./, "▶"); });
   },
+  _soundEffectVolumeUpdate(value){
+    document.getElementById("soundEffectVolume").value = value
+    this.soundEffectVolume = value
+    document.getElementById("soundEffectVolumeDisplay").innerText =  this.soundEffectVolume + "%"
+  },
   actionMethod: null,
   timestampOptions: {
          hour12 : false,
@@ -340,6 +354,7 @@ let Level = {
   equippableItems: [],
   sound: null,
   soundFootstep: [2.25,,8,,.06,.01,2,2.25,-19,-79,409,.01,,,6.6,,.2,.57,,.8], // bit footstep
+  soundEffectVolume: 100,
 }
 
 export default Level

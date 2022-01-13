@@ -29,7 +29,7 @@ let Player = {
 
     playerChannel.on("sound_effects", (msg) => {
       for(let sound of msg.sound_effects){
-        levelJs.sound.playEffectString(sound.zzfx_params, sound.volume_modifier)
+        levelJs.sound.playEffectString(sound.zzfx_params, sound.volume_modifier * (levelJs.soundEffectVolume / 100))
       }
     })
 

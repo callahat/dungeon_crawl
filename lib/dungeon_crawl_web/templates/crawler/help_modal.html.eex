@@ -53,6 +53,13 @@
                   the mouse to make your selection.</span>
           </div>
         </div>
+        <hr/>
+        <div class="row">
+          <div class="col-12 help">
+            <strong>Volume</strong>
+            <span><pre>V</pre> will bring up the volume control modal.</span>
+          </div>
+        </div>
       </div>
 
       <div class="modal-footer">
