@@ -73,6 +73,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
                 #if ! ?sender@player, DONE
                 #become character: ░, blocking: false
                 You blaze a trail
+                #sound trudge
                 #terminate
                 :done
                 """

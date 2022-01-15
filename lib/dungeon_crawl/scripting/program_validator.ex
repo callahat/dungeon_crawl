@@ -285,6 +285,22 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     end
   end
 
+  defp _validate(program, [ {line_no, [:sound, [slug] ]} | instructions], errors, user) do
+    _validate(program, [ {line_no, [:sound, [slug, "nearby"] ]} | instructions], errors, user)
+  end
+  defp _validate(program, [ {line_no, [:sound, [slug, target] ]} | instructions], errors, user) do
+    errors = unless is_binary(slug),
+                    do: ["Line #{line_no}: SOUND command references invalid slug `#{as_binary slug}`" | errors],
+                    else: errors
+    errors = unless Enum.member?(["all", "nearby", [:event_sender], [:self]], target) or is_tuple(target),
+                    do: ["Line #{line_no}: SOUND command references invalid target `#{as_binary target}`" | errors],
+                    else: errors
+    _validate(program, instructions, errors, user)
+  end
+  defp _validate(program, [ {line_no, [:sound, params ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: SOUND command has invalid params `#{as_binary params}`" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [:take, [_what, amount, who] ]} | instructions], errors, user) do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
                do: ["Line #{line_no}: TAKE command has invalid amount `#{amount}`" | errors],

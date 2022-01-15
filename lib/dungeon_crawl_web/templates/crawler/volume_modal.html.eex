@@ -1,0 +1,32 @@
+<!-- Modal -->
+<div class="modal fade" tabindex="-1" role="dialog" id="volumeModal" aria-labelledby="volumeModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="volumeModalLabel">
+          Volume Control
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-left">
+
+        <div class="row">
+          <div class="col-12 help">
+            <div class="row form-group">
+              <div class="col-2"><label for="soundEffectVolume">Sound</label></div>
+              <div class="col-8"><input type="range" class="form-control-range" id="soundEffectVolume" min="0" max="200"></div>
+              <div class="col-2" id="soundEffectVolumeDisplay">100%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

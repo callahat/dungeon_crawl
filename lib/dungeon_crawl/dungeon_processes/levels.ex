@@ -33,11 +33,12 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             full_rerender: false,
             author: nil,
             light_sources: %{},
-            item_slug_cache: %{}
+            cache: nil,
+            sound_effects: []
 
   alias DungeonCrawl.Action.Move
   alias DungeonCrawl.DungeonInstances.Tile
-  alias DungeonCrawl.DungeonProcesses.{Levels, DungeonRegistry, DungeonProcess, Player}
+  alias DungeonCrawl.DungeonProcesses.{Cache, Levels, DungeonRegistry, DungeonProcess, Player}
   alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Scripting.Direction
@@ -608,6 +609,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         {_grave, state} = Player.bury(state, loser)
 
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
+        state = _add_sound_effect(state, loser, "harp_down")
+
         if lives == 0 do
           {:ok, gameover(state, loser.id, false, "Dead")}
         else
@@ -615,11 +618,15 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         end
 
       state.state_values[:reset_player_when_damaged] ->
+        state = _add_sound_effect(state, loser, "ouch")
+
         {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {_loser, state} = Player.reset(state, loser)
         {:ok, state}
 
       true ->
+        state = _add_sound_effect(state, loser, "ouch")
+
         {_loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
         {:ok, state}
     end
@@ -637,57 +644,49 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
+  def _add_sound_effect(state, player_tile, slug) do
+    {effect, state, _} = get_sound_effect(slug, state)
+
+    if effect do
+      effect_info = %{row: player_tile.row,
+                      col: player_tile.col,
+                      target: state.player_locations[player_tile.id],
+                      zzfx_params: effect.zzfx_params}
+      %{ state | sound_effects: [ effect_info | state.sound_effects]}
+    else
+      state
+    end
+  end
+
   @doc """
   Looks up a tile template from the cache, falling back to getting it from the database and saving for later.
   Returns a three part tuple, the first being the tile template if found, the state, and an atom indicating if it
   exists in cache, was created in the cache, or not_found.
   """
-  def get_tile_template(slug, %Levels{tile_template_slug_cache: cache, author: author} = state) when is_binary(slug) do
-    if tile_template = cache[slug] do
-      {tile_template, state, :exists}
-    else
-      with tile_template when not is_nil(tile_template) <- DungeonCrawl.TileTemplates.get_tile_template_by_slug(slug),
-           true <- is_nil(author) ||
-                   is_nil(tile_template.user_id) ||
-                   tile_template.public ||
-                   author.is_admin ||
-                   author.id == tile_template.user_id do
-        {tile_template, %{ state | tile_template_slug_cache: Map.put(cache, slug, tile_template) }, :created}
-      else
-        _ -> {nil, state, :not_found}
-      end
-    end
+  def get_tile_template(slug, %Levels{cache: cache, author: author} = state) do
+    {tile_template, result} = Cache.get_tile_template(cache, slug, author)
+    {tile_template, state, result}
   end
-
-  def get_tile_template(_slug, state), do: {nil, state, :not_found}
 
   @doc """
   Looks up an item from the cache, falling back to getting it from the database and saving for later.
   Returns a three part tuple, the first being the item if found, the instance state, and an atom indicating if it
   exists in cache, was created in the cache, or not_found.
   """
-  def get_item("", state), do: {nil, state, :nothing_equipped}
-  def get_item(nil, state), do: {nil, state, :nothing_equipped}
-  def get_item(slug, %Levels{item_slug_cache: cache, author: author} = state) when is_binary(slug) do
-    if item = cache[slug] do
-      {item, state, :exists}
-    else
-      with item when not is_nil(item) <- DungeonCrawl.Equipment.get_item(slug),
-           true <- is_nil(author) ||
-             is_nil(item.user_id) ||
-             item.public ||
-             author.is_admin ||
-             author.id == item.user_id do
-        {:ok, program} = Scripting.Parser.parse(item.script)
-        item = Map.put item, :program, program
-        {item, %{ state | item_slug_cache: Map.put(cache, slug, item) }, :created}
-      else
-        _ -> {nil, state, :not_found}
-      end
-    end
+  def get_item(slug, %Levels{cache: cache, author: author} = state) do
+    {item, result} = Cache.get_item(cache, slug, author)
+    {item, state, result}
   end
 
-  def get_item(_slug, state), do: {nil, state, :not_found}
+  @doc """
+  Looks up a sound effect from the cache, falling back to getting it from the database and saving for later.
+  Returns a three part tuple, the first being the effect if found, the instance state, and an atom indicating if it
+  exists in cache, was created in the cache, or not_found.
+  """
+  def get_sound_effect(slug, %Levels{cache: cache, author: author} = state) do
+    {sound_effect, result} = Cache.get_sound_effect(cache, slug, author)
+    {sound_effect, state, result}
+  end
 
   @doc """
   Update the given player tile to gameover. Broadcasts the gameover message to the appropriate channel.

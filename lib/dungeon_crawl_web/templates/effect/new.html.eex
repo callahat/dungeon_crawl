@@ -1,0 +1,6 @@
+<h2>New Effect</h2>
+
+<%= render "form.html", changeset: @changeset, conn: @conn,
+                        action: Routes.effect_path(@conn, :create) %>
+
+<%= link "Back", to: Routes.effect_path(@conn, :index) %>

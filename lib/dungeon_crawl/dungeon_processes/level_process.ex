@@ -9,6 +9,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.Render
+  alias DungeonCrawl.DungeonProcesses.Sound
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
@@ -45,6 +46,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   """
   def set_author(instance, author) do
     GenServer.cast(instance, {:set_author, author})
+  end
+
+  @doc """
+  Sets the cache process
+  """
+  def set_cache(instance, cache_process) do
+    GenServer.cast(instance, {:set_cache, cache_process})
   end
 
   @doc """
@@ -257,6 +265,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @impl true
+  def handle_cast({:set_cache, cache}, %Levels{} = state) do
+    {:noreply, %{ state | cache: cache }}
+  end
+
+  @impl true
   def handle_cast({:set_adjacent_level_id, {level_instance_id, direction}}, %Levels{adjacent_level_ids: adjacent_level_ids} = state) do
     {:noreply, %{ state | adjacent_level_ids: Map.put(adjacent_level_ids, direction, level_instance_id) }}
   end
@@ -332,6 +345,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
             |> _broadcast_stat_updates()
             |> Render.rerender_tiles()
             |> Render.rerender_tiles_for_admin()
+            |> Sound.broadcast_sound_effects()
             |> Map.put(:rerender_coords, %{})
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms

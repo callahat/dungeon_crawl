@@ -33,6 +33,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #EQUIP gun, ?sender
     #EQUIP gun, ?sender, 2
     #UNEQUIP gun, north, MORE
+    #SOUND powerdown, all
     """
   end
 
@@ -126,6 +127,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     &ALL ++= 42
     #EQUIP gun, norf, banana, nigeria
     #UNEQUIP gun, norf, nigeria
+    #SOUND 123
+    #SOUND bloop, yall
+    #SOUND bloop, all, extra
     """
   end
 
@@ -212,6 +216,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 87: EQUIP command references nonexistant label `nigeria`",
                "Line 88: UNEQUIP command references invalid direction `norf`",
                "Line 88: UNEQUIP command references nonexistant label `nigeria`",
+               "Line 89: SOUND command references invalid slug `123`",
+               "Line 90: SOUND command references invalid target `yall`",
+               "Line 91: SOUND command has invalid params `[\"bloop\", \"all\", \"extra\"]`"
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -273,6 +280,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 87: EQUIP command references nonexistant label `nigeria`",
                "Line 88: UNEQUIP command references invalid direction `norf`",
                "Line 88: UNEQUIP command references nonexistant label `nigeria`",
+               "Line 89: SOUND command references invalid slug `123`",
+               "Line 90: SOUND command references invalid target `yall`",
+               "Line 91: SOUND command has invalid params `[\"bloop\", \"all\", \"extra\"]`"
               ],
               program} == ProgramValidator.validate(program, admin)
     end

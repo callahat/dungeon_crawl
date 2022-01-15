@@ -16,8 +16,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
     open_door    = create_with_defaults!("open_door", %{character: "'", name: "Open Door", description: "An open door", state: "blocking: false, open: true", script: "", group_name: "doors"})
     closed_door  = create_with_defaults!("closed_door", %{character: "+", name: "Closed Door", description: "A closed door", state: "blocking: true, open: false", script: "", group_name: "doors"})
 
-    open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{script: "#END\n:CLOSE\n#BECOME slug: #{closed_door.slug}"})
-    closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{script: "#END\n:OPEN\n#BECOME slug: #{open_door.slug}"})
+    open_door   = Repo.update! TileTemplates.change_tile_template(open_door, %{script: "#END\n:CLOSE\n#BECOME slug: #{closed_door.slug}\n#SOUND door"})
+    closed_door = Repo.update! TileTemplates.change_tile_template(closed_door, %{script: "#END\n:OPEN\n#BECOME slug: #{open_door.slug}\n#SOUND door"})
 
     solo_door() # placeholder for now
 
@@ -60,12 +60,14 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
                 #BECOME character: +
                 @open = false
                 @blocking = true
+                #SOUND door
                 #END
                 :OPEN
                 #IF @open, CANT_OPEN
                 #BECOME character: '
                 @open = true
                 @blocking = false
+                #SOUND door
                 #END
                 :CANT_OPEN
                 Cannot open that

@@ -151,41 +151,13 @@ defmodule DungeonCrawl.TileTemplates do
     %TileTemplate{}
     |> TileTemplate.changeset(attrs)
     |> Repo.insert()
-    |> _add_slug()
+    |> TileTemplate.add_slug()
   end
   def create_tile_template!(attrs \\ %{}) do
     %TileTemplate{}
     |> TileTemplate.changeset(attrs)
     |> Repo.insert!()
-    |> _add_slug!()
-  end
-
-  defp _add_slug({:ok, tile_template}) do
-    _gen_slug_changeset(tile_template)
-    |> Repo.update()
-  end
-  defp _add_slug(error), do: error
-
-  defp _add_slug!(tile_template) do
-    _gen_slug_changeset(tile_template)
-    |> Repo.update!()
-  end
-
-  defp _gen_slug_changeset(tile_template) do
-    tt = Repo.preload(tile_template, :user)
-    slug = String.downcase(tile_template.name)
-           |> String.replace(" ", "_")
-
-    slug = if (tt.user && tt.user.is_admin || is_nil(tt.user)) &&
-              Repo.one(from tt in TileTemplate, where: tt.slug == ^slug, select: count()) == 0 do
-             slug
-           else
-             slug <> "_#{tile_template.id}"
-           end
-
-    tile_template
-    |> TileTemplate.changeset(%{})
-    |> Ecto.Changeset.put_change(:slug, slug)
+    |> TileTemplate.add_slug!()
   end
 
   @doc """

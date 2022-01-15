@@ -1,7 +1,8 @@
 let Level = {
-  init(socket, element){ if(!element){ return }
+  init(socket, sound, element){ if(!element){ return }
     let levelId = element.getAttribute("data-level-id")
     this.dungeonId = element.getAttribute("data-dungeon-id")
+    this.sound = sound
     socket.connect()
 
     this.setupWindowListeners()
@@ -28,6 +29,8 @@ let Level = {
         this.fadeTimeout = setTimeout(() => { this.removeFade(1) }, 100)
       }
     }
+
+    this._soundEffectVolumeUpdate(this.soundEffectVolume)
   },
   removeFade(count, range = 1) {
     let query = []
@@ -117,6 +120,10 @@ let Level = {
         return
       }
 
+      document.getElementById("soundEffectVolume").addEventListener("change", e => {
+        this._soundEffectVolumeUpdate(parseInt(e.target.value))
+      })
+
       let direction = e.keyCode || e.which
       if(suppressDefaultKeys.indexOf(direction) > 0) {
         e.preventDefault()
@@ -138,6 +145,9 @@ let Level = {
           break
         case(72): // h
           $('#helpDetailModal').modal('show')
+          break
+        case(86): // v
+          $('#volumeModal').modal('show')
           break
         case(84): // t
           this.lightTorch()
@@ -193,7 +203,8 @@ let Level = {
     }
 
     this.levelChannel.push(action, payload)
-                       .receive("error", e => console.log(e))
+      .receive("moved", (_) => this.sound.playEffect(this.soundFootstep, this.soundEffectVolume / 100))
+      .receive("error", e => console.log(e))
   },
   open(direction, shift = false){
     this._useDoor(direction, "OPEN")
@@ -256,11 +267,13 @@ let Level = {
         .receive("error", resp => this.renderMessage("Could not send message") )
         .receive("ok", resp => {
                          if(resp.safe_words != "") {
+                           this.sound.playEffect(this.soundSendMessage, this.soundEffectVolume / 100)
                            this.renderMessage("<b>Me:</b> " + resp.safe_words)
                          }
                          document.getElementById("message_field").value = ""
                          this.sendingMessage = false
                        } )
+      document.getElementById("message_field").blur()
     } else {
       document.getElementById("message_field").value = ""
       this.sendingMessage = false
@@ -321,6 +334,11 @@ let Level = {
     $(".messageLink").text(function () { return $(this).text().replace(/^./, "-"); });
     $(".messageLink").eq(this.textLinkPointer).text(function () { return $(this).text().replace(/^./, "▶"); });
   },
+  _soundEffectVolumeUpdate(value){
+    document.getElementById("soundEffectVolume").value = value
+    this.soundEffectVolume = value
+    document.getElementById("soundEffectVolumeDisplay").innerText =  this.soundEffectVolume + "%"
+  },
   actionMethod: null,
   timestampOptions: {
          hour12 : false,
@@ -336,6 +354,11 @@ let Level = {
   fadeTimeout: null,
   sendingMessage: false,
   equippableItems: [],
+  sound: null,
+  soundFootstep: [2.25,,8,,.06,.01,2,2.25,-19,-79,409,.01,,,6.6,,.2,.57,,.8], // bit footstep
+  soundRecieveMessage: [,0,900,,.03,.03,1,1.03, 10,,,,,,,,,.31,.01],
+  soundSendMessage:    [,0,900,,.03,.03,1,1.03,-10,,,,,,,,,.31,.01],
+  soundEffectVolume: 100,
 }
 
 export default Level

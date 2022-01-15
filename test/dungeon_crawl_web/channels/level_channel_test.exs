@@ -163,7 +163,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   @tag up_tile: "."
   test "move replies with status ok", %{socket: socket} do
     ref = push socket, "move", %{"direction" => "up"}
-    assert_reply ref, :ok, %{}
+    assert_reply ref, :moved, %{}
   end
 
   # move itself does not broadcast anymore, but the broadcast is sent from the instance_process for tiles that have changed since
@@ -344,7 +344,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     # Pull is tested more in depth elsewhere, this is just verifying the channel responds to this event.
     # as far as sending broadcasts this is sufficiently covered in the move tests
     ref = push socket, "pull", %{"direction" => "up"}
-    assert_reply ref, :ok, %{}
+    assert_reply ref, :moved, %{}
   end
 
   @tag up_tile: "."
@@ -567,7 +567,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^other_player_channel,
         event: "message",
-        payload: %{message: "<b>AnonPlayer:</b> &lt;i&gt;words&lt;/i&gt;"}}
+        payload: %{message: "<b>AnonPlayer:</b> &lt;i&gt;words&lt;/i&gt;", chime: true}}
     refute_receive %Phoenix.Socket.Broadcast{
         topic: ^other_level_player_channel}
 
@@ -596,7 +596,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^other_player_channel,
         event: "message",
-        payload: %{message: "<b>AnonPlayer</b> <i>to level</i><b>:</b> To everyone on this floor"}}
+        payload: %{message: "<b>AnonPlayer</b> <i>to level</i><b>:</b> To everyone on this floor", chime: true}}
     refute_receive %Phoenix.Socket.Broadcast{
         topic: ^other_level_player_channel,
         event: "message",
@@ -610,11 +610,11 @@ defmodule DungeonCrawl.LevelChannelTest do
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^other_player_channel,
         event: "message",
-        payload: %{message: "<b>AnonPlayer</b> <i>to dungeon</i><b>:</b> &lt;i&gt;To everyone in this dungeon&lt;/i&gt;"}}
+        payload: %{message: "<b>AnonPlayer</b> <i>to dungeon</i><b>:</b> &lt;i&gt;To everyone in this dungeon&lt;/i&gt;", chime: true}}
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^other_level_player_channel,
         event: "message",
-        payload: %{message: "<b>AnonPlayer</b> <i>to dungeon</i><b>:</b> &lt;i&gt;To everyone in this dungeon&lt;/i&gt;"}}
+        payload: %{message: "<b>AnonPlayer</b> <i>to dungeon</i><b>:</b> &lt;i&gt;To everyone in this dungeon&lt;/i&gt;", chime: true}}
   end
 
 

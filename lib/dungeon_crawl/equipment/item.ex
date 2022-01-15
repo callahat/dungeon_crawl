@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.Equipment.Item do
+  use DungeonCrawl.Sluggable
   use Ecto.Schema
   import Ecto.Changeset
   import DungeonCrawl.TileTemplates.TileTemplate, only: [validate_script: 2]
@@ -24,5 +25,6 @@ defmodule DungeonCrawl.Equipment.Item do
     |> cast(attrs, [:name, :description, :script, :public, :user_id, :weapon, :consumable])
     |> validate_required([:name, :script, :public])
     |> validate_script(item.user_id || attrs[:user_id])
+    |> unique_constraint(:slug, name: :items_slug_index, message: "Slug already exists")
   end
 end

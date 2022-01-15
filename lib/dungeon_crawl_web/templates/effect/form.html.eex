@@ -1,0 +1,49 @@
+<%= form_for @changeset, @action, fn f -> %>
+  <%= if @changeset.action do %>
+    <div class="alert alert-danger">
+      <p>Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
+
+  <div class="tab-content" id="sound_effect">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="form-group">
+          <%= label f, :name, class: "control-label" %>
+          <%= text_input f, :name, class: "form-control" %>
+          <%= error_tag f, :name %>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="form-group">
+          <%= label f, :zzfx_params, class: "control-label" %>
+          <span><a target="_blank" href="https://killedbyapixel.github.io/ZzFX/">(Synth Tool)</a></span>
+          <div class="input-group" id="sound_effect_previews">
+            <div class="input-group-prepend noselect">
+              <span class="input-group-text play-effect" title="Click to preview the sound effect">▶</span>
+            </div>
+            <%= text_input f, :zzfx_params, class: "form-control", placeholder: "Copy the ZzFX JavaScript generated on the linked page above here" %>
+          </div>
+          <%= error_tag f, :zzfx_params %>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <div class="form-group">
+          <%= label f, :public, class: "control-label" %>
+          <%= checkbox f, :public %>
+          <%= error_tag f, :public %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <%= submit "Submit", class: "btn btn-primary" %>
+  </div>
+<% end %>

@@ -3,11 +3,12 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   import ExUnit.CaptureLog
 
-  alias DungeonCrawl.DungeonProcesses.{Levels, DungeonRegistry, DungeonProcess}
+  alias DungeonCrawl.DungeonProcesses.{Cache, Levels, DungeonRegistry, DungeonProcess}
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.Scores
   alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
 
   setup do
     tile =        %Tile{id: 999, row: 1, col: 2, z_index: 0, character: "B", state: "", script: "#END\n:TOUCH\nHey\n#END\n:TERMINATE\n#TAKE health, 100, ?sender\n#DIE"}
@@ -108,10 +109,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "send_event/4", %{state: state} do
+    SoundSeeder.ouch
+    harp_down = SoundSeeder.harp_down
+    {:ok, cache} = Cache.start_link([])
     li = insert_stubbed_level_instance()
     player_tile = %Tile{level_instance_id: li.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: "health: 100, lives: 3, player: true"}
     player_location = %Location{id: 555, user_id_hash: "dubs", tile_instance_id: 123}
-    {_player_tile, state} = Levels.create_player_tile(state, player_tile, player_location)
+    {_player_tile, state} = Levels.create_player_tile(%{state | cache: cache}, player_tile, player_location)
 
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -141,15 +145,20 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     updated_state_3 = Levels.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location)
     assert [new_tile_id] = Map.keys(updated_state_3.map_by_ids) -- Map.keys(updated_state_2.map_by_ids)
 
-    %Levels{ program_contexts: program_contexts ,
-                map_by_ids: _,
-                map_by_coords: _ } = updated_state_3
+    %Levels{
+      program_contexts: program_contexts,
+      map_by_ids: _,
+      map_by_coords: _,
+      sound_effects: sound_effects
+    } = updated_state_3
 
     # dead player gets buried, but this also validates that new tile with program actually gets
     # added to the program contexts (and not lost)
     refute program_contexts[999]
     assert program_contexts[new_tile_id]
     assert updated_state_3.map_by_ids[new_tile_id].name == "Grave"
+    assert sound_effects ==
+             [%{row: 4, col: 4, target: player_location, zzfx_params: harp_down.zzfx_params}]
   end
 
   test "add_message_action/3" do
@@ -599,10 +608,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "subtract/4 health on a player tile" do
+    ouch = SoundSeeder.ouch
+    harp_down = SoundSeeder.harp_down
+    {:ok, cache} = Cache.start_link([])
     instance = insert_stubbed_level_instance()
     player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", script: "", level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
-    state = %Levels{dungeon_instance_id: 14, instance_id: 123}
+    state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
 
     dungeon_channel = "level:14:123"
@@ -615,6 +627,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             topic: ^dungeon_channel,
             payload: _anything}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: ouch.zzfx_params}]
 
     assert {:ok, updated_state} = Levels.subtract(state, :health, 30, player_tile.id)
     assert Map.has_key? updated_state.rerender_coords, Map.take(player_tile, [:row, :col])
@@ -623,13 +636,17 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             event: "message",
             payload: %{message: "You died!"}}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: harp_down.zzfx_params}]
   end
 
   test "subtract/4 health on a player tile when instance reset_player_when_damaged sv is true" do
+    ouch = SoundSeeder.ouch
+    SoundSeeder.harp_down
+    {:ok, cache} = Cache.start_link([])
     instance = insert_stubbed_level_instance(%{state: "reset_player_when_damaged: true"})
     player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: "gems: 10, health: 30, lives: 2", level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
-    state = %Levels{dungeon_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}
+    state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
     {player_tile, state} = Levels.update_tile_state(state, player_tile, %{entry_row: 1, entry_col: 9})
 
@@ -638,6 +655,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     player_tile = Levels.get_tile_by_id(updated_state, player_tile)
     assert %{row: 1, col: 9} = player_tile
     assert  %{%{col: 4, row: 4} => true, %{col: 9, row: 1} => true} = updated_state.rerender_coords
+    assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: ouch.zzfx_params}]
   end
 
   test "subtract/4 non health on a player tile" do
@@ -660,55 +678,64 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "get_tile_template/2", %{state: state} do
+    {:ok, cache} = Cache.start_link([])
+    state = %{ state | cache: cache }
+
     assert {nil, ^state, :not_found} = Levels.get_tile_template("fake_slug", state)
 
     DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
 
     # looks up from the database and caches it
-    assert {bullet, updated_state, :created} = Levels.get_tile_template("bullet", state)
+    assert %Cache{} == Cache.get_state(cache)
+    assert {bullet, ^state, :created} = Levels.get_tile_template("bullet", state)
     assert bullet.name == "Bullet"
-    assert updated_state == %{ state | tile_template_slug_cache: updated_state.tile_template_slug_cache}
-    assert updated_state.tile_template_slug_cache["bullet"] == bullet
-
-    # finds it in the cache and returns it
-    assert {^bullet, ^updated_state, :exists} = Levels.get_tile_template("bullet", updated_state)
-
-    # an id is given instead / template not found
-    assert {nil, ^updated_state, :not_found} = Levels.get_tile_template(bullet.id, updated_state)
-
-    # template cannot be since dungeon has author whom is not an admin nor owner of the non public slug
-    DungeonCrawl.TileTemplates.update_tile_template(bullet, %{user_id: insert_user().id})
-    state = %{state | author: %{id: 1, is_admin: false}}
-    assert {nil, ^state, :not_found} = Levels.get_tile_template("bullet", state)
+    assert %{tile_templates: %{"bullet" => ^bullet}} = Cache.get_state(cache)
+    assert {^bullet, ^state, :exists} = Levels.get_tile_template("bullet", state)
   end
 
   test "get_item/2", %{state: state} do
+    {:ok, cache} = Cache.start_link([])
+    state = %{ state | cache: cache }
+
     assert {nil, ^state, :not_found} = Levels.get_item("fake_slug", state)
 
     DungeonCrawl.Equipment.Seeder.Item.gun
 
     # looks up from the database and caches it
-    assert {item, updated_state, :created} = Levels.get_item("gun", state)
-    assert item.name == "Gun"
-    assert updated_state == %{ state | item_slug_cache: updated_state.item_slug_cache}
-    assert updated_state.item_slug_cache["gun"] == item
-    assert %{program: %Program{instructions: instructions}} = updated_state.item_slug_cache["gun"]
+    assert %Cache{} == Cache.get_state(cache)
+    assert {gun, ^state, :created} = Levels.get_item("gun", state)
+    assert gun.name == "Gun"
+
+    assert %{program: %Program{instructions: instructions}} = gun
     assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
              2 => [:shoot, [state_variable: :facing]],
-             3 => [:halt, [""]],
-             4 => [:noop, "error"],
-             5 => [:text, [["Out of ammo!"]]]} == instructions
+             3 => [:sound, ["shoot"]],
+             4 => [:halt, [""]],
+             5 => [:noop, "error"],
+             6 => [:text, [["Out of ammo!"]]],
+             7 => [:sound, ["click"]]} == instructions
 
-    # finds it in the cache and returns it
-    assert {^item, ^updated_state, :exists} = Levels.get_item("gun", updated_state)
+    assert %{items: %{"gun" => ^gun}} = Cache.get_state(cache)
+    assert {^gun, ^state, :exists} = Levels.get_item("gun", state)
+    assert {nil, ^state, :not_found} = Levels.get_item(gun.id, state)
+    assert {nil, ^state, :nothing_equipped} = Levels.get_item("", state)
+  end
 
-    # an id is given instead / template not found
-    assert {nil, ^updated_state, :not_found} = Levels.get_item(item.id, updated_state)
+  test "get_sound_effect2/", %{state: state} do
+    {:ok, cache} = Cache.start_link([])
+    state = %{ state | cache: cache }
 
-    # item cannot be used since dungeon has author whom is not an admin nor owner of the non public slug
-    DungeonCrawl.Equipment.update_item(item, %{user_id: insert_user().id, public: false})
-    state = %{state | author: %{id: 1, is_admin: false}}
-    assert {nil, ^state, :not_found} = Levels.get_item("gun", state)
+    assert {nil, ^state, :not_found} = Levels.get_sound_effect("fake_slug", state)
+
+    insert_effect(%{name: "Boop"})
+
+    # looks up from the database and caches it
+    assert %Cache{} == Cache.get_state(cache)
+    assert {boop, ^state, :created} = Levels.get_sound_effect("boop", state)
+    assert boop.name == "Boop"
+    assert %{sound_effects: %{"boop" => ^boop}} = Cache.get_state(cache)
+    assert {^boop, ^state, :exists} = Levels.get_sound_effect("boop", state)
+    assert {nil, ^state, :not_found} = Levels.get_sound_effect(boop.id, state)
   end
 
   test "gameover/3 - ends game for all players in instance" do

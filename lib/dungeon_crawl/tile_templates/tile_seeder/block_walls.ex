@@ -55,6 +55,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BlockWalls do
                 :TOUCH
                 #IF ! ?sender@player, DONE
                 #LOCK
+                #SOUND heal
                 You discover a secret passage!
                 :FOUND
                 @blocking = false
