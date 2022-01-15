@@ -194,7 +194,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _parse_command(line, program) do
-    with %{"command" => command} <- match = Regex.named_captures(~r/\A(?<command>[^ ]+?)(?: (?<params>.+))?\z/i, line),
+    with %{"command" => command} = match <- Regex.named_captures(~r/\A(?<command>[^ ]+?)(?: (?<params>.+))?\z/i, line),
          params <- _parse_params(match["params"]),
          line_number <- Enum.count(program.instructions) + 1,
          {:ok, sendable_command} <- _sendable_command(command) do
