@@ -18,7 +18,7 @@ config :dungeon_crawl, DungeonCrawl.Repo,
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
 
-config :comeonin, :bcrypt_log_rounds, 4
+config :bcrypt_elixir, :log_rounds, 4
 
 config :dungeon_crawl, :generator, DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
 config :dungeon_crawl, :generators, [DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms]

@@ -50,7 +50,8 @@ defmodule DungeonCrawl.Mixfile do
      {:gettext, "~> 0.11"},
      {:jason, "~> 1.0"},
      {:plug_cowboy, "~> 2.5"},
-     {:comeonin, "~> 2.0"},
+     {:comeonin, "~> 5.3"},
+     {:bcrypt_elixir, "~> 2.0"},
      {:excoveralls, "~> 0.10", only: :test},
      {:benchee, "~> 1.0", only: :dev}
     ]

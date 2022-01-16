@@ -44,7 +44,7 @@ defmodule DungeonCrawl.Account.UserTest do
 
     assert changeset.valid?
     assert pass_hash
-    assert Comeonin.Bcrypt.checkpw(pass, pass_hash)
+    assert Bcrypt.verify_pass(pass, pass_hash)
   end
 
   test "registration_changeset does not let is_admin be set" do
