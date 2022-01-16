@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -19,7 +19,6 @@ config :dungeon_crawl, DungeonCrawl.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :comeonin, :bcrypt_log_rounds, 4
-config :comeonin, :pbkdf2_rounds, 1
 
 config :dungeon_crawl, :generator, DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
 config :dungeon_crawl, :generators, [DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms]

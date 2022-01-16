@@ -40,7 +40,6 @@ defmodule DungeonCrawl.Mixfile do
   defp deps do
     [{:phoenix, "~> 1.6"},
      {:phoenix_ecto, "~> 4.0"},
-#     {:ecto_sql, "~> 3.7"},
      {:ecto_psql_extras, "~> 0.7"},
      {:postgrex, ">= 0.0.0"},
      {:phoenix_html, "~> 3.0"},
