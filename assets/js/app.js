@@ -23,6 +23,8 @@ import "phoenix_html"
 window.jQuery = $
 window.$ = $
 
+import './liveview_config'
+
 // Import local files
 //
 // Local files can be imported directly using relative
