@@ -12,13 +12,8 @@ config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
   code_reloader: true,
   check_origin: false,
   watchers: [
-    node: [
-      "node_modules/webpack/bin/webpack.js",
-      "--mode",
-      "development",
-      "--watch-stdin",
-      cd: Path.expand("../assets", __DIR__)
-    ]
+    # Start the esbuild watcher by calling Esbuild.install_and_run(:default, args)
+    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
   ]
 
 
@@ -26,7 +21,7 @@ config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
 config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
   live_reload: [
     patterns: [
-      ~r{priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$},
+      ~r{priv/static/.*(js|css|png|jpeg|jpg|gif|svg|ico|txt)$},
       ~r{priv/gettext/.*(po)$},
       ~r{lib/dungeon_crawl_web/views/.*(ex)$},
       ~r{lib/dungeon_crawl_web/templates/.*(eex)$}

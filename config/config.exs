@@ -25,6 +25,27 @@ config :logger, :console,
   format: "$date $time [$level] <$metadata> $message\n",
   metadata: [:request_id]
 
+# Configure esbuild (the version is required)
+config :esbuild,
+       version: "0.14.11",
+       default: [
+         args: ~w(
+           js/app.js
+           --bundle
+           --target=es2016
+           --outdir=../priv/static/assets
+           --external:/fonts/*
+           --external:/images/*
+           --loader:.woff=file
+           --loader:.woff2=file
+           --loader:.svg=file
+           --loader:.eot=file
+           --loader:.ttf=file
+         ),
+         cd: Path.expand("../assets", __DIR__),
+         env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)},
+       ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env}.exs"

@@ -1,22 +1,23 @@
-// Brunch automatically concatenates all files in your
-// watched paths. Those paths can be configured at
-// config.paths.watched in "brunch-config.js".
-//
-// However, those files will only be executed if
-// explicitly imported. The only exception are files
-// in vendor, which are never wrapped in imports and
-// therefore are always executed.
+import '../css/app.css';
 
-// Import dependencies
+// You can include dependencies in two ways.
 //
-// If you no longer want to use a dependency, remember
-// to also remove its path from "config.paths.watched".
-import css from '../css/app.css';
+// The simplest option is to put them in assets/vendor and
+// import them using relative paths:
+//
+//     import "../vendor/some-package.js"
+//
+// Alternatively, you can `npm install some-package --prefix assets` and import
+// them using a path starting with the package name:
+//
+//     import "some-package"
+//
 
 import 'bootstrap'
 
 import $ from 'jquery'
 
+// Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 
 window.jQuery = $
@@ -27,7 +28,6 @@ window.$ = $
 // Local files can be imported directly using relative
 // paths "./socket" or full ones "web/static/js/socket".
 
-import 'codemirror/addon/mode/simple.js';
 import {zzfx} from 'zzfx'
 
 import socket from "./socket"

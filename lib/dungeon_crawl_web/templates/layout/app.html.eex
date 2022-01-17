@@ -8,7 +8,7 @@
     <meta name="author" content="">
 
     <title>DungeonCrawl</title>
-    <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/css/app.css") %>">
+    <link rel="stylesheet" href="<%= Routes.static_path(@conn, "/assets/app.css") %>">
   </head>
 
   <body>
@@ -76,5 +76,5 @@
 
   </body>
   <script>window.userToken = "<%= assigns[:user_token] %>"</script>
-  <script src="<%= Routes.static_path(@conn, "/js/app.js") %>"></script>
+  <script src="<%= Routes.static_path(@conn, "/assets/app.js") %>"></script>
 </html>
