@@ -53,7 +53,8 @@ defmodule DungeonCrawl.Mixfile do
      {:comeonin, "~> 5.3"},
      {:bcrypt_elixir, "~> 2.0"},
      {:excoveralls, "~> 0.10", only: :test},
-     {:benchee, "~> 1.0", only: :dev}
+     {:benchee, "~> 1.0", only: :dev},
+     {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
     ]
   end
 
@@ -64,8 +65,11 @@ defmodule DungeonCrawl.Mixfile do
   #
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
-    ["ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-     "ecto.reset": ["ecto.drop", "ecto.setup"],
-     test: ["ecto.create --quiet", "ecto.migrate", "test"]]
+    [
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      "assets.deploy": ["esbuild default --minify", "phx.digest"],
+    ]
   end
 end

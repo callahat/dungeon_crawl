@@ -1,3 +1,6 @@
+import 'codemirror/addon/mode/simple.js';
+import CodeMirror from 'codemirror/lib/codemirror.js';
+
 let CodemirrorWrapper = {
   init(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
 
