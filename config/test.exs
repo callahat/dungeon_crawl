@@ -23,3 +23,4 @@ config :bcrypt_elixir, :log_rounds, 4
 config :dungeon_crawl, :generator, DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms
 config :dungeon_crawl, :generators, [DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms]
 
+config :phoenix, :plug_init_mode, :runtime

@@ -20,6 +20,7 @@ defmodule DungeonCrawl.DungeonGeneration.Entities do
   """
   def random_entity() do
     chance = :rand.uniform(100)
+    # coveralls-ignore-start
     cond do
       chance > 99 -> ?r
       chance > 98 -> ?x
@@ -41,6 +42,7 @@ defmodule DungeonCrawl.DungeonGeneration.Entities do
       chance >  3 -> ?♥
       true        -> ?✚
     end
+    # coveralls-ignore-stop
   end
 
   @doc """
