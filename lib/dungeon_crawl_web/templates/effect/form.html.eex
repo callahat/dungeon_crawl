@@ -22,7 +22,7 @@
           <%= label f, :zzfx_params, class: "control-label" %>
           <span><a target="_blank" href="https://killedbyapixel.github.io/ZzFX/">(Synth Tool)</a></span>
           <div class="input-group" id="sound_effect_previews">
-            <div class="input-group-prepend noselect">
+            <div class="input-group-prepend user-select-none">
               <span class="input-group-text play-effect" title="Click to preview the sound effect">▶</span>
             </div>
             <%= text_input f, :zzfx_params, class: "form-control", placeholder: "Copy the ZzFX JavaScript generated on the linked page above here" %>

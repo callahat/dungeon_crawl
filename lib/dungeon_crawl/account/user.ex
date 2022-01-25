@@ -37,7 +37,7 @@ defmodule DungeonCrawl.Account.User do
   defp put_pass_hash(changeset) do
     case changeset do
       %Ecto.Changeset{valid?: true, changes: %{password: pass}} ->
-        put_change(changeset, :password_hash, Comeonin.Bcrypt.hashpwsalt(pass))
+        put_change(changeset, :password_hash, Bcrypt.hash_pwd_salt(pass))
       _ ->
         changeset
     end

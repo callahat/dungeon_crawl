@@ -418,7 +418,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
     safe_msg
   end
 
-  defp _send_message_to_player([], payload), do: []
+  defp _send_message_to_player([], _payload), do: []
   defp _send_message_to_player([location_id | location_ids], payload) do
     DungeonCrawlWeb.Endpoint.broadcast "players:#{location_id}",
                                        "message",

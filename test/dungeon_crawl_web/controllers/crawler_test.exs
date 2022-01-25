@@ -42,7 +42,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     location = insert_player_location(%{level_instance_id: instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
 
     {:ok, _, _socket} =
-      socket("user_id_hash", %{user_id_hash: location.user_id_hash})
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: location.user_id_hash})
       |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{instance.id}")
 
     assert {^di_id, location} = Crawler.join_and_broadcast(di, "itsmehash", %{color: "red", background_color: "green"}, nil)
@@ -73,7 +73,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     location2_id = location2.tile_instance_id
 
     {:ok, _, _socket} =
-      socket("user_id_hash", %{user_id_hash: "itsmehash"})
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
       |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.id}")
 
     # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
@@ -110,7 +110,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     _location2 = insert_player_location(%{level_instance_id: level_instance.id, row: 2, user_id_hash: "someoneelsetokeeptheinstance"})
 
     {:ok, _, _socket} =
-      socket("user_id_hash", %{user_id_hash: "itsmehash"})
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
       |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.id}")
 
     # PLAYER LEAVES

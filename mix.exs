@@ -4,9 +4,9 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.12",
+     elixir: "~> 1.13",
      elixirc_paths: elixirc_paths(Mix.env),
-     compilers: [:phoenix, :gettext] ++ Mix.compilers,
+     compilers: [:gettext] ++ Mix.compilers,
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: ExCoveralls],
@@ -38,22 +38,23 @@ defmodule DungeonCrawl.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.5"},
+    [{:phoenix, "~> 1.6"},
      {:phoenix_ecto, "~> 4.0"},
-     {:ecto_sql, "~> 3.0"},
-     {:ecto_psql_extras, "~> 0.2"},
+     {:ecto_psql_extras, "~> 0.7"},
      {:postgrex, ">= 0.0.0"},
-     {:phoenix_html, "~> 2.11"},
-     {:phoenix_live_reload, "~> 1.2", only: :dev},
-     {:phoenix_live_dashboard, "~> 0.4"},
-     {:telemetry_metrics, "~> 0.4"},
-     {:telemetry_poller, "~> 0.4"},
+     {:phoenix_html, "~> 3.0"},
+     {:phoenix_live_reload, "~> 1.3", only: :dev},
+     {:phoenix_live_dashboard, "~> 0.5"},
+     {:telemetry_metrics, "~> 0.6"},
+     {:telemetry_poller, "~> 0.5"},
      {:gettext, "~> 0.11"},
      {:jason, "~> 1.0"},
-     {:plug_cowboy, "~> 2.1"},
-     {:comeonin, "~> 2.0"},
+     {:plug_cowboy, "~> 2.5"},
+     {:comeonin, "~> 5.3"},
+     {:bcrypt_elixir, "~> 2.0"},
      {:excoveralls, "~> 0.10", only: :test},
-     {:benchee, "~> 1.0", only: :dev}
+     {:benchee, "~> 1.0", only: :dev},
+     {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
     ]
   end
 
@@ -64,8 +65,11 @@ defmodule DungeonCrawl.Mixfile do
   #
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
-    ["ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-     "ecto.reset": ["ecto.drop", "ecto.setup"],
-     test: ["ecto.create --quiet", "ecto.migrate", "test"]]
+    [
+      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      "assets.deploy": ["esbuild default --minify", "phx.digest"],
+    ]
   end
 end

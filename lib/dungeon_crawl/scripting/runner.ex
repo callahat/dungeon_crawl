@@ -57,6 +57,7 @@ require Logger
         [command, params] = program.instructions[program.pc]
 # Logging is expensive, comment/remove later
 if System.get_env("SHOW_RUNNER_COMMANDS") == "true" do
+# coveralls-ignore-start
 Logger.info "*******************************************Running:***************************************************"
 Logger.info "Line: #{program.pc}"
 Logger.info inspect object_id
@@ -69,6 +70,7 @@ Logger.info inspect runner_state.event_sender
 Logger.info "instance state:"
 Logger.info inspect state.state_values
 Logger.info "msg_count: " <> inspect(runner_state.msg_count)
+# coveralls-ignore-stop
 end
 
         runner_state = apply(Command, command, [runner_state, params])
