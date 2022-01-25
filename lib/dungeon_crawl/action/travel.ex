@@ -21,16 +21,10 @@ defmodule DungeonCrawl.Action.Travel do
   the spawn tiles (if any exist on the target level), otherwise the location will be choosen at random
   from a floor space.
   """
-  def passage(%Location{} = player_location, %{match_key: _} = passage, level_number, %Levels{} = state) do
+  def passage(%Location{} = player_location, passage, level_number, %Levels{} = state) do
     target_level = DungeonInstances.get_level(state.dungeon_instance_id, level_number)
 
     _passage(player_location, passage, target_level, state)
-  end
-
-  def passage(%Location{} = player_location, %{adjacent_level_id: adjacent_level_id, edge: _} = passage, %Levels{} = state) do
-    target_level = DungeonInstances.get_level(adjacent_level_id)
-
-    _passage(player_location, passage, target_level, state, true)
   end
 
   defp _passage(player_location, passage, target_level, state, adjacent_level \\ false) do

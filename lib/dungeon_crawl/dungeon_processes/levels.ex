@@ -23,7 +23,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             spawn_coordinates: [],
             passage_exits: [],
             message_actions: %{},
-            adjacent_level_ids: %{},
+            adjacent_level_numbers: %{},
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
             tile_template_slug_cache: %{},

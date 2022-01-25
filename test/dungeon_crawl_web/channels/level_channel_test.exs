@@ -178,7 +178,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   test "move broadcasts a tile_update if its a valid move at the edge", %{socket: socket, player_location: player_location, instance: instance} do
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      instance_state = %{instance_state | adjacent_level_ids: %{"north" => instance_state.instance_id}}
+      instance_state = %{instance_state | adjacent_level_numbers: %{"north" => instance_state.number}}
       Levels.update_tile(instance_state, player_tile, %{row: 0})
     end)
 

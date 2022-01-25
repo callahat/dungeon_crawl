@@ -58,7 +58,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
                    instance_id: instance_id,
                    player_locations: player_locations,
                    spawn_coordinates: spawn_coordinates,
-                   adjacent_level_ids: adjacent_level_ids,
+                   adjacent_level_numbers: adjacent_level_numbers,
                    author: author} = LevelProcess.get_state(instance_process)
     assert programs == %{tile.id => %{
                                        object_id: tile.id,
@@ -76,13 +76,12 @@ defmodule DungeonCrawl.LevelRegistryTest do
                                       event_sender: nil
                                     }
                        }
-    assert player_locations == %{location.tile_instance_id => location
-                                }
+    assert player_locations == %{location.tile_instance_id => location}
     assert map_by_ids[tile.id] == Map.put(tile, :parsed_state, %{blocking: true})
     assert state_values == %{flag: false, cols: 20, rows: 20}
     assert spawn_coordinates == [{9, 10}]
     assert instance_id == instance.id
-    assert adjacent_level_ids == %{"east" => nil, "north" => instance.id, "south" => nil, "west" => nil}
+    assert adjacent_level_numbers == %{"east" => nil, "north" => instance.number, "south" => nil, "west" => nil}
     assert Map.take(author, [:id, :name, :is_admin]) == Map.take(user, [:id, :name, :is_admin])
   end
 

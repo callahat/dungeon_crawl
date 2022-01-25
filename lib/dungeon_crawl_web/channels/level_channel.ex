@@ -246,15 +246,15 @@ defmodule DungeonCrawlWeb.LevelChannel do
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
-      adjacent_level_id = _adjacent_level_id(instance_state, player_tile, direction)
+      adjacent_level_number = _adjacent_level_number(instance_state, player_tile, direction)
       destination = Levels.get_tile(instance_state, player_tile, direction)
 
       cond do
         not _player_alive(player_tile) || not _game_active(player_tile, player_location) ->
           {:ok, instance_state}
 
-        adjacent_level_id ->
-          Travel.passage(player_location, %{adjacent_level_id: adjacent_level_id, edge: Direction.change_direction(direction, "reverse")}, instance_state)
+        adjacent_level_number ->
+          Travel.passage(player_location, %{edge: Direction.change_direction(direction, "reverse")}, adjacent_level_number, instance_state)
 
         destination ->
           {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: true})
@@ -426,16 +426,16 @@ defmodule DungeonCrawlWeb.LevelChannel do
     _send_message_to_player(location_ids, payload)
   end
 
-  defp _adjacent_level_id(_, nil, _), do: nil
-  defp _adjacent_level_id(instance_state, player_tile, "north"),
-    do: player_tile.row == 0 && instance_state.adjacent_level_ids["north"]
-  defp _adjacent_level_id(instance_state, player_tile, "south"),
-    do: player_tile.row == instance_state.state_values[:rows]-1  && instance_state.adjacent_level_ids["south"]
-  defp _adjacent_level_id(instance_state, player_tile, "east"),
-    do: player_tile.col == instance_state.state_values[:cols]-1 && instance_state.adjacent_level_ids["east"]
-  defp _adjacent_level_id(instance_state, player_tile, "west"),
-    do: player_tile.col == 0 && instance_state.adjacent_level_ids["west"]
-  defp _adjacent_level_id(_,_,_), do: nil
+  defp _adjacent_level_number(_, nil, _), do: nil
+  defp _adjacent_level_number(instance_state, player_tile, "north"),
+    do: player_tile.row == 0 && instance_state.adjacent_level_numbers["north"]
+  defp _adjacent_level_number(instance_state, player_tile, "south"),
+    do: player_tile.row == instance_state.state_values[:rows]-1  && instance_state.adjacent_level_numbers["south"]
+  defp _adjacent_level_number(instance_state, player_tile, "east"),
+    do: player_tile.col == instance_state.state_values[:cols]-1 && instance_state.adjacent_level_numbers["east"]
+  defp _adjacent_level_number(instance_state, player_tile, "west"),
+    do: player_tile.col == 0 && instance_state.adjacent_level_numbers["west"]
+  defp _adjacent_level_number(_,_,_), do: nil
 
   defp _use_item(socket, instance_state, item, player_location) do
     player_channel = "players:#{player_location.id}"

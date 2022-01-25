@@ -103,10 +103,10 @@ defmodule DungeonCrawl.DungeonInstances do
     %{"north" => nil, ...}
   """
   def get_adjacent_levels(%Level{} = instance) do
-    %{"north" => if(instance.number_north, do: get_level(instance.dungeon_instance_id, instance.number_north)) || %{id: nil},
-      "south" => if(instance.number_south, do: get_level(instance.dungeon_instance_id, instance.number_south)) || %{id: nil},
-      "east" => if(instance.number_east, do: get_level(instance.dungeon_instance_id, instance.number_east)) || %{id: nil},
-      "west" => if(instance.number_west, do: get_level(instance.dungeon_instance_id, instance.number_west)) || %{id: nil}}
+    %{"north" => if(instance.number_north, do: get_level(instance.dungeon_instance_id, instance.number_north)) || %{number: nil},
+      "south" => if(instance.number_south, do: get_level(instance.dungeon_instance_id, instance.number_south)) || %{number: nil},
+      "east" => if(instance.number_east, do: get_level(instance.dungeon_instance_id, instance.number_east)) || %{number: nil},
+      "west" => if(instance.number_west, do: get_level(instance.dungeon_instance_id, instance.number_west)) || %{number: nil}}
   end
   def get_adjacent_levels(id), do: get_adjacent_levels(get_level(id))
 

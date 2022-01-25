@@ -60,7 +60,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       instance = Repo.preload(di, [:levels]).levels |> Enum.at(0)
       instance = Repo.update!(Level.changeset(instance, %{number_north: instance.number, number_south: instance.number}))
 
-      assert %{"north" => instance, "south" => instance, "east" => %{id: nil}, "west" => %{id: nil}} ==
+      assert %{"north" => instance, "south" => instance, "east" => %{number: nil}, "west" => %{number: nil}} ==
         DungeonInstances.get_adjacent_levels(instance.id)
     end
 
