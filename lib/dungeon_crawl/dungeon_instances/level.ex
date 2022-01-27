@@ -18,7 +18,10 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     field :number_west, :integer
 
     belongs_to :level, DungeonCrawl.Dungeons.Level
+    # Should this direct link go away since the level is a child of the header, which is also a child of dungeon instance?
     belongs_to :dungeon, DungeonCrawl.DungeonInstances.Dungeon, foreign_key: :dungeon_instance_id
+    belongs_to :level_header, DungeonCrawl.DungeonInstances.LevelHeader
+    belongs_to :player_location, DungeonCrawl.Player.Location
     has_many :tiles, DungeonCrawl.DungeonInstances.Tile, on_delete: :delete_all, foreign_key: :level_instance_id
     has_many :locations, through: [:tiles, :player_location], on_delete: :delete_all
     has_many :spawn_locations, through: [:level, :spawn_locations]

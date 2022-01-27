@@ -13,6 +13,7 @@ defmodule DungeonCrawl.DungeonInstances.Dungeon do
 
     belongs_to :dungeon, DungeonCrawl.Dungeons.Dungeon
     has_many :levels, DungeonCrawl.DungeonInstances.Level, on_delete: :delete_all, foreign_key: :dungeon_instance_id
+    has_many :level_headers, DungeonCrawl.DungeonInstances.LevelHeader, on_delete: :delete_all, foreign_key: :dungeon_instance_id
     has_many :locations, through: [:levels, :tiles, :player_location], on_delete: :delete_all
 
     timestamps()
