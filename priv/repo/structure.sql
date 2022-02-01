@@ -979,6 +979,13 @@ CREATE INDEX level_headers_dungeon_instance_id_index ON public.level_headers USI
 
 
 --
+-- Name: level_headers_dungeon_number_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX level_headers_dungeon_number_index ON public.level_headers USING btree (dungeon_instance_id, number);
+
+
+--
 -- Name: level_headers_level_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -993,10 +1000,10 @@ CREATE INDEX level_instances_dungeon_instance_id_index ON public.level_instances
 
 
 --
--- Name: level_instances_dungeon_instance_id_number_index; Type: INDEX; Schema: public; Owner: -
+-- Name: level_instances_dungeon_number_player_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX level_instances_dungeon_instance_id_number_index ON public.level_instances USING btree (dungeon_instance_id, number);
+CREATE UNIQUE INDEX level_instances_dungeon_number_player_index ON public.level_instances USING btree (dungeon_instance_id, number, player_location_id);
 
 
 --
@@ -1398,3 +1405,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211220033222);
 INSERT INTO public."schema_migrations" (version) VALUES (20211230042239);
 INSERT INTO public."schema_migrations" (version) VALUES (20220127032503);
 INSERT INTO public."schema_migrations" (version) VALUES (20220127034149);
+INSERT INTO public."schema_migrations" (version) VALUES (20220131023947);

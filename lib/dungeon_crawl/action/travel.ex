@@ -83,7 +83,8 @@ defmodule DungeonCrawl.Action.Travel do
                                          %{message: "*** Now on level #{target_level.number}"}
 
       {:ok, %{level: next_level}} = InfiniteDungeon.generate_next_level(dungeon)
-      {:ok, %{level: _level}} = DungeonInstances.create_level(next_level, dungeon_instance.id)
+      {:ok, level_header} = DungeonInstances.create_level_header(next_level, dungeon_instance.id)
+      {:ok, %{level: _level}} = DungeonInstances.create_level(next_level, level_header.id, dungeon_instance.id)
 
       Dungeons.get_level(dungeon.id, state.number)
       |> Dungeons.delete_level()
