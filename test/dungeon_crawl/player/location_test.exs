@@ -4,7 +4,7 @@ defmodule DungeonCrawl.Player.LocationTest do
   alias DungeonCrawl.Player.Location
 
   @valid_attrs %{user_id_hash: "some content", tile_instance_id: 1}
-  @invalid_attrs Map.merge(@valid_attrs, %{tile_instance_id: nil})
+  @invalid_attrs Map.merge(@valid_attrs, %{user_id_hash: nil})
 
   test "changeset with valid attributes" do
     changeset = Location.changeset(%Location{}, @valid_attrs)

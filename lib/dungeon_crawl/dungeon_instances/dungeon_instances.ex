@@ -99,8 +99,18 @@ defmodule DungeonCrawl.DungeonInstances do
   def get_level(id),  do: Repo.get(Level, id)
   def get_level!(id), do: Repo.get!(Level, id)
 
-  def get_level(_dungeon_instance_id, nil), do: nil
-  def get_level(dungeon_instance_id, level), do: Repo.get_by(Level, %{dungeon_instance_id: dungeon_instance_id, number: level})
+  def get_level(_dungeon_instance_id, _level, location_id \\ nil)
+  def get_level(_dungeon_instance_id, nil, _), do: nil
+  def get_level(dungeon_instance_id, level, nil) do
+    Repo.one(from l in Level,
+             where: l.dungeon_instance_id == ^dungeon_instance_id and
+                    l.number == ^level and
+                    is_nil(l.player_location_id),
+             limit: 1)
+  end
+  def get_level(dungeon_instance_id, level, location_id) do
+    Repo.get_by(Level, %{dungeon_instance_id: dungeon_instance_id, number: level, player_location_id: location_id})
+  end
 
   @doc """
   Gets the adjacent level instances, returns a level of the direction as the key and the instance as the value.
@@ -138,6 +148,46 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Finds or creates the level instance given a header and player location id.
+
+  ## Examples
+
+      iex> find_or_create_level(%Dungeons.LevelHeader{}, 123)
+      %DungeonInstances.Level{}
+
+  """
+  def find_or_create_level(%LevelHeader{type: :universal,
+                                        id: lh_id,
+                                        dungeon_instance_id: di_id,
+                                        number: number} = level_header,
+                           _player_location_id) do
+
+    case get_level(di_id, number) do
+      nil ->
+        {:ok, %{level: level}} = create_level(Repo.preload(level_header, :level).level, lh_id, di_id)
+        level
+
+      level ->
+        level
+    end
+  end
+  def find_or_create_level(%LevelHeader{type: :solo,
+                                        id: lh_id,
+                                        dungeon_instance_id: di_id,
+                                        number: number} = level_header,
+                           player_location_id) do
+
+    case get_level(di_id, number, player_location_id) do
+      nil ->
+        {:ok, %{level: level}} = create_level(Repo.preload(level_header, :level).level, lh_id, di_id, player_location_id)
+        level
+
+      level ->
+        level
+    end
+  end
+
+  @doc """
   Creates a level instance.
 
   ## Examples
@@ -146,9 +196,9 @@ defmodule DungeonCrawl.DungeonInstances do
       {:ok, %{level: %DungeonInstances.Level{}}}
 
   """
-  def create_level(%Dungeons.Level{} = level, lh_id, di_id) do
+  def create_level(%Dungeons.Level{} = level, lh_id, di_id, loc_id \\ nil) do
     level_attrs = Map.merge(Dungeons.copy_level_fields(level),
-      %{dungeon_instance_id: di_id, level_header_id: lh_id, level_id: level.id})
+      %{dungeon_instance_id: di_id, level_header_id: lh_id, level_id: level.id, player_location_id: loc_id})
     Multi.new()
     |> Multi.insert(:level, Level.changeset(%Level{}, level_attrs))
     |> Multi.run(:tiles, fn(_repo, %{level: level_instance}) ->

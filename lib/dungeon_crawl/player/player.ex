@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Player do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Account
@@ -64,17 +65,29 @@ defmodule DungeonCrawl.Player do
       {:ok, %Location{}}
   """
   def create_location_on_spawnable_space(%Dungeon{} = di, user_id_hash, user_avatar) do
-    di = Repo.preload(di, [levels: [level: :spawn_locations]])
+    di = Repo.preload(di, [level_headers: :level])
          |> Map.put(:parsed_state, DungeonCrawl.StateValue.Parser.parse!(di.state))
 
-    tile = _create_tile_for_location(di, user_id_hash, user_avatar)
+    {:ok, %{location: location}} =
+    Multi.new()
+    |> Multi.insert(:partial_location, Location.changeset(%Location{}, %{user_id_hash: user_id_hash}))
+    |> Multi.run(:location, fn(_repo, %{partial_location: location}) ->
+         tile = _create_tile_for_location(di, location, user_avatar)
+         Location.changeset(location, %{tile_instance_id: tile.id})
+         |> Repo.update()
+       end)
+    |> Repo.transaction()
 
-    create_location!(%{tile_instance_id: tile.id, user_id_hash: user_id_hash})
+    location
   end
 
-  defp _create_tile_for_location(%Dungeon{} = di, user_id_hash, user_avatar) do
-    instance_levels = di.levels
-    entrance = _entrance(instance_levels) || _random_entrance(instance_levels)
+  defp _create_tile_for_location(%Dungeon{} = di, location, user_avatar) do
+    level_headers = di.level_headers
+    entrance_header = _entrance(level_headers) || _random_entrance(level_headers)
+
+    entrance = DungeonInstances.find_or_create_level(entrance_header, location.id)
+               |> Repo.preload(level: :spawn_locations)
+
     spawn_location = _spawn_location(entrance) || _random_floor(entrance)
     top_tile = DungeonInstances.get_tile(entrance.id, spawn_location.row, spawn_location.col)
     z_index = if top_tile, do: top_tile.z_index + 100, else: 0
@@ -86,21 +99,21 @@ defmodule DungeonCrawl.Player do
     |> Map.merge(%{z_index: z_index})
     |> Map.merge(TileTemplates.copy_fields(player_tile_template))
     |> Map.merge(%{name: user_avatar["name"], color: user_avatar["color"], background_color: user_avatar["background_color"]})
-    |> Map.put(:name, Account.get_name(user_id_hash))
+    |> Map.put(:name, Account.get_name(location.user_id_hash))
     |> DungeonInstances.create_tile!()
     |> _set_player_lives(di)
     |> _set_player_equipment(di)
   end
 
-  defp _entrance(instance_levels) do
-    instance_levels
-    |> Enum.filter(fn(level) -> level.level.entrance end)
+  defp _entrance(level_headers) do
+    level_headers
+    |> Enum.filter(fn(level_header) -> level_header.level.entrance end)
     |> Enum.shuffle
     |> Enum.at(0)
   end
 
-  defp _random_entrance(instance_levels) do
-    Enum.at(Enum.shuffle(instance_levels), 0)
+  defp _random_entrance(level_headers) do
+    Enum.at(Enum.shuffle(level_headers), 0)
   end
 
   defp _spawn_location(entrance) do
