@@ -23,6 +23,7 @@
       <tr>
         <th>ID</th>
         <th>number</th>
+        <th>Owner</th>
         <th>Players</th>
         <th>Name</th>
         <th>Orphaned?</th>
@@ -35,6 +36,7 @@
       <tr>
         <td><%= state.instance_id %></td>
         <td><%= state.number %></td>
+        <td><%= if instance, do: instance.player_location_id || "None" %></td>
         <td><%= state.player_locations |> Map.to_list |> Enum.count %></td>
         <td><%= if instance, do: instance.name %></td>
         <td><%= if instance, do: "N", else: "Y" %></td>

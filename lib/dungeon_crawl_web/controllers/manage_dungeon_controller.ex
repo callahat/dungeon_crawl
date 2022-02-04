@@ -26,8 +26,12 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
               {num, _} -> num
               _ -> nil
             end
+    plid = case Integer.parse(params["plid"] || "") do
+             {num, _} -> num
+             _ -> nil
+           end
 
-    render(conn, "show.html", dungeon: dungeon, dungeon_instance: dungeon_instance, owner_name: owner_name, level: level)
+    render(conn, "show.html", dungeon: dungeon, dungeon_instance: dungeon_instance, owner_name: owner_name, level: level, plid: plid)
   end
 
   def show(conn, %{"id" => id}) do

@@ -34,14 +34,18 @@
 <p>none</p>
 <% end %>
 
-<p><b>Levels:</b></p>
+<p><b>Levels<%= if @dungeon_instance, do: " and Owners" %>:</b></p>
 
 <div>
 <%= if @dungeon_instance do %>
   <div class="text-center row no-gutters" id="dungeon_instance_overview">
-    <div class="col-3">
+    <div class="col-2">
       <div class="nav nav-pills flex-column text-left max-content" role="tablist">
-      <%= for level <- Enum.sort(@dungeon_instance.levels, fn(a,b) -> a.number < b.number end) do %>
+      <%= for level <- Enum.map(@dungeon_instance.levels, fn(level) ->
+                         Map.take(level, [:number, :name, :height, :width, :entrance])
+                       end)
+                       |> Enum.uniq()
+                       |> Enum.sort(fn(a,b) -> a.number < b.number end) do %>
         <a class="nav-link small <%= if @level == level.number, do: "active", else: "" %>"
            id="level<%= level.number %>-tab"
            href="<%= Routes.manage_dungeon_path(@conn, :show, @dungeon, instance_id: @dungeon_instance.id, level: level.number) %>"
@@ -53,9 +57,23 @@
       <% end %>
       </div>
     </div>
-    <div class="col-9 text-left">
-      <div class="tab-content" id="levels">
+    <div class="col-2">
+      <div class="nav nav-pills flex-column text-left max-content" role="tablist">
         <%= for level <- Enum.filter(@dungeon_instance.levels, fn(level) -> level.number == @level end) do %>
+          <a class="nav-link small <%= if @plid == level.player_location_id, do: "active", else: "" %>"
+            id="level<%= level.player_location_id || "none" %>-tab"
+            href="<%= Routes.manage_dungeon_path(@conn, :show, @dungeon, instance_id: @dungeon_instance.id, level: level.number, plid: level.player_location_id) %>"
+            aria-controls="level<%= level.player_location_id || "none" %>"
+            aria-orientation="vertical"
+            aria-selected="true">
+          <%= level.player_location_id || "none" %>
+          </a>
+        <% end %>
+      </div>
+    </div>
+    <div class="col-8 text-left">
+      <div class="tab-content" id="levels">
+        <%= for level <- Enum.filter(@dungeon_instance.levels, fn(level) -> level.number == @level && level.player_location_id == @plid end) do %>
           <div id="level<%= level.number %>" aria-labelledby="level<%= level.number %>-tab">
             <%= render(DungeonCrawlWeb.SharedView,
                        "dungeon_admin.html",
