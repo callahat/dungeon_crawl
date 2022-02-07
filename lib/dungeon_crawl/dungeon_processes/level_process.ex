@@ -63,6 +63,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @doc """
+  Sets the owner id (player_location_id)
+  """
+  def set_player_location_id(instance, owner_id) do
+    GenServer.cast(instance, {:set_player_location_id, {owner_id}})
+  end
+
+  @doc """
   Sets the adjacent level instance id for the given direction
   """
   def set_adjacent_level_number(instance, level_number, direction) do
@@ -257,6 +264,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   @impl true
   def handle_cast({:set_number, {number}}, %Levels{} = state) do
     {:noreply, %{ state | number: number }}
+  end
+
+  @impl true
+  def handle_cast({:set_player_location_id, {owner_id}}, %Levels{} = state) do
+    {:noreply, %{ state | player_location_id: owner_id }}
   end
 
   @impl true

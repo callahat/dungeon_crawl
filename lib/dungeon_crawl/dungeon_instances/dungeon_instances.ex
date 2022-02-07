@@ -136,7 +136,7 @@ defmodule DungeonCrawl.DungeonInstances do
 
   ## Examples
 
-      iex> create_level_header(%Dungeons.Level{})
+      iex> create_level_header(%Dungeons.Level{}, dungeon_instance_id)
       {:ok, %DungeonInstances.LevelHeader{}}
 
   """
@@ -145,6 +145,18 @@ defmodule DungeonCrawl.DungeonInstances do
     level_header_attrs = %{level_id: level.id, number: level.number, dungeon_instance_id: di_id}
     LevelHeader.changeset(%LevelHeader{}, level_header_attrs)
     |> Repo.insert
+  end
+
+  @doc """
+  Looks up a level header.
+
+  ## Examples
+
+      iex> get_level_header(dungeon_instance_id, level_number)
+      %DungeonInstances.LevelHeader{}
+  """
+  def get_level_header(dungeon_instance_id, level) do
+    Repo.get_by(LevelHeader, %{dungeon_instance_id: dungeon_instance_id, number: level})
   end
 
   @doc """

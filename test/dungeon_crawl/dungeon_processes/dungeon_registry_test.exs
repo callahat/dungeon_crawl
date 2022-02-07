@@ -39,12 +39,12 @@ defmodule DungeonCrawl.DungeonRegistryTest do
                           state_values: %{flag: "off"},
                           instance_registry: instance_registry,
                           entrances: []} = DungeonProcess.get_state(msi_process)
-    level_id = Repo.preload(di, :levels).levels
-               |> Enum.map(&(&1.id))
-               |> Enum.at(0)
+    {level_id, level_number} = Repo.preload(di, :levels).levels
+                               |> Enum.map(&({&1.id, &1.number}))
+                               |> Enum.at(0)
     assert instance_list = LevelRegistry.list(instance_registry)
     assert map_size(instance_list) == 1
-    assert %{^level_id => _} = instance_list
+    assert %{^level_number => %{nil => {^level_id, _}}} = instance_list
   end
 
   @tag capture_log: true

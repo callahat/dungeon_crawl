@@ -56,7 +56,7 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
     instance_registry = DungeonProcess.get_instance_registry(map_set_process)
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, level_instance.id)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     LevelProcess.run_with(instance, fn (instance_state) ->
       {_, state} = Levels.create_player_tile(instance_state, player_location.tile, player_location)
       {:ok, %{ state | rerender_coords: %{}}}
@@ -64,7 +64,7 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
-      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance.id}:#{level_instance.number}:#{level_instance.player_location_id}")
 
     on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id) end)
 
@@ -74,7 +74,7 @@ defmodule DungeonCrawl.LevelChannelTest do
           instance: instance,
           instance_registry: instance_registry,
           dungeon_instance_id: dungeon_instance.id,
-          level_instance_id: level_instance.id}
+          level_instance: level_instance}
   end
 
   defp _player_location_north(player_location) do
@@ -82,24 +82,24 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   test "with the wrong player", %{dungeon_instance_id: dungeon_instance_id,
-                                  level_instance_id: level_instance_id} do
+                                  level_instance: level_instance} do
     bad_user = insert_user(%{is_admin: false, user_id_hash: "hackerman"})
 
     assert {:error, %{message: "Could not join channel"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: bad_user.user_id_hash})
-      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance_id}:#{level_instance_id}")
+      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance_id}:#{level_instance.number}:#{level_instance.player_location_id}")
   end
 
   test "with a bad location" do
     assert {:error, %{reason: "join crashed"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "user_id_hash"})
-      |> subscribe_and_join(LevelChannel, "level:0:0")
+      |> subscribe_and_join(LevelChannel, "level:0:0:")
   end
 
   test "with a location with bad tile", %{instance: instance,
                                           player_location: player_location,
                                           dungeon_instance_id: dungeon_instance_id,
-                                          level_instance_id: level_instance_id} do
+                                          level_instance: level_instance} do
     LevelProcess.run_with(instance, fn (instance_state) ->
       {_, state} = Levels.delete_tile(instance_state, player_location.tile)
       {:ok, state}
@@ -107,7 +107,7 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     assert {:error, %{message: "Could not join channel"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
-      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance_id}:#{level_instance_id}")
+      |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance_id}:#{level_instance.number}:#{level_instance.player_location_id}")
   end
 
   test "shout broadcasts to dungeon:lobby", %{socket: socket} do
@@ -189,8 +189,11 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: ".", health: 0
-  test "move broadcasts nothing if player is dead", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "move broadcasts nothing if player is dead", %{socket: socket,
+                                                      level_instance: level_instance,
+                                                      player_location: player_location,
+                                                      instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     push socket, "move", %{"direction" => "up"}
     assert LevelProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
@@ -198,8 +201,11 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: ".", gameover: true
-  test "move does nothing if gameover for player", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "move does nothing if gameover for player", %{socket: socket,
+                                                    level_instance: level_instance,
+                                                    player_location: player_location,
+                                                    instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     push socket, "move", %{"direction" => "up"}
     assert LevelProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
@@ -207,9 +213,10 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "."
-  test "move broadcasts a tile_update if its a valid move when starting location only had the tile that moved", %{socket: socket, instance_registry: instance_registry} do
+  test "move broadcasts a tile_update if its a valid move when starting location only had the tile that moved",
+       %{socket: socket, level_instance: level_instance, instance_registry: instance_registry} do
     tile = Repo.get_by(DungeonInstances.Tile, %{row: @player_row, col: @player_col, z_index: 0})
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, tile.level_instance_id)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     LevelProcess.delete_tile(instance, tile.id)
     push socket, "move", %{"direction" => "up"}
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div> </div>"}]}
@@ -423,9 +430,10 @@ defmodule DungeonCrawl.LevelChannelTest do
 
   @tag up_tile: "."
   test "does not let the player use weapon item if dungeon to pacifism", %{socket: socket,
+                                                                           level_instance: level_instance,
                                                                            player_location: player_location,
                                                                            instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     LevelProcess.set_state_values(instance, %{pacifism: true})
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -468,8 +476,12 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: ".", health: 0
-  test "does not let the player use item if dead", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "does not let the player use item if dead",
+       %{socket: socket,
+         level_instance: level_instance,
+         player_location: player_location,
+         instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -480,8 +492,12 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: ".", gameover: true
-  test "does not let the player use item if gameover", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "does not let the player use item if gameover",
+       %{socket: socket,
+         level_instance: level_instance,
+         player_location: player_location,
+         instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -538,8 +554,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                      fn(a,b) -> a.number < b.number end)
                            |> Enum.at(1)
 
-
-    {:ok, other_instance} = LevelRegistry.lookup_or_create(instance_registry, other_level_instance.id)
+    {:ok, {_, other_instance}} = LevelRegistry.lookup_or_create(instance_registry, other_level_instance.number)
     other_level_pl = \
     LevelProcess.run_with(other_instance, fn (instance_state) ->
       other_level_pl = insert_player_location(%{level_instance_id: instance_state.instance_id, user_id_hash: "otherlvlhash"})
@@ -620,8 +635,13 @@ defmodule DungeonCrawl.LevelChannelTest do
 
   # TODO: refactor the underlying model/channel methods into more testable concerns
   @tag up_tile: "+"
-  test "use_door with a valid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "use_door with a valid actions",
+       %{socket: socket,
+         level_instance: level_instance,
+         player_location: player_location,
+         basic_tiles: basic_tiles,
+         instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = _player_location_north(player_location)
 
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
@@ -640,13 +660,18 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "."
-  test "use_door with an invalid actions", %{socket: socket, player_location: player_location, basic_tiles: basic_tiles, instance_registry: instance_registry} do
+  test "use_door with an invalid actions",
+       %{socket: socket,
+         level_instance: level_instance,
+         player_location: player_location,
+         basic_tiles: basic_tiles,
+         instance_registry: instance_registry} do
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     north_tile = _player_location_north(player_location)
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
 
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
 
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
@@ -667,8 +692,12 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "+", health: 0
-  test "use_door does nothing if player is dead", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "use_door does nothing if player is dead",
+       %{socket: socket,
+         level_instance: level_instance,
+         player_location: player_location,
+         instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
 
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
@@ -683,8 +712,12 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "+", gameover: true
-  test "use_door does nothing if player gameover", %{socket: socket, player_location: player_location, instance_registry: instance_registry} do
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, player_location.tile.level_instance_id)
+  test "use_door does nothing if player gameover",
+       %{socket: socket,
+         level_instance: level_instance,
+         player_location: player_location,
+         instance_registry: instance_registry} do
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
 
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}

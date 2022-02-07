@@ -158,6 +158,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
 
   @impl true
   def handle_call({:set_dungeon_instance, dungeon_instance}, _from, state) do
+    LevelRegistry.set_dungeon_instance_id(state.instance_registry, dungeon_instance.id)
     {:reply, :ok, %{ state | dungeon_instance: dungeon_instance }}
   end
 

@@ -20,7 +20,7 @@ defmodule DungeonCrawl.LevelAdminChannelTest do
 
     assert {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, _admin_channel(dungeon_instance.id, level_instance))
   end
 
   test "with a bad instance", %{dungeon_instance: dungeon_instance, level_instance: level_instance} do
@@ -28,7 +28,7 @@ defmodule DungeonCrawl.LevelAdminChannelTest do
 
     assert {:error, %{message: "Not found", reload: true}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id + 1}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, _admin_channel(dungeon_instance.id + 1, level_instance))
   end
 
   test "when user is not admin", %{dungeon_instance: dungeon_instance, level_instance: level_instance} do
@@ -36,7 +36,7 @@ defmodule DungeonCrawl.LevelAdminChannelTest do
 
     assert {:error, %{message: "Could not join channel"}} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, _admin_channel(dungeon_instance.id, level_instance))
   end
 
   test "ping replies with status ok", %{dungeon_instance: dungeon_instance, level_instance: level_instance}  do
@@ -44,9 +44,13 @@ defmodule DungeonCrawl.LevelAdminChannelTest do
 
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
-      |> subscribe_and_join(LevelAdminChannel, "level_admin:#{dungeon_instance.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelAdminChannel, _admin_channel(dungeon_instance.id, level_instance))
 
     ref = push socket, "ping", %{"hello" => "there"}
     assert_reply ref, :ok, %{"hello" => "there"}
+  end
+
+  defp _admin_channel(dungeon_instance_id, level_instance) do
+    "level_admin:#{dungeon_instance_id}:#{level_instance.number}:#{level_instance.player_location_id}"
   end
 end

@@ -1,13 +1,14 @@
 let Level = {
   init(socket, sound, element){ if(!element){ return }
-    let levelId = element.getAttribute("data-level-id")
+    let levelNumber = element.getAttribute("data-level-number"),
+        ownerId = element.getAttribute("data-owner-id")
     this.dungeonId = element.getAttribute("data-dungeon-id")
     this.sound = sound
     socket.connect()
 
     this.setupWindowListeners()
 
-    this.tuneInToChannel(socket, levelId)
+    this.tuneInToChannel(socket, levelNumber, ownerId)
 
     this.fadeTimeout = setTimeout(() => { this.removeFade(1) }, 1000)
 
@@ -21,7 +22,7 @@ let Level = {
 
       document.getElementById("level_instance").setAttribute("data-level-id", msg.level_id)
       document.getElementById("level_instance").innerHTML = msg.level_render
-      this.tuneInToChannel(socket, msg.level_id)
+      this.tuneInToChannel(socket, msg.level_number, msg.level_owner_id)
 
       if(msg.fade_overlay) {
         clearTimeout(this.fadeTimeout);
@@ -47,8 +48,8 @@ let Level = {
     }
   },
   handleLevelChange: null,
-  tuneInToChannel(socket, levelId) {
-    this.levelChannel = socket.channel("level:" + this.dungeonId + ":" + levelId)
+  tuneInToChannel(socket, levelNumber, ownerId) {
+    this.levelChannel = socket.channel("level:" + this.dungeonId + ":" + levelNumber + ":" + (ownerId || ""))
 
     this.levelChannel.on("tile_changes", (resp) => {
       this.tileChanges(resp.tiles)

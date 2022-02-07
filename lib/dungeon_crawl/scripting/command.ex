@@ -498,8 +498,8 @@ defmodule DungeonCrawl.Scripting.Command do
   def _gameover(%Runner{state: state} = runner_state, [victory, result, "all"], instance_module) do
     # Cast endgame to the other instance processes
     {:ok, dungeon_instance_registry} = Registrar.instance_registry(state.dungeon_instance_id)
-    LevelRegistry.list(dungeon_instance_registry)
-    |> Enum.each(fn {_id, pid} -> LevelProcess.gameover(pid, victory, result, instance_module) end)
+    LevelRegistry.flat_list(dungeon_instance_registry)
+    |> Enum.each(fn {_, pid} -> LevelProcess.gameover(pid, victory, result, instance_module) end)
 
     runner_state
   end
@@ -1341,8 +1341,8 @@ defmodule DungeonCrawl.Scripting.Command do
     sender = %{tile_id: nil, parsed_state: Map.put(object.parsed_state, :global_sender, true), name: object.name}
 
     {:ok, dungeon_instance_registry} = Registrar.instance_registry(state.dungeon_instance_id)
-    LevelRegistry.list(dungeon_instance_registry)
-    |> Enum.each(fn {_id, pid} -> Logger.info("Pew" <> inspect(pid)) && LevelProcess.send_event(pid, label, sender) end)
+    LevelRegistry.flat_list(dungeon_instance_registry)
+    |> Enum.each(fn {_, pid} -> Logger.info("Pew" <> inspect(pid)) && LevelProcess.send_event(pid, label, sender) end)
 
     runner_state
   end

@@ -38,7 +38,7 @@ defmodule DungeonCrawl.Action.Travel do
         {:ok, state}
 
       true ->
-        {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.id)
+        {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.number)
 
         Task.async fn ->
           LevelProcess.run_with(dest_instance, fn (other_instance_state) ->
@@ -50,7 +50,8 @@ defmodule DungeonCrawl.Action.Travel do
                                    do: DungeonCrawlWeb.SharedView.fade_overlay_table(target_level.height, target_level.width, player_coord_id)
             DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                                "change_level",
-                                               %{level_id: target_level.id,
+                                               %{level_number: target_level.number,
+                                                 level_owner_id: target_level.player_location_id,
                                                  level_render: level_table,
                                                  fade_overlay: fade_overlay_table}
             DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",

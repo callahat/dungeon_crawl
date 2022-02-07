@@ -1,7 +1,7 @@
 let LevelAdmin = {
   init(socket, sound, element){ if(!element){ return }
-    let levelId = element.getAttribute("data-level-id")
-    let readonly = element.getAttribute("data-readonly") == "true"
+    let levelNumber = element.getAttribute("data-level-number"),
+        ownerId = element.getAttribute("data-owner-id")
     this.dungeonId = element.getAttribute("data-dungeon-id")
     socket.connect()
 
@@ -11,10 +11,10 @@ let LevelAdmin = {
 
     this.sound = sound
 
-    this.tuneInToChannel(socket, levelId)
+    this.tuneInToChannel(socket, levelNumber, ownerId)
   },
-  tuneInToChannel(socket, levelId) {
-    this.levelAdminChannel = socket.channel("level_admin:" + this.dungeonId + ":" + levelId)
+  tuneInToChannel(socket, levelNumber, ownerId) {
+    this.levelAdminChannel = socket.channel("level_admin:" + this.dungeonId + ":" + levelNumber + ":" + ownerId)
 
     this.levelAdminChannel.on("tile_changes", (resp) => {
       this.tileChanges(resp.tiles)

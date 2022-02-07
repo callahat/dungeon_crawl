@@ -14,26 +14,29 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   import Phoenix.HTML, only: [html_escape: 1]
 
-  def join("level:" <> dungeon_instance_id_and_instance_id, _payload, socket) do
-    [dungeon_instance_id, instance_id] = dungeon_instance_id_and_instance_id
-                                         |> String.split(":")
-                                         |> Enum.map(&String.to_integer(&1))
+  def join("level:" <> dungeon_instance_id_number_and_owner_id, _payload, socket) do
+    [dungeon_instance_id, level_number, owner_id] = dungeon_instance_id_number_and_owner_id
+                                                   |> String.split(":")
+                                                   |> Enum.map(&_to_integer(&1))
 
     {:ok, instance_registry} = Registrar.instance_registry(dungeon_instance_id)
 
     # make sure the instance is up and running
-    {:ok, instance} = LevelRegistry.lookup_or_create(instance_registry, instance_id)
+    {:ok, {_iid, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_number)
 
     # remove the player from the inactive map
     LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
       if player_location && player_location.user_id_hash == socket.assigns.user_id_hash do
-        socket = assign(socket, :instance_id, instance_id)
+        socket = socket
+                 |> assign(:dungeon_instance_id, dungeon_instance_id)
+                 |> assign(:level_number, level_number)
+                 |> assign(:level_owner_id, owner_id)
                  |> assign(:instance_registry, instance_registry)
                  |> assign(:item_last_used_at, 0)
         {
-          {:ok, %{instance_id: instance_id}, socket},
+          {:ok, %{dungeon_instance_id: dungeon_instance_id, level_number: level_number, level_owner_id: owner_id}, socket},
           %{ instance_state | inactive_players: Map.delete(inactive_players, player_tile.id) }
         }
       else
@@ -47,7 +50,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   def terminate(_reason, socket) do
     # add the player to the inactive map
-    case LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id) do
+    case _get_instance_process(socket.assigns) do
       {:ok, instance} ->
         LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
           {_, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
@@ -70,7 +73,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   def handle_in("light_torch", _, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
@@ -101,7 +104,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   def handle_in("message_action", %{"item_slug" => item_slug}, socket) when not is_nil(item_slug) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     LevelProcess.run_with(instance, fn (instance_state) ->
       with {player_location, player_tile} when not is_nil(player_location) <-
              _player_location_and_tile(instance_state, socket.assigns.user_id_hash),
@@ -122,7 +125,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
                 _ -> tile_id
               end
 
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     LevelProcess.run_with(instance, fn (instance_state) ->
       with target_tile when not is_nil(target_tile) <- Levels.get_tile_by_id(instance_state, %{id: tile_id}),
            {player_location, player_tile} when not is_nil(player_location) <-
@@ -146,7 +149,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   def handle_in("respawn", %{}, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
 
@@ -167,7 +170,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   def handle_in("use_item", %{"direction" => direction}, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     socket = \
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
@@ -200,7 +203,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   def handle_in("speak", %{"words" => words}, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     instance_state = LevelProcess.get_state(instance)
     {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
     safe_words = \
@@ -240,7 +243,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   defp _continue_motion(_ok, direction, move_func, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
 
     move_result = \
     LevelProcess.run_with(instance, fn (instance_state) ->
@@ -277,7 +280,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   # todo: is sending a TOUCH message to all tiles (and not just the top one) a good idea?
   defp _player_action_helper(%{"direction" => direction, "action" => "TOUCH"}, _unhandled_event_message, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = if player_tile, do: Levels.remove_message_actions(instance_state, player_tile.id),
@@ -305,7 +308,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   defp _player_action_helper(%{"direction" => direction, "action" => action}, unhandled_event_message, socket) do
-    {:ok, instance} = LevelRegistry.lookup_or_create(socket.assigns.instance_registry, socket.assigns.instance_id)
+    {:ok, instance} = _get_instance_process(socket.assigns)
     LevelProcess.run_with(instance, fn (instance_state) ->
       {player_location, player_tile} = _player_location_and_tile(instance_state, socket.assigns.user_id_hash)
       instance_state = if player_tile, do: Levels.remove_message_actions(instance_state, player_tile.id),
@@ -486,5 +489,13 @@ defmodule DungeonCrawlWeb.LevelChannel do
     equipped = Enum.at(equipment, 0)
 
     Levels.update_tile_state(state, player_tile, %{equipment: equipment, equipped: equipped})
+  end
+
+  defp _to_integer(""), do: nil
+  defp _to_integer(str) when is_binary(str), do: String.to_integer(str)
+
+  defp _get_instance_process(%{instance_registry: registry, level_number: number}) do
+    {:ok, {_instance_id, process}} = LevelRegistry.lookup_or_create(registry, number)
+    {:ok, process}
   end
 end

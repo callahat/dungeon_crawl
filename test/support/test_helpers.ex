@@ -102,7 +102,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
   def insert_stubbed_dungeon_instance(attrs \\ %{}, level_attrs \\ %{}, levels \\ [[]]) do
     dungeon = insert_stubbed_dungeon(attrs, level_attrs, levels)
-    {:ok, %{dungeon: dungeon_instance, levels: _}} = DungeonInstances.create_dungeon(dungeon)
+    {:ok, %{dungeon: dungeon_instance, levels: _}} = DungeonInstances.create_dungeon(dungeon, attrs[:is_private], attrs[:headers_only])
     dungeon_instance
   end
 

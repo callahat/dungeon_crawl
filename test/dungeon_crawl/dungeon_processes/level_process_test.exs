@@ -29,6 +29,8 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     LevelProcess.set_cache(instance_process, cache)
     LevelProcess.set_instance_id(instance_process, level_instance.id)
+    LevelProcess.set_level_number(instance_process, level_instance.number)
+    LevelProcess.set_player_location_id(instance_process, level_instance.player_location_id)
     LevelProcess.set_dungeon_instance_id(instance_process, level_instance.dungeon_instance_id)
     LevelProcess.load_level(instance_process, [tile])
     LevelProcess.set_state_values(instance_process, %{rows: 20, cols: 20})
@@ -58,6 +60,14 @@ defmodule DungeonCrawl.LevelProcessTest do
     number = level_instance.number
     LevelProcess.set_level_number(instance_process, number)
     assert %{ number: ^number } = LevelProcess.get_state(instance_process)
+  end
+
+  test "set_owner_id" do
+    {:ok, instance_process} = LevelProcess.start_link([])
+    level_instance = insert_stubbed_level_instance(%{player_location_id: 123})
+    player_location_id = level_instance.player_location_id
+    LevelProcess.set_player_location_id(instance_process, player_location_id)
+    assert %{ player_location_id: ^player_location_id } = LevelProcess.get_state(instance_process)
   end
 
   test "set_author" do
@@ -194,7 +204,7 @@ defmodule DungeonCrawl.LevelProcessTest do
   end
 
   test "perform_actions", %{instance_process: instance_process, level_instance: level_instance} do
-    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    level_channel = _level_channel(level_instance)
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tiles = [
@@ -243,7 +253,7 @@ defmodule DungeonCrawl.LevelProcessTest do
   test "perform_actions adds messages to programs", %{instance_process: instance_process,
                                                       level_instance: level_instance,
                                                       tile_id: tile_id} do
-    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    level_channel = _level_channel(level_instance)
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tt = insert_tile_template()
@@ -278,7 +288,7 @@ defmodule DungeonCrawl.LevelProcessTest do
 
   test "perform_actions handles dealing with health when a tile is damaged", %{instance_process: instance_process,
                                                                                level_instance: level_instance} do
-    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    level_channel = _level_channel(level_instance)
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tiles = [
@@ -366,7 +376,7 @@ defmodule DungeonCrawl.LevelProcessTest do
   test "perform_actions handles behavior 'destroyable'", %{instance_process: instance_process,
                                                            level_instance: level_instance,
                                                            tile_id: tile_id} do
-    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    level_channel = _level_channel(level_instance)
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tt = insert_tile_template()
@@ -472,7 +482,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     end)
 
     # subscribe
-    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    level_channel = _level_channel(level_instance)
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -524,7 +534,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     end)
 
     # subscribe
-    level_channel = "level:#{level_instance.dungeon_instance_id}:#{level_instance.id}"
+    level_channel = _level_channel(level_instance)
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -840,5 +850,9 @@ defmodule DungeonCrawl.LevelProcessTest do
              map_by_ids: _by_id,
              map_by_coords: by_coord } = LevelProcess.get_state(instance_process)
     assert %{ {1, 1} => %{ 0 => ^tile_id, 1 => 999} } = by_coord
+  end
+
+  defp _level_channel(level_instance) do
+    "level:#{level_instance.dungeon_instance_id}:#{level_instance.number}:#{level_instance.player_location_id}"
   end
 end

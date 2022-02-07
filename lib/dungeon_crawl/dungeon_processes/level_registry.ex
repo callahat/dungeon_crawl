@@ -9,11 +9,14 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
 
-  defstruct instance_ids: %{},
+  @owner_id nil
+
+  defstruct level_numbers: %{},
             refs: %{},
             cache: nil,
             map_set_process: nil,
-            supervisor: nil
+            supervisor: nil,
+            dungeon_instance_id: nil
 
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
 
@@ -27,45 +30,50 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   end
 
   @doc """
+  Sets the dungeon_instance_id. This will be used along with the level number and player
+  location id to create [or lookup] level instances from the DB.
+
+  Returns `:ok`
+  """
+  def set_dungeon_instance_id(server, dungeon_instance_id) do
+    GenServer.call(server, {:set_dungeon_instance_id, dungeon_instance_id})
+  end
+
+  @doc """
   Looks up the instance pid for `instance_id` stored in `server`.
 
-  Returns `{:ok, pid}` if the instance exists, `:error` otherwise
+  Returns `{:ok, {instance_id, pid}}` if the instance exists, `:error` otherwise
   """
-  def lookup(server, instance_id) do
-    GenServer.call(server, {:lookup, instance_id})
+  def lookup(server, level_number) do
+    GenServer.call(server, {:lookup, level_number, @owner_id})
   end
 
   @doc """
-  Looks up or creates the instance pid for `instance_id` stored in `server`.
+  Looks up or creates the instance pid for `instance_number` stored in `server`.
 
-  Returns `{:ok, pid}`.
+  Returns `{:ok, {instance_id, pid}}`.
   """
-  def lookup_or_create(server, instance_id) do
-    case GenServer.call(server, {:lookup, instance_id}) do
+  def lookup_or_create(server, level_number) do
+    case GenServer.call(server, {:lookup, level_number, @owner_id}) do
       :error ->
-        create(server, instance_id)
-        lookup(server, instance_id)
+        create(server, level_number)
+        lookup(server, level_number)
 
-      {:ok, pid} ->
-        {:ok, pid}
+      {:ok, id_and_pid} ->
+        {:ok, id_and_pid}
     end
   end
 
   @doc """
-  Ensures there is a instance associated with the given `instance_id` in `server`.
+  Ensures there is a instance associated with the given `level` in `server`. `level` can be either a
+  level instance, or a level number.
   """
-  def create(server, instance_id) when is_integer(instance_id) do
-    with level_instance when not is_nil(level_instance) <- DungeonInstances.get_level(instance_id) do
-      create(server, level_instance)
-    else
-      _error ->
-        Logger.error "Got a CREATE cast for #{instance_id} but its already been cleared"
-        nil
-    end
+  def create(server, level_number) when is_integer(level_number) do
+    GenServer.call(server, {:create, level_number, @owner_id})
   end
 
-  def create(server, level_instance) do
-    GenServer.call(server, {:create, level_instance})
+  def create(server, level) do
+    GenServer.call(server, {:create, level})
   end
 
   @doc """
@@ -76,23 +84,46 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   If instance_id is nil, an available one will be assigned, and injected into
   all the `tiles`. Returns the `instance_id`.
   """
-  def create(server, instance_id, tiles, spawn_coordinates \\ [], state_values \\ %{}, diid \\ nil, number \\ nil, adjacent \\ %{}, author \\ nil) do
-    GenServer.call(server, {:create, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author})
+  def create(server, instance_id, tiles, spawn_coordinates \\ [], state_values \\ %{}, diid \\ nil, number \\ 1, adjacent \\ %{}, author \\ nil) do
+    GenServer.call(server, {:create, @owner_id, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author})
   end
 
   @doc """
   Stops the instance associated with the given `instance_id` in `server`, allowing it to be removed.
   """
-  def remove(server, instance_id) do
-    GenServer.cast(server, {:remove, instance_id})
+  def remove(server, level_number) do
+    GenServer.cast(server, {:remove, level_number, @owner_id})
+  end
+
+  @doc """
+  List the level numbers to owner ids to instance ids and the instance processes
+  they are associated with.
+  Gives some insight into what instance processes are running.
+
+  ## Examples
+
+    iex> list(server)
+    %{1 => %{123 => {12345, PID<1>},
+             234 => {12345, PID<2>}},
+      ...}
+  """
+  def list(server) do
+    GenServer.call(server, {:list})
   end
 
   @doc """
   List the instance ids and the instance processes they are associated with.
-  Gives some insight into what instance processes are running.
+  Returns an Enum of tuples, first element is the level instance id,
+  second element is the instance process. Unlike `list`, no information
+  about level number nor owner is directly returned.
+
+  ## Examples
+
+    iex> flat_list(server)
+    [{12345, PID<1>}, {12345, PID<2>}, ...}
   """
-  def list(server) do
-    GenServer.call(server, {:list})
+  def flat_list(server) do
+    GenServer.call(server, {:flat_list})
   end
 
   @doc """
@@ -116,79 +147,122 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   end
 
   @impl true
-  def handle_call({:lookup, instance_id}, _from, %{instance_ids: instance_ids} = level_registry) do
-    {:reply, Map.fetch(instance_ids, instance_id), level_registry}
+  def handle_call({:set_dungeon_instance_id, di_id}, _from, level_registry) do
+    {:reply, di_id, %{ level_registry | dungeon_instance_id: di_id }}
+  end
+
+  @impl true
+  def handle_call({:lookup, level_number, owner_id}, _from, %{level_numbers: level_numbers} = level_registry) do
+    case Map.fetch(level_numbers, level_number) do
+      {:ok, instance_ids} ->
+        {:reply, Map.fetch(instance_ids, owner_id), level_registry}
+      _ ->
+        {:reply, :error, level_registry}
+    end
   end
 
   # These first two are really to make test setup more convenient
   @impl true
-  def handle_call({:create, nil, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, %{instance_ids: instance_ids} = level_registry) do
-    instance_id = if instance_ids == %{}, do: 0, else: Enum.max(Map.keys(instance_ids)) + 1
+  def handle_call({:create, owner_id, nil, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, %{level_numbers: level_numbers} = level_registry) do
+    owner_ids = Map.get(level_numbers, number, %{})
+    {instance_id, _} = Map.get(owner_ids, owner_id, {0, nil})
+    instance_id = instance_id + 1
     tiles = Enum.map(tiles, fn(t) -> Map.put(t, :level_instance_id, instance_id) end)
-    {:reply, instance_id, _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry)}
+    level_params = %{player_location_id: owner_id, number: number, id: instance_id}
+    {:reply, instance_id, _create_instance(level_params, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry)}
   end
 
   @impl true
-  def handle_call({:create, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, %{instance_ids: instance_ids} = level_registry) do
-    if Map.has_key?(instance_ids, instance_id) do
-      {:noreply, level_registry}
+  def handle_call({:create, owner_id, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author}, _from, %{level_numbers: level_numbers} = level_registry) do
+    instance_ids = Map.get(level_numbers, number, %{})
+    if Map.has_key?(instance_ids, owner_id) do
+      {:reply, :exists, level_registry}
     else
-      {:reply, instance_id, _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry)}
+      level_params = %{player_location_id: owner_id, number: number, id: instance_id}
+      {:reply, instance_id, _create_instance(level_params, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry)}
+    end
+  end
+require Logger
+  @impl true
+  def handle_call({:create, number, owner_id}, from, %{dungeon_instance_id: di_id} = level_registry) do
+    level_header = DungeonInstances.get_level_header(di_id, number)
+    Logger.info "CREATE"
+    Logger.info inspect level_header
+    if level_header do
+      level = DungeonInstances.find_or_create_level(level_header, owner_id)
+      Logger.info "Find for create level"
+      Logger.info inspect level
+      handle_call({:create, level}, from, level_registry)
+    else
+      Logger.error "Got a CREATE cast for DungeonInstance #{di_id} LevelNumber #{number} but no header matched"
+      {:reply, :ok, level_registry}
     end
   end
 
   @impl true
-  def handle_call({:create, level_instance}, _from, %{instance_ids: instance_ids} = level_registry) do
-    if Map.has_key?(instance_ids, level_instance.id) do
+  def handle_call({:create, level_instance}, _from, %{level_numbers: level_numbers} = level_registry) do
+    instance_ids = Map.get(level_numbers, level_instance.number, %{})
+    if Map.has_key?(instance_ids, level_instance.player_location_id) do
       {:reply, :ok, level_registry}
     else
       {:ok, state_values} = StateValue.Parser.parse(level_instance.state)
       state_values = Map.merge(state_values, %{rows: level_instance.height, cols: level_instance.width})
       diid = level_instance.dungeon_instance_id
-      number = level_instance.number
       tiles = Repo.preload(level_instance, :tiles).tiles
       spawn_locations = Repo.preload(level_instance, :spawn_locations).spawn_locations
       spawn_coordinates = _spawn_coordinates(tiles, spawn_locations) # uses floor tiles if there are no spawn coordinates
       adjacent = DungeonInstances.get_adjacent_levels(level_instance)
       author = Repo.preload(level_instance, [dungeon: [dungeon: :user]]).dungeon.dungeon.user
-      {:reply, :ok, _create_instance(level_instance.id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry)}
+      {:reply, :ok, _create_instance(level_instance, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry)}
     end
   end
 
   @impl true
-  def handle_call({:list}, _from, %{instance_ids: instance_ids} = level_registry) do
-    {:reply, instance_ids, level_registry}
+  def handle_call({:list}, _from, %{level_numbers: level_numbers} = level_registry) do
+    {:reply, level_numbers, level_registry}
   end
 
   @impl true
-  def handle_call({:player_location_ids}, _from, %{instance_ids: instance_ids} = level_registry) do
-    player_location_ids = \
-    instance_ids
-    |> Enum.flat_map(fn({_instance_id, instance_process}) ->
-         LevelProcess.run_with(instance_process, fn(state) ->
-           player_locations = \
-           state.player_locations
-           |> Enum.map(fn({player_tile_id, location}) ->
-                {location.id, player_tile_id, state.number}
-              end)
+  def handle_call({:flat_list}, _from, %{level_numbers: level_numbers} = level_registry) do
+    {:reply, _flat_list(level_numbers), level_registry}
+  end
 
-           {player_locations, state}
-         end)
-       end)
+  @impl true
+  def handle_call({:player_location_ids}, _from, %{level_numbers: level_numbers} = level_registry) do
+    player_location_ids =
+    _flat_list(level_numbers)
+    |> Enum.flat_map(fn({_instance_id, instance_process}) ->
+      LevelProcess.run_with(instance_process, fn(state) ->
+        player_locations = Enum.map(state.player_locations, fn({player_tile_id, location}) ->
+                             {location.id, player_tile_id, state.number}
+                           end)
+
+        {player_locations, state}
+      end)
+    end)
     {:reply, player_location_ids, level_registry}
   end
 
   @impl true
-  def handle_cast({:remove, instance_id}, %{instance_ids: instance_ids} = level_registry) do
-    if Map.has_key?(instance_ids, instance_id), do: GenServer.stop(Map.fetch!(instance_ids, instance_id), :shutdown)
+  def handle_cast({:remove, level_number, owner_id}, %{level_numbers: level_numbers} = level_registry) do
+    instance_ids = Map.get(level_numbers, level_number, %{})
+    if Map.has_key?(instance_ids, owner_id) do
+      {_instance_id, instance_process} = Map.fetch!(instance_ids, owner_id)
+      GenServer.stop(instance_process, :shutdown)
+    end
+
     {:noreply, level_registry}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{instance_ids: instance_ids, refs: refs} = level_registry) do
-    {instance_id, refs} = Map.pop(refs, ref)
-    instance_ids = Map.delete(instance_ids, instance_id)
-    {:noreply, %{level_registry | instance_ids: instance_ids, refs: refs}}
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{level_numbers: level_numbers, refs: refs} = level_registry) do
+    {{level_number, owner_id}, refs} = Map.pop(refs, ref)
+    instance_ids = Map.get(level_numbers, level_number, %{})
+                   |> Map.delete(owner_id)
+    # TODO: maybe add the removal of the level number when instance ids is empty map
+    level_numbers = Map.put(level_numbers, level_number, instance_ids)
+
+    {:noreply, %{level_registry | level_numbers: level_numbers, refs: refs}}
   end
 
   @impl true
@@ -196,18 +270,19 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     {:noreply, level_registry}
   end
 
-  defp _create_instance(instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author, level_registry) do
-    %{supervisor: supervisor, refs: refs, instance_ids: instance_ids, cache: cache} = level_registry
+  defp _create_instance(level_instance, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry) do
+    %{supervisor: supervisor, refs: refs, level_numbers: level_numbers, cache: cache} = level_registry
     {:ok, instance_process} = DynamicSupervisor.start_child(supervisor, LevelProcess)
-    LevelProcess.set_instance_id(instance_process, instance_id)
+    LevelProcess.set_instance_id(instance_process, level_instance.id)
     LevelProcess.set_dungeon_instance_id(instance_process, diid)
-    LevelProcess.set_level_number(instance_process, number)
+    LevelProcess.set_level_number(instance_process, level_instance.number)
+    LevelProcess.set_player_location_id(instance_process, level_instance.player_location_id)
     LevelProcess.set_author(instance_process, author)
     LevelProcess.set_cache(instance_process, cache)
     LevelProcess.set_state_values(instance_process, state_values)
     LevelProcess.load_level(instance_process, tiles)
     LevelProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
-    _link_player_locations(instance_process, instance_id)
+    _link_player_locations(instance_process, level_instance.id)
     if adjacent["north"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["north"].number, "north")
     if adjacent["south"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["south"].number, "south")
     if adjacent["east"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["east"].number, "east")
@@ -216,9 +291,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     send(instance_process, :perform_actions)
     send(instance_process, :player_torch_timeout)
     ref = Process.monitor(instance_process)
-    refs = Map.put(refs, ref, instance_id)
-    instance_ids = Map.put(instance_ids, instance_id, instance_process)
-    %{ level_registry | instance_ids: instance_ids, refs: refs }
+    refs = Map.put(refs, ref, {level_instance.number, level_instance.player_location_id})
+
+    instance_ids = Map.get(level_numbers, level_instance.number, %{})
+                   |> Map.put(level_instance.player_location_id, {level_instance.id, instance_process})
+
+    level_numbers = Map.put(level_numbers, level_instance.number, instance_ids)
+    %{ level_registry | level_numbers: level_numbers, refs: refs }
   end
 
   defp _link_player_locations(instance_process, instance_id) do
@@ -253,5 +332,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   defp _spawn_coordinates(_tiles, spawn_locations) do
     spawn_locations
     |> Enum.map(fn(spawn_location) -> {spawn_location.row, spawn_location.col} end)
+  end
+
+  defp _flat_list(level_numbers) do
+    Enum.flat_map(level_numbers, fn({_, owners}) ->
+      Enum.map(owners, fn {_oid, ids_pids} -> ids_pids end)
+    end)
   end
 end

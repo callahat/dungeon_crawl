@@ -1647,8 +1647,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       |> Enum.filter(fn i -> i.script && i.script != "" end)
       |> Enum.map(&(&1.id))
 
-    {:ok, instance_process_1} = Registrar.instance_process(stubbed_dungeon_instance.id, instance.id)
-    {:ok, instance_process_2} = Registrar.instance_process(stubbed_dungeon_instance.id, instance2.id)
+    {:ok, instance_process_1} = Registrar.instance_process(stubbed_dungeon_instance.id, instance.number)
+    {:ok, instance_process_2} = Registrar.instance_process(stubbed_dungeon_instance.id, instance2.number)
 
     LevelProcess.run_with(instance_process_1, fn (state) ->
       object = Levels.get_tile(state, %{row: 1, col: 3})

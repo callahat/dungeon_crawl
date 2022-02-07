@@ -41,28 +41,31 @@ defmodule DungeonCrawl.PlayerChannelTest do
       |> subscribe_and_join(PlayerChannel, "players:#{player_location.id}")
   end
 
-  test "refresh_level triggers the change_dungeon message to rerender the current level", %{socket: socket, location: location} do
-    instance_id = location.tile.level_instance_id
+  test "refresh_level triggers the change_dungeon message to rerender the current level",
+       %{socket: socket, level_instance: level_instance} do
+    level_number = level_instance.number
+    owner_id = level_instance.player_location_id
     push socket, "refresh_level", %{}
-    assert_broadcast "change_level", %{level_id: ^instance_id, level_render: _html}
+    assert_broadcast "change_level", %{level_number: ^level_number, level_owner_id: ^owner_id, level_render: _html}
     assert_broadcast "stat_update", %{stats: stats}
     assert Map.keys(stats) == [:ammo, :cash, :equipment, :equipped, :gems, :health, :keys, :lives, :score, :torch_light, :torches]
   end
 
   @tag visibility: "fog"
   test "refresh_level triggers the change_dungeon message to rerender the current level, fog",
-       %{socket: socket, location: location, level_instance: level_instance} do
-    instance_id = location.tile.level_instance_id
+       %{socket: socket, level_instance: level_instance} do
+    level_number = level_instance.number
+    owner_id = level_instance.player_location_id
     push socket, "refresh_level", %{}
-    assert_broadcast "change_level", %{level_id: ^instance_id, level_render: _html}
-    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, instance_id)
+    assert_broadcast "change_level", %{level_number: ^level_number, level_owner_id: ^owner_id, level_render: _html}
+    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_number)
     assert %{players_visible_coords: _pvcs} = LevelProcess.get_state(instance_process)
   end
 
   @tag visibility: "fog"
   test "update_visible deletes the players visible coords which forces an update when foggy",
        %{socket: socket, location: location, level_instance: level_instance} do
-    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.id)
+    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.number)
     LevelProcess.run_with(instance_process, fn(state) ->
       {:ok, %{ state | players_visible_coords: %{ location.tile_instance_id => %{} } }}
     end)

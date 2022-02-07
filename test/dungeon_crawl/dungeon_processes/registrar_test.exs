@@ -10,18 +10,18 @@ defmodule DungeonCrawl.RegistrarTest do
 
     DungeonRegistry.create(map_set_registry, instance.dungeon_instance_id)
 
-    %{di_id: instance.dungeon_instance_id, instance_id: instance.id}
+    %{di_id: instance.dungeon_instance_id, level_number: instance.number}
   end
 
-  test "instance_process/2", %{di_id: di_id, instance_id: instance_id} do
-    refute Registrar.instance_process(0, instance_id)
-    assert Registrar.instance_process(di_id, instance_id)
+  test "instance_process/2", %{di_id: di_id, level_number: level_number} do
+    refute Registrar.instance_process(0, level_number)
+    assert {:ok, _pid} = Registrar.instance_process(di_id, level_number)
     refute Registrar.instance_process(di_id, 0)
   end
 
   test "instance_registry/1", %{di_id: di_id} do
     refute Registrar.instance_registry(0)
-    assert Registrar.instance_registry(di_id)
+    assert {:ok, _pid} = Registrar.instance_registry(di_id)
   end
 end
 

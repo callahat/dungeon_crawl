@@ -22,7 +22,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert dungeon_instance_id == tile.level.dungeon_instance_id
 
     # It registers the player location
-    {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level_instance_id)
+    {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.number)
     location_tile_id = tile.id
     assert %Levels{player_locations: %{^location_tile_id => ^location},
                    map_by_ids: %{^location_tile_id => player_tile}}
@@ -43,7 +43,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: location.user_id_hash})
-      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{instance.number}:#{instance.player_location_id}")
 
     assert {^di_id, location} = Crawler.join_and_broadcast(di, "itsmehash", %{color: "red", background_color: "green"}, nil)
     assert %Player.Location{} = location
@@ -56,7 +56,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 #    assert %{tiles: [%{row: tile.row, col: tile.col, rendering: "<div>@</div>"}]} == payload
 
     # It registers the player location
-    {:ok, instance} = Registrar.instance_process(di.id, instance.id)
+    {:ok, instance} = Registrar.instance_process(di.id, instance.number)
     location_tile_id = tile.id
     assert %Levels{player_locations: %{^location_tile_id => ^location}} = LevelProcess.get_state(instance)
 
@@ -74,7 +74,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
-      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
 
     # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
     assert %Player.Location{} = location = Repo.preload(Crawler.leave_and_broadcast(location), :tile)
@@ -85,7 +85,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^rendering}]}
 
     # It unregisters the player location
-    {:ok, instance} = Registrar.instance_process(di.id, level_instance.id)
+    {:ok, instance} = Registrar.instance_process(di.id, level_instance.number)
     state = LevelProcess.get_state(instance)
     assert %{^location2_id => %{user_id_hash: "someoneelsetokeeptheinstance"}} = state.player_locations
 
@@ -111,7 +111,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
-      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.id}")
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
 
     # PLAYER LEAVES
     assert %Player.Location{} = Crawler.leave_and_broadcast(location)

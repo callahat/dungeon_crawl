@@ -1,7 +1,8 @@
 <pre class="level_preview border rounded"
 ><table id="level_admin"
         data-dungeon-id="<%= @level.dungeon_instance_id %>"
-        data-level-id="<%= @level.id %>">
+        data-level-number="<%= @level.number %>"
+        data-owner-id="<%= @level.player_location_id %>">
 <%= {:safe, level_as_table(@level, @height, @width, true) } %>
 </table
 ></pre>

@@ -57,7 +57,10 @@ defmodule DungeonCrawl.DungeonProcessTest do
 
   test "set_dungeon_instance", %{dungeon_process: dungeon_process, dungeon_instance: dungeon_instance} do
     DungeonProcess.set_dungeon_instance(dungeon_process, dungeon_instance)
-    assert %{ dungeon_instance: ^dungeon_instance } = DungeonProcess.get_state(dungeon_process)
+    assert %{ dungeon_instance: ^dungeon_instance,
+             instance_registry: instance_registry } = DungeonProcess.get_state(dungeon_process)
+    dungeon_instance_id = dungeon_instance.id
+    assert %{dungeon_instance_id: ^dungeon_instance_id} = :sys.get_state(instance_registry)
   end
 
   test "set_state_values", %{dungeon_process: dungeon_process} do
@@ -97,18 +100,22 @@ defmodule DungeonCrawl.DungeonProcessTest do
   test "load_instance with an id", %{dungeon_process: dungeon_process, dungeon_instance: dungeon_instance} do
     [level_instance] = Repo.preload(dungeon_instance, :levels).levels
     level_instance_id = level_instance.id
+    level_number = level_instance.number
     assert :ok = DungeonProcess.load_instance(dungeon_process, level_instance.id)
-    assert %{^level_instance_id => _} = DungeonProcess.get_instance_registry(dungeon_process)
-                                        |> LevelRegistry.list()
+    assert %{^level_number => %{nil => {^level_instance_id, _pid}}} =
+             DungeonProcess.get_instance_registry(dungeon_process)
+             |> LevelRegistry.list()
     assert %DungeonProcess{entrances: []} = DungeonProcess.get_state(dungeon_process)
   end
 
   test "load_instance", %{dungeon_process: dungeon_process, dungeon_instance: dungeon_instance} do
     [level_instance] = Repo.preload(dungeon_instance, :levels).levels
     level_instance_id = level_instance.id
+    level_number = level_instance.number
     assert :ok = DungeonProcess.load_instance(dungeon_process, level_instance)
-    assert %{^level_instance_id => _} = DungeonProcess.get_instance_registry(dungeon_process)
-                                        |> LevelRegistry.list()
+    assert %{^level_number => %{nil => {^level_instance_id, _pid}}} =
+             DungeonProcess.get_instance_registry(dungeon_process)
+             |> LevelRegistry.list()
     assert %DungeonProcess{entrances: []} = DungeonProcess.get_state(dungeon_process)
   end
 
@@ -126,8 +133,10 @@ defmodule DungeonCrawl.DungeonProcessTest do
       player_tile = level.tiles |> Enum.random() # it isn't really, but we'll pretend it is for sake of a test
       player_location = %Location{id: 555, tile_instance_id: player_tile.id}
 
+      instance_registry = DungeonProcess.get_instance_registry(dungeon_process)
+      LevelRegistry.set_dungeon_instance_id(instance_registry, level.dungeon_instance_id)
       assert level_registry = DungeonProcess.get_instance_registry(dungeon_process)
-      assert {:ok, instance_process} = LevelRegistry.lookup_or_create(level_registry, level.id)
+      assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup_or_create(level_registry, level.number)
 
       LevelProcess.run_with(instance_process, fn(state) ->
         Levels.create_player_tile(state, player_tile, player_location)
