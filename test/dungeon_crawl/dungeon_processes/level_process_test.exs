@@ -84,10 +84,10 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert %{ cache: ^cache } = LevelProcess.get_state(instance_process)
   end
 
-  test "set_adjacent_level_number" do
+  test "set_adjacent_level_numbers" do
     {:ok, instance_process} = LevelProcess.start_link([])
-    LevelProcess.set_adjacent_level_number(instance_process, 1, "north")
-    assert %{ adjacent_level_numbers: %{"north" => 1} } = LevelProcess.get_state(instance_process)
+    LevelProcess.set_adjacent_level_numbers(instance_process, %{"north" => 1, "south" => nil})
+    assert %{ adjacent_level_numbers: %{"north" => 1, "south" => nil} } = LevelProcess.get_state(instance_process)
   end
 
   test "set_state_values" do

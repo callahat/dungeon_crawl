@@ -2,6 +2,7 @@ defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.LevelProcess
+  alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
   alias DungeonCrawl.DungeonProcesses.Player
@@ -22,7 +23,8 @@ defmodule DungeonCrawl.Action.Travel do
   from a floor space.
   """
   def passage(%Location{} = player_location, passage, level_number, %Levels{} = state) do
-    target_level = DungeonInstances.get_level(state.dungeon_instance_id, level_number)
+    target_level = DungeonInstances.get_level_header(state.dungeon_instance_id, level_number)
+                   |> DungeonInstances.find_or_create_level(player_location.id)
 
     _passage(player_location, passage, target_level, state)
   end

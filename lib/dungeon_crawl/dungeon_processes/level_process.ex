@@ -72,8 +72,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   @doc """
   Sets the adjacent level instance id for the given direction
   """
-  def set_adjacent_level_number(instance, level_number, direction) do
-    GenServer.cast(instance, {:set_adjacent_level_number, {level_number, direction}})
+  def set_adjacent_level_numbers(instance, adjacent) do
+    GenServer.cast(instance, {:set_adjacent_level_numbers, {adjacent}})
   end
 
   @doc """
@@ -282,8 +282,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @impl true
-  def handle_cast({:set_adjacent_level_number, {level_number, direction}}, %Levels{adjacent_level_numbers: adjacent_level_numbers} = state) do
-    {:noreply, %{ state | adjacent_level_numbers: Map.put(adjacent_level_numbers, direction, level_number) }}
+  def handle_cast({:set_adjacent_level_numbers, {adjacent}}, %Levels{} = state) do
+    {:noreply, %{ state | adjacent_level_numbers: adjacent }}
   end
 
   @impl true

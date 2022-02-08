@@ -89,7 +89,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       instance = Repo.preload(di, [:levels]).levels |> Enum.at(0)
       instance = Repo.update!(Level.changeset(instance, %{number_north: instance.number, number_south: instance.number}))
 
-      assert %{"north" => instance, "south" => instance, "east" => %{number: nil}, "west" => %{number: nil}} ==
+      assert %{"north" => instance.number, "south" => instance.number, "east" => nil, "west" => nil} ==
         DungeonInstances.get_adjacent_levels(instance.id)
     end
 
@@ -159,6 +159,10 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert level.player_location_id == location.id
       assert Map.take(level, [:name, :width, :height]) == Map.take(other_level, [:name, :width, :height])
       assert _tile_details(level) == _tile_details(other_level)
+    end
+
+    test "find_or_create_level/2 with a nil header" do
+      refute DungeonInstances.find_or_create_level(nil, 69420)
     end
 
     test "delete_level/1 deletes a level instance" do

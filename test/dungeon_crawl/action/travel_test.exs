@@ -2,6 +2,7 @@ defmodule DungeonCrawl.Action.TravelTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Action.Travel
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.Levels
@@ -17,16 +18,14 @@ defmodule DungeonCrawl.Action.TravelTest do
                                                        [ level_1_tiles, level_2_tiles ])
                        |> Repo.preload(:levels)
     [level_1, level_2] = Enum.sort(dungeon_instance.levels, fn(a,b) -> a.number < b.number end)
+    Dungeons.add_spawn_locations(level_2.level_id, [{1, 5}])
     player_location = insert_player_location(%{level_instance_id: level_1.id})
     {:ok, instance_registry} = Registrar.instance_registry(dungeon_instance.id)
     {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number)
-    {:ok, {_, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number)
+    {:ok, {_, _instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number)
     LevelProcess.run_with(instance_1, fn (state) ->
       {_player_tile, state} = Levels.create_player_tile(state, Repo.preload(player_location, :tile).tile, player_location)
       {:ok, %{ state | passage_exits: [{Levels.get_tile(state, %{row: 6, col: 9, fade_overlay: "on"}).id,"red"}] }}
-    end)
-    LevelProcess.run_with(instance_2, fn (state) ->
-      {:ok, %{ state | spawn_coordinates: [{1,5}] }}
     end)
 
     %{player_location: player_location, level_1: level_1, level_2: level_2, instance_registry: instance_registry}
@@ -76,6 +75,52 @@ defmodule DungeonCrawl.Action.TravelTest do
           level_number: ^level_2_number,
           level_owner_id: ^level_2_owner_id,
           level_render: _rendered_dungeon}}
+
+    # Back to existing level
+    level_1_id = level_1.id
+    level_1_number = level_1.number
+    level_1_owner_id = level_1.player_location_id
+    LevelProcess.run_with(instance_2, fn (state) ->
+      assert {:ok, state} = Travel.passage(player_location, %{match_key: "red"}, 1, state)
+      refute Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+      {:ok, state}
+    end)
+    LevelProcess.run_with(instance_1, fn (state) ->
+      assert %{row: 6, col: 9, level_instance_id: ^level_1_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+      {:ok, state}
+    end)
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "change_level",
+      payload: %{
+        level_number: ^level_1_number,
+        level_owner_id: ^level_1_owner_id,
+        level_render: _rendered_dungeon}}
+
+    # When the target level only has the header, but not level instance created yet
+    DungeonInstances.delete_level!(level_2)
+    LevelRegistry.remove(instance_registry, level_2.number)
+    LevelProcess.run_with(instance_1, fn (state) ->
+      assert {:ok, state} = Travel.passage(player_location, %{match_key: "red"}, 2, state)
+      assert DungeonInstances.get_level(level_2.dungeon_instance_id, level_2.number)
+      refute Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+      {:ok, state}
+    end)
+
+    {:ok, {level_2_id, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number)
+    LevelProcess.run_with(instance_2, fn (state) ->
+      assert %{row: 1, col: 5, level_instance_id: ^level_2_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+      {:ok, state}
+    end)
+
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "change_level",
+      payload: %{
+        level_number: ^level_2_number,
+        level_owner_id: ^level_2_owner_id,
+        level_render: _rendered_dungeon}}
   end
 
   test "passage/4 does nothing when target level does not exist", %{player_location: player_location, level_1: level_1, instance_registry: instance_registry} do

@@ -182,16 +182,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
       {:reply, instance_id, _create_instance(level_params, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry)}
     end
   end
-require Logger
+
   @impl true
   def handle_call({:create, number, owner_id}, from, %{dungeon_instance_id: di_id} = level_registry) do
     level_header = DungeonInstances.get_level_header(di_id, number)
-    Logger.info "CREATE"
-    Logger.info inspect level_header
+
     if level_header do
       level = DungeonInstances.find_or_create_level(level_header, owner_id)
-      Logger.info "Find for create level"
-      Logger.info inspect level
       handle_call({:create, level}, from, level_registry)
     else
       Logger.error "Got a CREATE cast for DungeonInstance #{di_id} LevelNumber #{number} but no header matched"
@@ -283,10 +280,7 @@ require Logger
     LevelProcess.load_level(instance_process, tiles)
     LevelProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
     _link_player_locations(instance_process, level_instance.id)
-    if adjacent["north"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["north"].number, "north")
-    if adjacent["south"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["south"].number, "south")
-    if adjacent["east"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["east"].number, "east")
-    if adjacent["west"], do: LevelProcess.set_adjacent_level_number(instance_process, adjacent["west"].number, "west")
+    LevelProcess.set_adjacent_level_numbers(instance_process, adjacent)
 
     send(instance_process, :perform_actions)
     send(instance_process, :player_torch_timeout)

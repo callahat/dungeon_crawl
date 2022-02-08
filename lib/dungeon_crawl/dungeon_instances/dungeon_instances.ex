@@ -124,10 +124,10 @@ defmodule DungeonCrawl.DungeonInstances do
     %{"north" => nil, ...}
   """
   def get_adjacent_levels(%Level{} = instance) do
-    %{"north" => if(instance.number_north, do: get_level(instance.dungeon_instance_id, instance.number_north)) || %{number: nil},
-      "south" => if(instance.number_south, do: get_level(instance.dungeon_instance_id, instance.number_south)) || %{number: nil},
-      "east" => if(instance.number_east, do: get_level(instance.dungeon_instance_id, instance.number_east)) || %{number: nil},
-      "west" => if(instance.number_west, do: get_level(instance.dungeon_instance_id, instance.number_west)) || %{number: nil}}
+    %{"north" => instance.number_north,
+      "south" => instance.number_south,
+      "east" => instance.number_east,
+      "west" => instance.number_west}
   end
   def get_adjacent_levels(id), do: get_adjacent_levels(get_level(id))
 
@@ -168,6 +168,7 @@ defmodule DungeonCrawl.DungeonInstances do
       %DungeonInstances.Level{}
 
   """
+  def find_or_create_level(nil, _), do: nil
   def find_or_create_level(%LevelHeader{type: :universal,
                                         id: lh_id,
                                         dungeon_instance_id: di_id,

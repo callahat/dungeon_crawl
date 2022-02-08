@@ -31,12 +31,7 @@ defmodule DungeonCrawlWeb.Crawler do
   end
 
   def join_and_broadcast(%Dungeons.Dungeon{} = where, user_id_hash, user_avatar, is_private) do
-    {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(where, is_private) #, true)
-
-    # TODO: comment this out, and uncomment the true parameter above
-    # ensure all level instances are running
-    Repo.preload(dungeon_instance, :levels).levels
-    |> Enum.each(fn(level_instance) -> Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.number) end)
+    {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(where, is_private, true)
 
     join_and_broadcast(dungeon_instance, user_id_hash, user_avatar, is_private)
   end
