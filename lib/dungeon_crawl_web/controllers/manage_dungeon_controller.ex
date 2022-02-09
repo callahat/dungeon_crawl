@@ -20,7 +20,7 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
     dungeon = Dungeons.get_dungeon!(id)
               |> Repo.preload([:locations, [levels: :tiles]])
     dungeon_instance = DungeonInstances.get_dungeon(instance_id)
-                       |> Repo.preload([:levels])
+                       |> Repo.preload([:levels, level_headers: [:level, :levels]])
     owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
     level = case Integer.parse(params["level"] || "") do
               {num, _} -> num

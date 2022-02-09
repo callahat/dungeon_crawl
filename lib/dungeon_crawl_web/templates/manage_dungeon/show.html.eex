@@ -26,7 +26,7 @@
   <%= if @dungeon_instance do %>
   <tr>
     <td><%= link "(non instance view)", to: Routes.manage_dungeon_path(@conn, :show, @dungeon) %></td>
-    <td colspan=2 />
+    <td colspan=3></td>
   </tr>
   <% end %>
 </table>
@@ -41,20 +41,7 @@
   <div class="text-center row no-gutters" id="dungeon_instance_overview">
     <div class="col-2">
       <div class="nav nav-pills flex-column text-left max-content" role="tablist">
-      <%= for level <- Enum.map(@dungeon_instance.levels, fn(level) ->
-                         Map.take(level, [:number, :name, :height, :width, :entrance])
-                       end)
-                       |> Enum.uniq()
-                       |> Enum.sort(fn(a,b) -> a.number < b.number end) do %>
-        <a class="nav-link small <%= if @level == level.number, do: "active", else: "" %>"
-           id="level<%= level.number %>-tab"
-           href="<%= Routes.manage_dungeon_path(@conn, :show, @dungeon, instance_id: @dungeon_instance.id, level: level.number) %>"
-           aria-controls="level<%= level.number %>"
-           aria-orientation="vertical"
-           aria-selected="true">
-          <%= if level.entrance, do: "*", else: {:safe, "&nbsp;"} %> (<%= level.height %>x<%= level.width %>) <%= level.number %> - <%= level.name %>
-        </a>
-      <% end %>
+        <%= {:safe, level_header_links(@conn, @dungeon_instance, @level, @dungeon)} %>
       </div>
     </div>
     <div class="col-2">
