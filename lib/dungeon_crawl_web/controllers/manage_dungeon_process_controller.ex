@@ -29,7 +29,7 @@ defmodule DungeonCrawlWeb.ManageDungeonProcessController do
                     |> Enum.map(fn({instance_id, instance}) ->
                                   state = LevelProcess.get_state(instance)
                                           |> Map.take([:instance_id, :dungeon_instance_id, :number, :player_locations, :player_location_id])
-                                  {state, DungeonInstances.get_level(instance_id)}
+                                  {state, DungeonInstances.get_level(instance_id), instance}
                                 end)
 
         render(conn, "show.html", di_id: id, dungeon_instance: dungeon_instance, dungeon_state: dungeon_state, instances: instances)

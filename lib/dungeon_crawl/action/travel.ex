@@ -2,7 +2,6 @@ defmodule DungeonCrawl.Action.Travel do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.LevelProcess
-  alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
   alias DungeonCrawl.DungeonProcesses.Player
