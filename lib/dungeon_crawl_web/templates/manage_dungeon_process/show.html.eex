@@ -23,25 +23,30 @@
       <tr>
         <th>ID</th>
         <th>number</th>
+        <th>Owner</th>
         <th>Players</th>
         <th>Name</th>
         <th>Orphaned?</th>
+        <th>Heap</th>
 
         <th></th>
       </tr>
     </thead>
     <tbody>
-<%= for {state, instance} <- @instances do %>
+<%= for {state, instance, instance_pid} <- @instances do %>
       <tr>
         <td><%= state.instance_id %></td>
         <td><%= state.number %></td>
+        <td><%= state.player_location_id || "None" %></td>
         <td><%= state.player_locations |> Map.to_list |> Enum.count %></td>
         <td><%= if instance, do: instance.name %></td>
         <td><%= if instance, do: "N", else: "Y" %></td>
+        <% # Yeah, just using this helper here even though this page has nothing to do with livedashboard %>
+        <td><%= Phoenix.LiveDashboard.Helpers.format_bytes(:erlang.process_info(instance_pid)[:total_heap_size]) %></td>
 
         <td class="text-right">
-          <%= link "Show", to: Routes.manage_level_process_path(@conn, :show, @di_id, state.instance_id), class: "btn btn-light btn-sm" %>
-          <%= link "Delete", to: Routes.manage_level_process_path(@conn, :delete, @di_id, state.instance_id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+          <%= link "Show", to: Routes.manage_level_process_path(@conn, :show, @di_id, state.number, state.player_location_id || "none"), class: "btn btn-light btn-sm" %>
+          <%= link "Delete", to: Routes.manage_level_process_path(@conn, :delete, @di_id, state.number, state.player_location_id || "none"), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
         </td>
       </tr>
 <% end %>

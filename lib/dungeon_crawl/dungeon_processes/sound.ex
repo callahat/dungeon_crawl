@@ -76,7 +76,7 @@ defmodule DungeonCrawl.DungeonProcesses.Sound do
   end
 
   defp _heard_sound_for_admin(heard_sounds, %{zzfx_params: zzfx_params}, state) do
-    admin_channel = "level_admin:#{state.dungeon_instance_id}:#{state.instance_id}"
+    admin_channel = "level_admin:#{state.dungeon_instance_id}:#{state.number}:#{state.player_location_id}"
     Map.put(
       heard_sounds,
       admin_channel,

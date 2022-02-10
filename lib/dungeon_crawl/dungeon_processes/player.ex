@@ -41,7 +41,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     with player_location when not is_nil(player_location) <- Player.get_location(user_id_hash),
          player_location <- DungeonCrawl.Repo.preload(player_location, [tile: :level]),
          player_level_instance <- player_location.tile.level,
-         {:ok, instance_process} <- Registrar.instance_process(player_level_instance.dungeon_instance_id, player_level_instance.id),
+         {:ok, instance_process} <- Registrar.instance_process(player_level_instance.dungeon_instance_id, player_level_instance.number),
          player_tile when not is_nil(player_tile) <- LevelProcess.get_tile(instance_process, player_location.tile_instance_id) do
       _current_stats(player_tile)
       |> _with_equipped(player_tile)

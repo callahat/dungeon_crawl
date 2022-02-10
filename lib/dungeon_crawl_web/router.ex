@@ -61,8 +61,8 @@ defmodule DungeonCrawlWeb.Router do
     resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
     resources "/settings", SettingController, singleton: true, only: [:edit, :update]
     resources "/dungeon_processes", ManageDungeonProcessController, only: [:index, :show, :delete]
-       get    "/dungeon_processes/:di_id/level_processes/:id", ManageLevelProcessController, :show
-       delete "/dungeon_processes/:di_id/level_processes/:id", ManageLevelProcessController, :delete
+       get    "/dungeon_processes/:di_id/level_processes/:num/:plid", ManageLevelProcessController, :show
+       delete "/dungeon_processes/:di_id/level_processes/:num/:plid", ManageLevelProcessController, :delete
 
     live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
 

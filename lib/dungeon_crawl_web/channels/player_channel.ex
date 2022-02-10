@@ -14,7 +14,8 @@ defmodule DungeonCrawlWeb.PlayerChannel do
          %{user_id_hash: ^user_id_hash} <- location do
       socket = socket
                |> assign(:location_id, location_id)
-               |> assign(:level_instance_id, location.tile.level_instance_id)
+               |> assign(:level_number, location.tile.level.number)
+               |> assign(:level_owner_id, location.tile.level.player_location_id)
                |> assign(:dungeon_instance_id, location.tile.level.dungeon_instance_id)
                |> assign(:player_tile_id, location.tile.id)
 
@@ -28,13 +29,15 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   end
 
   def handle_in("refresh_level", _, socket) do
-    {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id)
+    {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_number)
     state = LevelProcess.get_state(instance_process)
 
     level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values[:rows], state.state_values[:cols])
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
                                        "change_level",
-                                       %{level_id: socket.assigns.level_instance_id, level_render: level_table}
+                                       %{level_number: socket.assigns.level_number,
+                                         level_owner_id: socket.assigns.level_owner_id,
+                                         level_render: level_table}
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
                                        "stat_update",
                                        %{stats: PlayerInstance.current_stats(state, %{id: socket.assigns.player_tile_id})}
@@ -43,7 +46,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   end
 
   def handle_in("update_visible", _, socket) do
-    case Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_instance_id) do
+    case Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_number) do
       {:ok, instance_process} ->
         LevelProcess.run_with(instance_process, fn (state) ->
           {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id),

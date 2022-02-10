@@ -13,6 +13,6 @@ defmodule DungeonCrawl.Player.Location do
   def changeset(location, attrs) do
     location
     |> cast(attrs, [:user_id_hash, :tile_instance_id])
-    |> validate_required([:user_id_hash, :tile_instance_id])
+    |> validate_required([:user_id_hash])
   end
 end

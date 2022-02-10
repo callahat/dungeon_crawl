@@ -10,7 +10,8 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   setup do
     state = %Levels{state_values: %{rows: 20, cols: 20},
                     dungeon_instance_id: 1,
-                    instance_id: 2}
+                    instance_id: 3,
+                    number: 2}
 
     # 01234567890
     #0 . .O      _
@@ -42,8 +43,8 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                       rerender_coords: %{},
                       players_visible_coords: %{player_tile.id => [%{row: 1, col: 10}]}}
 
-    channels = %{level_channel: "level:1:2",
-                 level_admin_channel: "level_admin:1:2",
+    channels = %{level_channel: "level:1:2:",
+                 level_admin_channel: "level_admin:1:2:",
                  player_channel: "players:3"}
 
     Map.values(channels)

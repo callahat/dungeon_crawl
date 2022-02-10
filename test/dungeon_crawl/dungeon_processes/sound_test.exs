@@ -11,7 +11,7 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
   setup do
     state = %Levels{state_values: %{rows: 20, cols: 20},
                     dungeon_instance_id: 1,
-                    instance_id: 2}
+                    number: 2}
 
     # 01234567890
     #0 . .O      _
@@ -39,8 +39,7 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
     player_location = %Location{id: 3, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
     {_, state} = Levels.create_player_tile(state, player_tile, player_location)
 
-    channels = %{level_channel: "level:1:2",
-                 level_admin_channel: "level_admin:1:2",
+    channels = %{level_admin_channel: "level_admin:1:2:",
                  player_channel: "players:3"}
 
     Map.values(channels)
@@ -118,9 +117,9 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
     end
 
     test "multiple sound effects", %{level_admin_channel: level_admin_channel,
-      state: state,
-      player_channel: player_channel,
-      player_tile: player_tile } do
+                                     state: state,
+                                     player_channel: player_channel,
+                                     player_tile: player_tile } do
 
       state = %{ state | sound_effects: [
                            %{row: 0, col: 3, zzfx_params: "stub1", target: "nearby"},

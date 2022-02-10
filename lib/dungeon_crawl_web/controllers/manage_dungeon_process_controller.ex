@@ -23,11 +23,13 @@ defmodule DungeonCrawlWeb.ManageDungeonProcessController do
         dungeon_instance = DungeonInstances.get_dungeon(String.to_integer(id))
         dungeon_state = DungeonProcess.get_state(dungeon_process)
 
+        # TODO: this looks wrong
         instances = LevelRegistry.list(dungeon_state.instance_registry)
+                    |> Enum.flat_map(fn {_number, owners} -> Enum.map(owners, fn {_owner, pair} -> pair end) end)
                     |> Enum.map(fn({instance_id, instance}) ->
                                   state = LevelProcess.get_state(instance)
-                                          |> Map.take([:instance_id, :dungeon_instance_id, :number, :player_locations])
-                                  {state, DungeonInstances.get_level(instance_id)}
+                                          |> Map.take([:instance_id, :dungeon_instance_id, :number, :player_locations, :player_location_id])
+                                  {state, DungeonInstances.get_level(instance_id), instance}
                                 end)
 
         render(conn, "show.html", di_id: id, dungeon_instance: dungeon_instance, dungeon_state: dungeon_state, instances: instances)

@@ -9,6 +9,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   defstruct instance_id: nil,
             dungeon_instance_id: nil,
             number: 0,
+            player_location_id: nil,
             state_values: %{},
             program_contexts: %{},
             map_by_ids: %{},
@@ -23,7 +24,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             spawn_coordinates: [],
             passage_exits: [],
             message_actions: %{},
-            adjacent_level_ids: %{},
+            adjacent_level_numbers: %{},
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
             tile_template_slug_cache: %{},
@@ -485,7 +486,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   Takes a program context, and sends all queued up broadcasts. Returns the context with broadcast queues emtpied.
   """
   def handle_broadcasting(%{state: state} = runner_context) do
-    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "level:#{state.dungeon_instance_id}:#{state.instance_id}")
+    _handle_broadcasts(Enum.reverse(runner_context.program.broadcasts), "level:#{state.dungeon_instance_id}:#{state.number}:#{state.player_location_id}")
     _handle_broadcasts(Enum.reverse(runner_context.program.responses), runner_context.event_sender)
     %{ runner_context | program: %{ runner_context.program | responses: [], broadcasts: [] } }
   end

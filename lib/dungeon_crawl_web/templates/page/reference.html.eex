@@ -339,6 +339,11 @@
                 beam wall, etc).</td>
           </tr>
           <tr>
+            <td>reset_when_no_players</td>
+            <td>Resets the level when there are no players. This can be helpful for puzzels that can
+                or need reset when a player fails to solve them.</td>
+          </tr>
+          <tr>
             <td>pacifism</td>
             <td>Defaults as false. When this is set to true, a player may not use a weapon item (ie, shift+direction
                 will not spawn a bullet or activate the currently equipped weapon).</td>

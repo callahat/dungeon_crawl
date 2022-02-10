@@ -4,7 +4,8 @@
 <%= {:safe, fade_overlay_table(@level, @height, @width, @player_coord_id) } %></table
 ><table id="level_instance"
         data-dungeon-id="<%= @level.dungeon_instance_id %>"
-        data-level-id="<%= @level.id %>">
+        data-level-number="<%= @level.number %>"
+        data-owner-id="<%= @level.player_location_id %>">
 <%= {:safe, level_as_table(@level, @height, @width) } %>
 </table
 ></div

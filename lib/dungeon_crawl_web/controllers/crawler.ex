@@ -31,18 +31,14 @@ defmodule DungeonCrawlWeb.Crawler do
   end
 
   def join_and_broadcast(%Dungeons.Dungeon{} = where, user_id_hash, user_avatar, is_private) do
-    {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(where, is_private)
-
-    # ensure all level instances are running
-    Repo.preload(dungeon_instance, :levels).levels
-    |> Enum.each(fn(level_instance) -> Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.id) end)
+    {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(where, is_private, true)
 
     join_and_broadcast(dungeon_instance, user_id_hash, user_avatar, is_private)
   end
 
   defp _broadcast_join_event(location) do
     tile = Repo.preload(location, [tile: :level]).tile
-    {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.id)
+    {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.number)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       # "player_joined" could be broadcast here should it be needed for a future feature
@@ -59,10 +55,10 @@ defmodule DungeonCrawlWeb.Crawler do
       %Player.Location{}
   """
   def leave_and_broadcast(%Player.Location{} = location) do
-    tile = Repo.preload(location, :tile).tile
+    tile = Repo.preload(location, [tile: :level]).tile
     di = Repo.preload(tile, [level: [dungeon: [:locations, :levels]]]).level.dungeon
 
-    {:ok, instance} = Registrar.instance_process(di.id, tile.level_instance_id)
+    {:ok, instance} = Registrar.instance_process(di.id, tile.level.number)
 
     deleted_location = LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, tile)

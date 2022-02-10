@@ -20,14 +20,18 @@ defmodule DungeonCrawlWeb.ManageDungeonController do
     dungeon = Dungeons.get_dungeon!(id)
               |> Repo.preload([:locations, [levels: :tiles]])
     dungeon_instance = DungeonInstances.get_dungeon(instance_id)
-                       |> Repo.preload([:levels])
+                       |> Repo.preload([:levels, level_headers: [:level, :levels]])
     owner_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
     level = case Integer.parse(params["level"] || "") do
               {num, _} -> num
               _ -> nil
             end
+    plid = case Integer.parse(params["plid"] || "") do
+             {num, _} -> num
+             _ -> nil
+           end
 
-    render(conn, "show.html", dungeon: dungeon, dungeon_instance: dungeon_instance, owner_name: owner_name, level: level)
+    render(conn, "show.html", dungeon: dungeon, dungeon_instance: dungeon_instance, owner_name: owner_name, level: level, plid: plid)
   end
 
   def show(conn, %{"id" => id}) do

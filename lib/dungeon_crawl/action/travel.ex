@@ -21,16 +21,11 @@ defmodule DungeonCrawl.Action.Travel do
   the spawn tiles (if any exist on the target level), otherwise the location will be choosen at random
   from a floor space.
   """
-  def passage(%Location{} = player_location, %{match_key: _} = passage, level_number, %Levels{} = state) do
-    target_level = DungeonInstances.get_level(state.dungeon_instance_id, level_number)
+  def passage(%Location{} = player_location, passage, level_number, %Levels{} = state) do
+    target_level = DungeonInstances.get_level_header(state.dungeon_instance_id, level_number)
+                   |> DungeonInstances.find_or_create_level(player_location.id)
 
     _passage(player_location, passage, target_level, state)
-  end
-
-  def passage(%Location{} = player_location, %{adjacent_level_id: adjacent_level_id, edge: _} = passage, %Levels{} = state) do
-    target_level = DungeonInstances.get_level(adjacent_level_id)
-
-    _passage(player_location, passage, target_level, state, true)
   end
 
   defp _passage(player_location, passage, target_level, state, adjacent_level \\ false) do
@@ -44,7 +39,7 @@ defmodule DungeonCrawl.Action.Travel do
         {:ok, state}
 
       true ->
-        {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.id)
+        {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.number)
 
         Task.async fn ->
           LevelProcess.run_with(dest_instance, fn (other_instance_state) ->
@@ -56,7 +51,8 @@ defmodule DungeonCrawl.Action.Travel do
                                    do: DungeonCrawlWeb.SharedView.fade_overlay_table(target_level.height, target_level.width, player_coord_id)
             DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                                "change_level",
-                                               %{level_id: target_level.id,
+                                               %{level_number: target_level.number,
+                                                 level_owner_id: target_level.player_location_id,
                                                  level_render: level_table,
                                                  fade_overlay: fade_overlay_table}
             DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
@@ -89,7 +85,8 @@ defmodule DungeonCrawl.Action.Travel do
                                          %{message: "*** Now on level #{target_level.number}"}
 
       {:ok, %{level: next_level}} = InfiniteDungeon.generate_next_level(dungeon)
-      {:ok, %{level: _level}} = DungeonInstances.create_level(next_level, dungeon_instance.id)
+      {:ok, level_header} = DungeonInstances.create_level_header(next_level, dungeon_instance.id)
+      {:ok, %{level: _level}} = DungeonInstances.create_level(next_level, level_header.id, dungeon_instance.id)
 
       Dungeons.get_level(dungeon.id, state.number)
       |> Dungeons.delete_level()

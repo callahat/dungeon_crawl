@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 10.17 (Ubuntu 10.17-0ubuntu0.18.04.1)
--- Dumped by pg_dump version 10.17 (Ubuntu 10.17-0ubuntu0.18.04.1)
+-- Dumped from database version 10.19 (Ubuntu 10.19-0ubuntu0.18.04.1)
+-- Dumped by pg_dump version 10.19 (Ubuntu 10.19-0ubuntu0.18.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -187,6 +187,40 @@ ALTER SEQUENCE public.items_id_seq OWNED BY public.items.id;
 
 
 --
+-- Name: level_headers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.level_headers (
+    id bigint NOT NULL,
+    number integer,
+    type integer,
+    level_id bigint,
+    dungeon_instance_id bigint,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: level_headers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.level_headers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: level_headers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.level_headers_id_seq OWNED BY public.level_headers.id;
+
+
+--
 -- Name: level_instances; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -205,7 +239,9 @@ CREATE TABLE public.level_instances (
     number_north integer,
     number_south integer,
     number_east integer,
-    number_west integer
+    number_west integer,
+    player_location_id bigint,
+    level_header_id bigint
 );
 
 
@@ -667,6 +703,13 @@ ALTER TABLE ONLY public.items ALTER COLUMN id SET DEFAULT nextval('public.items_
 
 
 --
+-- Name: level_headers id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_headers ALTER COLUMN id SET DEFAULT nextval('public.level_headers_id_seq'::regclass);
+
+
+--
 -- Name: level_instances id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -773,6 +816,14 @@ ALTER TABLE ONLY public.effects
 
 ALTER TABLE ONLY public.items
     ADD CONSTRAINT items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: level_headers level_headers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_headers
+    ADD CONSTRAINT level_headers_pkey PRIMARY KEY (id);
 
 
 --
@@ -921,6 +972,27 @@ CREATE INDEX items_user_id_slug_index ON public.items USING btree (user_id, slug
 
 
 --
+-- Name: level_headers_dungeon_instance_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX level_headers_dungeon_instance_id_index ON public.level_headers USING btree (dungeon_instance_id);
+
+
+--
+-- Name: level_headers_dungeon_number_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX level_headers_dungeon_number_index ON public.level_headers USING btree (dungeon_instance_id, number);
+
+
+--
+-- Name: level_headers_level_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX level_headers_level_id_index ON public.level_headers USING btree (level_id);
+
+
+--
 -- Name: level_instances_dungeon_instance_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -928,10 +1000,17 @@ CREATE INDEX level_instances_dungeon_instance_id_index ON public.level_instances
 
 
 --
--- Name: level_instances_dungeon_instance_id_number_index; Type: INDEX; Schema: public; Owner: -
+-- Name: level_instances_dungeon_number_player_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX level_instances_dungeon_instance_id_number_index ON public.level_instances USING btree (dungeon_instance_id, number);
+CREATE UNIQUE INDEX level_instances_dungeon_number_player_index ON public.level_instances USING btree (dungeon_instance_id, number, player_location_id);
+
+
+--
+-- Name: level_instances_level_header_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX level_instances_level_header_id_index ON public.level_instances USING btree (level_header_id);
 
 
 --
@@ -939,6 +1018,13 @@ CREATE UNIQUE INDEX level_instances_dungeon_instance_id_number_index ON public.l
 --
 
 CREATE INDEX level_instances_level_id_index ON public.level_instances USING btree (level_id);
+
+
+--
+-- Name: level_instances_player_location_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX level_instances_player_location_id_index ON public.level_instances USING btree (player_location_id);
 
 
 --
@@ -1122,6 +1208,22 @@ ALTER TABLE ONLY public.items
 
 
 --
+-- Name: level_headers level_headers_dungeon_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_headers
+    ADD CONSTRAINT level_headers_dungeon_instance_id_fkey FOREIGN KEY (dungeon_instance_id) REFERENCES public.dungeon_instances(id) ON DELETE CASCADE;
+
+
+--
+-- Name: level_headers level_headers_level_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_headers
+    ADD CONSTRAINT level_headers_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
+
+
+--
 -- Name: level_instances level_instances_dungeon_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1130,11 +1232,27 @@ ALTER TABLE ONLY public.level_instances
 
 
 --
+-- Name: level_instances level_instances_level_header_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_instances
+    ADD CONSTRAINT level_instances_level_header_id_fkey FOREIGN KEY (level_header_id) REFERENCES public.level_headers(id) ON DELETE CASCADE;
+
+
+--
 -- Name: level_instances level_instances_level_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.level_instances
     ADD CONSTRAINT level_instances_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
+
+
+--
+-- Name: level_instances level_instances_player_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.level_instances
+    ADD CONSTRAINT level_instances_player_location_id_fkey FOREIGN KEY (player_location_id) REFERENCES public.player_locations(id) ON DELETE CASCADE;
 
 
 --
@@ -1285,3 +1403,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20210613021818);
 INSERT INTO public."schema_migrations" (version) VALUES (20211009194149);
 INSERT INTO public."schema_migrations" (version) VALUES (20211220033222);
 INSERT INTO public."schema_migrations" (version) VALUES (20211230042239);
+INSERT INTO public."schema_migrations" (version) VALUES (20220127032503);
+INSERT INTO public."schema_migrations" (version) VALUES (20220127034149);
+INSERT INTO public."schema_migrations" (version) VALUES (20220131023947);

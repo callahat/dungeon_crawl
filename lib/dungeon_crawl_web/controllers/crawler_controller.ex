@@ -36,7 +36,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     {player_stats, level, player_coord_id} = if player_location do
                      {:ok, instance_process} = Registrar.instance_process(player_location.tile.level.dungeon_instance_id,
-                                                                          player_location.tile.level.id)
+                                                                          player_location.tile.level.number)
                      level = Map.put(LevelProcess.get_state(instance_process), :id, player_location.tile.level.id)
                      player_tile = LevelProcess.get_tile(instance_process, player_location.tile.id)
                      {PlayerInstance.current_stats(player_location.user_id_hash), level, "#{player_tile.row}_#{player_tile.col}"}
