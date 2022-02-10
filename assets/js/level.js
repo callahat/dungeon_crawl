@@ -102,8 +102,9 @@ let Level = {
       .receive("error", resp => console.log("join failed", resp))
   },
   setupWindowListeners(){
-    let suppressDefaultKeys = [13,32,37,38,39,40],
-        keysPressed = {}
+    let suppressDefaultKeys = ['enter',' ','arrowup','arrowdown','arrowleft','arrowright'],
+        keysPressed = {},
+        direction
     this.actionMethod = this.move
 
     window.addEventListener("keydown", e => {
@@ -125,8 +126,8 @@ let Level = {
         this._soundEffectVolumeUpdate(parseInt(e.target.value))
       })
 
-      let direction = e.keyCode || e.which
-      if(suppressDefaultKeys.indexOf(direction) > 0) {
+      direction = e.key.toLowerCase()
+      if(suppressDefaultKeys.indexOf(direction) >= 0) {
         e.preventDefault()
       }
 
@@ -140,48 +141,48 @@ let Level = {
       keysPressed[direction] = true
 
       switch(direction){
-        case(69): // e
+        case('e'): // e
           this.renderMessageModal(this.equippableItems)
           $('#messageModal').modal('show')
           break
-        case(72): // h
+        case('h'): // h
           $('#helpDetailModal').modal('show')
           break
-        case(86): // v
+        case('v'): // v
           $('#volumeModal').modal('show')
           break
-        case(84): // t
+        case('t'): // t
           this.lightTorch()
           break
-        case(79): // o
+        case('o'): // o
           this.renderMessage("Open Direction?")
           this.actionMethod = this.open
           break
-        case(67): // c
+        case('c'): // c
           this.renderMessage("Close Direction?")
           this.actionMethod = this.close
           break
-        case(38):
-        case(87):
+        case('w'):
+        case('arrowup'):
           this.actionMethod("up", keysPressed)
           break
-        case(40):
-        case(83):
+        case('s'):
+        case('arrowdown'):
           this.actionMethod("down", keysPressed)
           break
-        case(37):
-        case(65):
+        case('a'):
+        case('arrowleft'):
           this.actionMethod("left", keysPressed)
           break
-        case(39):
-        case(68):
+        case('d'):
+        case('arrowright'):
           this.actionMethod("right", keysPressed)
           break
       }
     })
 
     window.addEventListener("keyup", e => {
-      delete keysPressed[e.keyCode || e.which]
+      delete keysPressed[e.key.toLowerCase()]
     })
 
     window.addEventListener("focus", e => {
@@ -191,8 +192,8 @@ let Level = {
   move(direction, keysPressed){
     // console.log(direction)
     let payload = {direction: direction},
-        use_item = keysPressed[16], // shift key
-        pull = keysPressed[80],  // p
+        use_item = keysPressed['shift'], // shift key
+        pull = keysPressed['p'],  // p
         action
 
     if(use_item) {
@@ -311,18 +312,18 @@ let Level = {
   _messageModalKeypressHandler(keyPressed){
     let linksLength = this.textLinks.length
     switch(keyPressed){
-      case(40): // down
-      case(83):
+      case('arrowdown'): // down
+      case('s'):
         this.textLinkPointer = (this.textLinkPointer + 1) % linksLength
         this._textLinkDisplayUpdate()
         break
-      case(38): // up
-      case(87):
+      case('arrowup'): // up
+      case('w'):
         this.textLinkPointer = (linksLength + this.textLinkPointer - 1) % linksLength
         this._textLinkDisplayUpdate()
         break
-      case(13):
-      case(32):
+      case('enter'):
+      case(''):
         // "Click" current link
         this.textLinks[this.textLinkPointer].click()
       default:
