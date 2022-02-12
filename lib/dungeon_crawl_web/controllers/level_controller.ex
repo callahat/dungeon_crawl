@@ -37,7 +37,7 @@ defmodule DungeonCrawlWeb.LevelController do
 
     case Dungeons.generate_level(generator, Elixir.Map.merge(level_params, fixed_attributes)) do
       {:ok, %{level: level}} ->
-        Dungeons.link_unlinked_levels(level)
+        if level_params["link_adjacent_levels"] == "true", do: Dungeons.link_unlinked_levels(level)
 
         conn
         |> put_flash(:info, "Level created successfully.")
@@ -68,7 +68,7 @@ defmodule DungeonCrawlWeb.LevelController do
 
     case Dungeons.update_level(level, level_params) do
       {:ok, level} ->
-        Dungeons.link_unlinked_levels(level)
+        if level_params["link_adjacent_levels"] == "true", do: Dungeons.link_unlinked_levels(level)
 
         _make_tile_updates(level, level_params["tile_changes"] || "")
         _make_tile_additions(level, level_params["tile_additions"] || "")
