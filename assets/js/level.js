@@ -18,7 +18,7 @@ let Level = {
 
     this.handleLevelChange = function(msg) {
       this.levelChannel.leave()
-      console.log("Left dungeon, joining " + msg.level_id)
+      console.log("Left dungeon, joining level " + msg.level_number)
 
       document.getElementById("level_instance").setAttribute("data-level-id", msg.level_id)
       document.getElementById("level_instance").innerHTML = msg.level_render
