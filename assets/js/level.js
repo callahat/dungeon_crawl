@@ -323,7 +323,7 @@ let Level = {
         this._textLinkDisplayUpdate()
         break
       case('enter'):
-      case(''):
+      case(' '):
         // "Click" current link
         this.textLinks[this.textLinkPointer].click()
       default:
