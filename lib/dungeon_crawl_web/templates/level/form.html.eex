@@ -78,6 +78,13 @@
           <%= adjacent_selects f, @dungeon.levels %>
         </div>
 
+        <div class="row">
+          <div class="form-group col-md-4">
+            <%= label f, :link_adjacent_levels, class: "control-label", title: "Makes the adjacent level setting mutual, so this level is adjacent to the specified level." %>
+            <%= checkbox f, :link_adjacent_levels %>
+          </div>
+        </div>
+
       </div>
       <div class="tab-pane <%= if @level, do: 'show active', else: 'disabled' %>" id="dungeon-map" role="tabpanel" aria-labelledby="map-tab">
       <%= if @level do %>
