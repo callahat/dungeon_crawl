@@ -26,6 +26,8 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
     field :score_count, :integer, virtual: true, default: 0
     field :title_number, :integer
 
+    # Note: state_variables are essentially keys, state_values are the values, both get zipped
+    # together and converted to a string to be stored as the state
     field :state_variables, {:array, :string}, virtual: true, default: nil
     field :state_values, {:array, :string}, virtual: true, default: nil
 
