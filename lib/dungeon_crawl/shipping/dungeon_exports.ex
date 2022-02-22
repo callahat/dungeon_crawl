@@ -15,6 +15,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   alias DungeonCrawl.Scripting
   alias DungeonCrawl.Shipping.DungeonExports
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.Sound
 
   defstruct dungeon: nil,
             levels: %{},
@@ -54,12 +56,18 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     {coords, tile_fields} = Dungeons.copy_tile_fields(level_tile)
                             |> Map.split([:row, :col, :z_index])
     tile_hash = Base.encode64(:crypto.hash(:md5, inspect(tile_fields)))
-
+IO.puts "tile tempalte id"
+IO.inspect tile_fields.tile_template_id
     export = sto_tile_template(export, tile_fields.tile_template_id)
 
-    export = if Map.has_key?(tiles, tile_hash),
-               do: export,
-               else: %{ export | tiles: Map.put(tiles, tile_hash, tile_fields) }
+    export = if Map.has_key?(tiles, tile_hash) do
+               export
+             else
+               export = check_for_tile_template_slugs(export, tile_fields)
+                        |> check_for_script_items(tile_fields)
+                        |> check_for_script_sounds(tile_fields)
+               %{ export | tiles: Map.put(tiles, tile_hash, tile_fields) }
+             end
 
     dried_tiles = Map.put(dried_tiles, {coords.row, coords.col, coords.z_index}, tile_hash)
 
@@ -78,15 +86,20 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   # get the temporary tile template id, updates export if needed, returns export and the id in a tuple
   def sto_tile_template(export, nil), do: export
-  def sto_tile_template(export, tile_template_id) do
-    if Map.has_key?(export.tile_templates, tile_template_id) do
+  def sto_tile_template(export, %TileTemplate{} = tile_template) do
+    if Map.has_key?(export.tile_templates, tile_template.id) do
       export
     else
-      tt = TileTemplates.get_tile_template(tile_template_id)
-           |> Map.put(:temp_tt_id, "tmp_tt_id_#{map_size(export.tile_templates)}")
+      tt = Map.put(tile_template, :temp_tt_id, "tmp_tt_id_#{map_size(export.tile_templates)}")
 
-      %{ export | tile_templates: Map.put(export.tile_templates, tile_template_id, tt)}
+      %{ export | tile_templates: Map.put(export.tile_templates, tile_template.id, tt)}
     end
+  end
+  def sto_tile_template(export, slug) when is_binary(slug) do
+    sto_tile_template(export, TileTemplates.get_tile_template_by_slug(slug))
+  end
+  def sto_tile_template(export, tile_template_id) do
+    sto_tile_template(export, TileTemplates.get_tile_template(tile_template_id))
   end
 
   def sto_starting_item_slugs(export, dungeon) do
@@ -110,15 +123,43 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end
   end
 
-#  def check_for_tile_template_slugs(export, %{script: script}) do
-#    slugs = Regex.scan(~r/slug: [\w\d_]+/)
-#
-#    Enum.reduce(export)
-#
-#
-#    # put, become - tile template slug
-#    # equip/unequip - item
-#    # sound - sound that is played
-#    # dungeon also needs starting_equipment checked
-#  end
+  def sto_sound_slug(export, slug) do
+    if Map.has_key?(export.sounds, slug) do
+      export
+    else
+    IO.puts "hurrrrrr"
+    IO.inspect slug
+      sound = Sound.get_effect_by_slug(slug)
+              |> Map.put(:temp_sound_id, "tmp_sound_id_#{map_size(export.sounds)}")
+
+      %{ export | sounds: Map.put(export.sounds, slug, sound)}
+    end
+  end
+
+  def check_for_tile_template_slugs(export, %{script: script}) do
+    slug_kwargs = Regex.scan(~r/slug: [\w\d_]+/i, script)
+
+    Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
+      [_, slug] = String.split(slug_kwarg)
+      sto_tile_template(export, slug)
+    end)
+  end
+
+  def check_for_script_items(export, %{script: script}) do
+    slug_kwargs = Regex.scan(~r/#(?:un)?equip [\w\d_]+/i, script)
+
+    Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
+      [_, slug] = String.split(slug_kwarg)
+      sto_item_slug(export, slug)
+    end)
+  end
+
+  def check_for_script_sounds(export, %{script: script}) do
+    slug_kwargs = Regex.scan(~r/#sound [\w\d_]+/i, script)
+
+    Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
+      [_, slug] = String.split(slug_kwarg)
+      sto_sound_slug(export, slug)
+    end)
+  end
 end

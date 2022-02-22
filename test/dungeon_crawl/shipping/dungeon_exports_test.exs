@@ -15,7 +15,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     # level 2
     # 0123_
     #0 . ._
-    #1 .#._
+    #1 .+._
     #2 ###_
 
     # level 3
@@ -26,12 +26,15 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
 
     gun = Equipment.Seeder.gun()
     stone = Equipment.Seeder.stone()
-    items = %{gun: gun, stone: stone}
+    fireball_wand = Equipment.Seeder.fireball_wand()
+    items = %{gun: gun, stone: stone, fireball_wand: fireball_wand}
 
     alarm = Sound.Seeder.alarm()
+    door = Sound.Seeder.door()
+    sounds = %{alarm: alarm, door: door}
 
-    %{?.  => floor, ?#  => wall, ?\s => rock, ?+  => closed_door, ?' => open_door} = TileSeeder.basic_tiles()
-    basic_tiles = %{floor: floor, wall: wall, rock: rock, closed_door: closed_door, open_door: open_door}
+    %{?.  => floor, ?#  => wall, ?\s => rock, ?+  => c_door, ?' => o_door} = TileSeeder.basic_tiles()
+    basic_tiles = %{floor: floor, wall: wall, rock: rock, closed_door: c_door, open_door: o_door}
 
     user = insert_user()
 
@@ -39,7 +42,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
       name: "Exporter",
       description: "testing",
       user_id: user.id,
-      state: "test: true",
+      state: "test: true, starting_equipment: gun fireball_wand",
       default_map_width: 20,
       default_map_height: 20,
       line_identifier: 1,
@@ -47,22 +50,22 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     }
 
     level_1_tiles = [
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(rock),  %{row: 0, col: 2, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 3, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 1, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 1, col: 2, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 3, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 2, col: 1, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 2, col: 2, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 2, col: 3, z_index: 0})
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0, tile_template_id: floor.id}),
+      Map.merge(Dungeons.copy_tile_fields(rock),  %{row: 0, col: 2, z_index: 0, tile_template_id: rock.id}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 3, z_index: 0, tile_template_id: floor.id}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 1, z_index: 0, tile_template_id: floor.id}),
+      Map.merge(Dungeons.copy_tile_fields(c_door),  %{row: 1, col: 2, z_index: 0, tile_template_id: c_door.id}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 3, z_index: 0, tile_template_id: floor.id}),
+      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 2, col: 1, z_index: 0, tile_template_id: wall.id}),
+      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 2, col: 2, z_index: 0, tile_template_id: wall.id}),
+      Map.merge(Dungeons.copy_tile_fields(wall),  %{row: 2, col: 3, z_index: 0, tile_template_id: wall.id})
     ]
     level_2_tiles = [
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 2, z_index: 0}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 1, z_index: 0, state: "light_source: true", name: "Floor 2"}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0}),
-      %{row: 1, col: 2, z_index: 1, character: "x", state: "blocking: true", script: "#end\n:touch\n#sound alarm\n#equip stone, ?sender"}
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0, tile_template_id: floor.id}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 2, z_index: 0, tile_template_id: floor.id}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 1, z_index: 0, tile_template_id: floor.id, state: "light_source: true", name: "Floor 2"}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0, tile_template_id: floor.id}),
+      %{name: "", row: 1, col: 2, z_index: 1, character: "x", state: "blocking: true", script: "#end\n:touch\n#sound alarm\n#equip stone, ?sender\n#become wall"}
     ]
 
     dungeon  = insert_stubbed_dungeon(dungeon_attrs)
@@ -81,7 +84,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
         state: "visibility: fog"},
       level_2_tiles)
 
-    %{dungeon: dungeon, level_1: level_1, level_2: level_2, user: user, alarm: alarm, items: items, basic_tiles: basic_tiles}
+    %{dungeon: dungeon, level_1: level_1, level_2: level_2, user: user, sounds: sounds, items: items, basic_tiles: basic_tiles}
   end
 
   test "run/1", export do
@@ -97,6 +100,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     IO.inspect export_hash
 
     assert {tmp_gun_item_id, gun} = Enum.find(items, fn {_, item} -> item.name == "Gun" end)
+    assert {tmp_wand_item_id, wand} = Enum.find(items, fn {_, item} -> item.name == "Fireball Wand" end)
     assert {tmp_stone_item_id, stone} = Enum.find(items, fn {_, item} -> item.name == "Stone" end)
     # todo: verify temp item attributes
 
@@ -109,7 +113,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert {tmp_floor2_id, floor2} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor" end)
     assert {tmp_custom_id, custom_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "" end)
     # todo: verify tiles attributes
-
+IO.inspect tile_templates
     assert {tmp_floor_tt_id, floor_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Floor" end)
     assert {tmp_wall_tt_id, wall_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Wall" end)
     assert {tmp_rock_tt_id, rock_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Rock" end)
