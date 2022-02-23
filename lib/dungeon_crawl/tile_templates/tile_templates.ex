@@ -19,7 +19,13 @@ defmodule DungeonCrawl.TileTemplates do
                     :animate_period,
                     :animate_characters,
                     :animate_colors,
-                    :animate_background_colors]
+                    :animate_background_colors,
+                    :user_id,
+                    :public,
+                    :description,
+                    :slug,
+                    :group_name
+  ]
 
   @doc """
   Returns the list of tile_templates.
@@ -185,10 +191,7 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   defp _tile_template_copy_changeset(tile_template) do
-    with old_attrs     <- Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public,
-                                                          :description, :state, :script, :slug,
-                                                          :animate_random, :animate_colors, :animate_background_colors,
-                                                          :animate_characters, :animate_period, :group_name]),
+    with old_attrs     <- Map.take(tile_template, @copiable_fields),
          version_attrs <- %{version: tile_template.version+1, previous_version_id: tile_template.id},
          new_attrs     <- Map.merge(old_attrs, version_attrs)
     do
