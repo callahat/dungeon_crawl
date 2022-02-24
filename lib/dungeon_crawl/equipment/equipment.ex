@@ -8,6 +8,17 @@ defmodule DungeonCrawl.Equipment do
 
   alias DungeonCrawl.Equipment.Item
 
+  @copiable_fields [
+    :consumable,
+    :description,
+    :name,
+    :public,
+    :script,
+    :slug,
+    :user_id,
+    :weapon,
+  ]
+
   @doc """
   Returns the list of items.
 
@@ -225,5 +236,13 @@ defmodule DungeonCrawl.Equipment do
   """
   def change_item(%Item{} = item, attrs \\ %{}) do
     Item.changeset(item, attrs)
+  end
+
+  @doc """
+  Returns a copy of the fields from the given item as a map.
+  """
+  def copy_fields(nil), do: %{}
+  def copy_fields(item) do
+    Map.take(item, @copiable_fields)
   end
 end

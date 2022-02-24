@@ -207,5 +207,14 @@ defmodule DungeonCrawl.SoundTest do
       effect = effect_fixture()
       assert %Ecto.Changeset{} = Sound.change_effect(effect)
     end
+
+    test  "copy_fields/1" do
+      effect = effect_fixture()
+      assert %{name: "Some Name",
+               public: true,
+               slug: "some_name",
+               user_id: nil,
+               zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"} == Sound.copy_fields(effect)
+    end
   end
 end

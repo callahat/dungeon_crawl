@@ -88,7 +88,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.tile_templates, tile_template.id) do
       export
     else
-      tt = Map.put(tile_template, :temp_tt_id, "tmp_tt_id_#{map_size(export.tile_templates)}")
+      tt = TileTemplates.copy_fields(tile_template)
+           |> Map.put(:temp_tt_id, "tmp_tt_id_#{map_size(export.tile_templates)}")
 
       %{ export | tile_templates: Map.put(export.tile_templates, tile_template.id, tt)}
     end
@@ -115,6 +116,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       export
     else
       item = Equipment.get_item(slug)
+             |> Equipment.copy_fields()
              |> Map.put(:temp_item_id, "tmp_item_id_#{map_size(export.items)}")
 
       %{ export | items: Map.put(export.items, slug, item)}
@@ -126,6 +128,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       export
     else
       sound = Sound.get_effect_by_slug(slug)
+              |> Sound.copy_fields()
               |> Map.put(:temp_sound_id, "tmp_sound_id_#{map_size(export.sounds)}")
 
       %{ export | sounds: Map.put(export.sounds, slug, sound)}

@@ -176,5 +176,17 @@ defmodule DungeonCrawl.EquipmentTest do
       item = item_fixture()
       assert %Ecto.Changeset{} = Equipment.change_item(item)
     end
+
+    test  "copy_fields/1" do
+      item = item_fixture()
+      assert %{description: "A thing",
+               name: "thing",
+               public: true,
+               script: "#give gems, 1, @facing",
+               slug: "thing",
+               user_id: nil,
+               consumable: false,
+               weapon: false} == Equipment.copy_fields(item)
+    end
   end
 end
