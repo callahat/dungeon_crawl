@@ -90,18 +90,22 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
         state: "visibility: fog"},
       level_3_tiles)
 
+    Dungeons.add_spawn_locations(level_2.id, [{0,1}, {0,3}])
+    Dungeons.add_spawn_locations(level_3.id, [{1,1}])
+
     %{dungeon: dungeon, level_2: level_2, level_3: level_3, user: user, sounds: sounds, items: items, basic_tiles: basic_tiles}
   end
 
   test "run/1", export do
     export_hash = DungeonExports.run(export.dungeon.id)
-    assert %{
+    assert %DungeonExports{
              dungeon: dungeon,
              levels: levels,
              tiles: tiles,
              items: items,
              tile_templates: tile_templates,
-             sounds: sounds
+             sounds: sounds,
+             spawn_locations: spawn_locations,
            } = export_hash
 
     # Items
@@ -168,7 +172,6 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
            |> Map.put(:script, "#end\n:touch\n#sound #{tmp_alarm_id}\n#equip #{tmp_stone_id}, ?sender\n#become slug: #{tmp_wall_tt_id}\n#unequip #{tmp_gun_id}, ?sender\n/i\n#sound #{tmp_alarm_id}")
            == Map.delete(custom_tile, :tile_template_id)
 
-    # TODO: once the tile template ids are repointed to the temp tt ids, the below should pass
     # and the above `assert 1==...` should be updated accordingly
     assert floor.tile_template_id == floor_tt.temp_tt_id
     assert wall.tile_template_id == wall_tt.temp_tt_id
@@ -176,9 +179,6 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert c_door.tile_template_id == c_door_tt.temp_tt_id
     assert floor2.tile_template_id == floor_tt.temp_tt_id
     assert is_nil(custom_tile.tile_template_id)
-
-    # todo: assert any slugs (sound, item, tile template) are replaced with the temporary id for all the tiles are updated
-
 
     # Levels
     assert %{1 => level_1, 2 => level_2, 3 => level_3} = levels
@@ -224,6 +224,9 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              {1, 2, 1} => custom_hash
            } == level_3_tile_data
 
+    # spawn locations
+    assert [{2, 0, 1}, {2, 0, 3}, {3, 1, 1}] == spawn_locations
+
     # Dungeon
     assert Map.delete(dungeon, :state) == Map.delete(Dungeons.copy_dungeon_fields(export.dungeon), :state)
     assert String.contains?(dungeon.state, "starting_equipment: #{gun.temp_item_id} #{wand.temp_item_id}")
@@ -236,15 +239,18 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
 
     export_hash = DungeonExports.run(updated_dungeon.id)
 
-    assert %{
+    assert %DungeonExports{
              dungeon: dungeon,
              items: items,
+             spawn_locations: spawn_locations,
            } = export_hash
 
     assert [{"gun", gun}] = Map.to_list(items)
 
     assert export.items.gun == Map.delete(gun, :temp_item_id)
     assert %{temp_item_id: _tmp_gun_id} = gun
+
+    assert [] == spawn_locations
 
     assert dungeon == Dungeons.copy_dungeon_fields(updated_dungeon)
   end

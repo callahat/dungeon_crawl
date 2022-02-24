@@ -1,6 +1,6 @@
 defmodule DungeonCrawl.Shipping.DungeonExports do
   @moduledoc """
-  The Dungeon Exporter module. Its goal is to take a single dungeon and generate a portable JSON file
+  The Dungeon Exporter module. Its goal is to take a single dungeon and generate a struct
   that replaces ids, foreign keys, and slugs with identifiers that reference other items in the export
   file, so the dungeon, its levels, tiles, and all dependent sounds, items, tile templates and other
   assets can be found or created in the destination application. Any information on previous versions
@@ -27,11 +27,12 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
             tiles: %{},
             items: %{},
             tile_templates: %{},
-            sounds: %{}
+            sounds: %{},
+            spawn_locations: []
 
   def run(dungeon_id) do
     dungeon = Dungeons.get_dungeon!(dungeon_id)
-              |> Repo.preload([:user, [levels: [:tiles, :spawn_locations]]])
+              |> Repo.preload([:user, [levels: :tiles, spawn_locations: :level]])
 
     extract_dungeon_data(%DungeonExports{}, dungeon)
     |> sto_starting_item_slugs(dungeon)
@@ -44,7 +45,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   def extract_dungeon_data(export, dungeon) do
     # parse state and check starting_equipment for what items need copied over,
     # if none grab the default "gun"
-    %{ export | dungeon: Dungeons.copy_dungeon_fields(dungeon) }
+    spawn_locations = Enum.map(dungeon.spawn_locations, fn sl -> {sl.level.number, sl.row, sl.col} end)
+    dungeon = Dungeons.copy_dungeon_fields(dungeon)
+    %{ export | dungeon: dungeon, spawn_locations: spawn_locations }
   end
 
   def extract_level_and_tile_data(export, []), do: export
