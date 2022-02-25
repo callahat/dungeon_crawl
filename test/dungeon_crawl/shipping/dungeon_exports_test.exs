@@ -109,6 +109,9 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              spawn_locations: spawn_locations,
            } = export_hash
 
+    # the temp ids may be different, depending on how stuff gets sorted / encountered when sto'ing assets
+    assert DungeonCrawlWeb.ExportFixture.export == export_hash
+
     # Items
     assert {tmp_gun_id, gun} = Enum.find(items, fn {_, item} -> item.name == "Gun" end)
     assert {tmp_wand_id, wand} = Enum.find(items, fn {_, item} -> item.name == "Fireball Wand" end)
@@ -229,7 +232,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert [{2, 0, 1}, {2, 0, 3}, {3, 1, 1}] == spawn_locations
 
     # Dungeon
-    assert Map.delete(dungeon, :state) == Map.delete(Dungeons.copy_dungeon_fields(export.dungeon), :state)
+    assert Map.drop(dungeon, [:state, :user_name]) == Map.drop(Dungeons.copy_dungeon_fields(export.dungeon), [:state, :user_id])
     assert String.contains?(dungeon.state, "starting_equipment: #{gun.temp_item_id} #{wand.temp_item_id}")
   end
 
@@ -253,6 +256,6 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
 
     assert [] == spawn_locations
 
-    assert dungeon == Dungeons.copy_dungeon_fields(updated_dungeon)
+    assert Map.delete(dungeon, :user_name) == Map.delete(Dungeons.copy_dungeon_fields(updated_dungeon), :user_id)
   end
 end

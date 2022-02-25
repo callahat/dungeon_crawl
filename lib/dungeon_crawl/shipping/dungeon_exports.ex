@@ -38,6 +38,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> sto_starting_item_slugs(dungeon)
     |> extract_level_and_tile_data(dungeon.levels)
     |> repoint_tiles_ttids_and_slugs()
+    |> recalculate_tile_hashes()
     |> repoint_dungeon_item_slugs()
     |> switch_keys(:sounds, :temp_sound_id)
     |> switch_keys(:items, :temp_item_id)
@@ -50,6 +51,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     # if none grab the default "gun"
     spawn_locations = Enum.map(dungeon.spawn_locations, fn sl -> {sl.level.number, sl.row, sl.col} end)
     dungeon = Dungeons.copy_dungeon_fields(dungeon)
+              |> Map.delete(:user_id)
+              |> Map.put(:user_name, dungeon.user.name)
     %{ export | dungeon: dungeon, spawn_locations: spawn_locations }
   end
 
@@ -67,7 +70,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   def extract_tile_data(%{tiles: tiles} = export, dried_tiles, [level_tile | level_tiles]) do
     {coords, tile_fields} = Dungeons.copy_tile_fields(level_tile)
                             |> Map.split([:row, :col, :z_index])
-    tile_hash = Base.encode64(:crypto.hash(:md5, inspect(tile_fields)))
+    tile_hash = Base.encode64(:crypto.hash(:sha, inspect(tile_fields)))
 
     export = sto_tile_template(export, tile_fields.tile_template_id)
 
@@ -175,6 +178,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
                 |> repoint_tile_script_slugs(export, :sounds, :temp_sound_id, @tile_script_sound_slug)
               }
             end)
+            |> Enum.into(%{})
 
     %{ export | tiles: tiles }
   end
@@ -207,6 +211,27 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       nil ->
         export
     end
+  end
+
+  def recalculate_tile_hashes(%{levels: levels, tiles: tiles} = export) do
+    old_to_new_hash = Enum.map(tiles, fn {old_hash, tile_fields} ->
+                        {old_hash, Base.encode64(:crypto.hash(:sha, inspect(tile_fields)))}
+                      end)
+                      |> Enum.into(%{})
+    tiles = Enum.map(tiles, fn {old_hash, tile_fields} ->
+              { Map.get(old_to_new_hash, old_hash), tile_fields }
+            end)
+            |> Enum.into(%{})
+    levels = Enum.map(levels, fn {number, %{tile_data: tile_data} = level_fields} ->
+               tile_data = Enum.map(tile_data, fn {coords, old_hash} ->
+                             {coords, Map.get(old_to_new_hash, old_hash)}
+                           end)
+                           |> Enum.into(%{})
+               {number, %{level_fields | tile_data: tile_data}}
+             end)
+             |> Enum.into(%{})
+
+    %{ export | levels: levels, tiles: tiles }
   end
 
   def switch_keys(export, asset_key, temp_id_key) do
