@@ -110,49 +110,49 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
            } = export_hash
 
     # Items
-    assert {"gun", gun} = Enum.find(items, fn {_, item} -> item.name == "Gun" end)
-    assert {"fireball_wand", wand} = Enum.find(items, fn {_, item} -> item.name == "Fireball Wand" end)
-    assert {"stone", stone} = Enum.find(items, fn {_, item} -> item.name == "Stone" end)
+    assert {tmp_gun_id, gun} = Enum.find(items, fn {_, item} -> item.name == "Gun" end)
+    assert {tmp_wand_id, wand} = Enum.find(items, fn {_, item} -> item.name == "Fireball Wand" end)
+    assert {tmp_stone_id, stone} = Enum.find(items, fn {_, item} -> item.name == "Stone" end)
 
     assert Equipment.copy_fields(export.items.gun) == Map.delete(gun, :temp_item_id)
     assert Equipment.copy_fields(export.items.fireball_wand) == Map.delete(wand, :temp_item_id)
     assert Equipment.copy_fields(export.items.stone) == Map.delete(stone, :temp_item_id)
-    assert %{temp_item_id: tmp_gun_id} = gun
-    assert %{temp_item_id: _tmp_wand_id} = wand
-    assert %{temp_item_id: tmp_stone_id} = stone
+    assert %{temp_item_id: ^tmp_gun_id} = gun
+    assert %{temp_item_id: ^tmp_wand_id} = wand
+    assert %{temp_item_id: ^tmp_stone_id} = stone
 
     # Sounds
-    assert {"alarm", alarm} = Enum.find(sounds, fn {_, sound} -> sound.name == "Alarm" end)
-    assert {"door", door} = Enum.find(sounds, fn {_, sound} -> sound.name == "Door" end)
+    assert {tmp_alarm_id, alarm} = Enum.find(sounds, fn {_, sound} -> sound.name == "Alarm" end)
+    assert {tmp_door_id, door} = Enum.find(sounds, fn {_, sound} -> sound.name == "Door" end)
 
     assert Sound.copy_fields(export.sounds.alarm) == Map.delete(alarm, :temp_sound_id)
     assert Sound.copy_fields(export.sounds.door) == Map.delete(door, :temp_sound_id)
-    assert %{temp_sound_id: tmp_alarm_id} = alarm
-    assert %{temp_sound_id: tmp_door_id} = door
+    assert %{temp_sound_id: ^tmp_alarm_id} = alarm
+    assert %{temp_sound_id: ^tmp_door_id} = door
 
     # Tile templates
-    assert {floor_tt_id, floor_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Floor" end)
-    assert {wall_tt_id, wall_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Wall" end)
-    assert {rock_tt_id, rock_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Rock" end)
-    assert {c_door_tt_id, c_door_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Closed Door" end)
-    assert {o_door_tt_id, o_door_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Open Door" end)
+    assert {tmp_floor_tt_id, floor_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Floor" end)
+    assert {tmp_wall_tt_id, wall_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Wall" end)
+    assert {tmp_rock_tt_id, rock_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Rock" end)
+    assert {tmp_c_door_tt_id, c_door_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Closed Door" end)
+    assert {tmp_o_door_tt_id, o_door_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Open Door" end)
 
-    assert floor_tt_id == export.basic_tiles.floor.id
-    assert wall_tt_id == export.basic_tiles.wall.id
-    assert rock_tt_id == export.basic_tiles.rock.id
-    assert c_door_tt_id == export.basic_tiles.closed_door.id
-    assert o_door_tt_id == export.basic_tiles.open_door.id
+    assert floor_tt.name == export.basic_tiles.floor.name
+    assert wall_tt.name == export.basic_tiles.wall.name
+    assert rock_tt.name == export.basic_tiles.rock.name
+    assert c_door_tt.name == export.basic_tiles.closed_door.name
+    assert o_door_tt.name == export.basic_tiles.open_door.name
 
     assert TileTemplates.copy_fields(export.basic_tiles.floor) == Map.delete(floor_tt, :temp_tt_id)
     assert TileTemplates.copy_fields(export.basic_tiles.wall) == Map.delete(wall_tt, :temp_tt_id)
     assert TileTemplates.copy_fields(export.basic_tiles.rock) == Map.delete(rock_tt, :temp_tt_id)
     assert TileTemplates.copy_fields(export.basic_tiles.closed_door) == Map.delete(c_door_tt, :temp_tt_id)
     assert TileTemplates.copy_fields(export.basic_tiles.open_door) == Map.delete(o_door_tt, :temp_tt_id)
-    assert %{temp_tt_id: _tmp_floor_tt_id} = floor_tt
-    assert %{temp_tt_id: tmp_wall_tt_id} = wall_tt
-    assert %{temp_tt_id: _tmp_rock_tt_id} = rock_tt
-    assert %{temp_tt_id: _tmp_c_door_tt_id} = c_door_tt
-    assert %{temp_tt_id: tmp_o_door_tt_id} = o_door_tt
+    assert %{temp_tt_id: ^tmp_floor_tt_id} = floor_tt
+    assert %{temp_tt_id: ^tmp_wall_tt_id} = wall_tt
+    assert %{temp_tt_id: ^tmp_rock_tt_id} = rock_tt
+    assert %{temp_tt_id: ^tmp_c_door_tt_id} = c_door_tt
+    assert %{temp_tt_id: ^tmp_o_door_tt_id} = o_door_tt
 
     # Tiles
     assert {floor_hash, floor} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor" end)
@@ -246,10 +246,10 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              spawn_locations: spawn_locations,
            } = export_hash
 
-    assert [{"gun", gun}] = Map.to_list(items)
+    assert [{tmp_gun_id, gun}] = Map.to_list(items)
 
     assert Equipment.copy_fields(export.items.gun) == Map.delete(gun, :temp_item_id)
-    assert %{temp_item_id: _tmp_gun_id} = gun
+    assert %{temp_item_id: ^tmp_gun_id} = gun
 
     assert [] == spawn_locations
 

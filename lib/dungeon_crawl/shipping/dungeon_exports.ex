@@ -39,6 +39,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> extract_level_and_tile_data(dungeon.levels)
     |> repoint_tiles_ttids_and_slugs()
     |> repoint_dungeon_item_slugs()
+    |> switch_keys(:sounds, :temp_sound_id)
+    |> switch_keys(:items, :temp_item_id)
+    |> switch_keys(:tile_templates, :temp_tt_id)
   end
 
   # these can be private, for now easier to work on them one at a time
@@ -204,5 +207,12 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       nil ->
         export
     end
+  end
+
+  def switch_keys(export, asset_key, temp_id_key) do
+    assets = Map.get(export, asset_key)
+             |> Enum.map(fn {_slug_or_id, asset} -> {Map.get(asset, temp_id_key), asset} end)
+             |> Enum.into(%{})
+    %{ export | asset_key => assets }
   end
 end
