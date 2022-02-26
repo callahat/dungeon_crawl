@@ -48,6 +48,8 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     # create levels
     #   when creating level, create all its tiles
     # last, create spawn locations
+
+    export
   end
 
   def find_or_create_assets(export, asset_key, find_asset, create_asset, user_id) do
@@ -55,7 +57,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     Map.get(export, asset_key)
     |> Enum.map(fn {tmp_id, attrs} ->
          asset =
-         with attrs = Map.delete(attrs, :slug),
+         with attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
               asset when is_nil(asset) <- find_asset.(Map.delete(attrs, :user_id)),
               attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
               sound when is_nil(asset) <- find_asset.(attrs) do
