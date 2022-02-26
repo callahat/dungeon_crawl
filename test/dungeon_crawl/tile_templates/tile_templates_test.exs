@@ -84,6 +84,15 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.get_tile_template_by_slug(tile_template.slug, :validation)
     end
 
+    test "get_tile_template_by_slug!/1 returns the tile_template with given slug" do
+      tile_template = tile_template_fixture(%{active: true})
+      assert TileTemplates.get_tile_template_by_slug(tile_template.slug) == tile_template
+    end
+
+    test "get_tile_template_by_slug!/1 raises exception when not found" do
+      assert_raise Ecto.NoResultsError, fn -> TileTemplates.get_tile_template_by_slug!("cloud_chaser") end
+    end
+
     test "next_version_exists?/1 is true if the tile_template has a next version" do
       tile_template = tile_template_fixture()
       tile_template_fixture(%{previous_version_id: tile_template.id})

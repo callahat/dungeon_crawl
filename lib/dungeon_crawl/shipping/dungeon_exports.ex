@@ -18,9 +18,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   alias DungeonCrawl.Sound
 
   @starting_equipment_slugs ~r/starting_equipment: (?<eq>[ \w\d]+)/
-  @tile_script_tt_slug ~r/slug: [\w\d_]+/i
-  @tile_script_item_slug ~r/#(?:un)?equip [\w\d_]+/i
-  @tile_script_sound_slug ~r/#sound [\w\d_]+/i
+  @script_tt_slug ~r/slug: [\w\d_]+/i
+  @script_item_slug ~r/#(?:un)?equip [\w\d_]+/i
+  @script_sound_slug ~r/#sound [\w\d_]+/i
 
   defstruct dungeon: nil,
             levels: %{},
@@ -37,7 +37,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     extract_dungeon_data(%DungeonExports{}, dungeon)
     |> sto_starting_item_slugs(dungeon)
     |> extract_level_and_tile_data(dungeon.levels)
-    |> repoint_tiles_ttids_and_slugs()
+    |> repoint_ttids_and_slugs(:tiles)
+    |> repoint_ttids_and_slugs(:items)
     |> recalculate_tile_hashes()
     |> repoint_dungeon_item_slugs()
     |> switch_keys(:sounds, :temp_sound_id)
@@ -101,10 +102,10 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end
   end
   def sto_tile_template(export, slug) when is_binary(slug) do
-    sto_tile_template(export, TileTemplates.get_tile_template_by_slug(slug))
+    sto_tile_template(export, TileTemplates.get_tile_template_by_slug!(slug))
   end
   def sto_tile_template(export, tile_template_id) do
-    sto_tile_template(export, TileTemplates.get_tile_template(tile_template_id))
+    sto_tile_template(export, TileTemplates.get_tile_template!(tile_template_id))
   end
 
   def sto_starting_item_slugs(export, dungeon) do
@@ -121,9 +122,13 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.items, slug) do
       export
     else
-      item = Equipment.get_item(slug)
+      item = Equipment.get_item!(slug)
              |> Equipment.copy_fields()
              |> Map.put(:temp_item_id, "tmp_item_id_#{map_size(export.items)}")
+
+      export = check_for_tile_template_slugs(export, item)
+               |> check_for_script_items(item)
+               |> check_for_script_sounds(item)
 
       %{ export | items: Map.put(export.items, slug, item)}
     end
@@ -133,7 +138,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.sounds, slug) do
       export
     else
-      sound = Sound.get_effect_by_slug(slug)
+      sound = Sound.get_effect_by_slug!(slug)
               |> Sound.copy_fields()
               |> Map.put(:temp_sound_id, "tmp_sound_id_#{map_size(export.sounds)}")
 
@@ -142,7 +147,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def check_for_tile_template_slugs(export, %{script: script}) do
-    slug_kwargs = Regex.scan(@tile_script_tt_slug, script)
+    slug_kwargs = Regex.scan(@script_tt_slug, script)
 
     Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
       [_, slug] = String.split(slug_kwarg)
@@ -151,7 +156,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def check_for_script_items(export, %{script: script}) do
-    slug_kwargs = Regex.scan(@tile_script_item_slug, script)
+    slug_kwargs = Regex.scan(@script_item_slug, script)
 
     Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
       [_, slug] = String.split(slug_kwarg)
@@ -160,7 +165,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def check_for_script_sounds(export, %{script: script}) do
-    slug_kwargs = Regex.scan(@tile_script_sound_slug, script)
+    slug_kwargs = Regex.scan(@script_sound_slug, script)
 
     Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
       [_, slug] = String.split(slug_kwarg)
@@ -168,33 +173,35 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end)
   end
 
-  def repoint_tiles_ttids_and_slugs(%{tiles: tiles} = export) do
-    tiles = Enum.map(tiles, fn {th, tile} ->
+  def repoint_ttids_and_slugs(export, asset_key) do
+    assets = Enum.map(Map.get(export, asset_key), fn {th, tile} ->
               {
                 th,
                 repoint_tile_template_id(tile, export)
-                |> repoint_tile_script_slugs(export, :tile_templates, :temp_tt_id, @tile_script_tt_slug)
-                |> repoint_tile_script_slugs(export, :items, :temp_item_id, @tile_script_item_slug)
-                |> repoint_tile_script_slugs(export, :sounds, :temp_sound_id, @tile_script_sound_slug)
+                |> repoint_script_slugs(export, :tile_templates, :temp_tt_id, @script_tt_slug)
+                |> repoint_script_slugs(export, :items, :temp_item_id, @script_item_slug)
+                |> repoint_script_slugs(export, :sounds, :temp_sound_id, @script_sound_slug)
               }
             end)
             |> Enum.into(%{})
 
-    %{ export | tiles: tiles }
+    %{ export | asset_key => assets }
   end
 
-  def repoint_tile_template_id(tile, export) do
-    template = Map.get(export.tile_templates, tile.tile_template_id, %{temp_tt_id: nil})
-    Map.put(tile, :tile_template_id, template.temp_tt_id)
+  def repoint_tile_template_id(%{tile_template_id: tile_template_id} = asset, export) do
+    template = Map.get(export.tile_templates, tile_template_id, %{temp_tt_id: nil})
+    Map.put(asset, :tile_template_id, template.temp_tt_id)
   end
 
-  def repoint_tile_script_slugs(tile, export, slug_type, temp_id_type, slug_pattern) do
-    slug_kwargs = Regex.scan(slug_pattern, tile.script || "")
+  def repoint_tile_template_id(asset, export), do: asset
 
-    Enum.reduce(slug_kwargs, tile, fn [slug_kwarg], tile ->
+  def repoint_script_slugs(asset, export, slug_type, temp_id_type, slug_pattern) do
+    slug_kwargs = Regex.scan(slug_pattern, asset.script || "")
+
+    Enum.reduce(slug_kwargs, asset, fn [slug_kwarg], asset ->
       [left_side, slug] = String.split(slug_kwarg)
       {_, %{^temp_id_type => temp_slug_or_id}} = Enum.find(Map.fetch!(export, slug_type), fn {_, i} -> i.slug == slug end)
-      Map.put(tile, :script, String.replace(tile.script, slug_kwarg, "#{left_side} #{temp_slug_or_id}"))
+      Map.put(asset, :script, String.replace(asset.script, slug_kwarg, "#{left_side} #{temp_slug_or_id}"))
     end)
   end
 
