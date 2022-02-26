@@ -132,6 +132,21 @@ defmodule DungeonCrawl.Equipment do
     |> Repo.update()
   end
 
+  @doc """
+  Finds an item.
+
+  Does not accept attributes of `nil`
+
+  ## Examples
+
+      iex> find_item(%{field: value})
+      %Item{}
+
+  """
+  # todo: spec for this
+  def find_item(attrs \\ %{}) do
+    Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+  end
 
   @doc """
   Finds or creates an item; mainly useful for the initial seeds.
@@ -148,14 +163,14 @@ defmodule DungeonCrawl.Equipment do
 
   """
   def find_or_create_item(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_item(attrs) do
       nil  -> create_item(attrs)
       item -> {:ok, item}
     end
   end
 
   def find_or_create_item!(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_item(attrs) do
       nil  -> create_item!(attrs)
       item -> item
     end

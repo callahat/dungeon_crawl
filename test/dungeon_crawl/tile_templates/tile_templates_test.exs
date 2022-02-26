@@ -165,6 +165,13 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert {:error, "New version already exists"} = TileTemplates.create_new_tile_template_version(tile_template)
     end
 
+    test "find_tile_template/1" do
+      {:ok, %TileTemplate{} = existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
+
+      assert existing_tile_template == TileTemplates.find_tile_template(@valid_attrs)
+      refute TileTemplates.find_tile_template(%{name: "junk that does not exist"})
+    end
+
     test "find_or_create_tile_template/1 finds existing tile_template" do
       {:ok, %TileTemplate{} = existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
 

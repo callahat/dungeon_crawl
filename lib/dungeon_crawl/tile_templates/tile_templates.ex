@@ -201,6 +201,22 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   @doc """
+  Finds a tile template.
+
+  Does not accept attributes of `nil`
+
+  ## Examples
+
+      iex> find_tile_template(%{field: value})
+      %TileTemplate{}
+
+  """
+  # todo: spec for this, probably could consolidate this as its a copy paste agains equipment, item,
+  def find_tile_template(attrs \\ %{}) do
+    Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+  end
+
+  @doc """
   Finds or creates a tile_template; mainly useful for the initial seeds.
   When one is found, the oldest tile_template will be returned (ie, first created)
   to ensure that similar tiles created later are not returned.
@@ -217,14 +233,14 @@ defmodule DungeonCrawl.TileTemplates do
 
   """
   def find_or_create_tile_template(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_tile_template(attrs) do
       nil      -> create_tile_template(attrs)
       template -> {:ok, template}
     end
   end
 
   def find_or_create_tile_template!(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_tile_template(attrs) do
       nil      -> create_tile_template!(attrs)
       template -> template
     end

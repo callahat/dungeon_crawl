@@ -139,7 +139,7 @@ defmodule DungeonCrawl.Sound do
   ## Examples
 
       iex> find_effect(%{field: value})
-      {:ok, %Effect{}}
+      %Effect{}
 
   """
   # todo: spec for this

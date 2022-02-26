@@ -86,6 +86,13 @@ defmodule DungeonCrawl.EquipmentTest do
       assert {:error, %Ecto.Changeset{}} = Equipment.create_item(@invalid_attrs)
     end
 
+    test "find_item/1" do
+      {:ok, %Item{} = existing_item} = Equipment.create_item(@valid_attrs)
+
+      assert existing_item == Equipment.find_item(@valid_attrs)
+      refute Equipment.find_item(%{name: "item that does not exist"})
+    end
+
     test "find_or_create_item/1 finds existing item" do
       {:ok, %Item{} = existing_item} = Equipment.create_item(@valid_attrs)
 
