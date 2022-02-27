@@ -136,7 +136,7 @@ defmodule DungeonCrawl.SoundTest do
     test "find_effect/1" do
       {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
 
-      assert existing_effect == Sound.find_effect(@valid_attrs)
+      assert existing_effect == Sound.find_effect(Map.put(@valid_attrs, :user_id, nil))
       refute Sound.find_effect(%{name: "effect that does not exist"})
     end
 

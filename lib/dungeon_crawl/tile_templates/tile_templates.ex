@@ -208,9 +208,7 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   @doc """
-  Finds a tile template.
-
-  Does not accept attributes of `nil`
+  Finds a tile template that matches all the given fields.
 
   ## Examples
 
@@ -218,17 +216,18 @@ defmodule DungeonCrawl.TileTemplates do
       %TileTemplate{}
 
   """
-  # todo: spec for this, probably could consolidate this as its a copy paste agains equipment, item,
   def find_tile_template(attrs \\ %{}) do
     Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+  end
+  # todo: spec for this, probably could consolidate this as its a copy paste agains equipment, item,
+  def find_tile_templates(attrs \\ %{}) do
+    Repo.all(from _attrs_query(attrs), order_by: :id)
   end
 
   @doc """
   Finds or creates a tile_template; mainly useful for the initial seeds.
   When one is found, the oldest tile_template will be returned (ie, first created)
   to ensure that similar tiles created later are not returned.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 
@@ -255,7 +254,10 @@ defmodule DungeonCrawl.TileTemplates do
 
   defp _attrs_query(attrs) do
     Enum.reduce(attrs, TileTemplate,
-      fn {x,y}, query ->
+      fn
+       {x, nil}, query ->
+         from m in query, where: is_nil(field(m, ^x))
+       {x,y}, query ->
         field_query = [{x, y}] #dynamic keyword list
         query|>where(^field_query)
       end)
@@ -267,8 +269,6 @@ defmodule DungeonCrawl.TileTemplates do
   When one is found, the newest tile_template will be returned (ie, last created, even
   if not active) to ensure get the latest version of the seeded tile. If nothing with that slug
   is found, falls back to the "find_or_create_tile_template" function.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 

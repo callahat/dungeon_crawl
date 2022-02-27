@@ -132,9 +132,7 @@ defmodule DungeonCrawl.Sound do
 
   # TODO: consolidate the find or create/update or create, seems like a lot of repeated functionality, using either Sluggable to another module
   @doc """
-  Finds an effect.
-
-  Does not accept attributes of `nil`
+  Finds an effect that matches all the given fields.
 
   ## Examples
 
@@ -142,15 +140,12 @@ defmodule DungeonCrawl.Sound do
       %Effect{}
 
   """
-  # todo: spec for this
   def find_effect(attrs \\ %{}) do
     Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
   end
 
   @doc """
   Finds or creates an effect; mainly useful for the initial seeds.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 
@@ -177,7 +172,10 @@ defmodule DungeonCrawl.Sound do
   defp _attrs_query(attrs) do
     Map.delete(attrs, :slug)
     |> Enum.reduce(Effect,
-         fn {x,y}, query ->
+       fn
+         {x, nil}, query ->
+           from m in query, where: is_nil(field(m, ^x))
+         {x,y}, query ->
            field_query = [{x, y}] #dynamic keyword list
            query|>where(^field_query)
          end)
@@ -187,8 +185,6 @@ defmodule DungeonCrawl.Sound do
   Finds and updates or creates an effect; mainly useful for the initial seeds.
   Looks up the effect first by slug (if given). If nothing with that slug
   is found, falls back to the "find_or_create_effect" function.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 

@@ -181,6 +181,15 @@ defmodule DungeonCrawl.TileTemplatesTest do
       refute TileTemplates.find_tile_template(%{name: "junk that does not exist"})
     end
 
+    test "find_tile_templates/1" do
+      {:ok, %TileTemplate{} = existing_tile_template1} = TileTemplates.create_tile_template(@valid_attrs)
+      {:ok, %TileTemplate{} = existing_tile_template2} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :name, "A Big X 2"))
+
+      assert [existing_tile_template1, existing_tile_template2]
+             == TileTemplates.find_tile_templates(%{description: "A big capital X", character: "X", user_id: nil})
+      assert [] == TileTemplates.find_tile_templates(%{name: "junk that does not exist"})
+    end
+
     test "find_or_create_tile_template/1 finds existing tile_template" do
       {:ok, %TileTemplate{} = existing_tile_template} = TileTemplates.create_tile_template(@valid_attrs)
 

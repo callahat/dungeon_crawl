@@ -133,9 +133,7 @@ defmodule DungeonCrawl.Equipment do
   end
 
   @doc """
-  Finds an item.
-
-  Does not accept attributes of `nil`
+  Finds an item that matches all the given fields.
 
   ## Examples
 
@@ -143,9 +141,11 @@ defmodule DungeonCrawl.Equipment do
       %Item{}
 
   """
-  # todo: spec for this
   def find_item(attrs \\ %{}) do
     Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+  end
+  def find_items(attrs \\ %{}) do
+    Repo.all(from _attrs_query(attrs), order_by: :id)
   end
 
   @doc """
@@ -179,9 +179,12 @@ defmodule DungeonCrawl.Equipment do
   defp _attrs_query(attrs) do
     Map.delete(attrs, :slug)
     |> Enum.reduce(Item,
-         fn {x,y}, query ->
-           field_query = [{x, y}] #dynamic keyword list
-           query|>where(^field_query)
+         fn
+           {x, nil}, query ->
+             from m in query, where: is_nil(field(m, ^x))
+           {x,y}, query ->
+             field_query = [{x, y}] #dynamic keyword list
+             query|>where(^field_query)
          end)
   end
 

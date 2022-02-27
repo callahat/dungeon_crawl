@@ -41,7 +41,8 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     click = Sound.Seeder.click()
     door = Sound.Seeder.door()
     shoot = Sound.Seeder.shoot()
-    sounds = %{alarm: alarm, bomb: bomb, click: click, door: door, shoot: shoot}
+    pickup_blip = Sound.Seeder.pickup_blip()
+    sounds = %{alarm: alarm, bomb: bomb, click: click, door: door, shoot: shoot, pickup_blip: pickup_blip}
 
     %{?.  => floor, ?#  => wall, ?\s => rock, ?+  => c_door, ?' => o_door} = TileSeeder.basic_tiles()
     fireball = TileSeeder.fireball()
@@ -124,20 +125,14 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              spawn_locations: spawn_locations,
            } = export_hash
 
-    # the temp ids may be different, depending on how stuff gets sorted / encountered when sto'ing assets
-    assert DungeonCrawlWeb.ExportFixture.export == export_hash
-
     # Items
     assert {tmp_gun_id, gun} = Enum.find(items, fn {_, item} -> item.name == "Gun" end)
     assert {tmp_wand_id, wand} = Enum.find(items, fn {_, item} -> item.name == "Fireball Wand" end)
     assert {tmp_stone_id, stone} = Enum.find(items, fn {_, item} -> item.name == "Stone" end)
 
-    assert Map.delete(Equipment.copy_fields(export.items.gun), :script)
-           == Map.drop(gun, [:temp_item_id, :script])
-    assert Map.delete(Equipment.copy_fields(export.items.fireball_wand), :script)
-           == Map.drop(wand, [:temp_item_id, :script])
-    assert Map.delete(Equipment.copy_fields(export.items.stone), :script)
-           == Map.drop(stone, [:temp_item_id, :script])
+    assert comp_item_fields(export.items.gun) == comp_item_fields(gun)
+    assert comp_item_fields(export.items.fireball_wand) == comp_item_fields(wand)
+    assert comp_item_fields(export.items.stone) == comp_item_fields(stone)
     assert %{temp_item_id: ^tmp_gun_id} = gun
     assert %{temp_item_id: ^tmp_wand_id} = wand
     assert %{temp_item_id: ^tmp_stone_id} = stone
@@ -148,17 +143,20 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert {tmp_click_id, click} = Enum.find(sounds, fn {_, sound} -> sound.name == "Click" end)
     assert {tmp_door_id, door} = Enum.find(sounds, fn {_, sound} -> sound.name == "Door" end)
     assert {tmp_shoot_id, shoot} = Enum.find(sounds, fn {_, sound} -> sound.name == "Shoot" end)
+    assert {tmp_pickup_blip_id, pickup_blip} = Enum.find(sounds, fn {_, sound} -> sound.name == "Pickup Blip" end)
 
     assert Sound.copy_fields(export.sounds.alarm) == Map.delete(alarm, :temp_sound_id)
     assert Sound.copy_fields(export.sounds.bomb) == Map.delete(bomb, :temp_sound_id)
     assert Sound.copy_fields(export.sounds.click) == Map.delete(click, :temp_sound_id)
     assert Sound.copy_fields(export.sounds.door) == Map.delete(door, :temp_sound_id)
     assert Sound.copy_fields(export.sounds.shoot) == Map.delete(shoot, :temp_sound_id)
+    assert Sound.copy_fields(export.sounds.pickup_blip) == Map.delete(pickup_blip, :temp_sound_id)
     assert %{temp_sound_id: ^tmp_alarm_id} = alarm
     assert %{temp_sound_id: ^tmp_bomb_id} = bomb
     assert %{temp_sound_id: ^tmp_click_id} = click
     assert %{temp_sound_id: ^tmp_door_id} = door
     assert %{temp_sound_id: ^tmp_shoot_id} = shoot
+    assert %{temp_sound_id: ^tmp_pickup_blip_id} = pickup_blip
 
     # Tile templates
     assert {tmp_floor_tt_id, floor_tt} = Enum.find(tile_templates, fn {_, tile} -> tile.name == "Floor" end)
@@ -179,14 +177,14 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert explosion_tt.name == export.basic_tiles.explosion.name
     assert stone_tt.name == export.basic_tiles.stone.name
 
-    assert TileTemplates.copy_fields(export.basic_tiles.floor) == Map.delete(floor_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.wall) == Map.delete(wall_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.rock) == Map.delete(rock_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.closed_door) == Map.delete(c_door_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.open_door) == Map.delete(o_door_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.fireball) == Map.delete(fireball_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.explosion) == Map.delete(explosion_tt, :temp_tt_id)
-    assert TileTemplates.copy_fields(export.basic_tiles.stone) == Map.delete(stone_tt, :temp_tt_id)
+    assert comp_tt_fields(export.basic_tiles.floor) == comp_tt_fields(floor_tt)
+    assert comp_tt_fields(export.basic_tiles.wall) == comp_tt_fields(wall_tt)
+    assert comp_tt_fields(export.basic_tiles.rock) == comp_tt_fields(rock_tt)
+    assert comp_tt_fields(export.basic_tiles.closed_door) == comp_tt_fields(c_door_tt)
+    assert comp_tt_fields(export.basic_tiles.open_door) == comp_tt_fields(o_door_tt)
+    assert comp_tt_fields(export.basic_tiles.fireball) == comp_tt_fields(fireball_tt)
+    assert comp_tt_fields(export.basic_tiles.explosion) == comp_tt_fields(explosion_tt)
+    assert comp_tt_fields(export.basic_tiles.stone) == comp_tt_fields(stone_tt)
     assert %{temp_tt_id: ^tmp_floor_tt_id} = floor_tt
     assert %{temp_tt_id: ^tmp_wall_tt_id} = wall_tt
     assert %{temp_tt_id: ^tmp_rock_tt_id} = rock_tt
@@ -221,6 +219,53 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
       """
     assert stone.script == """
       #put direction: here, slug: #{ tmp_stone_tt_id }, facing: @facing, thrown: true
+      """
+
+    # Tile template scripts
+    assert floor_tt.script == ""
+    assert wall_tt.script == ""
+    assert rock_tt.script == ""
+    assert c_door_tt.script == "#END\n:OPEN\n#BECOME slug: #{ tmp_o_door_tt_id }\n#SOUND #{ tmp_door_id }"
+    assert o_door_tt.script == "#END\n:CLOSE\n#BECOME slug: #{ tmp_c_door_tt_id }\n#SOUND #{ tmp_door_id }"
+    assert fireball_tt.script == """
+      :MAIN
+      #WALK @facing
+      :THUD
+      #SOUND #{ tmp_bomb_id }
+      #PUT slug: #{ tmp_explosion_tt_id }, shape: circle, range: 2, damage: 10, owner: @owner
+      #DIE
+      """
+    assert explosion_tt.script == """
+      #SEND bombed, here
+      :TOP
+      #RANDOM c, red, orange, yellow
+      #BECOME color: @c
+      ?i
+      @count -= 1
+      #IF @count > 0, top
+      #DIE
+      """
+    assert stone_tt.script == """
+      #if @thrown, thrown
+      :main
+      #end
+      :touch
+      #if ! ?sender@player, main
+      Picked up a stone
+      #equip #{ tmp_stone_id }, ?sender
+      #sound #{ tmp_pickup_blip_id }, ?sender
+      #die
+      :thrown
+      #zap touch
+      @flying = true
+      #walk @facing
+      :thud
+      :touch
+      @flying=false
+      #restore thrown
+      #restore touch
+      #send shot, ?sender
+      #send main
       """
 
     # Tiles
@@ -300,6 +345,10 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     # Dungeon
     assert Map.drop(dungeon, [:state, :user_name]) == Map.drop(Dungeons.copy_dungeon_fields(export.dungeon), [:state, :user_id])
     assert String.contains?(dungeon.state, "starting_equipment: #{gun.temp_item_id} #{wand.temp_item_id}")
+
+    # verify the whole export
+    # the temp ids may be different, depending on how stuff gets sorted / encountered when sto'ing assets
+    assert DungeonCrawlWeb.ExportFixture.export == export_hash
   end
 
   test "run/1 dungeon without starting_equipment", export do
@@ -324,5 +373,15 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert [] == spawn_locations
 
     assert Map.delete(dungeon, :user_name) == Map.delete(Dungeons.copy_dungeon_fields(updated_dungeon), :user_id)
+  end
+
+  def comp_item_fields(item) do
+    Equipment.copy_fields(item)
+    |> Map.drop([:temp_item_id, :script])
+  end
+
+  def comp_tt_fields(tt) do
+    TileTemplates.copy_fields(tt)
+  |> Map.drop([:temp_tt_id, :script])
   end
 end

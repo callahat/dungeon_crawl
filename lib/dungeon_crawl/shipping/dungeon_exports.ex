@@ -17,10 +17,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Sound
 
-  @starting_equipment_slugs ~r/starting_equipment: (?<eq>[ \w\d]+)/
-  @script_tt_slug ~r/slug: [\w\d_]+/i
-  @script_item_slug ~r/#(?:un)?equip [\w\d_]+/i
-  @script_sound_slug ~r/#sound [\w\d_]+/i
+  use DungeonCrawl.Shipping.SlugMatching
 
   defstruct dungeon: nil,
             levels: %{},
@@ -37,8 +34,10 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     extract_dungeon_data(%DungeonExports{}, dungeon)
     |> sto_starting_item_slugs(dungeon)
     |> extract_level_and_tile_data(dungeon.levels)
+    |> check_tile_templates_for_stoable_slugs()
     |> repoint_ttids_and_slugs(:tiles)
     |> repoint_ttids_and_slugs(:items)
+    |> repoint_ttids_and_slugs(:tile_templates)
     |> recalculate_tile_hashes()
     |> repoint_dungeon_item_slugs()
     |> switch_keys(:sounds, :temp_sound_id)
@@ -87,6 +86,15 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     dried_tiles = Map.put(dried_tiles, {coords.row, coords.col, coords.z_index}, tile_hash)
 
     extract_tile_data(export, dried_tiles, level_tiles)
+  end
+
+  def check_tile_templates_for_stoable_slugs(export) do
+    export.tile_templates
+    |> Enum.reduce(export, fn {_, tile_template}, export ->
+      check_for_tile_template_slugs(export, tile_template)
+      |> check_for_script_items(tile_template)
+      |> check_for_script_sounds(tile_template)
+    end)
   end
 
   # get the temporary tile template id, updates export if needed, returns export and the id in a tuple
@@ -200,8 +208,15 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
     Enum.reduce(slug_kwargs, asset, fn [slug_kwarg], asset ->
       [left_side, slug] = String.split(slug_kwarg)
-      {_, %{^temp_id_type => temp_slug_or_id}} = Enum.find(Map.fetch!(export, slug_type), fn {_, i} -> i.slug == slug end)
-      Map.put(asset, :script, String.replace(asset.script, slug_kwarg, "#{left_side} #{temp_slug_or_id}"))
+
+      case Enum.find(Map.fetch!(export, slug_type), fn {_, i} -> i.slug == slug end) do
+        {_, %{^temp_id_type => temp_slug_or_id}} ->
+          Map.put(asset, :script, String.replace(asset.script, slug_kwarg, "#{left_side} #{temp_slug_or_id}"))
+        _ ->
+          # other errors should happen before this one that will halt processing, but just in case,
+          # this will be more informative that a assignment mismatch
+          raise "#{slug_type} - #{slug} - not found"
+      end
     end)
   end
 

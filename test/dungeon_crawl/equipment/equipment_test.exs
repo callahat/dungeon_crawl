@@ -93,6 +93,13 @@ defmodule DungeonCrawl.EquipmentTest do
       refute Equipment.find_item(%{name: "item that does not exist"})
     end
 
+    test "find_items/2" do
+      {:ok, %Item{} = existing_item1} = Equipment.create_item(@valid_attrs)
+      {:ok, %Item{} = existing_item2} = Equipment.create_item(Map.put(@valid_attrs, :name, "thing2"))
+
+      assert [existing_item1, existing_item2] == Equipment.find_items(%{description: "A thing", public: true, user_id: nil})
+    end
+
     test "find_or_create_item/1 finds existing item" do
       {:ok, %Item{} = existing_item} = Equipment.create_item(@valid_attrs)
 
