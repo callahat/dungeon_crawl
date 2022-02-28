@@ -28,17 +28,18 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     # only some of the assets exist
     gun = Equipment.Seeder.gun()
     stone = Equipment.Seeder.stone()
-    # todo: verify fireball wand craeted
     items = %{gun: gun, stone: stone}
 
     alarm = Sound.Seeder.alarm()
-    # todo: verify door sound crated
-    sounds = %{alarm: alarm}
+    pickup_blip = Sound.Seeder.pickup_blip()
+    {:ok, click} = Sound.Seeder.click()
+                   |> Sound.update_effect(%{public: false})
+    shoot = Sound.Seeder.shoot()
+    sounds = %{alarm: alarm, click: click, pickup_blip: pickup_blip, shoot: shoot}
 
     rock = TileSeeder.rock_tile()
-
-    # todo: verify all other tts created; floor, wall, closed_door and open_door
-    existing_tiles = %{rock: rock}
+    stone_tile = TileSeeder.stone()
+    existing_tiles = %{rock: rock, stone: stone_tile}
 
     user = insert_user()
 
@@ -47,8 +48,6 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     # takes the output of the export. So this also has the benifit of likely noticably breaking
     # should the contract change with one and not the other.
     export_hash = DungeonCrawlWeb.ExportFixture.export
-
-    # todo: any config that deletes
 
     %{export_hash: export_hash, user: user, sounds: sounds, items: items, existing_tiles: existing_tiles}
   end
@@ -59,38 +58,151 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     item_count = Enum.count(Equipment.list_items())
 
     # what was created in setup
-    assert tile_template_count == 1
-    assert sound_count == 1
+    assert tile_template_count == 2
+    assert sound_count == 4
     assert item_count == 2
 
     DungeonImports.run(config.export_hash, config.user.id)
 
-    assert 3 == Enum.count(TileTemplates.list_tile_templates()) - tile_template_count
-    assert 1 == Enum.count(Sound.list_effects()) - sound_count
-    assert 1 == Enum.count(Equipment.list_items()) - item_count
+    IO.inspect TileTemplates.list_tile_templates() |> Enum.map(fn tt -> {tt.id, tt.name, tt.slug} end)
+    IO.inspect Equipment.list_items()
+
+    assert 6 == Enum.count(TileTemplates.list_tile_templates()) - tile_template_count
+    assert 3 == Enum.count(Sound.list_effects()) - sound_count
+    assert 2 == Enum.count(Equipment.list_items()) - item_count
 
     # assets created or found
     # tile templates
     assert config.existing_tiles.rock == TileTemplates.get_tile_template_by_slug("rock")
-    assert floor = TileTemplates.get_tile_template_by_slug("floor")
-    assert closed_door = TileTemplates.get_tile_template_by_slug("closed_door")
-    assert open_door = TileTemplates.get_tile_template_by_slug("open_door")
-    assert wall = TileTemplates.get_tile_template_by_slug("floor")
+    assert config.existing_tiles.stone == TileTemplates.get_tile_template_by_slug("stone")
+    assert floor = TileTemplates.find_tile_template(%{name: "Floor", user_id: config.user.id, public: false})
+    assert closed_door = TileTemplates.find_tile_template(%{name: "Closed Door", user_id: config.user.id, public: false})
+    assert open_door = TileTemplates.find_tile_template(%{name: "Open Door", user_id: config.user.id, public: false})
+    assert wall = TileTemplates.find_tile_template(%{name: "Wall", user_id: config.user.id, public: false})
+    assert fireball = TileTemplates.find_tile_template(%{name: "Fireball", user_id: config.user.id, public: false})
+    assert explosion = TileTemplates.find_tile_template(%{name: "Explosion", user_id: config.user.id, public: false})
 
-    assert TileTemplates.copy_fields(floor) ==
-             Map.delete(config.export_hash.tile_templates["tmp_tt_id_0"], :temp_tt_id)
-    assert TileTemplates.copy_fields(closed_door) ==
-             Map.delete(config.export_hash.tile_templates["tmp_tt_id_2"], :temp_tt_id)
-    assert TileTemplates.copy_fields(open_door) ==
-             Map.delete(config.export_hash.tile_templates["tmp_tt_id_3"], :temp_tt_id)
-    assert TileTemplates.copy_fields(wall) ==
-             Map.delete(config.export_hash.tile_templates["tmp_tt_id_4"], :temp_tt_id)
+    assert comp_tt_fields(floor)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_2"])
+    assert comp_tt_fields(closed_door)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_4"])
+    assert comp_tt_fields(open_door)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_5"])
+    assert comp_tt_fields(wall)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_6"])
+    assert comp_tt_fields(fireball)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_0"])
+    assert comp_tt_fields(explosion)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_1"])
 
+    assert Map.take(floor, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "floor_#{ floor.id }", public: false}
+    assert Map.take(closed_door, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "closed_door_#{ closed_door.id }", public: false}
+    assert Map.take(open_door, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "open_door_#{ open_door.id }", public: false}
+    assert Map.take(wall, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "wall_#{ wall.id }", public: false}
+    assert Map.take(fireball, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "fireball_#{ fireball.id }", public: false}
+    assert Map.take(explosion, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "explosion_#{ explosion.id }", public: false}
 
     # sounds effects
+    assert config.sounds.alarm == Sound.get_effect_by_slug("alarm")
+    assert config.sounds.click == Sound.get_effect_by_slug("click") # not public, so cannot be used
+    assert config.sounds.pickup_blip == Sound.get_effect_by_slug("pickup_blip")
+    assert config.sounds.shoot == Sound.get_effect_by_slug("shoot")
+    assert click = Sound.find_effect(%{name: "Click", user_id: config.user.id, public: false})
+    assert bomb = Sound.find_effect(%{name: "Bomb", user_id: config.user.id, public: false})
+    assert door = Sound.find_effect(%{name: "Door", user_id: config.user.id, public: false})
+
+    assert comp_sound_fields(click)
+           == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_1"])
+    assert comp_sound_fields(bomb)
+           == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_2"])
+    assert comp_sound_fields(door)
+           == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_3"])
+
+    assert Map.take(click, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "click_#{ click.id }", public: false}
+    assert Map.take(bomb, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "bomb_#{ bomb.id }", public: false}
+    assert Map.take(door, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "door_#{ door.id }", public: false}
 
     # items
-    assert TileTemplates.get_tile_template_by_slug(_exported_tt(config.export_hash, "Closed Door"))
+    assert config.items.gun == Equipment.get_item("gun")
+    assert config.items.stone == Equipment.get_item("stone")
+    # the click used was not public, so the seeded gun could not be used
+    assert gun = Equipment.find_item(%{name: "Gun", user_id: config.user.id, public: false})
+    assert wand = Equipment.find_item(%{name: "Fireball Wand", user_id: config.user.id, public: false})
+
+    assert comp_item_fields(gun)
+           == comp_item_fields(config.export_hash.items["tmp_item_id_0"])
+    assert comp_item_fields(wand)
+           == comp_item_fields(config.export_hash.items["tmp_item_id_1"])
+
+    assert Map.take(gun, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "gun_#{ gun.id }", public: false}
+    assert Map.take(wand, [:user_id, :slug, :public])
+           == %{user_id: config.user.id, slug: "fireball_wand_#{ wand.id }", public: false}
+
+    # verify scripts have the right slugs
+    # items
+    assert gun.script == """
+      #take ammo, 1, ?self, error
+      #shoot @facing
+      #sound #{ config.sounds.shoot.slug }
+      #end
+      :error
+      Out of ammo!
+      #sound #{ click.slug }
+      """
+    assert wand.script == """
+      #put direction: here, slug: #{ fireball.slug }, facing: @facing, owner: ?self
+      #take gems, 1, ?self, it_might_break
+      #end
+      :it_might_break
+      #if ?random@10 != 10, 1
+      #end
+      The wand broke!
+      #if ?random@4 != 4, 2
+      #put slug: #{ explosion.slug }, shape: circle, range: 3, damage: 10, owner: ?self
+      #sound #{ bomb.slug }
+      #die
+      """
+
+    # tile templates
+    assert floor.script == ""
+    assert closed_door.script == "#END\n:OPEN\n#BECOME slug: #{ open_door.slug }\n#SOUND #{ door.slug }"
+    assert open_door.script == "#END\n:CLOSE\n#BECOME slug: #{ closed_door.slug }\n#SOUND #{ door.slug }"
+    assert wall.script == ""
+    assert fireball.script == """
+      :MAIN
+      #WALK @facing
+      :THUD
+      #SOUND #{ bomb.slug }
+      #PUT slug: #{ explosion.slug }, shape: circle, range: 2, damage: 10, owner: @owner
+      #DIE
+      """
+    assert explosion.script == """
+      #SEND bombed, here
+      :TOP
+      #RANDOM c, red, orange, yellow
+      #BECOME color: @c
+      ?i
+      @count -= 1
+      #IF @count > 0, top
+      #DIE
+      """
+
+    # Verify the "tiles" have been repointed to the proper tile_template_id from the temp ones
+
+    # verify level records and their details
+    raise "verify level records and their deets"
+
+    # verify dungeon record and its details
   end
 
   defp _exported_tt(export_hash, asset_name) do
@@ -103,5 +215,20 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     |> Enum.find(fn {_temp_id, attrs} -> attrs[:name] == asset_name end)
 
     asset
+  end
+
+  def comp_item_fields(item) do
+    Equipment.copy_fields(item)
+    |> Map.drop([:temp_item_id, :script, :user_id, :public, :slug])
+  end
+
+  def comp_sound_fields(sound) do
+    Sound.copy_fields(sound)
+    |> Map.drop([:temp_sound_id, :user_id, :public, :slug])
+  end
+
+  def comp_tt_fields(tt) do
+    TileTemplates.copy_fields(tt)
+    |> Map.drop([:temp_tt_id, :script, :user_id, :public, :slug])
   end
 end

@@ -10,17 +10,15 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Equipment
+  alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Shipping.DungeonExports
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Sound
+  alias DungeonCrawl.Sound.Effect
 
-  @starting_equipment_slugs ~r/starting_equipment: (?<eq>[ \w\d]+)/
-  @tile_script_tt_slug ~r/slug: [\w\d_]+/i
-  @tile_script_item_slug ~r/#(?:un)?equip [\w\d_]+/i
-  @tile_script_sound_slug ~r/#sound [\w\d_]+/i
-
+  use DungeonCrawl.Shipping.SlugMatching
 
   defstruct dungeon: nil,
             levels: %{},
@@ -30,11 +28,13 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
             sounds: %{}
 
   def run(%DungeonExports{} = export, user_id \\ nil) do
-    export = find_or_create_assets(export, :sounds, &Sound.find_effect/1, &Sound.create_effect!/1, user_id)
-             |> find_or_create_assets(:items, &Equipment.find_item/1, &Equipment.create_item!/1, user_id)
-             |> find_or_create_assets(:tile_templates, &TileTemplates.find_tile_template/1, &TileTemplates.create_tile_template!/1, user_id)
-
-    IO.inspect export
+    export = find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
+             |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
+             |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
+             |> swap_scripts_to_tmp_scripts(:tiles)
+             |> repoint_ttids_and_slugs(:tiles)
+             |> repoint_ttids_and_slugs(:items)
+             |> repoint_ttids_and_slugs(:tile_templates)
 
     # find or create sounds
     # -  might need to blank out script then update scripts with the correct slugs
@@ -52,18 +52,28 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     export
   end
 
+  # the script will never match due to the slug; so the script will need to be a "fuzzy" match
+  # the fuzzy search, when candidates are found the slug in the candidate will need to be checked
+  # to see if its a usable match for the given user; if not then asset(s) not match so a new one
+  # will need created.
   def find_or_create_assets(export, asset_key, find_asset, create_asset, user_id) do
     assets =
     Map.get(export, asset_key)
     |> Enum.map(fn {tmp_id, attrs} ->
          asset =
          with attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
-              asset when is_nil(asset) <- find_asset.(Map.delete(attrs, :user_id)),
+              asset when is_nil(asset) <- find_asset.(user_id, Map.delete(attrs, :user_id)),
               attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
-              sound when is_nil(asset) <- find_asset.(attrs) do
-           create_asset.(attrs)
+              asset when is_nil(asset) <- find_asset.(user_id, attrs) do
+           if Map.get(attrs, :script, "") != "" do
+             create_asset.(Map.put(attrs, :script, "#end"))
+             |> Map.put(:tmp_script, attrs.script)
+           else
+             create_asset.(attrs)
+           end
          else
-           asset -> asset
+           asset ->
+             asset
          end
 
       {tmp_id, asset}
@@ -73,165 +83,130 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     %{ export | asset_key => assets }
   end
 
-  # probably can delete all the crap below
-#
-#  # these can be private, for now easier to work on them one at a time
-#  def extract_dungeon_data(export, dungeon) do
-#    # parse state and check starting_equipment for what items need copied over,
-#    # if none grab the default "gun"
-#    %{ export | dungeon: Dungeons.copy_dungeon_fields(dungeon) }
-#  end
-#
-#  def extract_level_and_tile_data(export, []), do: export
-#  def extract_level_and_tile_data(export, [level | levels])  do
-#    {export, tile_data} = extract_tile_data(export, %{}, level.tiles)
-#
-#    level_fields = Dungeons.copy_level_fields(level)
-#                   |> Map.put(:tile_data, tile_data)
-#
-#    extract_level_and_tile_data(%{ export | levels: Map.put(export.levels, level.number, level_fields)}, levels)
-#  end
-#
-#  def extract_tile_data(export, dried_tiles, []), do: {export, dried_tiles}
-#  def extract_tile_data(%{tiles: tiles} = export, dried_tiles, [level_tile | level_tiles]) do
-#    {coords, tile_fields} = Dungeons.copy_tile_fields(level_tile)
-#                            |> Map.split([:row, :col, :z_index])
-#    tile_hash = Base.encode64(:crypto.hash(:md5, inspect(tile_fields)))
-#
-#    export = sto_tile_template(export, tile_fields.tile_template_id)
-#
-#    export = if Map.has_key?(tiles, tile_hash) do
-#               export
-#             else
-#               export = check_for_tile_template_slugs(export, tile_fields)
-#                        |> check_for_script_items(tile_fields)
-#                        |> check_for_script_sounds(tile_fields)
-#               %{ export | tiles: Map.put(tiles, tile_hash, tile_fields) }
-#             end
-#
-#    dried_tiles = Map.put(dried_tiles, {coords.row, coords.col, coords.z_index}, tile_hash)
-#
-#    extract_tile_data(export, dried_tiles, level_tiles)
-#  end
-#
-#  # get the temporary tile template id, updates export if needed, returns export and the id in a tuple
-#  def sto_tile_template(export, nil), do: export
-#  def sto_tile_template(export, %TileTemplate{} = tile_template) do
-#    if Map.has_key?(export.tile_templates, tile_template.id) do
-#      export
-#    else
-#      tt = Map.put(tile_template, :temp_tt_id, "tmp_tt_id_#{map_size(export.tile_templates)}")
-#
-#      %{ export | tile_templates: Map.put(export.tile_templates, tile_template.id, tt)}
-#    end
-#  end
-#  def sto_tile_template(export, slug) when is_binary(slug) do
-#    sto_tile_template(export, TileTemplates.get_tile_template_by_slug(slug))
-#  end
-#  def sto_tile_template(export, tile_template_id) do
-#    sto_tile_template(export, TileTemplates.get_tile_template(tile_template_id))
-#  end
-#
-#  def sto_starting_item_slugs(export, dungeon) do
-#    case Regex.named_captures(@starting_equipment_slugs, dungeon.state) do
-#      %{"eq" => equipment} ->
-#        String.split(equipment)
-#        |> Enum.reduce(export, fn slug, export -> sto_item_slug(export, slug) end)
-#      nil ->
-#        sto_item_slug(export, "gun")
-#    end
-#  end
-#
-#  def sto_item_slug(export, slug) do
-#    if Map.has_key?(export.items, slug) do
-#      export
-#    else
-#      item = Equipment.get_item(slug)
-#             |> Map.put(:temp_item_id, "tmp_item_id_#{map_size(export.items)}")
-#
-#      %{ export | items: Map.put(export.items, slug, item)}
-#    end
-#  end
-#
-#  def sto_sound_slug(export, slug) do
-#    if Map.has_key?(export.sounds, slug) do
-#      export
-#    else
-#      sound = Sound.get_effect_by_slug(slug)
-#              |> Map.put(:temp_sound_id, "tmp_sound_id_#{map_size(export.sounds)}")
-#
-#      %{ export | sounds: Map.put(export.sounds, slug, sound)}
-#    end
-#  end
-#
-#  def check_for_tile_template_slugs(export, %{script: script}) do
-#    slug_kwargs = Regex.scan(@tile_script_tt_slug, script)
-#
-#    Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
-#      [_, slug] = String.split(slug_kwarg)
-#      sto_tile_template(export, slug)
-#    end)
-#  end
-#
-#  def check_for_script_items(export, %{script: script}) do
-#    slug_kwargs = Regex.scan(@tile_script_item_slug, script)
-#
-#    Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
-#      [_, slug] = String.split(slug_kwarg)
-#      sto_item_slug(export, slug)
-#    end)
-#  end
-#
-#  def check_for_script_sounds(export, %{script: script}) do
-#    slug_kwargs = Regex.scan(@tile_script_sound_slug, script)
-#
-#    Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
-#      [_, slug] = String.split(slug_kwarg)
-#      sto_sound_slug(export, slug)
-#    end)
-#  end
-#
-#  def repoint_tiles_ttids_and_slugs(%{tiles: tiles} = export) do
-#    tiles = Enum.map(tiles, fn {th, tile} ->
-#              {
-#                th,
-#                repoint_tile_template_id(tile, export)
-#                |> repoint_tile_script_slugs(export, :tile_templates, :temp_tt_id, @tile_script_tt_slug)
-#                |> repoint_tile_script_slugs(export, :items, :temp_item_id, @tile_script_item_slug)
-#                |> repoint_tile_script_slugs(export, :sounds, :temp_sound_id, @tile_script_sound_slug)
-#              }
-#            end)
-#
-#    %{ export | tiles: tiles }
-#  end
-#
-#  def repoint_tile_template_id(tile, export) do
-#    template = Map.get(export.tile_templates, tile.tile_template_id, %{temp_tt_id: nil})
-#    Map.put(tile, :tile_template_id, template.temp_tt_id)
-#  end
-#
-#  def repoint_tile_script_slugs(tile, export, slug_type, temp_id_type, slug_pattern) do
-#    slug_kwargs = Regex.scan(slug_pattern, tile.script || "")
-#
-#    Enum.reduce(slug_kwargs, tile, fn [slug_kwarg], tile ->
-#      [left_side, slug] = String.split(slug_kwarg)
-#      {_, %{^temp_id_type => temp_slug_or_id}} = Enum.find(Map.fetch!(export, slug_type), fn {_, i} -> i.slug == slug end)
-#      Map.put(tile, :script, String.replace(tile.script, slug_kwarg, "#{left_side} #{temp_slug_or_id}"))
-#    end)
-#  end
-#
-#  def repoint_dungeon_item_slugs(%{dungeon: dungeon} = export) do
-#    case Regex.named_captures(@starting_equipment_slugs, dungeon.state) do
-#      %{"eq" => equipment} ->
-#        starting_equipment = \
-#        String.split(equipment)
-#        |> Enum.map(fn slug -> export.items[slug].temp_item_id end)
-#        |> Enum.join(" ")
-#
-#        dungeon = %{ dungeon | state: String.replace(dungeon.state, equipment, starting_equipment)}
-#        %{ export | dungeon: dungeon }
-#      nil ->
-#        export
-#    end
-#  end
+  def find_effect(_user_id, attrs) do
+    Sound.find_effect(attrs)
+  end
+
+  def find_item(user_id, attrs) do
+    Equipment.find_items(Map.delete(attrs, :script))
+    |> useable_asset(attrs.script, user_id)
+  end
+
+  def find_tile_template(user_id, attrs) do
+    TileTemplates.find_tile_templates(Map.delete(attrs, :script))
+    |> useable_asset(attrs.script, user_id)
+  end
+
+  def useable_asset(assets, script, user_id) do
+    Enum.filter(assets, fn asset -> script_fuzzer(script) == script_fuzzer(script) end)
+    |> Enum.find(fn asset -> all_slugs_useable?(asset.script, user_id) end)
+  end
+
+  def script_fuzzer(script) do
+    fuzz_script_slugs(script, @script_tt_slug)
+    |> fuzz_script_slugs(@script_item_slug)
+    |> fuzz_script_slugs(@script_sound_slug)
+  end
+
+  def fuzz_script_slugs(script, slug_pattern) do
+    slug_kwargs = Regex.scan(slug_pattern, script || "")
+
+    Enum.reduce(slug_kwargs, script, fn [slug_kwarg], script ->
+      [left_side, _slug] = String.split(slug_kwarg)
+      String.replace(script, slug_kwarg, "#{left_side} fuzz")
+    end)
+  end
+
+  def all_slugs_useable?(script, user_id) do
+    all_slugs_useable?(script, user_id, &TileTemplates.get_tile_template_by_slug/1, @script_tt_slug)
+    && all_slugs_useable?(script, user_id, &Equipment.get_item/1, @script_item_slug)
+    && all_slugs_useable?(script, user_id, &Sound.get_effect_by_slug/1, @script_sound_slug)
+  end
+
+  def all_slugs_useable?(script, user_id, slug_lookup, slug_pattern) do
+    slug_kwargs = Regex.scan(slug_pattern, script)
+
+    Enum.all?(slug_kwargs, fn [slug_kwarg] ->
+      [_, slug] = String.split(slug_kwarg)
+
+      case slug_lookup.(slug) do
+        nil -> false
+        asset -> asset.public || asset.user_id == user_id
+      end
+    end)
+  end
+
+  def repoint_ttids_and_slugs(export, asset_key) do
+    assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
+               {
+                 th,
+                 repoint_tile_template_id(asset, export)
+                 |> repoint_script_slugs(export, :tile_templates, @script_tt_slug)
+                 |> repoint_script_slugs(export, :items, @script_item_slug)
+                 |> repoint_script_slugs(export, :sounds, @script_sound_slug)
+                 |> swap_tmp_script()
+               }
+             end)
+             |> Enum.into(%{})
+
+    %{ export | asset_key => assets }
+  end
+
+  def repoint_tile_template_id(%{tile_template_id: tile_template_id} = asset, export) do
+    template = Map.get(export.tile_templates, tile_template_id, %{id: nil})
+    Map.put(asset, :tile_template_id, template.id)
+  end
+  def repoint_tile_template_id(asset, export), do: asset
+
+  def repoint_script_slugs(asset, export, slug_type, slug_pattern) do
+    slug_kwargs = Regex.scan(slug_pattern, Map.get(asset, :tmp_script) || "")
+
+    Enum.reduce(slug_kwargs, asset, fn
+      [slug_kwarg], %{tmp_script: tmp_script} = asset ->
+        [left_side, tmp_slug] = String.split(slug_kwarg)
+
+        referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
+        Map.put(asset, :tmp_script, String.replace(Map.fetch!(asset, :tmp_script), slug_kwarg, "#{left_side} #{referenced_asset.slug}"))
+
+      _slug_kwarg, asset ->
+        asset
+    end)
+  end
+
+  def repoint_script_slug(asset, export, slug_type, script_key, slug_kwarg) do
+    [left_side, tmp_slug] = String.split(slug_kwarg)
+
+    referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
+    Map.put(asset, script_key, String.replace(Map.fetch!(asset, script_key), slug_kwarg, "#{left_side} #{referenced_asset.slug}"))
+  end
+
+  def swap_scripts_to_tmp_scripts(export, asset_key) do
+    assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
+      {
+        th,
+        Map.put(asset, :tmp_script, asset.script)
+      }
+    end)
+    |> Enum.into(%{})
+
+    %{ export | asset_key => assets }
+  end
+
+  def swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
+    {:ok, asset} = TileTemplates.update_tile_template(asset, %{script: tmp_script})
+    asset
+  end
+
+  def swap_tmp_script(%{__struct__: Item, tmp_script: tmp_script} = asset) do
+    {:ok, asset} = Equipment.update_item(asset, %{script: tmp_script})
+    asset
+  end
+
+  def swap_tmp_script(%{tmp_script: tmp_script} = asset) do
+    Map.put(asset, :script, tmp_script)
+  end
+
+  def swap_tmp_script(asset) do
+    asset
+  end
 end
