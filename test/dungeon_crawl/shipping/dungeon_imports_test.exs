@@ -62,10 +62,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert sound_count == 4
     assert item_count == 2
 
-    DungeonImports.run(config.export_hash, config.user.id)
-
-    IO.inspect TileTemplates.list_tile_templates() |> Enum.map(fn tt -> {tt.id, tt.name, tt.slug} end)
-    IO.inspect Equipment.list_items()
+    imports = DungeonImports.run(config.export_hash, config.user.id)
 
     assert 6 == Enum.count(TileTemplates.list_tile_templates()) - tile_template_count
     assert 3 == Enum.count(Sound.list_effects()) - sound_count
@@ -94,6 +91,13 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
            == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_0"])
     assert comp_tt_fields(explosion)
            == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_1"])
+
+    assert floor.id == imports.tile_templates["tmp_tt_id_2"].id
+    assert closed_door.id == imports.tile_templates["tmp_tt_id_4"].id
+    assert open_door.id == imports.tile_templates["tmp_tt_id_5"].id
+    assert wall.id == imports.tile_templates["tmp_tt_id_6"].id
+    assert fireball.id == imports.tile_templates["tmp_tt_id_0"].id
+    assert explosion.id == imports.tile_templates["tmp_tt_id_1"].id
 
     assert Map.take(floor, [:user_id, :slug, :public])
            == %{user_id: config.user.id, slug: "floor_#{ floor.id }", public: false}
@@ -196,8 +200,6 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       #IF @count > 0, top
       #DIE
       """
-
-    # Verify the "tiles" have been repointed to the proper tile_template_id from the temp ones
 
     # verify level records and their details
     raise "verify level records and their deets"
