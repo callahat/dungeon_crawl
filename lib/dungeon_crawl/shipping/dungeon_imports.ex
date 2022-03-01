@@ -35,6 +35,9 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> repoint_ttids_and_slugs(:tiles)
              |> repoint_ttids_and_slugs(:items)
              |> repoint_ttids_and_slugs(:tile_templates)
+             |> repoint_dungeon_starting_items()
+             |> set_dungeon_user_id(user_id)
+             |> create_dungeon()
 
     # find or create sounds
     # -  might need to blank out script then update scripts with the correct slugs
@@ -208,5 +211,31 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
   def swap_tmp_script(asset) do
     asset
+  end
+
+  def repoint_dungeon_starting_items(%{dungeon: dungeon} = export) do
+    case Regex.named_captures(@starting_equipment_slugs, export.dungeon.state) do
+      %{"eq" => equipment} ->
+        starting_equipment =
+          String.split(equipment)
+          |> Enum.map(fn tmp_slug -> export.items[tmp_slug].slug end)
+          |> Enum.join(" ")
+
+        dungeon = %{ dungeon | state: String.replace(dungeon.state, equipment, starting_equipment)}
+        %{ export | dungeon: dungeon }
+      nil ->
+        export
+    end
+  end
+
+  def set_dungeon_user_id(%{dungeon: dungeon} = export, user_id) do
+    dungeon = Map.put(dungeon, :user_id, user_id)
+              |> Map.delete(:user_name)
+    %{ export | dungeon: dungeon }
+  end
+
+  def create_dungeon(%{dungeon: dungeon} = export) do
+    {:ok, dungeon} = Dungeons.create_dungeon(dungeon)
+    %{ export | dungeon: dungeon }
   end
 end
