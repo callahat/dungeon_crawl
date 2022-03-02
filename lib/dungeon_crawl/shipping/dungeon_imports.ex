@@ -11,12 +11,10 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Equipment.Item
-  alias DungeonCrawl.Repo
   alias DungeonCrawl.Shipping.DungeonExports
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Sound
-  alias DungeonCrawl.Sound.Effect
 
   use DungeonCrawl.Shipping.SlugMatching
 
@@ -38,6 +36,8 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> repoint_dungeon_starting_items()
              |> set_dungeon_user_id(user_id)
              |> create_dungeon()
+             |> create_levels()
+             |> create_spawn_locations()
 
     # find or create sounds
     # -  might need to blank out script then update scripts with the correct slugs
@@ -101,7 +101,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   def useable_asset(assets, script, user_id) do
-    Enum.filter(assets, fn asset -> script_fuzzer(script) == script_fuzzer(script) end)
+    Enum.filter(assets, fn asset -> script_fuzzer(asset.script) == script_fuzzer(script) end)
     |> Enum.find(fn asset -> all_slugs_useable?(asset.script, user_id) end)
   end
 
@@ -159,13 +159,13 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     template = Map.get(export.tile_templates, tile_template_id, %{id: nil})
     Map.put(asset, :tile_template_id, template.id)
   end
-  def repoint_tile_template_id(asset, export), do: asset
+  def repoint_tile_template_id(asset, _export), do: asset
 
   def repoint_script_slugs(asset, export, slug_type, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, Map.get(asset, :tmp_script) || "")
 
     Enum.reduce(slug_kwargs, asset, fn
-      [slug_kwarg], %{tmp_script: tmp_script} = asset ->
+      [slug_kwarg], %{tmp_script: _tmp_script} = asset ->
         [left_side, tmp_slug] = String.split(slug_kwarg)
 
         referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
@@ -237,5 +237,40 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   def create_dungeon(%{dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.create_dungeon(dungeon)
     %{ export | dungeon: dungeon }
+  end
+
+  def create_levels(%{levels: levels} = export) do
+    Map.values(levels)
+    |> create_levels(export)
+  end
+
+  def create_levels([], export), do: export
+  def create_levels([level | levels], export) do
+    {:ok, level_record} = Dungeons.create_level(Map.put(level, :dungeon_id, export.dungeon.id))
+    create_tiles(Map.to_list(level.tile_data), level_record.id, export)
+    export = %{ export | levels: %{ export.levels | level.number => Map.put(level_record, :tile_data, level.tile_data) } }
+    create_levels(levels, export)
+  end
+
+  def create_tiles([], _level_id, export), do: export
+  def create_tiles([{{row, col, z_index}, tile_hash} | tile_hashes], level_id, export) do
+    tile_attrs = export.tiles[tile_hash]
+
+    {:ok, _tile} = Map.merge(tile_attrs, %{level_id: level_id, row: row, col: col, z_index: z_index})
+                   |> Dungeons.create_tile()
+
+    create_tiles(tile_hashes, level_id, export)
+  end
+
+  def create_spawn_locations(export) do
+    export.spawn_locations
+    |> Enum.group_by(fn {num, _row, _col} -> num end)
+    |> Enum.each(fn {num, coords} ->
+         level_id = export.levels[num].id
+         coords = Enum.reduce(coords, [], fn {_num, row, col}, acc -> [{row, col} | acc] end)
+         Dungeons.add_spawn_locations(level_id, coords)
+       end)
+
+    export
   end
 end

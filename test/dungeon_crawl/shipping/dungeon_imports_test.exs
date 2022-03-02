@@ -8,7 +8,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Sound
   alias DungeonCrawl.TileTemplates
-  alias DungeonCrawl.TileTemplates.{TileSeeder, TileTemplate}
+  alias DungeonCrawl.TileTemplates.TileSeeder
 
   setup do
     # level 1 is empty
@@ -64,10 +64,13 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert sound_count == 4
     assert item_count == 2
 
+    # While the export hash returned is not the main use of the importer, this struct
+    # is updated with the found/created assets
     assert %DungeonExports{
              dungeon: dungeon,
              tile_templates: tile_templates,
-             tiles: tiles
+             tiles: tiles,
+             levels: levels,
            } = DungeonImports.run(config.export_hash, user_id)
 
     assert 6 == Enum.count(TileTemplates.list_tile_templates()) - tile_template_count
@@ -159,12 +162,12 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
            == %{user_id: user_id, slug: "fireball_wand_#{ wand.id }", public: false}
 
     # tiles
-    assert {floor_hash, floor_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor" end)
-    assert {wall_hash, wall_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Wall" end)
-    assert {rock_hash, rock_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Rock" end)
-    assert {c_door_hash, c_door_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Closed Door" end)
-    assert {floor2_hash, floor2_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor 2" end)
-    assert {custom_hash, custom_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "" end)
+    assert {_floor_hash, floor_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor" end)
+    assert {_wall_hash, wall_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Wall" end)
+    assert {_rock_hash, rock_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Rock" end)
+    assert {_c_door_hash, c_door_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Closed Door" end)
+    assert {_floor2_hash, floor2_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor 2" end)
+    assert {_custom_hash, custom_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "" end)
 
     assert Map.take(floor_tile, [:tile_template_id, :script])
            == %{tile_template_id: floor.id, script: ""}
@@ -180,6 +183,13 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert Map.take(custom_tile, [:tile_template_id, :script])
            == %{tile_template_id: nil,
              script: "#end\n:touch\n#sound #{config.sounds.alarm.slug}\n#equip #{config.items.stone.slug}, ?sender\n#become slug: #{wall.slug}\n#unequip #{gun.slug}, ?sender\n/i\n#sound #{config.sounds.alarm.slug}"}
+
+    floor_tile = Map.delete(floor_tile, :tmp_script)
+    wall_tile = Map.delete(wall_tile, :tmp_script)
+    rock_tile = Map.delete(rock_tile, :tmp_script)
+    c_door_tile = Map.delete(c_door_tile, :tmp_script)
+    floor2_tile = Map.delete(floor2_tile, :tmp_script)
+    custom_tile = Map.delete(custom_tile, :tmp_script)
 
     # verify scripts have the right slugs
     # items
@@ -241,23 +251,95 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       name: "Exporter",
       state: ^dungeon_state,
       title_number: 2,
-      user_id: user_id} = dungeon
+      user_id: ^user_id} = dungeon
     assert dungeon == Dungeons.get_dungeon!(dungeon.id)
 
     # verify level records and their details
-    raise "verify level records and their deets"
-  end
+    assert 3 == map_size(levels)
+    assert %{1 => level_1,
+             2 => level_2,
+             3 => level_3} = levels
 
-  defp _exported_tt(export_hash, asset_name) do
-    _exported(export_hash, :tile_templates, asset_name)
-  end
+    assert %{
+      dungeon_id: dungeon.id,
+      entrance: nil,
+      height: 20,
+      width: 20,
+      name: "Stubbed",
+      number: 1,
+      number_east: nil,
+      number_west: nil,
+      number_north: nil,
+      number_south: nil,
+      state: nil,
+    } == comp_level_fields(level_1)
+    assert %{
+      dungeon_id: dungeon.id,
+      entrance: true,
+      height: 20,
+      width: 20,
+      name: "one",
+      number: 2,
+      number_east: nil,
+      number_west: nil,
+      number_north: 3,
+      number_south: nil,
+      state: nil,
+    } == comp_level_fields(level_2)
+    assert %{
+      dungeon_id: dungeon.id,
+      entrance: nil,
+      height: 20,
+      width: 20,
+      name: "Stubbed",
+      number: 3,
+      number_east: nil,
+      number_west: nil,
+      number_north: nil,
+      number_south: nil,
+      state: "visibility: fog",
+    } == comp_level_fields(level_3)
 
-  defp _exported(export_hash, asset_key, asset_name) do
-    {_, asset} =
-    Map.get(export_hash, asset_key)
-    |> Enum.find(fn {_temp_id, attrs} -> attrs[:name] == asset_name end)
+    level_1_tiles = Repo.preload(level_1, :tiles).tiles
+                    |> Enum.map(fn(t) -> Dungeons.copy_tile_fields(t) end)
+                    |> Enum.sort
+    assert [] == level_1_tiles
+    assert [] == Repo.preload(level_1, :spawn_locations).spawn_locations
+                 |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
 
-    asset
+    level_2_tiles = Repo.preload(level_2, :tiles).tiles
+                    |> Enum.map(fn(t) -> Dungeons.copy_tile_fields(t) end)
+                    |> Enum.sort
+    level_2_expected_tiles = [
+      Map.merge(%{row: 0, col: 1, z_index: 0}, floor_tile),
+      Map.merge(%{row: 0, col: 2, z_index: 0}, rock_tile),
+      Map.merge(%{row: 0, col: 3, z_index: 0}, floor_tile),
+      Map.merge(%{row: 1, col: 1, z_index: 0}, floor_tile),
+      Map.merge(%{row: 1, col: 2, z_index: 0}, c_door_tile),
+      Map.merge(%{row: 1, col: 3, z_index: 0}, floor_tile),
+      Map.merge(%{row: 2, col: 1, z_index: 0}, wall_tile),
+      Map.merge(%{row: 2, col: 2, z_index: 0}, wall_tile),
+      Map.merge(%{row: 2, col: 3, z_index: 0}, wall_tile),
+    ] |> Enum.sort
+    assert level_2_expected_tiles == level_2_tiles
+    assert Enum.sort([{0, 1}, {0, 3}])
+           == Repo.preload(level_2, :spawn_locations).spawn_locations
+              |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
+              |> Enum.sort()
+
+    level_3_tiles = Repo.preload(level_3, :tiles).tiles
+                    |> Enum.map(fn(t) -> Dungeons.copy_tile_fields(t) end)
+                    |> Enum.sort
+    level_3_expected_tiles = [
+      Map.merge(%{row: 0, col: 1, z_index: 0}, floor_tile),
+      Map.merge(%{row: 0, col: 2, z_index: 0}, floor_tile),
+      Map.merge(%{row: 1, col: 1, z_index: 0}, floor2_tile),
+      Map.merge(%{row: 1, col: 2, z_index: 1}, Map.put(custom_tile, :name, nil)),
+    ] |> Enum.sort
+    assert level_3_expected_tiles == level_3_tiles
+    assert [{1, 1}]
+           == Repo.preload(level_3, :spawn_locations).spawn_locations
+              |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
   end
 
   def comp_item_fields(item) do
@@ -273,5 +355,20 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
   def comp_tt_fields(tt) do
     TileTemplates.copy_fields(tt)
     |> Map.drop([:temp_tt_id, :script, :user_id, :public, :slug])
+  end
+
+  def comp_level_fields(level) do
+    Map.take(level, [
+      :dungeon_id,
+      :entrance,
+      :height,
+      :width,
+      :name,
+      :number,
+      :number_east,
+      :number_west,
+      :number_north,
+      :number_south,
+      :state])
   end
 end
