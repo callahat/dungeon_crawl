@@ -39,19 +39,6 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> create_levels()
              |> create_spawn_locations()
 
-    # find or create sounds
-    # -  might need to blank out script then update scripts with the correct slugs
-    #    after creating all the assets; otherwise asset might fail to create when it has a script
-    #    with temporary slug that does not exist
-    # find or create items
-    # find or create tile templates
-
-
-    # create dungeon
-    # create levels
-    #   when creating level, create all its tiles
-    # last, create spawn locations
-
     export
   end
 
@@ -67,7 +54,8 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
          with attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
               asset when is_nil(asset) <- find_asset.(user_id, Map.delete(attrs, :user_id)),
               attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
-              asset when is_nil(asset) <- find_asset.(user_id, attrs) do
+              asset when is_nil(asset) <- find_asset.(user_id, attrs),
+              attrs = Map.put(attrs, :active, true) do
            if Map.get(attrs, :script, "") != "" do
              create_asset.(Map.put(attrs, :script, "#end"))
              |> Map.put(:tmp_script, attrs.script)

@@ -108,6 +108,13 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert fireball.id == tile_templates["tmp_tt_id_0"].id
     assert explosion.id == tile_templates["tmp_tt_id_1"].id
 
+    assert floor.active
+    assert closed_door.active
+    assert open_door.active
+    assert wall.active
+    assert fireball.active
+    assert explosion.active
+
     assert Map.take(floor, [:user_id, :slug, :public])
            == %{user_id: user_id, slug: "floor_#{ floor.id }", public: false}
     assert Map.take(closed_door, [:user_id, :slug, :public])
