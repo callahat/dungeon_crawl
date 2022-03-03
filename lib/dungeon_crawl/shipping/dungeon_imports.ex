@@ -25,7 +25,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
             tile_templates: %{},
             sounds: %{}
 
-  def run(%DungeonExports{} = export, user_id \\ nil) do
+  def run(%DungeonExports{} = export, user_id) do
     export = find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
              |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
              |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
