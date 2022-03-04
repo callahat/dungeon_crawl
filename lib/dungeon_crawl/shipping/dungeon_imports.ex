@@ -114,7 +114,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     && all_slugs_useable?(script, user_id, &Sound.get_effect_by_slug/1, @script_sound_slug)
   end
 
-  def all_slugs_useable?(script, user_id, slug_lookup, slug_pattern) do
+  def all_slugs_useable?(script, _user_id, slug_lookup, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, script)
 
     Enum.all?(slug_kwargs, fn [slug_kwarg] ->
@@ -122,7 +122,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
       case slug_lookup.(slug) do
         nil -> false
-        asset -> asset.public || asset.user_id == user_id
+        _asset -> true # asset.public || asset.user_id == user_id - maybe put this back if slug authorization is added
       end
     end)
   end

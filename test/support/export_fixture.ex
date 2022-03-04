@@ -167,11 +167,12 @@ defmodule DungeonCrawlWeb.ExportFixture do
           description: "Its a bullet.",
           group_name: "custom",
           name: "Fireball",
-          public: false,
+          public: true,
           script: ":MAIN\n#WALK @facing\n:THUD\n#SOUND tmp_sound_id_2\n#PUT slug: tmp_tt_id_1, shape: circle, range: 2, damage: 10, owner: @owner\n#DIE\n",
           slug: "fireball",
           state: "blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2",
           temp_tt_id: "tmp_tt_id_0",
+          unlisted: true,
           user_id: nil
         },
         "tmp_tt_id_1" => %{
@@ -191,6 +192,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "explosion",
           state: "count: 3, damage: 10, light_source: true, light_range: 1",
           temp_tt_id: "tmp_tt_id_1",
+          unlisted: true,
           user_id: nil
         },
         "tmp_tt_id_2" => %{
@@ -210,6 +212,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "floor",
           state: "blocking: false",
           temp_tt_id: "tmp_tt_id_2",
+          unlisted: false,
           user_id: nil
         },
         "tmp_tt_id_3" => %{
@@ -229,6 +232,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "rock",
           state: "blocking: true",
           temp_tt_id: "tmp_tt_id_3",
+          unlisted: false,
           user_id: nil
         },
         "tmp_tt_id_4" => %{
@@ -248,6 +252,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "closed_door",
           state: "blocking: true, open: false",
           temp_tt_id: "tmp_tt_id_4",
+          unlisted: false,
           user_id: nil
         },
         "tmp_tt_id_5" => %{
@@ -267,6 +272,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "open_door",
           state: "blocking: false, open: true",
           temp_tt_id: "tmp_tt_id_5",
+          unlisted: false,
           user_id: nil
         },
         "tmp_tt_id_6" => %{
@@ -286,6 +292,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "wall",
           state: "blocking: true",
           temp_tt_id: "tmp_tt_id_6",
+          unlisted: false,
           user_id: nil
         },
         "tmp_tt_id_7" => %{
@@ -305,6 +312,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           slug: "stone",
           state: "blocking: false, soft: true, pushable: true, blocking_light: false, damage: 5, not_pushing: true, wait_cycles: 2",
           temp_tt_id: "tmp_tt_id_7",
+          unlisted: false,
           user_id: nil
         }
       },

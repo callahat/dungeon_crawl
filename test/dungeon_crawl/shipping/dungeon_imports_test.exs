@@ -32,10 +32,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
     alarm = Sound.Seeder.alarm()
     pickup_blip = Sound.Seeder.pickup_blip()
-    {:ok, click} = Sound.Seeder.click()
-                   |> Sound.update_effect(%{public: false})
     shoot = Sound.Seeder.shoot()
-    sounds = %{alarm: alarm, click: click, pickup_blip: pickup_blip, shoot: shoot}
+    sounds = %{alarm: alarm, pickup_blip: pickup_blip, shoot: shoot}
 
     rock = TileSeeder.rock_tile()
     stone_tile = TileSeeder.stone()
@@ -61,7 +59,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
     # what was created in setup
     assert tile_template_count == 2
-    assert sound_count == 4
+    assert sound_count == 3
     assert item_count == 2
 
     # While the export hash returned is not the main use of the importer, this struct
@@ -130,7 +128,6 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
     # sounds effects
     assert config.sounds.alarm == Sound.get_effect_by_slug("alarm")
-    assert config.sounds.click == Sound.get_effect_by_slug("click") # not public, so cannot be used
     assert config.sounds.pickup_blip == Sound.get_effect_by_slug("pickup_blip")
     assert config.sounds.shoot == Sound.get_effect_by_slug("shoot")
     assert click = Sound.find_effect(%{name: "Click", user_id: user_id, public: false})
@@ -154,7 +151,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     # items
     assert config.items.gun == Equipment.get_item("gun")
     assert config.items.stone == Equipment.get_item("stone")
-    # the click used was not public, so the seeded gun could not be used
+    # the seeded gun referenced a nonexistant slug, so the import created a new gun
+    # if this happened, something was probably corrupted in the destination system.
     assert gun = Equipment.find_item(%{name: "Gun", user_id: user_id, public: false})
     assert wand = Equipment.find_item(%{name: "Fireball Wand", user_id: user_id, public: false})
 

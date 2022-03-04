@@ -22,6 +22,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :public, :boolean, default: false
     field :script, :string, default: ""
     field :state, :string
+    field :unlisted, :boolean, default: false
     field :version, :integer, default: 1
     field :animate_random, :boolean
     field :animate_colors, :string
@@ -66,6 +67,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
                     :state_variables,
                     :state_values,
                     :state,
+                    :unlisted,
                     :animate_random,
                     :animate_colors,
                     :animate_background_colors,

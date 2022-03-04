@@ -45,6 +45,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
       inactive_tile_template = tile_template_fixture(%{user_id: user.id, active: false})
       tile_template_fixture(%{user_id: different_user.id})
       public_tile_template = tile_template_fixture(%{user_id: different_user.id, public: true})
+      _unlisted_tile_template = tile_template_fixture(%{user_id: different_user.id, public: true, unlisted: true})
       deleted_tile_template_fixture()
       assert TileTemplates.list_placeable_tile_templates(user) ==
                %{active: %{"monsters" => [tile_template], "custom" => [public_tile_template]},
@@ -308,6 +309,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
                group_name: "custom",
                public: false,
                slug: "a_big_x",
+               unlisted: false,
                user_id: nil} == TileTemplates.copy_fields(tile_template)
     end
 

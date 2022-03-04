@@ -51,7 +51,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Its a bullet.",
         state: "blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2",
         color: "orange",
+        public: true,
         active: true,
+        unlisted: true,
         script: """
         :MAIN
         #WALK @facing
@@ -71,8 +73,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         description: "Caught up in the explosion",
         state: "count: 3, damage: 10, light_source: true, light_range: 1",
         color: "crimson",
-        public: true, # TODO: should this be false? would that prevent others from using the slug even though its standard?
+        public: true,
         active: true,
+        unlisted: true,
         group_name: "misc",
         script: """
                 #SEND bombed, here

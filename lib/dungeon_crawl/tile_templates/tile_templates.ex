@@ -22,6 +22,7 @@ defmodule DungeonCrawl.TileTemplates do
                     :animate_background_colors,
                     :user_id,
                     :public,
+                    :unlisted,
                     :description,
                     :slug,
                     :group_name
@@ -71,6 +72,7 @@ defmodule DungeonCrawl.TileTemplates do
 
   defp _list_placeable_tile_templates(user_id, active_or_inactive) do
     Repo.all(from t in TileTemplate,
+             where: not t.unlisted,
              where: t.public or t.user_id == ^user_id,
              where: t.active == ^active_or_inactive,
              where: is_nil(t.deleted_at),

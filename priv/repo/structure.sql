@@ -556,7 +556,8 @@ CREATE TABLE public.tile_templates (
     animate_background_colors character varying(255),
     animate_characters character varying(32),
     animate_period integer,
-    group_name character varying(16)
+    group_name character varying(16),
+    unlisted boolean DEFAULT false NOT NULL
 );
 
 
@@ -1400,3 +1401,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220127032503);
 INSERT INTO public."schema_migrations" (version) VALUES (20220127034149);
 INSERT INTO public."schema_migrations" (version) VALUES (20220131023947);
 INSERT INTO public."schema_migrations" (version) VALUES (20220303021906);
+INSERT INTO public."schema_migrations" (version) VALUES (20220303043632);
