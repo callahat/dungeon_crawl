@@ -49,7 +49,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   def extract_dungeon_data(export, dungeon) do
     # parse state and check starting_equipment for what items need copied over,
     # if none grab the default "gun"
-    spawn_locations = Enum.map(dungeon.spawn_locations, fn sl -> {sl.level.number, sl.row, sl.col} end)
+    spawn_locations = Enum.map(dungeon.spawn_locations, fn sl -> [sl.level.number, sl.row, sl.col] end)
     dungeon = Dungeons.copy_dungeon_fields(dungeon)
               |> Map.delete(:user_id)
               |> Map.put(:user_name, dungeon.user.name)
@@ -66,7 +66,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     extract_level_and_tile_data(%{ export | levels: Map.put(export.levels, level.number, level_fields)}, levels)
   end
 
-  def extract_tile_data(export, dried_tiles, []), do: {export, dried_tiles}
+  def extract_tile_data(export, dried_tiles, []) do
+    {export, Enum.map(dried_tiles, fn {coords, hash} -> [hash | Tuple.to_list(coords)] end)}
+  end
   def extract_tile_data(%{tiles: tiles} = export, dried_tiles, [level_tile | level_tiles]) do
     {coords, tile_fields} = Dungeons.copy_tile_fields(level_tile)
                             |> Map.split([:row, :col, :z_index])
@@ -97,7 +99,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end)
   end
 
-  # get the temporary tile template id, updates export if needed, returns export and the id in a tuple
+  # get the temporary tile template id, updates export if needed, returns export
   def sto_tile_template(export, nil), do: export
   def sto_tile_template(export, %TileTemplate{} = tile_template) do
     if Map.has_key?(export.tile_templates, tile_template.id) do
@@ -201,7 +203,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     Map.put(asset, :tile_template_id, template.temp_tt_id)
   end
 
-  def repoint_tile_template_id(asset, export), do: asset
+  def repoint_tile_template_id(asset, _export), do: asset
 
   def repoint_script_slugs(asset, export, slug_type, temp_id_type, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, asset.script || "")
@@ -245,10 +247,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
             end)
             |> Enum.into(%{})
     levels = Enum.map(levels, fn {number, %{tile_data: tile_data} = level_fields} ->
-               tile_data = Enum.map(tile_data, fn {coords, old_hash} ->
-                             {coords, Map.get(old_to_new_hash, old_hash)}
+               tile_data = Enum.map(tile_data, fn [old_hash | coords] ->
+                             [ Map.get(old_to_new_hash, old_hash) | coords ]
                            end)
-                           |> Enum.into(%{})
                {number, %{level_fields | tile_data: tile_data}}
              end)
              |> Enum.into(%{})

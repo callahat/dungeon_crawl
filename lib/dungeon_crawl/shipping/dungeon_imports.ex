@@ -235,13 +235,13 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   def create_levels([], export), do: export
   def create_levels([level | levels], export) do
     {:ok, level_record} = Dungeons.create_level(Map.put(level, :dungeon_id, export.dungeon.id))
-    create_tiles(Map.to_list(level.tile_data), level_record.id, export)
+    create_tiles(level.tile_data, level_record.id, export)
     export = %{ export | levels: %{ export.levels | level.number => Map.put(level_record, :tile_data, level.tile_data) } }
     create_levels(levels, export)
   end
 
   def create_tiles([], _level_id, export), do: export
-  def create_tiles([{{row, col, z_index}, tile_hash} | tile_hashes], level_id, export) do
+  def create_tiles([[tile_hash, row, col, z_index] | tile_hashes], level_id, export) do
     tile_attrs = export.tiles[tile_hash]
 
     {:ok, _tile} = Map.merge(tile_attrs, %{level_id: level_id, row: row, col: col, z_index: z_index})
@@ -252,10 +252,10 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
   def create_spawn_locations(export) do
     export.spawn_locations
-    |> Enum.group_by(fn {num, _row, _col} -> num end)
+    |> Enum.group_by(fn [num, _row, _col] -> num end)
     |> Enum.each(fn {num, coords} ->
          level_id = export.levels[num].id
-         coords = Enum.reduce(coords, [], fn {_num, row, col}, acc -> [{row, col} | acc] end)
+         coords = Enum.reduce(coords, [], fn [_num, row, col], acc -> [{row, col} | acc] end)
          Dungeons.add_spawn_locations(level_id, coords)
        end)
 

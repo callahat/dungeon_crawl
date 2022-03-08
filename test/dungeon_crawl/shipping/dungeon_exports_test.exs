@@ -304,7 +304,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              name: "Stubbed",
              number: 1,
              tile_data: level_1_tile_data} = level_1
-    assert %{} == level_1_tile_data
+    assert [] == level_1_tile_data
 
     assert %{entrance: true,
              height: 20,
@@ -313,17 +313,17 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              number: 2,
              number_north: 3,
              tile_data: level_2_tile_data} = level_2
-    assert %{
-             {0, 1, 0} => floor_hash,
-             {0, 2, 0} => rock_hash,
-             {0, 3, 0} => floor_hash,
-             {1, 1, 0} => floor_hash,
-             {1, 2, 0} => c_door_hash,
-             {1, 3, 0} => floor_hash,
-             {2, 1, 0} => wall_hash,
-             {2, 2, 0} => wall_hash,
-             {2, 3, 0} => wall_hash
-           } == level_2_tile_data
+    assert [
+             [floor_hash, 0, 1, 0],
+             [rock_hash, 0, 2, 0],
+             [floor_hash, 0, 3, 0],
+             [floor_hash, 1, 1, 0],
+             [c_door_hash, 1, 2, 0],
+             [floor_hash, 1, 3, 0],
+             [wall_hash, 2, 1, 0],
+             [wall_hash, 2, 2, 0],
+             [wall_hash, 2, 3, 0]
+           ] == level_2_tile_data
 
     assert %{entrance: nil,
              height: 20,
@@ -332,15 +332,15 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              number: 3,
              state: "visibility: fog",
              tile_data: level_3_tile_data} = level_3
-    assert %{
-             {0, 1, 0} => floor_hash,
-             {0, 2, 0} => floor_hash,
-             {1, 1, 0} => floor2_hash,
-             {1, 2, 1} => custom_hash
-           } == level_3_tile_data
+    assert [
+             [floor_hash, 0, 1, 0],
+             [floor_hash, 0, 2, 0],
+             [floor2_hash, 1, 1, 0],
+             [custom_hash, 1, 2, 1]
+           ] == level_3_tile_data
 
     # spawn locations
-    assert [{2, 0, 1}, {2, 0, 3}, {3, 1, 1}] == spawn_locations
+    assert [[2, 0, 1], [2, 0, 3], [3, 1, 1]] == spawn_locations
 
     # Dungeon
     assert Map.drop(dungeon, [:state, :user_name]) == Map.drop(Dungeons.copy_dungeon_fields(export.dungeon), [:state, :user_id])
