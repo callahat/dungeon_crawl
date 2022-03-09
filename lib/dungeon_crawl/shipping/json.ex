@@ -34,7 +34,7 @@ defmodule DungeonCrawl.Shipping.Json do
 
   defp _keys(key) do
     cond do
-      Enum.member?(@atoms, key) -> String.to_existing_atom(key)
+      Enum.member?(@atoms, key) -> String.to_atom(key)
       key =~ ~r/^\d+$/ -> String.to_integer(key)
       true -> key
     end

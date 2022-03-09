@@ -120,7 +120,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def sto_starting_item_slugs(export, dungeon) do
-    case Regex.named_captures(@starting_equipment_slugs, dungeon.state) do
+    case Regex.named_captures(@starting_equipment_slugs, dungeon.state || "") do
       %{"eq" => equipment} ->
         String.split(equipment)
         |> Enum.reduce(export, fn slug, export -> sto_item_slug(export, slug) end)
@@ -224,7 +224,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def repoint_dungeon_item_slugs(%{dungeon: dungeon} = export) do
-    case Regex.named_captures(@starting_equipment_slugs, dungeon.state) do
+    case Regex.named_captures(@starting_equipment_slugs, dungeon.state || "") do
       %{"eq" => equipment} ->
         starting_equipment = \
         String.split(equipment)

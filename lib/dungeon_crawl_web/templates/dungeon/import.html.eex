@@ -1,0 +1,14 @@
+<h2>Import dungeon</h2>
+
+<%= form_for @conn, Routes.dungeon_import_path(@conn, :import), [multipart: true], fn f -> %>
+  <div class="form-group">
+    <%= label f, :file, class: "control-label" %>
+    <%= file_input f, :file %>
+  </div>
+
+  <div class="form-group">
+    <%= submit "Submit", class: "btn btn-primary" %>
+  </div>
+<% end %>
+
+<%= link "Back", to: Routes.dungeon_path(@conn, :index) %>

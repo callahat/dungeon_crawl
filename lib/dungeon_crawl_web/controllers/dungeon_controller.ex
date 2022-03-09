@@ -5,13 +5,16 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
   alias DungeonCrawl.Player
+  alias DungeonCrawl.Shipping.DungeonExports
+  alias DungeonCrawl.Shipping.DungeonImports
+  alias DungeonCrawl.Shipping.Json
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
-  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
+  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :export]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -75,6 +78,41 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:error, changeset} ->
         render(conn, "edit.html", dungeon: dungeon, changeset: changeset, max_dimensions: _max_dimensions())
     end
+  end
+
+  def import(conn,  %{"file" => file}) do
+    import = file.path
+             |> File.read!()
+             |> Json.decode!()
+             |> DungeonImports.run(conn.assigns.current_user.id)
+
+    conn
+    |> put_flash(:info, "Dungeon imported.")
+    |> redirect(to: Routes.dungeon_path(conn, :show, import.dungeon.id))
+  rescue
+    Jason.DecodeError -> put_flash(conn, :error, "Import failed; could not parse file") |> render("import.html")
+    e -> put_flash(conn, :error, "Import failed; #{ Exception.format(:error, e) }") |> render("import.html")
+  end
+
+  def import(conn, _) do
+    render(conn, "import.html")
+  end
+
+  def export(conn, %{"id" => _id}) do
+    dungeon = conn.assigns.dungeon
+
+    {:ok, export_json} = DungeonExports.run(dungeon.id)
+                         |> Jason.encode()
+
+    version = "#{dungeon.version}"
+    extra = cond do
+              dungeon.deleted_at -> "_deleted"
+              ! dungeon.active -> "_inactive"
+              true -> ""
+            end
+    filename = String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
+
+    send_download(conn, {:binary, export_json}, filename: filename)
   end
 
   def delete(conn, %{"id" => _id}) do

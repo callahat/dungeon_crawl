@@ -43,11 +43,22 @@
           <%   end %>
 
           <%=  if user_can_edit_dungeons(@current_user) do %>
-          <li class="nav-item"><%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %></li>
+          <li class="nav-item">
+            <div class="dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="adminMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Editors
+              </a>
+
+              <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
+                <%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
+                <%= link "Items", to: Routes.equipment_path(@conn, :index), class: "nav-link" %>
+                <%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index), class: "nav-link" %>
+                <%= link "Sound Effects", to: Routes.effect_path(@conn, :index), class: "nav-link" %>
+                <%= link "Import Dungeon", to: Routes.dungeon_import_path(@conn, :import), class: "nav-link" %>
+              </div>
+            </div>
+          </li>
           <%   end %>
-          <li class="nav-item"><%= link "Items", to: Routes.equipment_path(@conn, :index), class: "nav-link" %></li>
-          <li class="nav-item"><%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index), class: "nav-link" %></li>
-          <li class="nav-item"><%= link "Sound Effects", to: Routes.effect_path(@conn, :index), class: "nav-link" %></li>
           <% end %>
 
           <li class="nav-item"><%= link "Scores", to: Routes.score_path(@conn, :index), class: "nav-link" %></li>
