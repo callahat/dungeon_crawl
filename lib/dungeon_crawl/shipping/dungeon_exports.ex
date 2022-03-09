@@ -19,6 +19,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   use DungeonCrawl.Shipping.SlugMatching
 
+  @derive Jason.Encoder
   defstruct dungeon: nil,
             levels: %{},
             tiles: %{},
