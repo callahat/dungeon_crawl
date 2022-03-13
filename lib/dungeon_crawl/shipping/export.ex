@@ -19,6 +19,6 @@ defmodule DungeonCrawl.Shipping.Export do
   def changeset(export, attrs) do
     export
     |> cast(attrs, [:dungeon_id, :user_id, :status, :data, :file_name])
-    |> validate_required([:dungeon_id, :user_id, :status, :file_name])
+    |> validate_required([:dungeon_id, :user_id, :status])
   end
 end

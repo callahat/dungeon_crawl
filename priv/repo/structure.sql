@@ -32,7 +32,7 @@ CREATE TABLE public.dungeon_exports (
     user_id bigint,
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
-    file_name character varying(255) NOT NULL
+    file_name character varying(255)
 );
 
 

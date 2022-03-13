@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Repo.Migrations.AddFilenameToImportsAndExports do
 
   def change do
     alter table(:dungeon_exports) do
-      add :file_name, :string, null: false
+      add :file_name, :string
     end
     alter table(:dungeon_imports) do
       add :file_name, :string, null: false
