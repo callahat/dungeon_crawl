@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Shipping.Import do
   schema "dungeon_imports" do
     field :data, :string
     field :line_identifier, :integer
+    field :file_name, :string
     field :status, Ecto.Enum, values: [queued: 1, running: 2, completed: 3, failed: 4], default: :queued
     belongs_to :dungeon, Dungeon
     belongs_to :user, User
@@ -18,7 +19,7 @@ defmodule DungeonCrawl.Shipping.Import do
   @doc false
   def changeset(import, attrs) do
     import
-    |> cast(attrs, [:dungeon_id, :user_id, :status, :data, :line_identifier])
-    |> validate_required([:dungeon_id, :user_id, :status, :data])
+    |> cast(attrs, [:dungeon_id, :user_id, :status, :data, :line_identifier, :file_name])
+    |> validate_required([:user_id, :status, :data, :file_name])
   end
 end

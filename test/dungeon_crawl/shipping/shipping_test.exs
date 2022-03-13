@@ -28,9 +28,10 @@ defmodule DungeonCrawl.ShippingTest do
 
     test "create_export/1 with valid data creates a export" do
       valid_attrs = %{
-        user_id: insert_user.id,
+        user_id: insert_user().id,
         dungeon_id: insert_dungeon().id,
         data: "some data",
+        file_name: "dungeon.json",
         status: :completed}
 
       assert {:ok, %Export{} = export} = Shipping.create_export(valid_attrs)
@@ -94,10 +95,11 @@ defmodule DungeonCrawl.ShippingTest do
 
     test "create_import/1 with valid data creates a import" do
       valid_attrs = %{
-        user_id: insert_user.id,
+        user_id: insert_user().id,
         dungeon_id: insert_dungeon().id,
         data: "some data",
         line_identifier: 42,
+        file_name: "dungeon.json",
         status: :completed}
 
       assert {:ok, %Import{} = import} = Shipping.create_import(valid_attrs)

@@ -31,7 +31,8 @@ CREATE TABLE public.dungeon_exports (
     dungeon_id bigint,
     user_id bigint,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    file_name character varying(255) NOT NULL
 );
 
 
@@ -66,7 +67,8 @@ CREATE TABLE public.dungeon_imports (
     dungeon_id bigint,
     user_id bigint,
     inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    updated_at timestamp(0) without time zone NOT NULL,
+    file_name character varying(255) NOT NULL
 );
 
 
@@ -1577,3 +1579,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220303021906);
 INSERT INTO public."schema_migrations" (version) VALUES (20220303043632);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313043817);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313045333);
+INSERT INTO public."schema_migrations" (version) VALUES (20220313173501);
