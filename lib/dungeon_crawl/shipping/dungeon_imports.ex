@@ -202,7 +202,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   def repoint_dungeon_starting_items(%{dungeon: dungeon} = export) do
-    case Regex.named_captures(@starting_equipment_slugs, export.dungeon.state) do
+    case Regex.named_captures(@starting_equipment_slugs, export.dungeon.state || "") do
       %{"eq" => equipment} ->
         starting_equipment =
           String.split(equipment)

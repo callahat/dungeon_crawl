@@ -53,7 +53,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     spawn_locations = Enum.map(dungeon.spawn_locations, fn sl -> [sl.level.number, sl.row, sl.col] end)
     dungeon = Dungeons.copy_dungeon_fields(dungeon)
               |> Map.delete(:user_id)
-              |> Map.put(:user_name, dungeon.user.name)
+              |> Map.put(:user_name, dungeon.user && dungeon.user.name || "(unknown)")
     %{ export | dungeon: dungeon, spawn_locations: spawn_locations }
   end
 
