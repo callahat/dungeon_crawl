@@ -5,16 +5,18 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.{DungeonExports, DungeonImports, Json}
 
+  @timeout 360_000
+
   def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+    GenServer.start_link(__MODULE__, nil)
   end
 
-  def export(server, dungeon_export_id) do
-    GenServer.call(server, {:export, dungeon_export_id})
+  def export(dungeon_export_id) do
+    _pool_wrapper({:export, dungeon_export_id})
   end
 
-  def import(server, dungeon_import_id, user_id) do
-    GenServer.call(server, {:import, dungeon_import_id, user_id})
+  def import(dungeon_import_id) do
+    _pool_wrapper({:import, dungeon_import_id})
   end
 
   ## Callbacks
@@ -39,12 +41,12 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   end
 
   @impl true
-  def handle_call({:import, dungeon_import_id, user_id}, _from, state) do
+  def handle_call({:import, dungeon_import_id}, _from, state) do
     # import the dungeon, return the created id
     import = Shipping.get_import!(dungeon_import_id)
 
     import_hash = Json.decode!(import.data)
-                  |> DungeonImports.run(user_id)
+                  |> DungeonImports.run(import.user_id)
 
     Shipping.update_import(import,
       %{dungeon_id: import_hash.dungeon.id, status: :completed})
@@ -60,5 +62,22 @@ defmodule DungeonCrawl.Shipping.DockWorker do
       true -> ""
     end
     String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
+  end
+
+  defp _pool_wrapper(params) do
+    Task.async(fn ->
+      :poolboy.transaction(
+        :dock_worker,
+        fn dock_worker ->
+          try do
+            GenServer.call(dock_worker, params)
+          catch
+            e, r -> IO.inspect("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
+                    :ok
+          end
+        end,
+        @timeout
+      )
+    end)
   end
 end

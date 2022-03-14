@@ -14,18 +14,20 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     SoundSeeder.click
     SoundSeeder.shoot
 
-    dock_worker = start_supervised!(DockWorker)
+#    dock_worker = start_supervised!(DockWorker)
+    {:ok, dock_worker} = GenServer.start_link(DockWorker, %{})
 
     user = insert_user()
 
     %{dock_worker: dock_worker, user: user}
   end
 
-  test "export/2", %{dock_worker: dock_worker, user: user} do
+  test "export/1", %{user: user} do
     dungeon = insert_dungeon()
     {:ok, dungeon_export} = Shipping.create_export(%{dungeon_id: dungeon.id, user_id: user.id})
 
-    assert :ok = DockWorker.export(dock_worker, dungeon_export.id)
+    assert %Task{ref: ref} = DockWorker.export(dungeon_export.id)
+    assert_receive {^ref, :ok}
 
     assert %{dungeon_id: dungeon.id,
              status: :completed,
@@ -35,7 +37,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
            == Map.take(Shipping.get_export!(dungeon_export.id), [:dungeon_id, :status, :data, :user_id, :file_name])
   end
 
-  test "import/3", %{dock_worker: dock_worker, user: user} do
+  test "import/1", %{user: user} do
     dungeon = insert_dungeon()
     {:ok, dungeon_import} = Shipping.create_import(%{
       data: DungeonExports.run(dungeon.id) |> Json.encode!(),
@@ -43,7 +45,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
       file_name: "import.json"
     })
 
-    assert :ok = DockWorker.import(dock_worker, dungeon_import.id, user.id)
+    assert %Task{ref: ref} = DockWorker.import(dungeon_import.id)
+    assert_receive {^ref, :ok}
 
     # the original + the imported
     assert 2 == Enum.count(Dungeons.list_dungeons())

@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
+  alias DungeonCrawl.Shipping
   @create_attrs %{name: "some name"}
   @update_attrs %{name: "new name"}
   @invalid_attrs %{name: ""}
@@ -223,8 +224,11 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "redirects when data is valid", %{conn: conn} do
       upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
       conn = post conn, dungeon_import_path(conn, :import), %{"file" => upload}
-      assert [dungeon] = Dungeons.list_dungeons()
-      assert redirected_to(conn) == dungeon_path(conn, :show, dungeon)
+      refute get_flash(conn, :error)
+      assert get_flash(conn, :info) == "Importing dungeon."
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert [import] = Shipping.list_dungeon_imports()
+      assert import.file_name == "test.json"
     end
 
     test "renders errors when file is invalid", %{conn: conn} do
@@ -245,43 +249,75 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   describe "export dungeon with a registered user" do
     setup [:create_user, :create_dungeon]
 
-    test "sends the file when data is valid for inactive dungeon", %{conn: conn, dungeon: dungeon} do
+    test "starts the export when data is valid for inactive dungeon", %{conn: conn, dungeon: dungeon} do
       EquipmentSeeder.gun()
       SoundSeeder.click()
       SoundSeeder.shoot()
 
       conn = post conn, dungeon_export_path(conn, :export, dungeon)
-      assert json_response(conn, 200)
-      assert Enum.member?(
-               conn.resp_headers,
-               {"content-disposition", "attachment; filename=\"some_name_v_1_inactive.json\""})
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :info) == "Generating download."
     end
 
-    test "sends the file when data is valid for active dungeon", %{conn: conn, dungeon: dungeon} do
+    test "starts the export when data is valid for active dungeon", %{conn: conn, dungeon: dungeon} do
       EquipmentSeeder.gun()
       SoundSeeder.click()
       SoundSeeder.shoot()
 
       Dungeons.activate_dungeon(dungeon)
       conn = post conn, dungeon_export_path(conn, :export, dungeon)
-      assert json_response(conn, 200)
-      assert Enum.member?(
-               conn.resp_headers,
-               {"content-disposition", "attachment; filename=\"some_name_v_1.json\""})
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :info) == "Generating download."
     end
 
-    test "sends the file when data is valid for deleted dungeon", %{conn: conn, dungeon: dungeon} do
+    test "starts the export when data is valid for deleted dungeon", %{conn: conn, dungeon: dungeon} do
       EquipmentSeeder.gun()
       SoundSeeder.click()
       SoundSeeder.shoot()
 
       Dungeons.delete_dungeon(dungeon)
       conn = post conn, dungeon_export_path(conn, :export, dungeon)
-      assert json_response(conn, 200)
-      assert Enum.member?(
-               conn.resp_headers,
-               {"content-disposition", "attachment; filename=\"some_name_v_1_deleted.json\""})
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :info) == "Generating download."
     end
+
+#    test "sends the file when data is valid for inactive dungeon", %{conn: conn, dungeon: dungeon} do
+#      EquipmentSeeder.gun()
+#      SoundSeeder.click()
+#      SoundSeeder.shoot()
+#
+#      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+#      assert json_response(conn, 200)
+#      assert Enum.member?(
+#               conn.resp_headers,
+#               {"content-disposition", "attachment; filename=\"some_name_v_1_inactive.json\""})
+#    end
+#
+#    test "sends the file when data is valid for active dungeon", %{conn: conn, dungeon: dungeon} do
+#      EquipmentSeeder.gun()
+#      SoundSeeder.click()
+#      SoundSeeder.shoot()
+#
+#      Dungeons.activate_dungeon(dungeon)
+#      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+#      assert json_response(conn, 200)
+#      assert Enum.member?(
+#               conn.resp_headers,
+#               {"content-disposition", "attachment; filename=\"some_name_v_1.json\""})
+#    end
+#
+#    test "sends the file when data is valid for deleted dungeon", %{conn: conn, dungeon: dungeon} do
+#      EquipmentSeeder.gun()
+#      SoundSeeder.click()
+#      SoundSeeder.shoot()
+#
+#      Dungeons.delete_dungeon(dungeon)
+#      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+#      assert json_response(conn, 200)
+#      assert Enum.member?(
+#               conn.resp_headers,
+#               {"content-disposition", "attachment; filename=\"some_name_v_1_deleted.json\""})
+#    end
   end
 
   describe "delete dungeon with a registered user" do

@@ -164,13 +164,6 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end)
   end
 
-  def repoint_script_slug(asset, export, slug_type, script_key, slug_kwarg) do
-    [left_side, tmp_slug] = String.split(slug_kwarg)
-
-    referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
-    Map.put(asset, script_key, String.replace(Map.fetch!(asset, script_key), slug_kwarg, "#{left_side} #{referenced_asset.slug}"))
-  end
-
   def swap_scripts_to_tmp_scripts(export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {

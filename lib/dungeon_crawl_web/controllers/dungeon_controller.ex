@@ -5,8 +5,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
   alias DungeonCrawl.Player
-  alias DungeonCrawl.Shipping.DungeonExports
-  alias DungeonCrawl.Shipping.DungeonImports
+  alias DungeonCrawl.Shipping
+  alias DungeonCrawl.Shipping.DockWorker
   alias DungeonCrawl.Shipping.Json
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
@@ -84,11 +84,18 @@ defmodule DungeonCrawlWeb.DungeonController do
     import = file.path
              |> File.read!()
              |> Json.decode!()
-             |> DungeonImports.run(conn.assigns.current_user.id)
+
+    {:ok, dungeon_import} = Shipping.create_import(%{
+      data: Json.encode!(import),
+      user_id: conn.assigns.current_user.id,
+      file_name: file.filename
+    })
+
+    DockWorker.import(dungeon_import.id)
 
     conn
-    |> put_flash(:info, "Dungeon imported.")
-    |> redirect(to: Routes.dungeon_path(conn, :show, import.dungeon.id))
+    |> put_flash(:info, "Importing dungeon.")
+    |> redirect(to: Routes.dungeon_path(conn, :index))
   rescue
     Jason.DecodeError -> put_flash(conn, :error, "Import failed; could not parse file") |> render("import.html")
     e -> put_flash(conn, :error, "Import failed; #{ Exception.format(:error, e) }") |> render("import.html")
@@ -101,18 +108,16 @@ defmodule DungeonCrawlWeb.DungeonController do
   def export(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
 
-    {:ok, export_json} = DungeonExports.run(dungeon.id)
-                         |> Jason.encode()
+    {:ok, dungeon_export} = Shipping.create_export(%{
+      dungeon_id: dungeon.id,
+      user_id: conn.assigns.current_user.id
+    })
 
-    version = "#{dungeon.version}"
-    extra = cond do
-              dungeon.deleted_at -> "_deleted"
-              ! dungeon.active -> "_inactive"
-              true -> ""
-            end
-    filename = String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
+    DockWorker.export(dungeon_export.id)
 
-    send_download(conn, {:binary, export_json}, filename: filename)
+    conn
+    |> put_flash(:info, "Generating download.")
+    |> redirect(to: Routes.dungeon_path(conn, :index))
   end
 
   def delete(conn, %{"id" => _id}) do
