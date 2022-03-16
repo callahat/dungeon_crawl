@@ -1,17 +1,11 @@
 defmodule DungeonCrawlWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :dungeon_crawl
 
-  @session_options [
-    store: :cookie,
-    key: "_dungeon_crawl_key",
-    signing_salt: "phT7qGAI"
-  ]
-
   socket "/socket", DungeonCrawlWeb.UserSocket,
     websocket: [timeout: 45_000],
     longpoll: false
 
-  socket "/live", Phoenix.LiveView.Socket #, websocket: [connect_info: [session: @session_options]]
+  socket "/live", Phoenix.LiveView.Socket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -47,7 +41,10 @@ defmodule DungeonCrawlWeb.Endpoint do
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
-  plug Plug.Session, @session_options
+  plug Plug.Session,
+    store: :cookie,
+    key: "_dungeon_crawl_key",
+    signing_salt: "phT7qGAI"
 
   plug DungeonCrawlWeb.Router
 end

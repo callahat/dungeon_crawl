@@ -11,27 +11,8 @@ defmodule DungeonCrawlWeb.Router do
     plug DungeonCrawlWeb.Auth, repo: DungeonCrawl.Repo
   end
 
-  pipeline :browser_liveview do
-    plug :accepts, ["html"]
-    plug :fetch_session
-    plug :fetch_live_flash
-    plug :protect_from_forgery
-    plug :put_secure_browser_headers
-    plug :put_root_layout, {DungeonCrawlWeb.LayoutView, :root}
-    plug DungeonCrawlWeb.Auth, repo: DungeonCrawl.Repo
-  end
-
   pipeline :api do
     plug :accepts, ["json"]
-  end
-
-  scope "/shipping", DungeonCrawlWeb do
-    pipe_through :browser_liveview
-
-    get  "/dungeons/import", DungeonController, :import, as: :dungeon_import
-    post "/dungeons/import", DungeonController, :import, as: :dungeon_import
-
-    post    "/dungeons/:id/export", DungeonController, :export, as: :dungeon_export
   end
 
   scope "/", DungeonCrawlWeb do
