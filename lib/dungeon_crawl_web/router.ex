@@ -31,14 +31,15 @@ defmodule DungeonCrawlWeb.Router do
 
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
-    get  "/dungeons/import", DungeonController, :import, as: :dungeon_import
-    post "/dungeons/import", DungeonController, :import, as: :dungeon_import
+    get  "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
+    get  "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
+    post "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
     resources "/dungeons", DungeonController do
         resources "/levels", LevelController, only: [:new, :create, :edit, :update, :delete], as: "level"
           post    "/levels/:id/validate_tile", LevelController, :validate_tile, as: "level"
           get     "/level_edge", LevelController, :level_edge, as: "level"
       end
-      post    "/dungeons/:id/export", DungeonController, :export, as: :dungeon_export
+      post    "/dungeons/:id/export", DungeonController, :dungeon_export, as: :dungeon_export
       post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
       put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
       post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl

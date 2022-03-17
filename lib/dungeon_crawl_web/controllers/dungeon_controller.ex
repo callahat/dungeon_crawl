@@ -14,7 +14,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :authenticate_user
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
-  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :export]
+  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
+  plug :assign_dungeon_export when action in [:download_export]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -80,7 +81,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def import(conn,  %{"file" => file}) do
+  def dungeon_import(conn,  %{"file" => file}) do
     import = file.path
              |> File.read!()
              |> Json.decode!()
@@ -95,17 +96,22 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     conn
     |> put_flash(:info, "Importing dungeon.")
-    |> redirect(to: Routes.dungeon_path(conn, :index))
+    |> redirect(to: Routes.dungeon_import_path(conn, :dungeon_import))
   rescue
-    Jason.DecodeError -> put_flash(conn, :error, "Import failed; could not parse file") |> render("import.html")
-    e -> put_flash(conn, :error, "Import failed; #{ Exception.format(:error, e) }") |> render("import.html")
+    Jason.DecodeError -> put_flash(conn, :error, "Import failed; could not parse file") |> dungeon_import(nil)
+    e -> put_flash(conn, :error, "Import failed; #{ Exception.format(:error, e) }") |> dungeon_import(nil)
   end
 
-  def import(conn, _) do
-    render(conn, "import.html")
+  def dungeon_import(conn, _) do
+    is_admin = conn.assigns.current_user.is_admin
+    imports = if is_admin,
+                do: Repo.preload(Shipping.list_dungeon_imports(), :user),
+                else: Shipping.list_dungeon_imports(conn.assigns.current_user.id)
+
+    render(conn, "import.html", is_admin: is_admin, imports: imports)
   end
 
-  def export(conn, %{"id" => _id}) do
+  def dungeon_export(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
 
     {:ok, dungeon_export} = Shipping.create_export(%{
@@ -117,7 +123,22 @@ defmodule DungeonCrawlWeb.DungeonController do
 
     conn
     |> put_flash(:info, "Generating download.")
-    |> redirect(to: Routes.dungeon_path(conn, :index))
+    |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export_list))
+  end
+
+  def dungeon_export_list(conn, _) do
+    is_admin = conn.assigns.current_user.is_admin
+    exports = if is_admin,
+                 do: Repo.preload(Shipping.list_dungeon_exports(), :user),
+                 else: Shipping.list_dungeon_exports(conn.assigns.current_user.id)
+
+    render(conn, "export.html", is_admin: is_admin, exports: exports)
+  end
+
+  def download_dungeon_export(conn, %{"id" => id}) do
+    export = conn.assigns.dungeon_export
+
+    send_download(conn, {:binary, export.data}, filename: export.file_name)
   end
 
   def delete(conn, %{"id" => _id}) do
@@ -209,6 +230,20 @@ defmodule DungeonCrawlWeb.DungeonController do
       conn
       |> put_flash(:error, "You do not have access to that")
       |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> halt()
+    end
+  end
+
+  defp assign_dungeon_export(conn, _opts) do
+    export =  Shipping.get_dungeon_export!(conn.params["id"])
+
+    if export.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+      conn
+      |> assign(:dungeon_export, export)
+    else
+      conn
+      |> put_flash(:error, "You do not have access to that")
+      |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export))
       |> halt()
     end
   end

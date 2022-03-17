@@ -54,7 +54,7 @@
                 <%= link "Items", to: Routes.equipment_path(@conn, :index), class: "nav-link" %>
                 <%= link "Tile Templates", to: Routes.manage_tile_template_path(@conn, :index), class: "nav-link" %>
                 <%= link "Sound Effects", to: Routes.effect_path(@conn, :index), class: "nav-link" %>
-                <%= link "Import Dungeon", to: Routes.dungeon_import_path(@conn, :import), class: "nav-link" %>
+                <%= link "Import Dungeon", to: Routes.dungeon_import_path(@conn, :dungeon_import), class: "nav-link" %>
               </div>
             </div>
           </li>

@@ -30,6 +30,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   def handle_call({:export, dungeon_export_id}, _from, state) do
     # export the dungeon, return the dungeon export id
     export = Repo.preload(Shipping.get_export!(dungeon_export_id), :dungeon)
+    {:ok, _} = Shipping.update_export(export, %{status: :running})
 
     {:ok, export_json} = DungeonExports.run(export.dungeon_id)
                          |> Jason.encode()
@@ -44,6 +45,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   def handle_call({:import, dungeon_import_id}, _from, state) do
     # import the dungeon, return the created id
     import = Shipping.get_import!(dungeon_import_id)
+    {:ok, _} = Shipping.update_import(import, %{status: :running})
 
     import_hash = Json.decode!(import.data)
                   |> DungeonImports.run(import.user_id)
@@ -52,6 +54,8 @@ defmodule DungeonCrawl.Shipping.DockWorker do
       %{dungeon_id: import_hash.dungeon.id, status: :completed})
 
     {:reply, :ok, state}
+  rescue
+    Ecto.NoResultsError -> {:reply, :ok, state}
   end
 
   defp _file_name(dungeon) do

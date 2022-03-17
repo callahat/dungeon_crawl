@@ -69,21 +69,21 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
   describe "import dungeon get without a registered user" do
     test "redirects", %{conn: conn} do
-      conn = get conn, dungeon_import_path(conn, :import)
+      conn = get conn, dungeon_import_path(conn, :dungeon_import)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
   describe "import dungeon post without a registered user" do
     test "redirects", %{conn: conn} do
-      conn = post conn, dungeon_import_path(conn, :import)
+      conn = post conn, dungeon_import_path(conn, :dungeon_import)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
 
   describe "export dungeon without a registered user" do
     test "redirects", %{conn: conn} do
-      conn = post conn, dungeon_export_path(conn, :export, 1)
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, 1)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -213,7 +213,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     setup [:create_user]
 
     test "renders the form", %{conn: conn} do
-      conn = get conn, dungeon_import_path(conn, :import)
+      conn = get conn, dungeon_import_path(conn, :dungeon_import)
       assert html_response(conn, 200) =~ "Import dungeon"
     end
   end
@@ -223,24 +223,24 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "redirects when data is valid", %{conn: conn} do
       upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      conn = post conn, dungeon_import_path(conn, :import), %{"file" => upload}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
       refute get_flash(conn, :error)
       assert get_flash(conn, :info) == "Importing dungeon."
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
       assert [import] = Shipping.list_dungeon_imports()
       assert import.file_name == "test.json"
     end
 
     test "renders errors when file is invalid", %{conn: conn} do
       upload = %Plug.Upload{path: "test/support/fixtures/export_bad_fixture_v_1.json", filename: "test.json"}
-      conn = post conn, dungeon_import_path(conn, :import), %{"file" => upload}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
 
       assert html_response(conn, 200) =~ "Import failed; could not parse file"
     end
 
     test "renders errors when file not found", %{conn: conn} do
       upload = nil
-      conn = post conn, dungeon_import_path(conn, :import), %{"file" => upload}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
 
       assert html_response(conn, 200) =~ "Import failed; ** (UndefinedFunctionError) function nil.path/0 is undefined"
     end
@@ -254,7 +254,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       SoundSeeder.click()
       SoundSeeder.shoot()
 
-      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :info) == "Generating download."
     end
@@ -265,7 +265,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       SoundSeeder.shoot()
 
       Dungeons.activate_dungeon(dungeon)
-      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :info) == "Generating download."
     end
@@ -276,7 +276,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       SoundSeeder.shoot()
 
       Dungeons.delete_dungeon(dungeon)
-      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :info) == "Generating download."
     end
@@ -286,7 +286,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 #      SoundSeeder.click()
 #      SoundSeeder.shoot()
 #
-#      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+#      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
 #      assert json_response(conn, 200)
 #      assert Enum.member?(
 #               conn.resp_headers,
@@ -299,7 +299,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 #      SoundSeeder.shoot()
 #
 #      Dungeons.activate_dungeon(dungeon)
-#      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+#      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
 #      assert json_response(conn, 200)
 #      assert Enum.member?(
 #               conn.resp_headers,
@@ -312,7 +312,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 #      SoundSeeder.shoot()
 #
 #      Dungeons.delete_dungeon(dungeon)
-#      conn = post conn, dungeon_export_path(conn, :export, dungeon)
+#      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
 #      assert json_response(conn, 200)
 #      assert Enum.member?(
 #               conn.resp_headers,

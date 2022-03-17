@@ -59,7 +59,7 @@
 <%= unless @dungeon.active do %>
 <%= link "Edit", to: Routes.dungeon_path(@conn, :edit, @dungeon) %> |
 <% end %>
-<%= link "Export Dungeon", to: Routes.dungeon_export_path(@conn, :export, @dungeon), method: :post, target: :blank %> |
+<%= link "Export Dungeon", to: Routes.dungeon_export_path(@conn, :dungeon_export, @dungeon), method: :post, target: :blank %> |
 <%= link "Back", to: Routes.dungeon_path(@conn, :index) %> |
 <%= link "Delete", to: Routes.dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 

@@ -18,11 +18,11 @@ defmodule DungeonCrawl.Shipping do
 
   """
   def list_dungeon_exports do
-    Repo.all(Export)
+    Repo.all(from e in Export, order_by: [desc: :id])
   end
 
   def list_dungeon_exports(user_id) do
-    Repo.all(from e in Export, where: e.user_id == ^user_id)
+    Repo.all(from e in Export, where: e.user_id == ^user_id, order_by: [desc: :id])
   end
 
   @doc """
@@ -118,11 +118,11 @@ defmodule DungeonCrawl.Shipping do
 
   """
   def list_dungeon_imports do
-    Repo.all(Import)
+    Repo.all(from i in Import, order_by: [desc: :id])
   end
 
   def list_dungeon_imports(user_id) do
-    Repo.all(from i in Import, where: i.user_id == ^user_id)
+    Repo.all(from i in Import, where: i.user_id == ^user_id, order_by: [desc: :id])
   end
 
   @doc """
@@ -204,5 +204,21 @@ defmodule DungeonCrawl.Shipping do
   """
   def change_import(%Import{} = import, attrs \\ %{}) do
     Import.changeset(import, attrs)
+  end
+
+  @doc """
+  Returns true if the file name is already being imported by a user
+
+  ## Examples
+
+      iex> already_importing?("dungeon.json", 1)
+      true
+
+  """
+  def already_importing?(file_name, user_id) do
+    Repo.exists?(from imp in Import,
+                 where: imp.file_name == ^file_name and
+                        imp.user_id == ^user_id and
+                        imp.status in [:queued, :running])
   end
 end
