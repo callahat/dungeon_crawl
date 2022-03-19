@@ -15,6 +15,7 @@
       <thead>
         <tr>
           <%= if @is_admin do %><th>UserID</th><% end %>
+          <th>Dungeon ID</th>
           <th>Filename</th>
           <th>Started</th>
           <th>Status</th>
@@ -24,6 +25,7 @@
       <%= for export <- @exports do %>
         <tr>
           <%= if @is_admin do %><td><%= export.user.username %></td><% end %>
+          <td><%= export.dungeon_id %></td>
           <td><%= if export.file_name, do: link export.file_name, to: Routes.dungeon_export_path(@conn, :dungeon_export, export.id) %></td>
           <td><%= export.inserted_at %></td>
           <td><%= export.status %></td>

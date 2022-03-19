@@ -34,13 +34,13 @@ defmodule DungeonCrawl.ShippingTest do
         file_name: "dungeon.json",
         status: :completed}
 
-      assert {:ok, %Export{} = export} = Shipping.create_export(valid_attrs)
+      assert %Export{} = export = Shipping.create_export!(valid_attrs)
       assert export.data == "some data"
       assert export.status == :completed
     end
 
     test "create_export/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Shipping.create_export(@invalid_attrs)
+      assert_raise Ecto.InvalidChangesetError, fn -> Shipping.create_export!(@invalid_attrs) end
     end
 
     test "update_export/2 with valid data updates the export" do
@@ -93,7 +93,7 @@ defmodule DungeonCrawl.ShippingTest do
       assert Shipping.get_import!(import.id) == import
     end
 
-    test "create_import/1 with valid data creates a import" do
+    test "create_import!/1 with valid data creates a import" do
       valid_attrs = %{
         user_id: insert_user().id,
         dungeon_id: insert_dungeon().id,
@@ -102,14 +102,14 @@ defmodule DungeonCrawl.ShippingTest do
         file_name: "dungeon.json",
         status: :completed}
 
-      assert {:ok, %Import{} = import} = Shipping.create_import(valid_attrs)
+      assert %Import{} = import = Shipping.create_import!(valid_attrs)
       assert import.data == "some data"
       assert import.line_identifier == 42
       assert import.status == :completed
     end
 
-    test "create_import/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Shipping.create_import(@invalid_attrs)
+    test "create_import!/1 with invalid data returns error changeset" do
+      assert_raise Ecto.InvalidChangesetError, fn -> Shipping.create_import!(@invalid_attrs) end
     end
 
     test "update_import/2 with valid data updates the import" do

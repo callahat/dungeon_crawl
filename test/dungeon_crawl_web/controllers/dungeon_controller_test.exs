@@ -235,14 +235,16 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       upload = %Plug.Upload{path: "test/support/fixtures/export_bad_fixture_v_1.json", filename: "test.json"}
       conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
 
-      assert html_response(conn, 200) =~ "Import failed; could not parse file"
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+      assert get_flash(conn, :error) == "Import failed; could not parse file"
     end
 
     test "renders errors when file not found", %{conn: conn} do
       upload = nil
       conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
 
-      assert html_response(conn, 200) =~ "Import failed; ** (UndefinedFunctionError) function nil.path/0 is undefined"
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+      assert get_flash(conn, :error) == "Import failed; ** (UndefinedFunctionError) function nil.path/0 is undefined"
     end
   end
 
@@ -255,7 +257,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       SoundSeeder.shoot()
 
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
       assert get_flash(conn, :info) == "Generating download."
     end
 
@@ -266,7 +268,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
       Dungeons.activate_dungeon(dungeon)
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
       assert get_flash(conn, :info) == "Generating download."
     end
 
@@ -277,7 +279,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
       Dungeons.delete_dungeon(dungeon)
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
       assert get_flash(conn, :info) == "Generating download."
     end
 

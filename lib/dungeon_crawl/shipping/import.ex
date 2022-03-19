@@ -25,7 +25,7 @@ defmodule DungeonCrawl.Shipping.Import do
     |> _validate_not_already_queued()
   end
 
-  defp _validate_not_already_queued(%{status: :queued} = changeset) do
+  defp _validate_not_already_queued(%{data: %{id: :nil}, errors: []} = changeset) do
     file_name = get_field(changeset, :file_name)
     user_id = get_field(changeset, :user_id)
 

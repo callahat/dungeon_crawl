@@ -24,7 +24,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
 
   test "export/1", %{user: user} do
     dungeon = insert_dungeon()
-    {:ok, dungeon_export} = Shipping.create_export(%{dungeon_id: dungeon.id, user_id: user.id})
+    dungeon_export = Shipping.create_export!(%{dungeon_id: dungeon.id, user_id: user.id})
 
     assert %Task{ref: ref} = DockWorker.export(dungeon_export.id)
     assert_receive {^ref, :ok}
@@ -39,7 +39,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
 
   test "import/1", %{user: user} do
     dungeon = insert_dungeon()
-    {:ok, dungeon_import} = Shipping.create_import(%{
+    dungeon_import = Shipping.create_import!(%{
       data: DungeonExports.run(dungeon.id) |> Json.encode!(),
       user_id: user.id,
       file_name: "import.json"

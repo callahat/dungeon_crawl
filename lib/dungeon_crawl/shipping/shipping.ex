@@ -53,10 +53,10 @@ defmodule DungeonCrawl.Shipping do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_export(attrs \\ %{}) do
+  def create_export!(attrs \\ %{}) do
     %Export{}
     |> Export.changeset(attrs)
-    |> Repo.insert()
+    |> Repo.insert!()
   end
 
   @doc """
@@ -153,10 +153,10 @@ defmodule DungeonCrawl.Shipping do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_import(attrs \\ %{}) do
+  def create_import!(attrs \\ %{}) do
     %Import{}
     |> Import.changeset(attrs)
-    |> Repo.insert()
+    |> Repo.insert!()
   end
 
   @doc """
@@ -220,5 +220,21 @@ defmodule DungeonCrawl.Shipping do
                  where: imp.file_name == ^file_name and
                         imp.user_id == ^user_id and
                         imp.status in [:queued, :running])
+  end
+
+  @doc """
+  Returns true if the dungeon is already being exported by a user
+
+  ## Examples
+
+      iex> already_exporting?(1)
+      true
+
+  """
+  def already_exporting?(dungeon_id, user_id) do
+    Repo.exists?(from exp in Export,
+                 where: exp.dungeon_id == ^dungeon_id and
+                        exp.user_id == ^user_id and
+                        exp.status in [:queued, :running])
   end
 end

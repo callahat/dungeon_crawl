@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Shipping.Export do
 
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.Dungeons.Dungeon
+  alias DungeonCrawl.Shipping
 
   schema "dungeon_exports" do
     field :data, :string
@@ -20,5 +21,19 @@ defmodule DungeonCrawl.Shipping.Export do
     export
     |> cast(attrs, [:dungeon_id, :user_id, :status, :data, :file_name])
     |> validate_required([:dungeon_id, :user_id, :status])
+    |> _validate_not_already_queued()
   end
+
+  defp _validate_not_already_queued(%{data: %{id: :nil}, errors: []} = changeset) do
+    dungeon_id = get_field(changeset, :dungeon_id)
+    user_id = get_field(changeset, :user_id)
+
+    if Shipping.already_exporting?(dungeon_id, user_id) do
+      add_error(changeset, :dungeon_id, "Already exporting")
+    else
+      changeset
+    end
+  end
+
+  defp _validate_not_already_queued(changeset), do: changeset
 end
