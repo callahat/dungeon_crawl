@@ -15,7 +15,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
-  plug :assign_dungeon_export when action in [:download_export]
+  plug :assign_dungeon_export when action in [:download_dungeon_export]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -92,7 +92,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       file_name: file.filename
     })
 
-    DockWorker.import(dungeon_import.id)
+    DockWorker.import(dungeon_import)
 
     conn
     |> put_flash(:info, "Importing dungeon.")
@@ -124,7 +124,7 @@ defmodule DungeonCrawlWeb.DungeonController do
       user_id: conn.assigns.current_user.id
     })
 
-    DockWorker.export(dungeon_export.id)
+    DockWorker.export(dungeon_export)
 
     conn
     |> put_flash(:info, "Generating download.")
@@ -147,7 +147,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     redirect(conn, to: Routes.dungeon_export_path(conn, :dungeon_export_list))
   end
 
-  def download_dungeon_export(conn, %{"id" => id}) do
+  def download_dungeon_export(conn, %{"id" => _id}) do
     export = conn.assigns.dungeon_export
 
     send_download(conn, {:binary, export.data}, filename: export.file_name)
@@ -255,7 +255,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export))
+      |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export_list))
       |> halt()
     end
   end

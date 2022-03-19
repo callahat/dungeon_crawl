@@ -77,7 +77,8 @@ defmodule DungeonCrawl.Dungeons do
   def list_dungeons(%User{} = user) do
     Repo.all(from d in Dungeon,
              where: d.user_id == ^user.id,
-             where: is_nil(d.deleted_at))
+             where: is_nil(d.deleted_at),
+             order_by: [:id])
   end
   def list_dungeons(:soft_deleted) do
     Repo.all(from d in Dungeon,
@@ -86,7 +87,8 @@ defmodule DungeonCrawl.Dungeons do
   end
   def list_dungeons() do
     Repo.all(from d in Dungeon,
-             where: is_nil(d.deleted_at))
+             where: is_nil(d.deleted_at),
+             order_by: [:id])
   end
 
   @doc """

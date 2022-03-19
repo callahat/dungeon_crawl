@@ -158,7 +158,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def check_for_tile_template_slugs(export, %{script: script}) do
-    slug_kwargs = Regex.scan(@script_tt_slug, script)
+    slug_kwargs = Regex.scan(@script_tt_slug, script || "")
 
     Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
       [_, slug] = String.split(slug_kwarg)
@@ -167,7 +167,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def check_for_script_items(export, %{script: script}) do
-    slug_kwargs = Regex.scan(@script_item_slug, script)
+    slug_kwargs = Regex.scan(@script_item_slug, script || "")
 
     Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
       [_, slug] = String.split(slug_kwarg)
@@ -176,7 +176,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   end
 
   def check_for_script_sounds(export, %{script: script}) do
-    slug_kwargs = Regex.scan(@script_sound_slug, script)
+    slug_kwargs = Regex.scan(@script_sound_slug, script || "")
 
     Enum.reduce(slug_kwargs, export, fn [slug_kwarg], export ->
       [_, slug] = String.split(slug_kwarg)

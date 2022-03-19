@@ -3,12 +3,6 @@
 
 <div class="row no-gutters">
   <div class="col-3">
-    <% form_for @conn, Routes.dungeon_export_path(@conn, :dungeon_export_list), fn f -> %>
-
-      <div class="form-group">
-        <%= submit "Submit", class: "btn btn-primary" %>
-      </div>
-    <% end %>
   </div>
   <div class="col-6" id="dungeonExports">
     <table class="table table-sm">
@@ -26,7 +20,7 @@
         <tr>
           <%= if @is_admin do %><td><%= export.user.username %></td><% end %>
           <td><%= export.dungeon_id %></td>
-          <td><%= if export.file_name, do: link export.file_name, to: Routes.dungeon_export_path(@conn, :dungeon_export, export.id) %></td>
+          <td><%= if export.file_name, do: link export.file_name, to: Routes.dungeon_export_path(@conn, :download_dungeon_export, export.id), method: :post %></td>
           <td><%= export.inserted_at %></td>
           <td><%= export.status %></td>
         </tr>

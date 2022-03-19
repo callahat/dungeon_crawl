@@ -128,6 +128,7 @@ defmodule DungeonCrawl.DungeonsTest do
                line_identifier: dungeon.line_identifier,
                description: nil,
                title_number: nil} == Dungeons.copy_dungeon_fields(dungeon)
+      assert %{} == Dungeons.copy_dungeon_fields(nil)
     end
 
     test "create_dungeon/1 with valid data creates a dungeon" do
@@ -383,6 +384,7 @@ defmodule DungeonCrawl.DungeonsTest do
                number_west: nil,
                state: nil,
                width: 20} == Dungeons.copy_level_fields(level)
+      assert %{} == Dungeons.copy_level_fields(nil)
     end
 
     test "create_level/1 with valid data creates a level" do
@@ -642,6 +644,7 @@ defmodule DungeonCrawl.DungeonsTest do
                state: nil,
                tile_template_id: tile.tile_template_id,
                z_index: 0} == Dungeons.copy_tile_fields(tile)
+      assert %{} == Dungeons.copy_tile_fields(nil)
     end
 
     test "create_tile/1 with valid data creates a tile" do

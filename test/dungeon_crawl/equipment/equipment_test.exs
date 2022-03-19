@@ -52,6 +52,7 @@ defmodule DungeonCrawl.EquipmentTest do
     test "get_item/1 returns nil if not found" do
       refute Equipment.get_item(1)
       refute Equipment.get_item("fake_item")
+      refute Equipment.get_item(nil)
     end
 
     test "get_item!/1 returns the item with given id" do
@@ -201,6 +202,7 @@ defmodule DungeonCrawl.EquipmentTest do
                user_id: nil,
                consumable: false,
                weapon: false} == Equipment.copy_fields(item)
+      assert %{} == Equipment.copy_fields(nil)
     end
   end
 end

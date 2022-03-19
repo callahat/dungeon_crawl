@@ -152,15 +152,11 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   def repoint_script_slugs(asset, export, slug_type, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, Map.get(asset, :tmp_script) || "")
 
-    Enum.reduce(slug_kwargs, asset, fn
-      [slug_kwarg], %{tmp_script: _tmp_script} = asset ->
-        [left_side, tmp_slug] = String.split(slug_kwarg)
+    Enum.reduce(slug_kwargs, asset, fn [slug_kwarg], %{tmp_script: _tmp_script} = asset ->
+      [left_side, tmp_slug] = String.split(slug_kwarg)
 
-        referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
-        Map.put(asset, :tmp_script, String.replace(Map.fetch!(asset, :tmp_script), slug_kwarg, "#{left_side} #{referenced_asset.slug}"))
-
-      _slug_kwarg, asset ->
-        asset
+      referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
+      Map.put(asset, :tmp_script, String.replace(Map.fetch!(asset, :tmp_script), slug_kwarg, "#{left_side} #{referenced_asset.slug}"))
     end)
   end
 

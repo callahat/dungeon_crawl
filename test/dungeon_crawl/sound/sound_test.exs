@@ -222,6 +222,7 @@ defmodule DungeonCrawl.SoundTest do
                slug: "some_name",
                user_id: nil,
                zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"} == Sound.copy_fields(effect)
+      assert %{} == Sound.copy_fields(nil)
     end
   end
 end

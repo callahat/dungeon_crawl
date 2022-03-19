@@ -32,6 +32,7 @@ defmodule DungeonCrawlWeb.Router do
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
     get  "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
+    post "/dungeons/:id/export_download", DungeonController, :download_dungeon_export, as: :dungeon_export
     get  "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
     post "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
     resources "/dungeons", DungeonController do

@@ -3,7 +3,9 @@ defmodule DungeonCrawl.Shipping.DockWorker do
 
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Shipping
-  alias DungeonCrawl.Shipping.{DungeonExports, DungeonImports, Json}
+  alias DungeonCrawl.Shipping.{DungeonExports, DungeonImports, Json, Export, Import}
+
+  require Logger
 
   @timeout 360_000
 
@@ -11,12 +13,12 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     GenServer.start_link(__MODULE__, nil)
   end
 
-  def export(dungeon_export_id) do
-    _pool_wrapper({:export, dungeon_export_id})
+  def export(%Export{} = dungeon_export) do
+    _pool_wrapper({:export, dungeon_export})
   end
 
-  def import(dungeon_import_id) do
-    _pool_wrapper({:import, dungeon_import_id})
+  def import(%Import{} = dungeon_import) do
+    _pool_wrapper({:import, dungeon_import})
   end
 
   ## Callbacks
@@ -27,13 +29,13 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   end
 
   @impl true
-  def handle_call({:export, dungeon_export_id}, _from, state) do
+  def handle_call({:export, export}, _from, state) do
     # export the dungeon, return the dungeon export id
-    export = Repo.preload(Shipping.get_export!(dungeon_export_id), :dungeon)
+    export = Repo.preload(export, :dungeon)
     {:ok, _} = Shipping.update_export(export, %{status: :running})
 
-    {:ok, export_json} = DungeonExports.run(export.dungeon_id)
-                         |> Jason.encode()
+    export_json = DungeonExports.run(export.dungeon_id)
+                  |> Json.encode!()
 
     Shipping.update_export(export,
       %{file_name: _file_name(export.dungeon), data: export_json, status: :completed})
@@ -42,9 +44,8 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   end
 
   @impl true
-  def handle_call({:import, dungeon_import_id}, _from, state) do
+  def handle_call({:import, import}, _from, state) do
     # import the dungeon, return the created id
-    import = Shipping.get_import!(dungeon_import_id)
     {:ok, _} = Shipping.update_import(import, %{status: :running})
 
     import_hash = Json.decode!(import.data)
@@ -54,8 +55,6 @@ defmodule DungeonCrawl.Shipping.DockWorker do
       %{dungeon_id: import_hash.dungeon.id, status: :completed})
 
     {:reply, :ok, state}
-  rescue
-    Ecto.NoResultsError -> {:reply, :ok, state}
   end
 
   defp _file_name(dungeon) do
@@ -76,7 +75,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
           try do
             GenServer.call(dock_worker, params)
           catch
-            e, r -> IO.inspect("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
+            e, r -> Logger.warn("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
                     :ok
           end
         end,
