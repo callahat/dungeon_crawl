@@ -65,7 +65,8 @@ defmodule DungeonCrawl.DungeonsTest do
       _dungeon_1a = dungeon_fixture(%{user_id: user.id, line_identifier: 1, version: 1, active: true})
       dungeon_1b = dungeon_fixture(%{user_id: user.id, line_identifier: 1, version: 2})
       dungeon_2 = dungeon_fixture(%{user_id: user.id, line_identifier: 2, version: 3, active: true})
-      assert Dungeons.list_dungeons_by_lines(user) == [dungeon_1b, dungeon_2]
+      dungeon_3 = dungeon_fixture(%{user_id: user.id, line_identifier: 3, version: 2})
+      assert Dungeons.list_dungeons_by_lines(user) == [dungeon_1b, dungeon_2, dungeon_3]
     end
 
     test "list_active_dungeons_with_player_count/0 returns all active dungeons preloaded with the players in the level instances" do
@@ -103,6 +104,14 @@ defmodule DungeonCrawl.DungeonsTest do
       dungeon2 = dungeon_fixture(%{version: 2, line_identifier: dungeon.line_identifier})
       dungeon_fixture(%{line_identifier: dungeon.id + 1})
       assert [dungeon2, dungeon] == Dungeons.get_dungeons(dungeon.line_identifier)
+    end
+
+    test "get_newest_dungeons_version/1 returns the latest version of the line identifier" do
+      dungeon_fixture()
+      dungeon = dungeon_fixture()
+      dungeon2 = dungeon_fixture(%{version: 2, line_identifier: dungeon.line_identifier})
+      dungeon_fixture(%{line_identifier: dungeon.id + 1})
+      assert dungeon2 == Dungeons.get_newest_dungeons_version(dungeon.line_identifier)
     end
 
     test "get_title_level/1" do

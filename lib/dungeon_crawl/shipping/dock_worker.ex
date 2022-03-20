@@ -49,7 +49,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     {:ok, _} = Shipping.update_import(import, %{status: :running})
 
     import_hash = Json.decode!(import.data)
-                  |> DungeonImports.run(import.user_id)
+                  |> DungeonImports.run(import.user_id, import.line_identifier)
 
     Shipping.update_import(import,
       %{dungeon_id: import_hash.dungeon.id, status: :completed})

@@ -91,7 +91,6 @@ defmodule DungeonCrawl.Dungeons do
              order_by: [:id])
   end
 
-
   @doc """
   Returns a list of the most recent dungeon for each line_identifier.
 
@@ -194,6 +193,20 @@ defmodule DungeonCrawl.Dungeons do
              group_by: d.id,
              order_by: [desc: d.version],
              select_merge: %{score_count: count(s.id)})
+  end
+
+  @doc """
+  Returns a list of the most recent dungeon for each line_identifier.
+
+  ## Examples
+
+    iex> list_dungeons_by_lines(user)
+  """
+  def get_newest_dungeons_version(line_identifier) do
+    Repo.one(from d in Dungeon,
+             where: d.line_identifier == ^line_identifier,
+             order_by: [desc: :version],
+             limit: 1)
   end
 
   @doc """

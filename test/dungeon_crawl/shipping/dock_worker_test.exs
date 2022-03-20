@@ -42,7 +42,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     dungeon_import = Shipping.create_import!(%{
       data: DungeonExports.run(dungeon.id) |> Json.encode!(),
       user_id: user.id,
-      file_name: "import.json"
+      file_name: "import.json",
+      line_identifier: dungeon.line_identifier
     })
 
     assert %Task{ref: ref} = DockWorker.import(dungeon_import)
@@ -56,9 +57,12 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     assert %{dungeon_id: imported_dungeon.id,
              status: :completed,
              user_id: user.id,
-             file_name: "import.json"}
-           == Map.take(Shipping.get_import!(dungeon_import.id), [:dungeon_id, :status, :user_id, :file_name])
+             file_name: "import.json",
+             line_identifier: dungeon.line_identifier}
+           == Map.take(Shipping.get_import!(dungeon_import.id),
+                       [:dungeon_id, :status, :user_id, :file_name, :line_identifier])
     assert user.id == imported_dungeon.user_id
+    assert imported_dungeon.previous_version_id == dungeon.id
   end
 
   @tag capture_log: true

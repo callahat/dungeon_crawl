@@ -25,7 +25,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
             tile_templates: %{},
             sounds: %{}
 
-  def run(%DungeonExports{} = export, user_id) do
+  def run(%DungeonExports{} = export, user_id, line_identifier \\ nil) do
     export = find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
              |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
              |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
@@ -34,7 +34,8 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> repoint_ttids_and_slugs(:items)
              |> repoint_ttids_and_slugs(:tile_templates)
              |> repoint_dungeon_starting_items()
-             |> set_dungeon_user_id(user_id)
+             |> set_dungeon_overrides(user_id, line_identifier)
+             |> maybe_handle_previous_version()
              |> create_dungeon()
              |> create_levels()
              |> create_spawn_locations()
@@ -205,8 +206,8 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end
   end
 
-  def set_dungeon_user_id(%{dungeon: dungeon} = export, user_id) do
-    dungeon = Map.put(dungeon, :user_id, user_id)
+  def set_dungeon_overrides(%{dungeon: dungeon} = export, user_id, line_identifier) do
+    dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier})
               |> Map.delete(:user_name)
     %{ export | dungeon: dungeon }
   end
@@ -249,5 +250,22 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
        end)
 
     export
+  end
+
+  def maybe_handle_previous_version(%{dungeon: dungeon} = export) do
+    if export.dungeon.line_identifier do
+      prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier)
+
+      if prev_version.active do
+        attrs = %{version: prev_version.version + 1, active: false, previous_version_id: prev_version.id}
+        %{ export | dungeon: Map.merge(dungeon, attrs) }
+      else
+        attrs = %{version: prev_version.version, active: false, previous_version_id: prev_version.previous_version_id}
+        Dungeons.hard_delete_dungeon!(prev_version)
+        %{ export | dungeon: Map.merge(dungeon, attrs) }
+      end
+    else
+      export
+    end
   end
 end
