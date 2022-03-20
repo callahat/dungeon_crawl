@@ -47,7 +47,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   # the fuzzy search, when candidates are found the slug in the candidate will need to be checked
   # to see if its a usable match for the given user; if not then asset(s) not match so a new one
   # will need created.
-  def find_or_create_assets(export, asset_key, find_asset, create_asset, user_id) do
+  defp find_or_create_assets(export, asset_key, find_asset, create_asset, user_id) do
     assets =
     Map.get(export, asset_key)
     |> Enum.map(fn {tmp_id, attrs} ->
@@ -75,32 +75,32 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     %{ export | asset_key => assets }
   end
 
-  def find_effect(_user_id, attrs) do
+  defp find_effect(_user_id, attrs) do
     Sound.find_effect(attrs)
   end
 
-  def find_item(user_id, attrs) do
+  defp find_item(user_id, attrs) do
     Equipment.find_items(Map.delete(attrs, :script))
     |> useable_asset(attrs.script, user_id)
   end
 
-  def find_tile_template(user_id, attrs) do
+  defp find_tile_template(user_id, attrs) do
     TileTemplates.find_tile_templates(Map.delete(attrs, :script))
     |> useable_asset(attrs.script, user_id)
   end
 
-  def useable_asset(assets, script, user_id) do
+  defp useable_asset(assets, script, user_id) do
     Enum.filter(assets, fn asset -> script_fuzzer(asset.script) == script_fuzzer(script) end)
     |> Enum.find(fn asset -> all_slugs_useable?(asset.script, user_id) end)
   end
 
-  def script_fuzzer(script) do
+  defp script_fuzzer(script) do
     fuzz_script_slugs(script, @script_tt_slug)
     |> fuzz_script_slugs(@script_item_slug)
     |> fuzz_script_slugs(@script_sound_slug)
   end
 
-  def fuzz_script_slugs(script, slug_pattern) do
+  defp fuzz_script_slugs(script, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, script || "")
 
     Enum.reduce(slug_kwargs, script, fn [slug_kwarg], script ->
@@ -109,13 +109,13 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end)
   end
 
-  def all_slugs_useable?(script, user_id) do
+  defp all_slugs_useable?(script, user_id) do
     all_slugs_useable?(script, user_id, &TileTemplates.get_tile_template_by_slug/1, @script_tt_slug)
     && all_slugs_useable?(script, user_id, &Equipment.get_item/1, @script_item_slug)
     && all_slugs_useable?(script, user_id, &Sound.get_effect_by_slug/1, @script_sound_slug)
   end
 
-  def all_slugs_useable?(script, _user_id, slug_lookup, slug_pattern) do
+  defp all_slugs_useable?(script, _user_id, slug_lookup, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, script)
 
     Enum.all?(slug_kwargs, fn [slug_kwarg] ->
@@ -128,7 +128,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end)
   end
 
-  def repoint_ttids_and_slugs(export, asset_key) do
+  defp repoint_ttids_and_slugs(export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
                {
                  th,
@@ -144,13 +144,13 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     %{ export | asset_key => assets }
   end
 
-  def repoint_tile_template_id(%{tile_template_id: tile_template_id} = asset, export) do
+  defp repoint_tile_template_id(%{tile_template_id: tile_template_id} = asset, export) do
     template = Map.get(export.tile_templates, tile_template_id, %{id: nil})
     Map.put(asset, :tile_template_id, template.id)
   end
-  def repoint_tile_template_id(asset, _export), do: asset
+  defp repoint_tile_template_id(asset, _export), do: asset
 
-  def repoint_script_slugs(asset, export, slug_type, slug_pattern) do
+  defp repoint_script_slugs(asset, export, slug_type, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, Map.get(asset, :tmp_script) || "")
 
     Enum.reduce(slug_kwargs, asset, fn [slug_kwarg], %{tmp_script: _tmp_script} = asset ->
@@ -161,7 +161,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end)
   end
 
-  def swap_scripts_to_tmp_scripts(export, asset_key) do
+  defp swap_scripts_to_tmp_scripts(export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {
         th,
@@ -173,25 +173,25 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     %{ export | asset_key => assets }
   end
 
-  def swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
+  defp swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
     {:ok, asset} = TileTemplates.update_tile_template(asset, %{script: tmp_script})
     asset
   end
 
-  def swap_tmp_script(%{__struct__: Item, tmp_script: tmp_script} = asset) do
+  defp swap_tmp_script(%{__struct__: Item, tmp_script: tmp_script} = asset) do
     {:ok, asset} = Equipment.update_item(asset, %{script: tmp_script})
     asset
   end
 
-  def swap_tmp_script(%{tmp_script: tmp_script} = asset) do
+  defp swap_tmp_script(%{tmp_script: tmp_script} = asset) do
     Map.put(asset, :script, tmp_script)
   end
 
-  def swap_tmp_script(asset) do
+  defp swap_tmp_script(asset) do
     asset
   end
 
-  def repoint_dungeon_starting_items(%{dungeon: dungeon} = export) do
+  defp repoint_dungeon_starting_items(%{dungeon: dungeon} = export) do
     case Regex.named_captures(@starting_equipment_slugs, export.dungeon.state || "") do
       %{"eq" => equipment} ->
         starting_equipment =
@@ -206,36 +206,36 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end
   end
 
-  def set_dungeon_overrides(export, user_id, "") do
+  defp set_dungeon_overrides(export, user_id, "") do
     set_dungeon_overrides(export, user_id, nil)
   end
 
-  def set_dungeon_overrides(%{dungeon: dungeon} = export, user_id, line_identifier) do
+  defp set_dungeon_overrides(%{dungeon: dungeon} = export, user_id, line_identifier) do
     dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier})
               |> Map.delete(:user_name)
     %{ export | dungeon: dungeon }
   end
 
-  def create_dungeon(%{dungeon: dungeon} = export) do
+  defp create_dungeon(%{dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.create_dungeon(dungeon)
     %{ export | dungeon: dungeon }
   end
 
-  def create_levels(%{levels: levels} = export) do
+  defp create_levels(%{levels: levels} = export) do
     Map.values(levels)
     |> create_levels(export)
   end
 
-  def create_levels([], export), do: export
-  def create_levels([level | levels], export) do
+  defp create_levels([], export), do: export
+  defp create_levels([level | levels], export) do
     {:ok, level_record} = Dungeons.create_level(Map.put(level, :dungeon_id, export.dungeon.id))
     create_tiles(level.tile_data, level_record.id, export)
     export = %{ export | levels: %{ export.levels | level.number => Map.put(level_record, :tile_data, level.tile_data) } }
     create_levels(levels, export)
   end
 
-  def create_tiles([], _level_id, export), do: export
-  def create_tiles([[tile_hash, row, col, z_index] | tile_hashes], level_id, export) do
+  defp create_tiles([], _level_id, export), do: export
+  defp create_tiles([[tile_hash, row, col, z_index] | tile_hashes], level_id, export) do
     tile_attrs = export.tiles[tile_hash]
 
     {:ok, _tile} = Map.merge(tile_attrs, %{level_id: level_id, row: row, col: col, z_index: z_index})
@@ -244,7 +244,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     create_tiles(tile_hashes, level_id, export)
   end
 
-  def create_spawn_locations(export) do
+  defp create_spawn_locations(export) do
     export.spawn_locations
     |> Enum.group_by(fn [num, _row, _col] -> num end)
     |> Enum.each(fn {num, coords} ->
@@ -256,7 +256,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     export
   end
 
-  def maybe_handle_previous_version(%{dungeon: dungeon} = export) do
+  defp maybe_handle_previous_version(%{dungeon: dungeon} = export) do
     prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier, export.dungeon.user_id)
 
     cond do
