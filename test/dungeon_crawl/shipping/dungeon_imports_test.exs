@@ -260,6 +260,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       user_id: ^user_id,
       version: 1,
       active: false} = dungeon
+    # no specified line, so the imported dungeon becomes its own line
+    assert dungeon.id == dungeon.line_identifier
     assert dungeon == Dungeons.get_dungeon!(dungeon.id)
 
     # verify level records and their details
@@ -351,7 +353,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
   end
 
   test "run/3 latest dungeon of line is active", config do
-    prev_dungeon = insert_dungeon(%{line_identifier: 101010, active: true})
+    prev_dungeon = insert_dungeon(%{line_identifier: 101010, active: true, user_id: config.user.id})
     assert %DungeonExports{
              dungeon: dungeon,
            } = DungeonImports.run(config.export_hash, config.user.id, prev_dungeon.line_identifier)
@@ -362,7 +364,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
   end
 
   test "run/3 latest dungeon of line is inactive", config do
-    inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false})
+    inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false, user_id: config.user.id})
     assert %DungeonExports{
              dungeon: dungeon,
            } = DungeonImports.run(config.export_hash, config.user.id, inactive_dungeon.line_identifier)
@@ -370,6 +372,18 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     refute Dungeons.get_dungeon(inactive_dungeon.id)
     assert dungeon.version == inactive_dungeon.version
     assert dungeon.previous_version_id == inactive_dungeon.previous_version_id
+  end
+
+  test "run/3 the line is owned by someone else", config do
+    other_user = insert_user()
+    inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false, user_id: other_user.id})
+    assert %DungeonExports{
+             dungeon: dungeon,
+           } = DungeonImports.run(config.export_hash, config.user.id, inactive_dungeon.line_identifier)
+    refute dungeon.line_identifier == inactive_dungeon.line_identifier
+    assert Dungeons.get_dungeon(inactive_dungeon.id)
+    assert dungeon.version == 1
+    refute dungeon.previous_version_id
   end
 
   def comp_item_fields(item) do

@@ -94,9 +94,10 @@ defmodule DungeonCrawl.ShippingTest do
     end
 
     test "create_import!/1 with valid data creates a import" do
+      user_id = insert_user().id
       valid_attrs = %{
-        user_id: insert_user().id,
-        dungeon_id: insert_dungeon().id,
+        user_id: user_id,
+        dungeon_id: insert_dungeon(%{user_id: user_id, line_identifier: 42}).id,
         data: "some data",
         line_identifier: 42,
         file_name: "dungeon.json",
@@ -114,7 +115,9 @@ defmodule DungeonCrawl.ShippingTest do
 
     test "update_import/2 with valid data updates the import" do
       import = import_fixture()
-      update_attrs = %{data: "some updated data", line_identifier: 43, status: :completed}
+      user = insert_user()
+      _dungeon = insert_dungeon(%{user_id: user.id, line_identifier: 43})
+      update_attrs = %{data: "some updated data", line_identifier: 43, status: :completed, user_id: user.id}
 
       assert {:ok, %Import{} = import} = Shipping.update_import(import, update_attrs)
       assert import.data == "some updated data"

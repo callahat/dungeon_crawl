@@ -106,12 +106,16 @@ defmodule DungeonCrawl.DungeonsTest do
       assert [dungeon2, dungeon] == Dungeons.get_dungeons(dungeon.line_identifier)
     end
 
-    test "get_newest_dungeons_version/1 returns the latest version of the line identifier" do
-      dungeon_fixture()
-      dungeon = dungeon_fixture()
-      dungeon2 = dungeon_fixture(%{version: 2, line_identifier: dungeon.line_identifier})
-      dungeon_fixture(%{line_identifier: dungeon.id + 1})
-      assert dungeon2 == Dungeons.get_newest_dungeons_version(dungeon.line_identifier)
+    test "get_newest_dungeons_version/2 returns the latest version of the line identifier" do
+      user = insert_user()
+      dungeon_fixture(%{user_id: user.id})
+      dungeon = dungeon_fixture(%{user_id: user.id})
+      dungeon2 = dungeon_fixture(%{user_id: user.id, version: 2, line_identifier: dungeon.line_identifier})
+      dungeon_fixture(%{user_id: user.id, line_identifier: dungeon.id + 1})
+      assert dungeon2 == Dungeons.get_newest_dungeons_version(dungeon.line_identifier, user.id)
+      refute Dungeons.get_newest_dungeons_version(dungeon.line_identifier, nil)
+      refute Dungeons.get_newest_dungeons_version(nil, user.id)
+      refute Dungeons.get_newest_dungeons_version(-1, -1)
     end
 
     test "get_title_level/1" do

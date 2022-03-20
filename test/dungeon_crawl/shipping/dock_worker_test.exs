@@ -38,7 +38,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
   end
 
   test "import/1", %{user: user} do
-    dungeon = insert_dungeon()
+    dungeon = insert_dungeon(%{user_id: user.id})
     dungeon_import = Shipping.create_import!(%{
       data: DungeonExports.run(dungeon.id) |> Json.encode!(),
       user_id: user.id,

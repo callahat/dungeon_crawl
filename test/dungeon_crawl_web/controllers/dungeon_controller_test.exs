@@ -220,6 +220,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     setup [:create_user]
 
     test "renders the form", %{conn: conn} do
+      insert_dungeon(%{user_id: conn.assigns.current_user.id})
       conn = get conn, dungeon_import_path(conn, :dungeon_import)
       assert html_response(conn, 200) =~ "Import dungeon"
       refute html_response(conn, 200) =~ "UserID"
@@ -240,7 +241,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "redirects when data is valid", %{conn: conn} do
       upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
       refute get_flash(conn, :error)
       assert get_flash(conn, :info) == "Importing dungeon."
       assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
@@ -250,7 +251,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "renders errors when file is invalid", %{conn: conn} do
       upload = %Plug.Upload{path: "test/support/fixtures/export_bad_fixture_v_1.json", filename: "test.json"}
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
 
       assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
       assert get_flash(conn, :error) == "Import failed; could not parse file"
@@ -258,7 +259,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "renders errors when file not found", %{conn: conn} do
       upload = nil
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
 
       assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
       assert get_flash(conn, :error) == "Import failed; ** (UndefinedFunctionError) function nil.path/0 is undefined"
@@ -266,11 +267,36 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
     test "renders errors when file is already being uploaded", %{conn: conn} do
       upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload}
+      post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
 
       assert get_flash(conn, :error) == "Already importing"
       assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+    end
+
+    test "with a line identifier selected for the import", %{conn: conn} do
+      upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
+      other_dungeon = insert_dungeon(%{user_id: conn.assigns.current_user.id})
+      lid = "#{other_dungeon.line_identifier}"
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => lid}
+
+      assert get_flash(conn, :info) == "Importing dungeon."
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+      assert [import] = Shipping.list_dungeon_imports()
+      assert import.file_name == "test.json"
+      assert import.line_identifier == String.to_integer(lid)
+    end
+
+    test "with a line identifier that is invalid", %{conn: conn} do
+      upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
+      other_user = insert_user()
+      other_dungeon = insert_dungeon(%{user_id: other_user.id})
+      lid = "#{other_dungeon.line_identifier}"
+      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => lid}
+
+      assert get_flash(conn, :error) == "Invalid Line Identifier"
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+      assert [] == Shipping.list_dungeon_imports()
     end
   end
 

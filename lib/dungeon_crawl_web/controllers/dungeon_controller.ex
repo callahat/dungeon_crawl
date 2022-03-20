@@ -81,7 +81,7 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def dungeon_import(conn,  %{"file" => file}) do
+  def dungeon_import(conn,  %{"file" => file, "line_identifier" => line_identifier}) do
     import = file.path
              |> File.read!()
              |> Json.decode!()
@@ -89,7 +89,8 @@ defmodule DungeonCrawlWeb.DungeonController do
     dungeon_import = Shipping.create_import!(%{
       data: Json.encode!(import),
       user_id: conn.assigns.current_user.id,
-      file_name: file.filename
+      file_name: file.filename,
+      line_identifier: line_identifier
     })
 
     DockWorker.import(dungeon_import)
@@ -108,8 +109,13 @@ defmodule DungeonCrawlWeb.DungeonController do
     imports = if is_admin,
                 do: Repo.preload(Shipping.list_dungeon_imports(), :user),
                 else: Shipping.list_dungeon_imports(conn.assigns.current_user.id)
+    dungeons = Dungeons.list_dungeons_by_lines(conn.assigns.current_user)
+               |> Enum.map(fn dungeon ->
+                    {"#{dungeon.name} (id: #{dungeon.id}) v #{dungeon.version} #{unless dungeon.active, do: "(inactive)"}",
+                      dungeon.line_identifier}
+                  end)
 
-    render(conn, "import.html", is_admin: is_admin, imports: imports)
+    render(conn, "import.html", is_admin: is_admin, imports: imports, dungeons: dungeons)
   end
 
   defp _redirect_to_dungeon_import(conn) do

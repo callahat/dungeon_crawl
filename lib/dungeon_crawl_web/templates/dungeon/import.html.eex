@@ -2,11 +2,16 @@
 
 
 <div class="row no-gutters">
-  <div class="col-3">
+  <div class="col-3 pr-4">
     <%= form_for @conn, Routes.dungeon_import_path(@conn, :dungeon_import), [multipart: true], fn f -> %>
       <div class="form-group">
         <%= label f, :file, class: "control-label" %>
-        <%= file_input f, :file %>
+        <%= file_input f, :file, class: "form-control" %>
+      </div>
+
+      <div class="form-group">
+        <%= label f, :line_identifier, class: "control-label" %>
+        <%= select f, :line_identifier, @dungeons, class: "form-control", prompt: "(optional)" %>
       </div>
 
       <div class="form-group">

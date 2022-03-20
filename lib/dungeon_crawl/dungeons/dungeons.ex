@@ -200,11 +200,14 @@ defmodule DungeonCrawl.Dungeons do
 
   ## Examples
 
-    iex> list_dungeons_by_lines(user)
+    iex> get_newest_dungeons_version(line_identifier, user_id)
   """
-  def get_newest_dungeons_version(line_identifier) do
+  def get_newest_dungeons_version(nil, _user_id), do: nil
+  def get_newest_dungeons_version(_line_identifier, nil), do: nil
+  def get_newest_dungeons_version(line_identifier, user_id) do
     Repo.one(from d in Dungeon,
              where: d.line_identifier == ^line_identifier,
+             where: d.user_id == ^user_id,
              order_by: [desc: :version],
              limit: 1)
   end

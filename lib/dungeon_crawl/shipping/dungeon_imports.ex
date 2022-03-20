@@ -206,6 +206,10 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     end
   end
 
+  def set_dungeon_overrides(export, user_id, "") do
+    set_dungeon_overrides(export, user_id, nil)
+  end
+
   def set_dungeon_overrides(%{dungeon: dungeon} = export, user_id, line_identifier) do
     dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier})
               |> Map.delete(:user_name)
@@ -253,19 +257,20 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   def maybe_handle_previous_version(%{dungeon: dungeon} = export) do
-    if export.dungeon.line_identifier do
-      prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier)
+    prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier, export.dungeon.user_id)
 
-      if prev_version.active do
+    cond do
+      is_nil(prev_version) ->
+        %{ export | dungeon: Map.put(dungeon, :line_identifier, nil) }
+
+      prev_version.active ->
         attrs = %{version: prev_version.version + 1, active: false, previous_version_id: prev_version.id}
         %{ export | dungeon: Map.merge(dungeon, attrs) }
-      else
+
+      true ->
         attrs = %{version: prev_version.version, active: false, previous_version_id: prev_version.previous_version_id}
         Dungeons.hard_delete_dungeon!(prev_version)
         %{ export | dungeon: Map.merge(dungeon, attrs) }
-      end
-    else
-      export
     end
   end
 end
