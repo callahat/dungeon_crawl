@@ -5,7 +5,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms do
   def random_level_render() do
 """
 #################    
-#ϴ..............#    
+#.........ϴ.....#    
 #....♂..........#    
 #...............#    
 ######'##########    
