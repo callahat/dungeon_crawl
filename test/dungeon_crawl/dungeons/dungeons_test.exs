@@ -59,6 +59,15 @@ defmodule DungeonCrawl.DungeonsTest do
       assert Enum.count(dungeon.locations) == 2
     end
 
+    test "list_dungeons_by_lines/1 returns the most recent dungeons per line" do
+      dungeon_fixture()
+      user = insert_user()
+      _dungeon_1a = dungeon_fixture(%{user_id: user.id, line_identifier: 1, version: 1, active: true})
+      dungeon_1b = dungeon_fixture(%{user_id: user.id, line_identifier: 1, version: 2})
+      dungeon_2 = dungeon_fixture(%{user_id: user.id, line_identifier: 2, version: 3, active: true})
+      assert Dungeons.list_dungeons_by_lines(user) == [dungeon_1b, dungeon_2]
+    end
+
     test "list_active_dungeons_with_player_count/0 returns all active dungeons preloaded with the players in the level instances" do
       insert_stubbed_dungeon_instance(%{active: false})
       insert_stubbed_dungeon_instance(%{active: true, deleted_at: NaiveDateTime.utc_now |> NaiveDateTime.truncate(:second)})
