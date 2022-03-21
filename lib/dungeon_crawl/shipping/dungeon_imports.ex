@@ -16,9 +16,6 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Sound
 
-  alias DungeonCrawl.Repo
-  alias Ecto.Multi
-
   use DungeonCrawl.Shipping.SlugMatching
 
   defstruct dungeon: nil,
@@ -42,7 +39,6 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> create_dungeon()
              |> create_levels()
              |> create_spawn_locations()
-             |> commit_transaction()
 
     export
   end
@@ -221,46 +217,39 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   defp maybe_handle_previous_version(%{dungeon: dungeon} = export) do
-    multi = Multi.new()
     prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier, export.dungeon.user_id)
 
     cond do
       is_nil(prev_version) ->
-        {%{ export | dungeon: Map.put(dungeon, :line_identifier, nil) }, multi}
+        %{ export | dungeon: Map.put(dungeon, :line_identifier, nil) }
 
       prev_version.active ->
         attrs = %{version: prev_version.version + 1, active: false, previous_version_id: prev_version.id}
-        {%{export | dungeon: Map.merge(dungeon, attrs)}, multi}
+        %{ export | dungeon: Map.merge(dungeon, attrs) }
 
       true ->
         attrs = %{version: prev_version.version, active: false, previous_version_id: prev_version.previous_version_id}
-        multi = Multi.delete(multi, :hard_deleted_prev_dungeon, prev_version)
-        {%{export | dungeon: Map.merge(dungeon, attrs)}, multi}
+        Dungeons.hard_delete_dungeon!(prev_version)
+        %{ export | dungeon: Map.merge(dungeon, attrs) }
     end
   end
 
-  defp create_dungeon({%{dungeon: dungeon} = export, multi}) do
-    multi = Multi.run(multi, :dungeon, fn(_repo, _) -> Dungeons.create_dungeon(dungeon) end)
-    {%{ export | dungeon: dungeon }, multi}
+  defp create_dungeon(%{dungeon: dungeon} = export) do
+    {:ok, dungeon} = Dungeons.create_dungeon(dungeon)
+    %{ export | dungeon: dungeon }
   end
 
-  defp create_levels({%{levels: levels} = export, multi}) do
-    multi = Multi.run(multi, :levels, fn(_repo, %{dungeon: dungeon}) ->
-      levels =
-      Map.values(levels)
-      |> Enum.reduce(%{}, fn level, acc ->
-           Map.put(acc, level.number, create_level(level, dungeon.id, export))
-         end)
-
-      {:ok, levels}
-    end)
-    {export, multi}
+  defp create_levels(%{levels: levels} = export) do
+    Map.values(levels)
+    |> create_levels(export)
   end
 
-  defp create_level(level, dungeon_id, export) do
-    {:ok, level_record} = Dungeons.create_level(Map.put(level, :dungeon_id, dungeon_id))
+  defp create_levels([], export), do: export
+  defp create_levels([level | levels], export) do
+    {:ok, level_record} = Dungeons.create_level(Map.put(level, :dungeon_id, export.dungeon.id))
     create_tiles(level.tile_data, level_record.id, export)
-    Map.put(level_record, :tile_data, level.tile_data)
+    export = %{ export | levels: %{ export.levels | level.number => Map.put(level_record, :tile_data, level.tile_data) } }
+    create_levels(levels, export)
   end
 
   defp create_tiles([], _level_id, export), do: export
@@ -273,25 +262,15 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     create_tiles(tile_hashes, level_id, export)
   end
 
-  defp create_spawn_locations({export, multi}) do
-    multi = Multi.run(multi, :spawn_locations, fn(_repo, %{levels: levels}) ->
-      export.spawn_locations
-      |> Enum.group_by(fn [num, _row, _col] -> num end)
-      |> Enum.each(fn {num, coords} ->
-           level_id = levels[num].id
-           coords = Enum.reduce(coords, [], fn [_num, row, col], acc -> [{row, col} | acc] end)
-           Dungeons.add_spawn_locations(level_id, coords)
-         end)
+  defp create_spawn_locations(export) do
+    export.spawn_locations
+    |> Enum.group_by(fn [num, _row, _col] -> num end)
+    |> Enum.each(fn {num, coords} ->
+         level_id = export.levels[num].id
+         coords = Enum.reduce(coords, [], fn [_num, row, col], acc -> [{row, col} | acc] end)
+         Dungeons.add_spawn_locations(level_id, coords)
+       end)
 
-      {:ok, :done}
-    end)
-
-    {export, multi}
-  end
-
-  defp commit_transaction({export, multi}) do
-    {:ok, result} = Repo.transaction(multi)
-
-    %{ export | dungeon: result.dungeon, levels: result.levels }
+    export
   end
 end
