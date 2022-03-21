@@ -90,7 +90,8 @@ defmodule DungeonCrawlWeb.DungeonController do
       data: Json.encode!(import),
       user_id: conn.assigns.current_user.id,
       file_name: file.filename,
-      line_identifier: line_identifier
+      line_identifier: line_identifier,
+      importing: true
     })
 
     DockWorker.import(dungeon_import)
@@ -241,14 +242,22 @@ defmodule DungeonCrawlWeb.DungeonController do
   defp assign_dungeon(conn, _opts) do
     dungeon =  Dungeons.get_dungeon!(conn.params["id"] || conn.params["dungeon_id"])
 
-    if dungeon.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
-      conn
-      |> assign(:dungeon, Repo.preload(dungeon, :levels))
-    else
-      conn
-      |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
-      |> halt()
+    cond do
+      dungeon.user_id != conn.assigns.current_user.id ->
+        conn
+        |> put_flash(:error, "You do not have access to that")
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> halt()
+
+      dungeon.importing ->
+        conn
+        |> put_flash(:error, "Import still in progress, try again later.")
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> halt()
+
+      true ->
+        conn
+        |> assign(:dungeon, Repo.preload(dungeon, :levels))
     end
   end
 

@@ -142,6 +142,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = get conn, dungeon_path(conn, :show, dungeon)
       assert html_response(conn, 200) =~ dungeon.name
     end
+
+    test "cannot show a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
+      Dungeons.update_dungeon(dungeon, %{importing: true})
+      conn = get conn, dungeon_path(conn, :show, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Import still in progress, try again later."
+    end
   end
 
   describe "show with a registered user but dungeon belongs to someone else" do
@@ -192,6 +199,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
+
+    test "cannot edit a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
+      Dungeons.update_dungeon(dungeon, %{importing: true})
+      conn = get conn, dungeon_path(conn, :edit, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Import still in progress, try again later."
+    end
   end
 
   describe "update dungeon with a registered user" do
@@ -213,6 +227,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = put conn, dungeon_path(conn, :update, dungeon), dungeon: @update_attrs
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
+    end
+
+    test "cannot update a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
+      Dungeons.update_dungeon(dungeon, %{importing: true})
+      conn = put conn, dungeon_path(conn, :update, dungeon), dungeon: @update_attrs
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Import still in progress, try again later."
     end
   end
 

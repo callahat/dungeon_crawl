@@ -39,6 +39,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> create_dungeon()
              |> create_levels()
              |> create_spawn_locations()
+             |> complete_dungeon_import()
 
     export
   end
@@ -272,5 +273,10 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
        end)
 
     export
+  end
+
+  def complete_dungeon_import(%{dungeon: dungeon} = export) do
+    {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{importing: false})
+    %{ export | dungeon: dungeon }
   end
 end

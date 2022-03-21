@@ -147,7 +147,8 @@ CREATE TABLE public.dungeons (
     default_map_height integer,
     line_identifier integer,
     title_number integer,
-    description character varying(1024)
+    description character varying(1024),
+    importing boolean DEFAULT false
 );
 
 
@@ -1580,3 +1581,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220303043632);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313043817);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313045333);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313173501);
+INSERT INTO public."schema_migrations" (version) VALUES (20220321034751);
