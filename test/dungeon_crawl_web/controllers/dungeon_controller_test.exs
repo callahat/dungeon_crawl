@@ -81,6 +81,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
+  describe "import dungeon DELETE without a registered user" do
+    test "redirects", %{conn: conn} do
+      conn = delete conn, dungeon_import_path(conn, :delete_dungeon_import, 1)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
   describe "export dungeon without a registered user" do
     test "redirects", %{conn: conn} do
       conn = post conn, dungeon_export_path(conn, :dungeon_export, 1)
@@ -91,6 +98,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   describe "export dungeon list without a registered user" do
     test "redirects", %{conn: conn} do
       conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "export dungeon DELETE without a registered user" do
+    test "redirects", %{conn: conn} do
+      conn = delete conn, dungeon_export_path(conn, :delete_dungeon_export, 1)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -321,6 +335,32 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
+  describe "import dungeon delete" do
+    setup [:create_user]
+
+    test "it deletes the import", %{conn: conn, user: user} do
+      assert import = Shipping.create_import!(%{user_id: user.id, data: "{}", file_name: "test.json"})
+      conn = delete conn, dungeon_import_path(conn, :delete_dungeon_import, import.id)
+      assert get_flash(conn, :info) == "Deleted import."
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+      assert_raise Ecto.NoResultsError, fn -> Shipping.get_import!(import.id) end
+    end
+
+    test "errors when trying to delete someone else's import", %{conn: conn} do
+      other_user = insert_user()
+      import = Shipping.create_import!(%{user_id: other_user.id, file_name: "test.json", data: "{}"})
+      conn = delete conn, dungeon_import_path(conn, :delete_dungeon_import, import.id)
+      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
+      assert get_flash(conn, :error) == "You do not have access to that"
+    end
+
+    test "renders error when the import does not exist", %{conn: conn} do
+      assert_error_sent 404, fn ->
+        delete conn, dungeon_import_path(conn, :delete_dungeon_import, -1)
+      end
+    end
+  end
+
   describe "export dungeon with a registered user" do
     setup [:create_user, :create_dungeon]
 
@@ -363,6 +403,19 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
       assert html_response(conn, 200) =~ "Export dungeon"
       assert html_response(conn, 200) =~ "UserID"
+    end
+  end
+
+  describe "export dungeon delete" do
+    setup [:create_user]
+
+    test "it deletes the export", %{conn: conn, user: user} do
+      dungeon = insert_dungeon()
+      assert export = Shipping.create_export!(%{user_id: user.id, dungeon_id: dungeon.id, file_name: "test.json"})
+      conn = delete conn, dungeon_export_path(conn, :delete_dungeon_export, export.id)
+      assert get_flash(conn, :info) == "Deleted export."
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
+      assert_raise Ecto.NoResultsError, fn -> Shipping.get_export!(export.id) end
     end
   end
 

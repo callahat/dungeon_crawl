@@ -15,7 +15,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
-  plug :assign_dungeon_export when action in [:download_dungeon_export]
+  plug :assign_dungeon_export when action in [:download_dungeon_export, :delete_dungeon_export]
+  plug :assign_dungeon_import when action in [:delete_dungeon_import]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -119,6 +120,16 @@ defmodule DungeonCrawlWeb.DungeonController do
     render(conn, "import.html", is_admin: is_admin, imports: imports, dungeons: dungeons)
   end
 
+  def delete_dungeon_import(conn, %{"id" => _id}) do
+    import = conn.assigns.dungeon_import
+
+    Shipping.delete_import(import)
+
+    conn
+    |> put_flash(:info, "Deleted import.")
+    |> _redirect_to_dungeon_import()
+  end
+
   defp _redirect_to_dungeon_import(conn) do
     redirect(conn, to: Routes.dungeon_import_path(conn, :dungeon_import))
   end
@@ -139,6 +150,16 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   rescue
     e in Ecto.InvalidChangesetError -> put_flash(conn, :error, _humanize_errors(e.changeset)) |> _redirect_to_dungeon_export_list()
+  end
+
+  def delete_dungeon_export(conn, %{"id" => _id}) do
+    export = conn.assigns.dungeon_export
+
+    Shipping.delete_export(export)
+
+    conn
+    |> put_flash(:info, "Deleted export.")
+    |> _redirect_to_dungeon_export_list()
   end
 
   def dungeon_export_list(conn, _) do
@@ -271,6 +292,20 @@ defmodule DungeonCrawlWeb.DungeonController do
       conn
       |> put_flash(:error, "You do not have access to that")
       |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export_list))
+      |> halt()
+    end
+  end
+
+  defp assign_dungeon_import(conn, _opts) do
+    import =  Shipping.get_import!(conn.params["id"])
+
+    if import.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+      conn
+      |> assign(:dungeon_import, import)
+    else
+      conn
+      |> put_flash(:error, "You do not have access to that")
+      |> redirect(to: Routes.dungeon_import_path(conn, :dungeon_import))
       |> halt()
     end
   end

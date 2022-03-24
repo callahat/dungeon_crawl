@@ -19,7 +19,7 @@
       </div>
     <% end %>
   </div>
-  <div class="col-6" id="dungeonImports">
+  <div class="col-7" id="dungeonImports">
     <table class="table table-sm">
       <thead>
         <tr>
@@ -28,6 +28,7 @@
           <th>Started</th>
           <th>Status</th>
           <th></th>
+          <td></td>
         </tr>
       </thead>
       <tbody>
@@ -38,6 +39,7 @@
           <td><%= import.inserted_at %></td>
           <td><%= import.status %></td>
           <td><%= if import.dungeon_id, do: link DungeonCrawl.Repo.preload(import, :dungeon).dungeon.name, to: Routes.dungeon_path(@conn, :show, import.dungeon_id) %></td>
+          <td><%= link "Delete", to: Routes.dungeon_import_path(@conn, :delete_dungeon_import, import.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
         </tr>
       <% end %>
       </tbody>

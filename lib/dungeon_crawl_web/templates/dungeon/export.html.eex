@@ -4,7 +4,7 @@
 <div class="row no-gutters">
   <div class="col-3">
   </div>
-  <div class="col-6" id="dungeonExports">
+  <div class="col-7" id="dungeonExports">
     <table class="table table-sm">
       <thead>
         <tr>
@@ -13,6 +13,7 @@
           <th>Filename</th>
           <th>Started</th>
           <th>Status</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -23,6 +24,7 @@
           <td><%= if export.file_name, do: link export.file_name, to: Routes.dungeon_export_path(@conn, :download_dungeon_export, export.id), method: :post %></td>
           <td><%= export.inserted_at %></td>
           <td><%= export.status %></td>
+          <td><%= link "Delete", to: Routes.dungeon_export_path(@conn, :delete_dungeon_export, export.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
         </tr>
       <% end %>
       </tbody>
