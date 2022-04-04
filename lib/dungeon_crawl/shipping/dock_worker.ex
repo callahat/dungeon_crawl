@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.Shipping.DockWorker do
   use GenServer
 
+  alias DungeonCrawlWeb.Endpoint
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.{DungeonExports, DungeonImports, Json, Export, Import}
@@ -47,12 +48,14 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   def handle_call({:import, import}, _from, state) do
     # import the dungeon, return the created id
     {:ok, _} = Shipping.update_import(import, %{status: :running})
+    broadcast_status("running", {:import, import})
 
     import_hash = Json.decode!(import.data)
                   |> DungeonImports.run(import.user_id, import.line_identifier)
 
     Shipping.update_import(import,
       %{dungeon_id: import_hash.dungeon.id, status: :completed})
+    broadcast_status("completed", {:import, import})
 
     {:reply, :ok, state}
   end
@@ -75,12 +78,17 @@ defmodule DungeonCrawl.Shipping.DockWorker do
           try do
             GenServer.call(dock_worker, params)
           catch
-            e, r -> Logger.warn("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
+            e, r -> broadcast_status("error", params)
+                    Logger.warn("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
                     :ok
           end
         end,
         @timeout
       )
     end)
+  end
+
+  defp broadcast_status(status, {import_or_export, record}) do
+    Endpoint.broadcast("#{ import_or_export }_status", status, {import_or_export, record})
   end
 end

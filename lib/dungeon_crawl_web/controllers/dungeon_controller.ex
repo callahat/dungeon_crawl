@@ -82,32 +82,10 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def dungeon_import(conn,  %{"file" => file, "line_identifier" => line_identifier}) do
-    import = file.path
-             |> File.read!()
-             |> Json.decode!()
-
-    dungeon_import = Shipping.create_import!(%{
-      data: Json.encode!(import),
-      user_id: conn.assigns.current_user.id,
-      file_name: file.filename,
-      line_identifier: line_identifier,
-      importing: true
-    })
-
-    DockWorker.import(dungeon_import)
-
-    conn
-    |> put_flash(:info, "Importing dungeon.")
-    |> _redirect_to_dungeon_import()
-  rescue
-    Jason.DecodeError -> put_flash(conn, :error, "Import failed; could not parse file") |> _redirect_to_dungeon_import()
-    e in Ecto.InvalidChangesetError -> put_flash(conn, :error, _humanize_errors(e.changeset)) |> _redirect_to_dungeon_import()
-    e -> put_flash(conn, :error, "Import failed; #{ Exception.format(:error, e) }") |> _redirect_to_dungeon_import()
-  end
-
   def dungeon_import(conn, _) do
-    is_admin = conn.assigns.current_user.is_admin
+    user = conn.assigns.current_user
+    is_admin = user.is_admin
+    user_id_hash = user.user_id_hash
     imports = if is_admin,
                 do: Repo.preload(Shipping.list_dungeon_imports(), :user),
                 else: Shipping.list_dungeon_imports(conn.assigns.current_user.id)
@@ -117,17 +95,15 @@ defmodule DungeonCrawlWeb.DungeonController do
                       dungeon.line_identifier}
                   end)
 
-    render(conn, "import.html", is_admin: is_admin, imports: imports, dungeons: dungeons)
-  end
+    conn = assign(conn, :temperature, "T")
+           |> assign(:user_id, conn.assigns.current_user.id)
+           |> assign(:user_id_hash, conn.assigns.current_user.user_id_hash)
+           |> assign(:conn, conn)
+           |> assign(:dungeons, dungeons)
+           |> assign(:is_admin, is_admin)
+           |> assign(:imports, imports)
 
-  def delete_dungeon_import(conn, %{"id" => _id}) do
-    import = conn.assigns.dungeon_import
-
-    Shipping.delete_import(import)
-
-    conn
-    |> put_flash(:info, "Deleted import.")
-    |> _redirect_to_dungeon_import()
+    render(conn, "import.html")
   end
 
   defp _redirect_to_dungeon_import(conn) do
