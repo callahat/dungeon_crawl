@@ -82,23 +82,21 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def dungeon_import(conn, _) do
     user = conn.assigns.current_user
-    is_admin = user.is_admin
-    user_id_hash = user.user_id_hash
-    imports = if is_admin,
+    imports = if user.is_admin,
                 do: Repo.preload(Shipping.list_dungeon_imports(), :user),
-                else: Shipping.list_dungeon_imports(conn.assigns.current_user.id)
-    dungeons = Dungeons.list_dungeons_by_lines(conn.assigns.current_user)
+                else: Shipping.list_dungeon_imports(user.id)
+    dungeons = Dungeons.list_dungeons_by_lines(user)
                |> Enum.map(fn dungeon ->
                     {"#{dungeon.name} (id: #{dungeon.id}) v #{dungeon.version} #{unless dungeon.active, do: "(inactive)"}",
                       dungeon.line_identifier}
                   end)
 
     conn = assign(conn, :temperature, "T")
-           |> assign(:user_id, conn.assigns.current_user.id)
-           |> assign(:user_id_hash, conn.assigns.current_user.user_id_hash)
+           |> assign(:user_id, user.id)
+           |> assign(:user_id_hash, user.user_id_hash)
            |> assign(:conn, conn)
            |> assign(:dungeons, dungeons)
-           |> assign(:is_admin, is_admin)
+           |> assign(:is_admin, user.is_admin)
            |> assign(:imports, imports)
 
     render(conn, "import.html")
