@@ -11,7 +11,7 @@
 
 <div class="row no-gutters">
   <div class="col-3 pr-4">
-    <form action="/dungeons/import"
+    <form id="import-form"
           enctype="multipart/form-data"
           phx-submit="upload"
           phx-change="validate">
@@ -25,8 +25,9 @@
         <label class="control-label" for="line_identifier">Line identifier</label>
         <select class="form-control" id="line_identifier" name="line_identifier">
           <option value="">(optional)</option>
+          <option value="123">123</option>
           <%= for {name, id} <- @dungeons do %>
-            <option value="{ id }"><%= name %></option>
+            <option value={ id }><%= name %></option>
           <% end %>
         </select>
       </div>

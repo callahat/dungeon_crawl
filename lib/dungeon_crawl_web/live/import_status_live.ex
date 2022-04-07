@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   use DungeonCrawl.Web, :live_view
 
   alias DungeonCrawl.Account
+  alias DungeonCrawl.Account.User
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Shipping
@@ -13,8 +14,9 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   end
 
   def mount(_params, %{"user_id_hash" => user_id_hash} = session, socket) do
-    DungeonCrawlWeb.Endpoint.subscribe("import_status")
-    {:ok, _assign_stuff(socket, user_id_hash)}
+    user = Account.get_by_user_id_hash(user_id_hash)
+    DungeonCrawlWeb.Endpoint.subscribe("import_status_#{user.id}")
+    {:ok, _assign_stuff(socket, user)}
   end
 
   def handle_event("validate", _params, socket) do
@@ -49,18 +51,21 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   end
 
   def handle_event("delete" <> import_id, _params, socket) do
-    Shipping.get_import!(import_id)
-    |> Shipping.delete_import()
+    import = Shipping.get_import!(import_id)
 
-    {:noreply, put_flash(_assign_imports(socket), :info, "Deleted import.")}
+    if import.user_id == socker.user_id do #|| conn.assigns.current_user.is_admin
+      Shipping.delete_import(import)
+      {:noreply, put_flash(_assign_imports(socket), :info, "Deleted import.")}
+    else
+      {:noreply, put_flash(_assign_imports(socket), :error, "Could not delete import.")}
+    end
   end
 
-  def handle_info(event, socket) do
+  def handle_info(_event, socket) do
     {:noreply, _assign_imports(socket)}
   end
 
-  defp _assign_stuff(socket, user_id_hash) do
-    user = Account.get_by_user_id_hash(user_id_hash)
+  defp _assign_stuff(socket, user) do
     is_admin = user.is_admin
     user_id_hash = user.user_id_hash
     dungeons = Dungeons.list_dungeons_by_lines(user)
@@ -78,6 +83,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
     |> allow_upload(:file, accept: ~w(.json))
   end
 
+  # TOOD: let the admin see all imports, have another pubsub channel for all import/export status changes
   defp _assign_imports(socket) do
     imports = if socket.assigns.is_admin,
                  do: Repo.preload(Shipping.list_dungeon_imports(), :user),

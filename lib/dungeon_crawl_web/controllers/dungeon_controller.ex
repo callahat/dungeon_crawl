@@ -7,7 +7,6 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.DockWorker
-  alias DungeonCrawl.Shipping.Json
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
@@ -16,7 +15,6 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
   plug :assign_dungeon_export when action in [:download_dungeon_export, :delete_dungeon_export]
-  plug :assign_dungeon_import when action in [:delete_dungeon_import]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -104,10 +102,6 @@ defmodule DungeonCrawlWeb.DungeonController do
            |> assign(:imports, imports)
 
     render(conn, "import.html")
-  end
-
-  defp _redirect_to_dungeon_import(conn) do
-    redirect(conn, to: Routes.dungeon_import_path(conn, :dungeon_import))
   end
 
   def dungeon_export(conn, %{"id" => _id}) do
@@ -268,20 +262,6 @@ defmodule DungeonCrawlWeb.DungeonController do
       conn
       |> put_flash(:error, "You do not have access to that")
       |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export_list))
-      |> halt()
-    end
-  end
-
-  defp assign_dungeon_import(conn, _opts) do
-    import =  Shipping.get_import!(conn.params["id"])
-
-    if import.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
-      conn
-      |> assign(:dungeon_import, import)
-    else
-      conn
-      |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_import_path(conn, :dungeon_import))
       |> halt()
     end
   end

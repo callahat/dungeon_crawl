@@ -56,6 +56,7 @@ defmodule DungeonCrawl.Mixfile do
      {:excoveralls, "~> 0.10", only: :test},
      {:benchee, "~> 1.0", only: :dev},
      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
+     {:floki, ">= 0.30.0", only: :test},
     ]
   end
 
