@@ -257,13 +257,13 @@ defmodule DungeonCrawlWeb.DungeonController do
     Elixir.Map.take(Admin.get_setting, [:max_height, :max_width])
   end
 
-  defp _humanize_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Map.values()
-    |> Enum.join(", ")
-  end
+#  defp _humanize_errors(changeset) do
+#    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+#      Enum.reduce(opts, msg, fn {key, value}, acc ->
+#        String.replace(acc, "%{#{key}}", to_string(value))
+#      end)
+#    end)
+#    |> Map.values()
+#    |> Enum.join(", ")
+#  end
 end
