@@ -299,7 +299,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "downloads the dungeon json", %{conn: conn} do
       dungeon = insert_dungeon()
       export = Shipping.create_export!(%{user_id: conn.assigns.current_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
-      conn = post conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
+      conn = get conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
       assert json_response(conn, 200)
       assert Enum.member?(
                conn.resp_headers,
@@ -310,7 +310,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       other_user = insert_user()
       dungeon = insert_dungeon()
       export = Shipping.create_export!(%{user_id: other_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
-      conn = post conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
+      conn = get conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
       assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
       assert get_flash(conn, :error) == "You do not have access to that"
     end

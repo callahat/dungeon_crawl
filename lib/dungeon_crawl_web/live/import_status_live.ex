@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   use DungeonCrawl.Web, :live_view
 
   alias DungeonCrawl.Account
+  alias DungeonCrawl.Account.User
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Shipping
@@ -78,19 +79,23 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   end
 
   defp _assign_stuff(socket, user) do
-    dungeons = Dungeons.list_dungeons_by_lines(user)
-               |> Enum.map(fn dungeon ->
-                  {"#{dungeon.name} (id: #{dungeon.id}) v #{dungeon.version} #{unless dungeon.active, do: "(inactive)"}",
-                    dungeon.line_identifier}
-                end)
     socket
     |> assign(:user_id, user.id)
     |> assign(:user_id_hash, user.user_id_hash)
-    |> assign(:dungeons, dungeons)
     |> assign(:is_admin, user.is_admin)
     |> _assign_imports()
     |> assign(:uploaded_files, [])
     |> allow_upload(:file, accept: ~w(.json))
+  end
+
+  defp _assign_dungeons(socket) do
+    dungeons = Dungeons.list_dungeons_by_lines(%User{id: socket.assigns.user_id})
+               |> Enum.map(fn dungeon ->
+      {"#{dungeon.name} (id: #{dungeon.id}) v #{dungeon.version} #{unless dungeon.active, do: "(inactive)"}",
+        dungeon.line_identifier}
+    end)
+
+    assign(socket, :dungeons, dungeons)
   end
 
   defp _assign_imports(socket) do
@@ -99,6 +104,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
                  else: Shipping.list_dungeon_imports(socket.assigns.user_id)
 
     assign(socket, :imports, imports)
+    |> _assign_dungeons()
   end
 
   defp broadcast_status(user_id) do

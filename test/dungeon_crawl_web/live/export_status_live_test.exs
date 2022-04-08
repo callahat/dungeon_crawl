@@ -81,7 +81,7 @@ defmodule DungeonCrawlWeb.ExportStatusLiveTest do
 
       assert export_live |> render() =~ "test.json"
       assert export_live |> render() =~ "completed"
-      assert export_live |> element("a", "test.json") |> render() =~ "href=\"/dungeons/#{export.id}/export_download"
+      assert export_live |> element("a", "test.json") |> render() =~ "href=\"/dungeons/export/#{export.id}"
     end
   end
 
