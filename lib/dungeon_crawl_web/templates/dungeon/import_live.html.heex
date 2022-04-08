@@ -1,13 +1,4 @@
-<%= if live_flash(@flash, :info) do %>
-<p class="alert alert-info" role="alert"
-   phx-click="lv:clear-flash"
-   phx-value-key="info"><%= live_flash(@flash, :info) %></p>
-<% end %>
-<%= if live_flash(@flash, :error) do %>
-<p class="alert alert-danger" role="alert"
-   phx-click="lv:clear-flash"
-   phx-value-key="error"><%= live_flash(@flash, :error) %></p>
-<% end%>
+<%= render "flash_live.html", flash: @flash %>
 
 <div class="row no-gutters">
   <div class="col-3 pr-4">
@@ -25,7 +16,6 @@
         <label class="control-label" for="line_identifier">Line identifier</label>
         <select class="form-control" id="line_identifier" name="line_identifier">
           <option value="">(optional)</option>
-          <option value="123">123</option>
           <%= for {name, id} <- @dungeons do %>
             <option value={ id }><%= name %></option>
           <% end %>

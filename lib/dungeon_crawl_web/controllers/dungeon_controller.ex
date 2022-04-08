@@ -81,25 +81,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def dungeon_import(conn, _) do
-    user = conn.assigns.current_user
-    imports = if user.is_admin,
-                do: Repo.preload(Shipping.list_dungeon_imports(), :user),
-                else: Shipping.list_dungeon_imports(user.id)
-    dungeons = Dungeons.list_dungeons_by_lines(user)
-               |> Enum.map(fn dungeon ->
-                    {"#{dungeon.name} (id: #{dungeon.id}) v #{dungeon.version} #{unless dungeon.active, do: "(inactive)"}",
-                      dungeon.line_identifier}
-                  end)
-
-    conn = assign(conn, :temperature, "T")
-           |> assign(:user_id, user.id)
-           |> assign(:user_id_hash, user.user_id_hash)
-           |> assign(:conn, conn)
-           |> assign(:dungeons, dungeons)
-           |> assign(:is_admin, user.is_admin)
-           |> assign(:imports, imports)
-
-    render(conn, "import.html")
+    assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
+    |> render("import.html")
   end
 
   def dungeon_export(conn, %{"id" => _id}) do
@@ -113,11 +96,10 @@ defmodule DungeonCrawlWeb.DungeonController do
     DockWorker.export(dungeon_export)
 
     conn
-    |> put_flash(:info, "Generating download.")
     |> _redirect_to_dungeon_export_list()
 
   rescue
-    e in Ecto.InvalidChangesetError -> put_flash(conn, :error, _humanize_errors(e.changeset)) |> _redirect_to_dungeon_export_list()
+    Ecto.InvalidChangesetError -> _redirect_to_dungeon_export_list(conn)
   end
 
   def delete_dungeon_export(conn, %{"id" => _id}) do
@@ -131,12 +113,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def dungeon_export_list(conn, _) do
-    is_admin = conn.assigns.current_user.is_admin
-    exports = if is_admin,
-                 do: Repo.preload(Shipping.list_dungeon_exports(), :user),
-                 else: Shipping.list_dungeon_exports(conn.assigns.current_user.id)
-
-    render(conn, "export.html", is_admin: is_admin, exports: exports)
+    assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
+    |> render("export.html")
   end
 
   defp _redirect_to_dungeon_export_list(conn) do

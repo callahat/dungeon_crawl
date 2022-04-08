@@ -33,7 +33,6 @@ defmodule DungeonCrawlWeb.Router do
     resources "/sessions", SessionController, only: [:new, :create, :delete]
     get  "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
     post "/dungeons/:id/export_download", DungeonController, :download_dungeon_export, as: :dungeon_export
-    delete "/dungeons/:id/export", DungeonController, :delete_dungeon_export, as: :dungeon_export
     get  "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
     resources "/dungeons", DungeonController do
         resources "/levels", LevelController, only: [:new, :create, :edit, :update, :delete], as: "level"

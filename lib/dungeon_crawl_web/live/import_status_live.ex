@@ -8,13 +8,21 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.{DockWorker, Json}
 
+  alias DungeonCrawlWeb.Endpoint
+
   def render(assigns) do
     DungeonCrawlWeb.DungeonView.render("import_live.html", assigns)
   end
 
   def mount(_params, %{"user_id_hash" => user_id_hash} = _session, socket) do
     user = Account.get_by_user_id_hash(user_id_hash)
-    DungeonCrawlWeb.Endpoint.subscribe("import_status_#{user.id}")
+
+    if user.is_admin do
+      DungeonCrawlWeb.Endpoint.subscribe("import_status")
+    else
+      DungeonCrawlWeb.Endpoint.subscribe("import_status_#{user.id}")
+    end
+
     {:ok, _assign_stuff(socket, user)}
   end
 
@@ -37,6 +45,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
       })
 
       DockWorker.import(dungeon_import)
+      broadcast_status(dungeon_import.user_id)
 
       {:ok, "junk"}
     end)
@@ -51,12 +60,17 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   def handle_event("delete" <> import_id, _params, socket) do
     import = Shipping.get_import!(import_id)
 
-    if import.user_id == socket.assigns.user_id do #|| conn.assigns.current_user.is_admin
+    if import.user_id == socket.assigns.user_id || socket.assigns.is_admin do
       Shipping.delete_import(import)
+      broadcast_status(import.user_id)
       {:noreply, put_flash(_assign_imports(socket), :info, "Deleted import.")}
     else
       {:noreply, put_flash(_assign_imports(socket), :error, "Could not delete import.")}
     end
+  end
+
+  def handle_info(%{event: "error"}, socket) do
+    {:noreply, put_flash(_assign_imports(socket), :error, "Something went wrong.")}
   end
 
   def handle_info(_event, socket) do
@@ -79,12 +93,16 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
     |> allow_upload(:file, accept: ~w(.json))
   end
 
-  # TOOD: let the admin see all imports, have another pubsub channel for all import/export status changes
   defp _assign_imports(socket) do
     imports = if socket.assigns.is_admin,
                  do: Repo.preload(Shipping.list_dungeon_imports(), :user),
                  else: Shipping.list_dungeon_imports(socket.assigns.user_id)
 
     assign(socket, :imports, imports)
+  end
+
+  defp broadcast_status(user_id) do
+    Endpoint.broadcast("import_status_#{user_id}", "refresh_status", nil)
+    Endpoint.broadcast("import_status", "refresh_status", nil)
   end
 end

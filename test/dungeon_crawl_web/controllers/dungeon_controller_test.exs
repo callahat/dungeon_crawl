@@ -88,13 +88,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
-  describe "export dungeon DELETE without a registered user" do
-    test "redirects", %{conn: conn} do
-      conn = delete conn, dungeon_export_path(conn, :delete_dungeon_export, 1)
-      assert redirected_to(conn) == page_path(conn, :index)
-    end
-  end
-
   describe "delete dungeon without a registered user" do
     setup [:create_dungeon]
 
@@ -267,7 +260,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
-      assert get_flash(conn, :info) == "Generating download."
     end
 
     test "renders errors when file is already being uploaded", %{conn: conn, dungeon: dungeon} do
@@ -278,7 +270,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
 
-      assert get_flash(conn, :error) == "Already exporting"
       assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
     end
   end
@@ -299,19 +290,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
       assert html_response(conn, 200) =~ "Export dungeon"
       assert html_response(conn, 200) =~ "UserID"
-    end
-  end
-
-  describe "export dungeon delete" do
-    setup [:create_user]
-
-    test "it deletes the export", %{conn: conn, user: user} do
-      dungeon = insert_dungeon()
-      assert export = Shipping.create_export!(%{user_id: user.id, dungeon_id: dungeon.id, file_name: "test.json"})
-      conn = delete conn, dungeon_export_path(conn, :delete_dungeon_export, export.id)
-      assert get_flash(conn, :info) == "Deleted export."
-      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
-      assert_raise Ecto.NoResultsError, fn -> Shipping.get_export!(export.id) end
     end
   end
 

@@ -96,7 +96,7 @@ defmodule DungeonCrawlWeb.ImportStatusLiveTest do
   describe "import state updates" do
     setup [:create_user]
 
-    test "deletes export in listing", %{conn: conn, user: user} do
+    test "imports update when refresh message received", %{conn: conn, user: user} do
       import = Shipping.create_import!(%{user_id: user.id, data: "{}", file_name: "test.json"})
 
       {:ok, import_live, _html} =
@@ -106,23 +106,42 @@ defmodule DungeonCrawlWeb.ImportStatusLiveTest do
       assert import_live |> render() =~ "queued"
 
       Shipping.update_import(import, %{status: "running"})
-      Endpoint.broadcast("import_status_#{ user.id }", "doesnt really matter", {:import, import})
 
+      # noop when message for someone else
+      Endpoint.broadcast("import_status_#{ user.id + 1 }", "refresh_status", {:import, import})
+      assert import_live |> render() =~ "queued"
+      Endpoint.broadcast("import_status", "refresh_status", {:import, import})
+      assert import_live |> render() =~ "queued"
+
+      Endpoint.broadcast("import_status_#{ user.id }", "refresh_status", {:import, import})
       assert import_live |> render() =~ "running"
 
       dungeon = insert_dungeon()
       Shipping.update_import(import, %{status: "completed", dungeon_id: dungeon.id})
-      Endpoint.broadcast("import_status_#{ user.id }", "doesnt really matter", {:import, import})
+      Endpoint.broadcast("import_status_#{ user.id }", "refresh_status", {:import, import})
 
       assert import_live |> render() =~ "completed"
       assert import_live |> element("a", dungeon.name) |> render() =~ "href=\"/dungeons/#{dungeon.id}"
     end
   end
 
+  describe "error message" do
+    setup [:create_user]
+
+    test "puts a message in error flash when an error broadcast recieved", %{conn: conn, user: user} do
+      {:ok, import_live, _html} =
+        live_isolated(conn, ImportStatusLive, session: %{"user_id_hash" => user.user_id_hash})
+
+      Endpoint.broadcast("import_status_#{ user.id }", "error", nil)
+
+      assert import_live |> render() =~ "Something went wrong"
+    end
+  end
+
   describe "delete import" do
     setup [:create_user]
 
-    test "deletes export in listing", %{conn: conn, user: user} do
+    test "deletes import in listing", %{conn: conn, user: user} do
       import = Shipping.create_import!(%{user_id: user.id, data: "{}", file_name: "test.json"})
 
       {:ok, import_live, _html} =
@@ -134,32 +153,4 @@ defmodule DungeonCrawlWeb.ImportStatusLiveTest do
       assert_raise Ecto.NoResultsError, fn -> Shipping.get_import!(import.id) end
     end
   end
-#  describe "import" do
-#    setup [:create_user]
-#
-#
-#    test "updates export in listing", %{conn: conn, export: export} do
-#      {:ok, index_live, _html} = live(conn, Routes.export_index_path(conn, :index))
-#
-#      assert index_live |> element("#export-#{export.id} a", "Edit") |> render_click() =~
-#               "Edit Export"
-#
-#      assert_patch(index_live, Routes.export_index_path(conn, :edit, export))
-#
-#      assert index_live
-#             |> form("#export-form", export: @invalid_attrs)
-#             |> render_change() =~ "can&#39;t be blank"
-#
-#      {:ok, _, html} =
-#        index_live
-#        |> form("#export-form", export: @update_attrs)
-#        |> render_submit()
-#        |> follow_redirect(conn, Routes.export_index_path(conn, :index))
-#
-#      assert html =~ "Export updated successfully"
-#      assert html =~ "some updated name"
-#    end
-#
-#  end
-
 end
