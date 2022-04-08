@@ -8,7 +8,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
 
   require Logger
 
-  @timeout 360_000
+  @timeout 600_000
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil)
@@ -78,7 +78,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
         :dock_worker,
         fn dock_worker ->
           try do
-            GenServer.call(dock_worker, params)
+            GenServer.call(dock_worker, params, @timeout)
           catch
             e, r -> broadcast_status("error", params)
                     Logger.warn("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
