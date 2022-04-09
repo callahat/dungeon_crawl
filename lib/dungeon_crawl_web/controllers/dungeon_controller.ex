@@ -5,13 +5,16 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
   alias DungeonCrawl.Player
+  alias DungeonCrawl.Shipping
+  alias DungeonCrawl.Shipping.DockWorker
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
-  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl]
+  plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
+  plug :assign_dungeon_export when action in [:download_dungeon_export]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -75,6 +78,43 @@ defmodule DungeonCrawlWeb.DungeonController do
       {:error, changeset} ->
         render(conn, "edit.html", dungeon: dungeon, changeset: changeset, max_dimensions: _max_dimensions())
     end
+  end
+
+  def dungeon_import(conn, _) do
+    assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
+    |> render("import.html")
+  end
+
+  def dungeon_export(conn, %{"id" => _id}) do
+    dungeon = conn.assigns.dungeon
+
+    dungeon_export = Shipping.create_export!(%{
+      dungeon_id: dungeon.id,
+      user_id: conn.assigns.current_user.id
+    })
+
+    DockWorker.export(dungeon_export)
+
+    conn
+    |> _redirect_to_dungeon_export_list()
+
+  rescue
+    Ecto.InvalidChangesetError -> _redirect_to_dungeon_export_list(conn)
+  end
+
+  def dungeon_export_list(conn, _) do
+    assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
+    |> render("export.html")
+  end
+
+  defp _redirect_to_dungeon_export_list(conn) do
+    redirect(conn, to: Routes.dungeon_export_path(conn, :dungeon_export_list))
+  end
+
+  def download_dungeon_export(conn, %{"id" => _id}) do
+    export = conn.assigns.dungeon_export
+
+    send_download(conn, {:binary, export.data}, filename: export.file_name)
   end
 
   def delete(conn, %{"id" => _id}) do
@@ -159,13 +199,35 @@ defmodule DungeonCrawlWeb.DungeonController do
   defp assign_dungeon(conn, _opts) do
     dungeon =  Dungeons.get_dungeon!(conn.params["id"] || conn.params["dungeon_id"])
 
-    if dungeon.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+    cond do
+      dungeon.user_id != conn.assigns.current_user.id ->
+        conn
+        |> put_flash(:error, "You do not have access to that")
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> halt()
+
+      dungeon.importing ->
+        conn
+        |> put_flash(:error, "Import still in progress, try again later.")
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> halt()
+
+      true ->
+        conn
+        |> assign(:dungeon, Repo.preload(dungeon, :levels))
+    end
+  end
+
+  defp assign_dungeon_export(conn, _opts) do
+    export =  Shipping.get_export!(conn.params["id"])
+
+    if export.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
       conn
-      |> assign(:dungeon, Repo.preload(dungeon, :levels))
+      |> assign(:dungeon_export, export)
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export_list))
       |> halt()
     end
   end

@@ -60,20 +60,10 @@ defmodule DungeonCrawl.TileShortlists do
   defp _dedupe({:ok, shortlist_entry} = result) do
     tile_attrs = Map.take(shortlist_entry, TileShortlist.key_attributes())
                  |> Map.put(:user_id, shortlist_entry.user_id)
-    [_added | dupes] = Repo.all(from _attrs_query(tile_attrs), order_by: [desc: :id])
+    [_added | dupes] = Repo.all(from TileShortlist.attrs_query(tile_attrs), order_by: [desc: :id])
     Enum.each(dupes, fn dupe -> Repo.delete(dupe) end)
     result
   end
-
-  defp _attrs_query(attrs) do
-    Enum.reduce(attrs, TileShortlist,
-      fn {x,y}, query ->
-        _attrs_where(query, {x, y})
-      end)
-  end
-
-  defp _attrs_where(query, {key,   nil}), do: where(query, [ts], is_nil(field(ts, ^key)))
-  defp _attrs_where(query, {key, value}), do: where(query, ^[{key, value}])
 
   defp _trim_shortlist({:error, _changeset} = result), do: result
   defp _trim_shortlist({:ok, shortlist_entry} = result) do
@@ -89,7 +79,6 @@ defmodule DungeonCrawl.TileShortlists do
 
     result
   end
-
 
   @doc """
   Removes a tile from the users shortlist.

@@ -8,6 +8,14 @@ defmodule DungeonCrawl.Sound do
 
   alias DungeonCrawl.Sound.Effect
 
+  @copiable_fields [
+    :name,
+    :public,
+    :slug,
+    :user_id,
+    :zzfx_params,
+  ]
+
   @doc """
   Returns the list of effects.
 
@@ -124,9 +132,20 @@ defmodule DungeonCrawl.Sound do
 
   # TODO: consolidate the find or create/update or create, seems like a lot of repeated functionality, using either Sluggable to another module
   @doc """
-  Finds or creates an effect; mainly useful for the initial seeds.
+  Finds an effect that matches all the given fields.
 
-  Does not accept attributes of `nil`
+  ## Examples
+
+      iex> find_effect(%{field: value})
+      %Effect{}
+
+  """
+  def find_effect(attrs \\ %{}) do
+    Repo.one(from Effect.attrs_query(Map.delete(attrs, :slug)), limit: 1, order_by: :id)
+  end
+
+  @doc """
+  Finds or creates an effect; mainly useful for the initial seeds.
 
   ## Examples
 
@@ -138,33 +157,23 @@ defmodule DungeonCrawl.Sound do
 
   """
   def find_or_create_effect(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_effect(attrs) do
       nil    -> create_effect(attrs)
       effect -> {:ok, effect}
     end
   end
 
   def find_or_create_effect!(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_effect(attrs) do
       nil  -> create_effect!(attrs)
       effect -> effect
     end
-  end
-  defp _attrs_query(attrs) do
-    Map.delete(attrs, :slug)
-    |> Enum.reduce(Effect,
-         fn {x,y}, query ->
-           field_query = [{x, y}] #dynamic keyword list
-           query|>where(^field_query)
-         end)
   end
 
   @doc """
   Finds and updates or creates an effect; mainly useful for the initial seeds.
   Looks up the effect first by slug (if given). If nothing with that slug
   is found, falls back to the "find_or_create_effect" function.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 
@@ -223,5 +232,13 @@ defmodule DungeonCrawl.Sound do
   """
   def change_effect(%Effect{} = effect, attrs \\ %{}) do
     Effect.changeset(effect, attrs)
+  end
+
+  @doc """
+  Returns a copy of the fields from the given sound effect as a map.
+  """
+  def copy_fields(nil), do: %{}
+  def copy_fields(effect) do
+    Map.take(effect, @copiable_fields)
   end
 end

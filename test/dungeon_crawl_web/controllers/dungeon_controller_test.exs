@@ -6,6 +6,9 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   alias DungeonCrawl.Dungeons.{Dungeon, Tile}
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
+  alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
+  alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
+  alias DungeonCrawl.Shipping
   @create_attrs %{name: "some name"}
   @update_attrs %{name: "new name"}
   @invalid_attrs %{name: ""}
@@ -64,6 +67,27 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
+  describe "import dungeon GET without a registered user" do
+    test "redirects", %{conn: conn} do
+      conn = get conn, dungeon_import_path(conn, :dungeon_import)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "export dungeon without a registered user" do
+    test "redirects", %{conn: conn} do
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, 1)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "export dungeon list without a registered user" do
+    test "redirects", %{conn: conn} do
+      conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
   describe "delete dungeon without a registered user" do
     setup [:create_dungeon]
 
@@ -110,6 +134,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "renders show", %{conn: conn, dungeon: dungeon} do
       conn = get conn, dungeon_path(conn, :show, dungeon)
       assert html_response(conn, 200) =~ dungeon.name
+    end
+
+    test "cannot show a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
+      Dungeons.update_dungeon(dungeon, %{importing: true})
+      conn = get conn, dungeon_path(conn, :show, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Import still in progress, try again later."
     end
   end
 
@@ -161,6 +192,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
+
+    test "cannot edit a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
+      Dungeons.update_dungeon(dungeon, %{importing: true})
+      conn = get conn, dungeon_path(conn, :edit, dungeon)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Import still in progress, try again later."
+    end
   end
 
   describe "update dungeon with a registered user" do
@@ -182,6 +220,87 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       conn = put conn, dungeon_path(conn, :update, dungeon), dungeon: @update_attrs
       assert redirected_to(conn) == dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
+    end
+
+    test "cannot update a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
+      Dungeons.update_dungeon(dungeon, %{importing: true})
+      conn = put conn, dungeon_path(conn, :update, dungeon), dungeon: @update_attrs
+      assert redirected_to(conn) == dungeon_path(conn, :index)
+      assert get_flash(conn, :error) == "Import still in progress, try again later."
+    end
+  end
+
+  describe "import dungeon get with a registered user" do
+    setup [:create_user]
+
+    test "renders the form", %{conn: conn} do
+      insert_dungeon(%{user_id: conn.assigns.current_user.id})
+      conn = get conn, dungeon_import_path(conn, :dungeon_import)
+      assert html_response(conn, 200) =~ "Import dungeon"
+      assert html_response(conn, 200) =~ "Filename"
+    end
+  end
+
+  describe "export dungeon with a registered user" do
+    setup [:create_user, :create_dungeon]
+
+    test "starts the export when data is valid", %{conn: conn, dungeon: dungeon} do
+      EquipmentSeeder.gun()
+      SoundSeeder.click()
+      SoundSeeder.shoot()
+
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
+    end
+
+    test "renders errors when file is already being uploaded", %{conn: conn, dungeon: dungeon} do
+      EquipmentSeeder.gun()
+      SoundSeeder.click()
+      SoundSeeder.shoot()
+
+      post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
+      conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
+
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
+    end
+  end
+
+  describe "export dungeon list with a registered user" do
+    setup [:create_user]
+
+    test "renders the list", %{conn: conn} do
+      conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
+      assert html_response(conn, 200) =~ "Export dungeon"
+      assert html_response(conn, 200) =~ "Filename"
+    end
+  end
+
+  describe "download dungeon export" do
+    setup [:create_user]
+
+    test "downloads the dungeon json", %{conn: conn} do
+      dungeon = insert_dungeon()
+      export = Shipping.create_export!(%{user_id: conn.assigns.current_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
+      conn = get conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
+      assert json_response(conn, 200)
+      assert Enum.member?(
+               conn.resp_headers,
+               {"content-disposition", "attachment; filename=\"test.json\""})
+    end
+
+    test "errors when trying to download someone else's export", %{conn: conn} do
+      other_user = insert_user()
+      dungeon = insert_dungeon()
+      export = Shipping.create_export!(%{user_id: other_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
+      conn = get conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
+      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
+      assert get_flash(conn, :error) == "You do not have access to that"
+    end
+
+    test "renders error when the export does not exist", %{conn: conn} do
+      assert_error_sent 404, fn ->
+        get conn, dungeon_export_path(conn, :download_dungeon_export, -1)
+      end
     end
   end
 

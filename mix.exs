@@ -52,9 +52,11 @@ defmodule DungeonCrawl.Mixfile do
      {:plug_cowboy, "~> 2.5"},
      {:comeonin, "~> 5.3"},
      {:bcrypt_elixir, "~> 2.0"},
+     {:poolboy, "~> 1.5.1"},
      {:excoveralls, "~> 0.10", only: :test},
      {:benchee, "~> 1.0", only: :dev},
      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
+     {:floki, ">= 0.30.0", only: :test},
     ]
   end
 

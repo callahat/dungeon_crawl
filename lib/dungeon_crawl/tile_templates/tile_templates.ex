@@ -19,7 +19,14 @@ defmodule DungeonCrawl.TileTemplates do
                     :animate_period,
                     :animate_characters,
                     :animate_colors,
-                    :animate_background_colors]
+                    :animate_background_colors,
+                    :user_id,
+                    :public,
+                    :unlisted,
+                    :description,
+                    :slug,
+                    :group_name
+  ]
 
   @doc """
   Returns the list of tile_templates.
@@ -65,6 +72,7 @@ defmodule DungeonCrawl.TileTemplates do
 
   defp _list_placeable_tile_templates(user_id, active_or_inactive) do
     Repo.all(from t in TileTemplate,
+             where: not t.unlisted,
              where: t.public or t.user_id == ^user_id,
              where: t.active == ^active_or_inactive,
              where: is_nil(t.deleted_at),
@@ -119,6 +127,13 @@ defmodule DungeonCrawl.TileTemplates do
              limit: 1)
   end
   def get_tile_template_by_slug(_, _), do: nil
+
+  def get_tile_template_by_slug!(slug) when is_binary(slug) do
+    Repo.one!(from tt in TileTemplate,
+              where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
+              order_by: [desc: :id],
+              limit: 1)
+  end
 
   @doc """
   Returns a boolean indicating wether or not the given tile template has a next version, or is the most current one.
@@ -185,10 +200,7 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   defp _tile_template_copy_changeset(tile_template) do
-    with old_attrs     <- Map.take(tile_template, [:name, :background_color, :character, :color, :user_id, :public,
-                                                          :description, :state, :script, :slug,
-                                                          :animate_random, :animate_colors, :animate_background_colors,
-                                                          :animate_characters, :animate_period, :group_name]),
+    with old_attrs     <- Map.take(tile_template, @copiable_fields),
          version_attrs <- %{version: tile_template.version+1, previous_version_id: tile_template.id},
          new_attrs     <- Map.merge(old_attrs, version_attrs)
     do
@@ -198,11 +210,26 @@ defmodule DungeonCrawl.TileTemplates do
   end
 
   @doc """
+  Finds a tile template that matches all the given fields.
+
+  ## Examples
+
+      iex> find_tile_template(%{field: value})
+      %TileTemplate{}
+
+  """
+  def find_tile_template(attrs \\ %{}) do
+    Repo.one(from TileTemplate.attrs_query(attrs), limit: 1, order_by: :id)
+  end
+
+  def find_tile_templates(attrs \\ %{}) do
+    Repo.all(from TileTemplate.attrs_query(attrs), order_by: :id)
+  end
+
+  @doc """
   Finds or creates a tile_template; mainly useful for the initial seeds.
   When one is found, the oldest tile_template will be returned (ie, first created)
   to ensure that similar tiles created later are not returned.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 
@@ -214,25 +241,17 @@ defmodule DungeonCrawl.TileTemplates do
 
   """
   def find_or_create_tile_template(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_tile_template(attrs) do
       nil      -> create_tile_template(attrs)
       template -> {:ok, template}
     end
   end
 
   def find_or_create_tile_template!(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_tile_template(attrs) do
       nil      -> create_tile_template!(attrs)
       template -> template
     end
-  end
-
-  defp _attrs_query(attrs) do
-    Enum.reduce(attrs, TileTemplate,
-      fn {x,y}, query ->
-        field_query = [{x, y}] #dynamic keyword list
-        query|>where(^field_query)
-      end)
   end
 
   @doc """
@@ -241,8 +260,6 @@ defmodule DungeonCrawl.TileTemplates do
   When one is found, the newest tile_template will be returned (ie, last created, even
   if not active) to ensure get the latest version of the seeded tile. If nothing with that slug
   is found, falls back to the "find_or_create_tile_template" function.
-
-  Does not accept attributes of `nil`
 
   ## Examples
 

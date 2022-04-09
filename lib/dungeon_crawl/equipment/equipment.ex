@@ -8,6 +8,17 @@ defmodule DungeonCrawl.Equipment do
 
   alias DungeonCrawl.Equipment.Item
 
+  @copiable_fields [
+    :consumable,
+    :description,
+    :name,
+    :public,
+    :script,
+    :slug,
+    :user_id,
+    :weapon,
+  ]
+
   @doc """
   Returns the list of items.
 
@@ -121,6 +132,21 @@ defmodule DungeonCrawl.Equipment do
     |> Repo.update()
   end
 
+  @doc """
+  Finds an item that matches all the given fields.
+
+  ## Examples
+
+      iex> find_item(%{field: value})
+      %Item{}
+
+  """
+  def find_item(attrs \\ %{}) do
+    Repo.one(from Item.attrs_query(Map.delete(attrs, :slug)), limit: 1, order_by: :id)
+  end
+  def find_items(attrs \\ %{}) do
+    Repo.all(from Item.attrs_query(Map.delete(attrs, :slug)), order_by: :id)
+  end
 
   @doc """
   Finds or creates an item; mainly useful for the initial seeds.
@@ -137,26 +163,17 @@ defmodule DungeonCrawl.Equipment do
 
   """
   def find_or_create_item(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_item(attrs) do
       nil  -> create_item(attrs)
       item -> {:ok, item}
     end
   end
 
   def find_or_create_item!(attrs \\ %{}) do
-    case Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id) do
+    case find_item(attrs) do
       nil  -> create_item!(attrs)
       item -> item
     end
-  end
-
-  defp _attrs_query(attrs) do
-    Map.delete(attrs, :slug)
-    |> Enum.reduce(Item,
-         fn {x,y}, query ->
-           field_query = [{x, y}] #dynamic keyword list
-           query|>where(^field_query)
-         end)
   end
 
   @doc """
@@ -225,5 +242,13 @@ defmodule DungeonCrawl.Equipment do
   """
   def change_item(%Item{} = item, attrs \\ %{}) do
     Item.changeset(item, attrs)
+  end
+
+  @doc """
+  Returns a copy of the fields from the given item as a map.
+  """
+  def copy_fields(nil), do: %{}
+  def copy_fields(item) do
+    Map.take(item, @copiable_fields)
   end
 end

@@ -58,6 +58,11 @@
   </li>
 
   <li>
+    <strong>Unlisted:</strong>
+    <%= if @tile_template.unlisted, do: "Yes", else: "No" %>
+  </li>
+
+  <li>
     <strong>Active:</strong>
     <%= if @tile_template.active, do: "Yes", else: "No" %>
   </li>

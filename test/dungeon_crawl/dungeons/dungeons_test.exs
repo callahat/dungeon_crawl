@@ -59,6 +59,16 @@ defmodule DungeonCrawl.DungeonsTest do
       assert Enum.count(dungeon.locations) == 2
     end
 
+    test "list_dungeons_by_lines/1 returns the most recent dungeons per line" do
+      dungeon_fixture()
+      user = insert_user()
+      _dungeon_1a = dungeon_fixture(%{user_id: user.id, line_identifier: 1, version: 1, active: true})
+      dungeon_1b = dungeon_fixture(%{user_id: user.id, line_identifier: 1, version: 2})
+      dungeon_2 = dungeon_fixture(%{user_id: user.id, line_identifier: 2, version: 3, active: true})
+      dungeon_3 = dungeon_fixture(%{user_id: user.id, line_identifier: 3, version: 2})
+      assert Dungeons.list_dungeons_by_lines(user) == [dungeon_1b, dungeon_2, dungeon_3]
+    end
+
     test "list_active_dungeons_with_player_count/0 returns all active dungeons preloaded with the players in the level instances" do
       insert_stubbed_dungeon_instance(%{active: false})
       insert_stubbed_dungeon_instance(%{active: true, deleted_at: NaiveDateTime.utc_now |> NaiveDateTime.truncate(:second)})
@@ -96,6 +106,18 @@ defmodule DungeonCrawl.DungeonsTest do
       assert [dungeon2, dungeon] == Dungeons.get_dungeons(dungeon.line_identifier)
     end
 
+    test "get_newest_dungeons_version/2 returns the latest version of the line identifier" do
+      user = insert_user()
+      dungeon_fixture(%{user_id: user.id})
+      dungeon = dungeon_fixture(%{user_id: user.id})
+      dungeon2 = dungeon_fixture(%{user_id: user.id, version: 2, line_identifier: dungeon.line_identifier})
+      dungeon_fixture(%{user_id: user.id, line_identifier: dungeon.id + 1})
+      assert dungeon2 == Dungeons.get_newest_dungeons_version(dungeon.line_identifier, user.id)
+      refute Dungeons.get_newest_dungeons_version(dungeon.line_identifier, nil)
+      refute Dungeons.get_newest_dungeons_version(nil, user.id)
+      refute Dungeons.get_newest_dungeons_version(-1, -1)
+    end
+
     test "get_title_level/1" do
       dungeon = dungeon_fixture()
       refute Dungeons.get_title_level(dungeon)
@@ -128,6 +150,7 @@ defmodule DungeonCrawl.DungeonsTest do
                line_identifier: dungeon.line_identifier,
                description: nil,
                title_number: nil} == Dungeons.copy_dungeon_fields(dungeon)
+      assert %{} == Dungeons.copy_dungeon_fields(nil)
     end
 
     test "create_dungeon/1 with valid data creates a dungeon" do
@@ -170,8 +193,8 @@ defmodule DungeonCrawl.DungeonsTest do
                   |> Enum.sort
       new_spawn_locations = Repo.preload(new_level, :spawn_locations).spawn_locations
                             |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
-      assert Map.delete(Map.delete(level, :id), :dungeon_id) ==
-             Map.delete(Map.delete(new_level, :id), :dungeon_id)
+      assert Map.drop(level, [:id, :dungeon_id, :inserted_at, :updated_at]) ==
+             Map.drop(new_level, [:id, :dungeon_id, :inserted_at, :updated_at])
       assert old_tiles == new_tiles
       assert old_spawn_locations == new_spawn_locations
     end
@@ -383,6 +406,7 @@ defmodule DungeonCrawl.DungeonsTest do
                number_west: nil,
                state: nil,
                width: 20} == Dungeons.copy_level_fields(level)
+      assert %{} == Dungeons.copy_level_fields(nil)
     end
 
     test "create_level/1 with valid data creates a level" do
@@ -642,6 +666,7 @@ defmodule DungeonCrawl.DungeonsTest do
                state: nil,
                tile_template_id: tile.tile_template_id,
                z_index: 0} == Dungeons.copy_tile_fields(tile)
+      assert %{} == Dungeons.copy_tile_fields(nil)
     end
 
     test "create_tile/1 with valid data creates a tile" do

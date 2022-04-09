@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.Sound.Effect do
   use DungeonCrawl.Sluggable
+  use DungeonCrawl.AttributeQueryable
   use Ecto.Schema
   import Ecto.Changeset
 

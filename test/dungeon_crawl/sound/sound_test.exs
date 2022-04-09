@@ -133,6 +133,13 @@ defmodule DungeonCrawl.SoundTest do
       assert effect == Sound.get_effect!(effect.id)
     end
 
+    test "find_effect/1" do
+      {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
+
+      assert existing_effect == Sound.find_effect(Map.put(@valid_attrs, :user_id, nil))
+      refute Sound.find_effect(%{name: "effect that does not exist"})
+    end
+
     test "find_or_create_effect/1 finds existing effect" do
       {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
 
@@ -206,6 +213,16 @@ defmodule DungeonCrawl.SoundTest do
     test "change_effect/1 returns a effect changeset" do
       effect = effect_fixture()
       assert %Ecto.Changeset{} = Sound.change_effect(effect)
+    end
+
+    test  "copy_fields/1" do
+      effect = effect_fixture()
+      assert %{name: "Some Name",
+               public: true,
+               slug: "some_name",
+               user_id: nil,
+               zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"} == Sound.copy_fields(effect)
+      assert %{} == Sound.copy_fields(nil)
     end
   end
 end

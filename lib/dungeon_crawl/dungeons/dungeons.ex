@@ -77,7 +77,9 @@ defmodule DungeonCrawl.Dungeons do
   def list_dungeons(%User{} = user) do
     Repo.all(from d in Dungeon,
              where: d.user_id == ^user.id,
-             where: is_nil(d.deleted_at))
+             where: is_nil(d.deleted_at),
+             where: not(d.importing),
+             order_by: [:id])
   end
   def list_dungeons(:soft_deleted) do
     Repo.all(from d in Dungeon,
@@ -86,7 +88,23 @@ defmodule DungeonCrawl.Dungeons do
   end
   def list_dungeons() do
     Repo.all(from d in Dungeon,
-             where: is_nil(d.deleted_at))
+             where: is_nil(d.deleted_at),
+             order_by: [:id])
+  end
+
+  @doc """
+  Returns a list of the most recent dungeon for each line_identifier.
+
+  ## Examples
+
+    iex> list_dungeons_by_lines(user)
+  """
+  def list_dungeons_by_lines(%User{} = user) do
+    Repo.all(from d in Dungeon,
+             distinct: d.line_identifier,
+             where: d.user_id == ^user.id,
+             where: is_nil(d.deleted_at),
+             order_by: [desc: :version])
   end
 
   @doc """
@@ -176,6 +194,23 @@ defmodule DungeonCrawl.Dungeons do
              group_by: d.id,
              order_by: [desc: d.version],
              select_merge: %{score_count: count(s.id)})
+  end
+
+  @doc """
+  Returns a list of the most recent dungeon for each line_identifier.
+
+  ## Examples
+
+    iex> get_newest_dungeons_version(line_identifier, user_id)
+  """
+  def get_newest_dungeons_version(nil, _user_id), do: nil
+  def get_newest_dungeons_version(_line_identifier, nil), do: nil
+  def get_newest_dungeons_version(line_identifier, user_id) do
+    Repo.one(from d in Dungeon,
+             where: d.line_identifier == ^line_identifier,
+             where: d.user_id == ^user_id,
+             order_by: [desc: :version],
+             limit: 1)
   end
 
   @doc """

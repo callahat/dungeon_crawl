@@ -118,6 +118,13 @@
             <%= error_tag f, :public %>
           </div>
         </div>
+        <div class="col-md-3">
+          <div class="form-group">
+            <%= label f, :unlisted, class: "control-label" %>
+            <%= checkbox f, :unlisted %>
+            <%= error_tag f, :unlisted %>
+          </div>
+        </div>
       </div>
 
       <div class="row">

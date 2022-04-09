@@ -25,7 +25,10 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
     field :line_identifier, :integer
     field :score_count, :integer, virtual: true, default: 0
     field :title_number, :integer
+    field :importing, :boolean, default: false
 
+    # Note: state_variables are essentially keys, state_values are the values, both get zipped
+    # together and converted to a string to be stored as the state
     field :state_variables, {:array, :string}, virtual: true, default: nil
     field :state_values, {:array, :string}, virtual: true, default: nil
 
@@ -60,7 +63,8 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
                     :default_map_width,
                     :default_map_height,
                     :line_identifier,
-                    :title_number])
+                    :title_number,
+                    :importing])
     |> cast_assoc(:levels)
     |> validate_length(:name, max: 32)
     |> validate_length(:description, max: 1024)

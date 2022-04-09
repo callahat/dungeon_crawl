@@ -89,8 +89,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         state: "blocking: false",
         color: "gray",
         background_color: "linen",
-        public: false,
+        public: true,
         active: true,
+        unlisted: true,
     })
   end
 
@@ -126,8 +127,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Terrain do
         name: "Grave",
         description: "It looks fresh. R.I.P.",
         state: "blocking: false",
-        public: false,
+        public: true,
         active: true,
+        unlisted: true
     })
   end
 

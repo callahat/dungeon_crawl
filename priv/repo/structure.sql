@@ -35,6 +35,77 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- Name: dungeon_exports; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.dungeon_exports (
+    id bigint NOT NULL,
+    status integer,
+    data text,
+    dungeon_id bigint,
+    user_id bigint,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL,
+    file_name character varying(255)
+);
+
+
+--
+-- Name: dungeon_exports_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.dungeon_exports_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: dungeon_exports_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.dungeon_exports_id_seq OWNED BY public.dungeon_exports.id;
+
+
+--
+-- Name: dungeon_imports; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.dungeon_imports (
+    id bigint NOT NULL,
+    status integer,
+    data text,
+    line_identifier integer,
+    dungeon_id bigint,
+    user_id bigint,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL,
+    file_name character varying(255) NOT NULL
+);
+
+
+--
+-- Name: dungeon_imports_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.dungeon_imports_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: dungeon_imports_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.dungeon_imports_id_seq OWNED BY public.dungeon_imports.id;
+
+
+--
 -- Name: dungeon_instances; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -90,7 +161,8 @@ CREATE TABLE public.dungeons (
     default_map_height integer,
     line_identifier integer,
     title_number integer,
-    description character varying(1024)
+    description character varying(1024),
+    importing boolean DEFAULT false
 );
 
 
@@ -570,7 +642,8 @@ CREATE TABLE public.tile_templates (
     animate_background_colors character varying(255),
     animate_characters character varying(32),
     animate_period integer,
-    group_name character varying(16)
+    group_name character varying(16),
+    unlisted boolean DEFAULT false NOT NULL
 );
 
 
@@ -672,6 +745,20 @@ CREATE SEQUENCE public.users_id_seq
 --
 
 ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
+
+
+--
+-- Name: dungeon_exports id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_exports ALTER COLUMN id SET DEFAULT nextval('public.dungeon_exports_id_seq'::regclass);
+
+
+--
+-- Name: dungeon_imports id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_imports ALTER COLUMN id SET DEFAULT nextval('public.dungeon_imports_id_seq'::regclass);
 
 
 --
@@ -784,6 +871,22 @@ ALTER TABLE ONLY public.tiles ALTER COLUMN id SET DEFAULT nextval('public.tiles_
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
+
+
+--
+-- Name: dungeon_exports dungeon_exports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_exports
+    ADD CONSTRAINT dungeon_exports_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: dungeon_imports dungeon_imports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_imports
+    ADD CONSTRAINT dungeon_imports_pkey PRIMARY KEY (id);
 
 
 --
@@ -923,6 +1026,48 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: dungeon_exports_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX dungeon_exports_dungeon_id_index ON public.dungeon_exports USING btree (dungeon_id);
+
+
+--
+-- Name: dungeon_exports_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX dungeon_exports_status_index ON public.dungeon_exports USING btree (status);
+
+
+--
+-- Name: dungeon_exports_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX dungeon_exports_user_id_index ON public.dungeon_exports USING btree (user_id);
+
+
+--
+-- Name: dungeon_imports_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX dungeon_imports_dungeon_id_index ON public.dungeon_imports USING btree (dungeon_id);
+
+
+--
+-- Name: dungeon_imports_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX dungeon_imports_status_index ON public.dungeon_imports USING btree (status);
+
+
+--
+-- Name: dungeon_imports_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX dungeon_imports_user_id_index ON public.dungeon_imports USING btree (user_id);
+
+
+--
 -- Name: dungeons_active_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1000,10 +1145,17 @@ CREATE INDEX level_instances_dungeon_instance_id_index ON public.level_instances
 
 
 --
--- Name: level_instances_dungeon_number_player_index; Type: INDEX; Schema: public; Owner: -
+-- Name: level_instances_dungeon_number_owned_by_player_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX level_instances_dungeon_number_player_index ON public.level_instances USING btree (dungeon_instance_id, number, player_location_id);
+CREATE UNIQUE INDEX level_instances_dungeon_number_owned_by_player_index ON public.level_instances USING btree (dungeon_instance_id, number, player_location_id) WHERE (player_location_id IS NOT NULL);
+
+
+--
+-- Name: level_instances_dungeon_number_shared_by_all_players_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX level_instances_dungeon_number_shared_by_all_players_index ON public.level_instances USING btree (dungeon_instance_id, number, player_location_id) WHERE (player_location_id IS NULL);
 
 
 --
@@ -1168,6 +1320,38 @@ CREATE UNIQUE INDEX users_username_index ON public.users USING btree (username);
 
 
 --
+-- Name: dungeon_exports dungeon_exports_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_exports
+    ADD CONSTRAINT dungeon_exports_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
+
+
+--
+-- Name: dungeon_exports dungeon_exports_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_exports
+    ADD CONSTRAINT dungeon_exports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: dungeon_imports dungeon_imports_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_imports
+    ADD CONSTRAINT dungeon_imports_dungeon_id_fkey FOREIGN KEY (dungeon_id) REFERENCES public.dungeons(id) ON DELETE CASCADE;
+
+
+--
+-- Name: dungeon_imports dungeon_imports_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dungeon_imports
+    ADD CONSTRAINT dungeon_imports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: dungeon_instances dungeon_instances_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1284,7 +1468,7 @@ ALTER TABLE ONLY public.scores
 --
 
 ALTER TABLE ONLY public.spawn_locations
-    ADD CONSTRAINT spawn_locations_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id);
+    ADD CONSTRAINT spawn_locations_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
 
 
 --
@@ -1332,7 +1516,7 @@ ALTER TABLE ONLY public.tile_templates
 --
 
 ALTER TABLE ONLY public.tiles
-    ADD CONSTRAINT tiles_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id);
+    ADD CONSTRAINT tiles_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE;
 
 
 --
@@ -1406,3 +1590,9 @@ INSERT INTO public."schema_migrations" (version) VALUES (20211230042239);
 INSERT INTO public."schema_migrations" (version) VALUES (20220127032503);
 INSERT INTO public."schema_migrations" (version) VALUES (20220127034149);
 INSERT INTO public."schema_migrations" (version) VALUES (20220131023947);
+INSERT INTO public."schema_migrations" (version) VALUES (20220303021906);
+INSERT INTO public."schema_migrations" (version) VALUES (20220303043632);
+INSERT INTO public."schema_migrations" (version) VALUES (20220313043817);
+INSERT INTO public."schema_migrations" (version) VALUES (20220313045333);
+INSERT INTO public."schema_migrations" (version) VALUES (20220313173501);
+INSERT INTO public."schema_migrations" (version) VALUES (20220321034751);

@@ -1,0 +1,5 @@
+<h2>Export dungeon</h2>
+
+<%= live_render(@conn, DungeonCrawlWeb.ExportStatusLive, session: %{"user_id_hash" => @user_id_hash}) %>
+
+<%= link "Back", to: Routes.dungeon_path(@conn, :index) %>
