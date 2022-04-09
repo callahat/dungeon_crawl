@@ -237,16 +237,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       insert_dungeon(%{user_id: conn.assigns.current_user.id})
       conn = get conn, dungeon_import_path(conn, :dungeon_import)
       assert html_response(conn, 200) =~ "Import dungeon"
-      refute html_response(conn, 200) =~ "User"
-    end
-  end
-
-  describe "import dungeon get with a admin" do
-    setup [:create_admin]
-    test "renders the form", %{conn: conn} do
-      conn = get conn, dungeon_import_path(conn, :dungeon_import)
-      assert html_response(conn, 200) =~ "Import dungeon"
-      assert html_response(conn, 200) =~ "User"
+      assert html_response(conn, 200) =~ "Filename"
     end
   end
 
@@ -280,16 +271,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     test "renders the list", %{conn: conn} do
       conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
       assert html_response(conn, 200) =~ "Export dungeon"
-      refute html_response(conn, 200) =~ "User"
-    end
-  end
-
-  describe "export dungeon list with a admin" do
-    setup [:create_admin]
-    test "renders the list", %{conn: conn} do
-      conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
-      assert html_response(conn, 200) =~ "Export dungeon"
-      assert html_response(conn, 200) =~ "User"
+      assert html_response(conn, 200) =~ "Filename"
     end
   end
 
