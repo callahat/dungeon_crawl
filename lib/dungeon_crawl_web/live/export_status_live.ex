@@ -29,7 +29,7 @@ defmodule DungeonCrawlWeb.ExportStatusLive do
 
     if export.user_id == socket.assigns.user_id || socket.assigns.is_admin do
       Shipping.delete_export(export)
-      broadcast_status(export.user_id)
+      _broadcast_status(export.user_id)
       {:noreply, put_flash(_assign_exports(socket), :info, "Deleted export.")}
     else
       {:noreply, put_flash(_assign_exports(socket), :error, "Could not delete export.")}
@@ -60,7 +60,7 @@ defmodule DungeonCrawlWeb.ExportStatusLive do
     assign(socket, :exports, exports)
   end
 
-  defp broadcast_status(user_id) do
+  defp _broadcast_status(user_id) do
     Endpoint.broadcast("export_status_#{user_id}", "refresh_status", nil)
     Endpoint.broadcast("export_status", "refresh_status", nil)
   end

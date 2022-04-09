@@ -32,7 +32,7 @@ defmodule DungeonCrawlWeb.ImportStatusLiveTest do
       assert html =~ "Started"
       assert html =~ "Status"
       assert html =~ "test.json"
-      refute html =~ "UserID"
+      refute html =~ "User"
     end
   end
 
@@ -48,7 +48,7 @@ defmodule DungeonCrawlWeb.ImportStatusLiveTest do
       assert html =~ "Filename"
       assert html =~ "Started"
       assert html =~ "Status"
-      assert html =~ "UserID"
+      assert html =~ "User"
     end
   end
 

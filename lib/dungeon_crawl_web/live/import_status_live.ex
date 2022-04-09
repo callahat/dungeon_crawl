@@ -1,5 +1,4 @@
 defmodule DungeonCrawlWeb.ImportStatusLive do
-  # In Phoenix v1.6+ apps, the line below should be: use MyAppWeb, :live_view
   use DungeonCrawl.Web, :live_view
 
   alias DungeonCrawl.Account
@@ -46,7 +45,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
       })
 
       DockWorker.import(dungeon_import)
-      broadcast_status(dungeon_import.user_id)
+      _broadcast_status(dungeon_import.user_id)
 
       {:ok, "junk"}
     end)
@@ -63,7 +62,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
 
     if import.user_id == socket.assigns.user_id || socket.assigns.is_admin do
       Shipping.delete_import(import)
-      broadcast_status(import.user_id)
+      _broadcast_status(import.user_id)
       {:noreply, put_flash(_assign_imports(socket), :info, "Deleted import.")}
     else
       {:noreply, put_flash(_assign_imports(socket), :error, "Could not delete import.")}
@@ -107,7 +106,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
     |> _assign_dungeons()
   end
 
-  defp broadcast_status(user_id) do
+  defp _broadcast_status(user_id) do
     Endpoint.broadcast("import_status_#{user_id}", "refresh_status", nil)
     Endpoint.broadcast("import_status", "refresh_status", nil)
   end
