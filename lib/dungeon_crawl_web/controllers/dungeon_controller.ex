@@ -7,7 +7,6 @@ defmodule DungeonCrawlWeb.DungeonController do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.DockWorker
-  alias DungeonCrawl.Shipping.Json
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
@@ -16,7 +15,6 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
   plug :assign_dungeon_export when action in [:download_dungeon_export, :delete_dungeon_export]
-  plug :assign_dungeon_import when action in [:delete_dungeon_import]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
@@ -82,56 +80,9 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  def dungeon_import(conn,  %{"file" => file, "line_identifier" => line_identifier}) do
-    import = file.path
-             |> File.read!()
-             |> Json.decode!()
-
-    dungeon_import = Shipping.create_import!(%{
-      data: Json.encode!(import),
-      user_id: conn.assigns.current_user.id,
-      file_name: file.filename,
-      line_identifier: line_identifier,
-      importing: true
-    })
-
-    DockWorker.import(dungeon_import)
-
-    conn
-    |> put_flash(:info, "Importing dungeon.")
-    |> _redirect_to_dungeon_import()
-  rescue
-    Jason.DecodeError -> put_flash(conn, :error, "Import failed; could not parse file") |> _redirect_to_dungeon_import()
-    e in Ecto.InvalidChangesetError -> put_flash(conn, :error, _humanize_errors(e.changeset)) |> _redirect_to_dungeon_import()
-    e -> put_flash(conn, :error, "Import failed; #{ Exception.format(:error, e) }") |> _redirect_to_dungeon_import()
-  end
-
   def dungeon_import(conn, _) do
-    is_admin = conn.assigns.current_user.is_admin
-    imports = if is_admin,
-                do: Repo.preload(Shipping.list_dungeon_imports(), :user),
-                else: Shipping.list_dungeon_imports(conn.assigns.current_user.id)
-    dungeons = Dungeons.list_dungeons_by_lines(conn.assigns.current_user)
-               |> Enum.map(fn dungeon ->
-                    {"#{dungeon.name} (id: #{dungeon.id}) v #{dungeon.version} #{unless dungeon.active, do: "(inactive)"}",
-                      dungeon.line_identifier}
-                  end)
-
-    render(conn, "import.html", is_admin: is_admin, imports: imports, dungeons: dungeons)
-  end
-
-  def delete_dungeon_import(conn, %{"id" => _id}) do
-    import = conn.assigns.dungeon_import
-
-    Shipping.delete_import(import)
-
-    conn
-    |> put_flash(:info, "Deleted import.")
-    |> _redirect_to_dungeon_import()
-  end
-
-  defp _redirect_to_dungeon_import(conn) do
-    redirect(conn, to: Routes.dungeon_import_path(conn, :dungeon_import))
+    assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
+    |> render("import.html")
   end
 
   def dungeon_export(conn, %{"id" => _id}) do
@@ -145,11 +96,10 @@ defmodule DungeonCrawlWeb.DungeonController do
     DockWorker.export(dungeon_export)
 
     conn
-    |> put_flash(:info, "Generating download.")
     |> _redirect_to_dungeon_export_list()
 
   rescue
-    e in Ecto.InvalidChangesetError -> put_flash(conn, :error, _humanize_errors(e.changeset)) |> _redirect_to_dungeon_export_list()
+    Ecto.InvalidChangesetError -> _redirect_to_dungeon_export_list(conn)
   end
 
   def delete_dungeon_export(conn, %{"id" => _id}) do
@@ -163,12 +113,8 @@ defmodule DungeonCrawlWeb.DungeonController do
   end
 
   def dungeon_export_list(conn, _) do
-    is_admin = conn.assigns.current_user.is_admin
-    exports = if is_admin,
-                 do: Repo.preload(Shipping.list_dungeon_exports(), :user),
-                 else: Shipping.list_dungeon_exports(conn.assigns.current_user.id)
-
-    render(conn, "export.html", is_admin: is_admin, exports: exports)
+    assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
+    |> render("export.html")
   end
 
   defp _redirect_to_dungeon_export_list(conn) do
@@ -296,20 +242,6 @@ defmodule DungeonCrawlWeb.DungeonController do
     end
   end
 
-  defp assign_dungeon_import(conn, _opts) do
-    import =  Shipping.get_import!(conn.params["id"])
-
-    if import.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
-      conn
-      |> assign(:dungeon_import, import)
-    else
-      conn
-      |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_import_path(conn, :dungeon_import))
-      |> halt()
-    end
-  end
-
   defp validate_updateable(conn, _opts) do
     if !conn.assigns.dungeon.active do
       conn
@@ -323,15 +255,5 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   defp _max_dimensions() do
     Elixir.Map.take(Admin.get_setting, [:max_height, :max_width])
-  end
-
-  defp _humanize_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Map.values()
-    |> Enum.join(", ")
   end
 end

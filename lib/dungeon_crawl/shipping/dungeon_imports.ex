@@ -212,7 +212,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   defp set_dungeon_overrides(%{dungeon: dungeon} = export, user_id, line_identifier) do
-    dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier})
+    dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier, importing: true})
               |> Map.delete(:user_name)
     %{ export | dungeon: dungeon }
   end

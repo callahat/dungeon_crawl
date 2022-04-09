@@ -1,50 +1,5 @@
 <h2>Import dungeon</h2>
 
-
-<div class="row no-gutters">
-  <div class="col-3 pr-4">
-    <%= form_for @conn, Routes.dungeon_import_path(@conn, :dungeon_import), [multipart: true], fn f -> %>
-      <div class="form-group">
-        <%= label f, :file, class: "control-label" %>
-        <%= file_input f, :file, class: "form-control" %>
-      </div>
-
-      <div class="form-group">
-        <%= label f, :line_identifier, class: "control-label" %>
-        <%= select f, :line_identifier, @dungeons, class: "form-control", prompt: "(optional)" %>
-      </div>
-
-      <div class="form-group">
-        <%= submit "Submit", class: "btn btn-primary" %>
-      </div>
-    <% end %>
-  </div>
-  <div class="col-7" id="dungeonImports">
-    <table class="table table-sm">
-      <thead>
-        <tr>
-          <%= if @is_admin do %><th>UserID</th><% end %>
-          <th>Filename</th>
-          <th>Started</th>
-          <th>Status</th>
-          <th></th>
-          <td></td>
-        </tr>
-      </thead>
-      <tbody>
-      <%= for import <- @imports do %>
-        <tr>
-          <%= if @is_admin do %><td><%= import.user.username %></td><% end %>
-          <td><%= import.file_name %></td>
-          <td><%= import.inserted_at %></td>
-          <td><%= import.status %></td>
-          <td><%= if import.dungeon_id, do: link DungeonCrawl.Repo.preload(import, :dungeon).dungeon.name, to: Routes.dungeon_path(@conn, :show, import.dungeon_id) %></td>
-          <td><%= link "Delete", to: Routes.dungeon_import_path(@conn, :delete_dungeon_import, import.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
-        </tr>
-      <% end %>
-      </tbody>
-    </table>
-  </div>
-</div>
+<%= live_render(@conn, DungeonCrawlWeb.ImportStatusLive, session: %{"user_id_hash" => @user_id_hash}) %>
 
 <%= link "Back", to: Routes.dungeon_path(@conn, :index) %>

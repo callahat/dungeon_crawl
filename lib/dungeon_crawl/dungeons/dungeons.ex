@@ -78,6 +78,7 @@ defmodule DungeonCrawl.Dungeons do
     Repo.all(from d in Dungeon,
              where: d.user_id == ^user.id,
              where: is_nil(d.deleted_at),
+             where: not(d.importing),
              order_by: [:id])
   end
   def list_dungeons(:soft_deleted) do

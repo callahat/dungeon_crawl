@@ -74,20 +74,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
-  describe "import dungeon POST without a registered user" do
-    test "redirects", %{conn: conn} do
-      conn = post conn, dungeon_import_path(conn, :dungeon_import)
-      assert redirected_to(conn) == page_path(conn, :index)
-    end
-  end
-
-  describe "import dungeon DELETE without a registered user" do
-    test "redirects", %{conn: conn} do
-      conn = delete conn, dungeon_import_path(conn, :delete_dungeon_import, 1)
-      assert redirected_to(conn) == page_path(conn, :index)
-    end
-  end
-
   describe "export dungeon without a registered user" do
     test "redirects", %{conn: conn} do
       conn = post conn, dungeon_export_path(conn, :dungeon_export, 1)
@@ -98,13 +84,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
   describe "export dungeon list without a registered user" do
     test "redirects", %{conn: conn} do
       conn = get conn, dungeon_export_path(conn, :dungeon_export_list)
-      assert redirected_to(conn) == page_path(conn, :index)
-    end
-  end
-
-  describe "export dungeon DELETE without a registered user" do
-    test "redirects", %{conn: conn} do
-      conn = delete conn, dungeon_export_path(conn, :delete_dungeon_export, 1)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -271,96 +250,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
-  describe "import dungeon post with a registered user" do
-    setup [:create_user]
-
-    test "redirects when data is valid", %{conn: conn} do
-      upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
-      refute get_flash(conn, :error)
-      assert get_flash(conn, :info) == "Importing dungeon."
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert [import] = Shipping.list_dungeon_imports()
-      assert import.file_name == "test.json"
-    end
-
-    test "renders errors when file is invalid", %{conn: conn} do
-      upload = %Plug.Upload{path: "test/support/fixtures/export_bad_fixture_v_1.json", filename: "test.json"}
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
-
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert get_flash(conn, :error) == "Import failed; could not parse file"
-    end
-
-    test "renders errors when file not found", %{conn: conn} do
-      upload = nil
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
-
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert get_flash(conn, :error) == "Import failed; ** (UndefinedFunctionError) function nil.path/0 is undefined"
-    end
-
-    test "renders errors when file is already being uploaded", %{conn: conn} do
-      upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => ""}
-
-      assert get_flash(conn, :error) == "Already importing"
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-    end
-
-    test "with a line identifier selected for the import", %{conn: conn} do
-      upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      other_dungeon = insert_dungeon(%{user_id: conn.assigns.current_user.id})
-      lid = "#{other_dungeon.line_identifier}"
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => lid}
-
-      assert get_flash(conn, :info) == "Importing dungeon."
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert [import] = Shipping.list_dungeon_imports()
-      assert import.file_name == "test.json"
-      assert import.line_identifier == String.to_integer(lid)
-    end
-
-    test "with a line identifier that is invalid", %{conn: conn} do
-      upload = %Plug.Upload{path: "test/support/fixtures/export_fixture_v_1.json", filename: "test.json"}
-      other_user = insert_user()
-      other_dungeon = insert_dungeon(%{user_id: other_user.id})
-      lid = "#{other_dungeon.line_identifier}"
-      conn = post conn, dungeon_import_path(conn, :dungeon_import), %{"file" => upload, "line_identifier" => lid}
-
-      assert get_flash(conn, :error) == "Invalid Line Identifier"
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert [] == Shipping.list_dungeon_imports()
-    end
-  end
-
-  describe "import dungeon delete" do
-    setup [:create_user]
-
-    test "it deletes the import", %{conn: conn, user: user} do
-      assert import = Shipping.create_import!(%{user_id: user.id, data: "{}", file_name: "test.json"})
-      conn = delete conn, dungeon_import_path(conn, :delete_dungeon_import, import.id)
-      assert get_flash(conn, :info) == "Deleted import."
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert_raise Ecto.NoResultsError, fn -> Shipping.get_import!(import.id) end
-    end
-
-    test "errors when trying to delete someone else's import", %{conn: conn} do
-      other_user = insert_user()
-      import = Shipping.create_import!(%{user_id: other_user.id, file_name: "test.json", data: "{}"})
-      conn = delete conn, dungeon_import_path(conn, :delete_dungeon_import, import.id)
-      assert redirected_to(conn) == dungeon_import_path(conn, :dungeon_import)
-      assert get_flash(conn, :error) == "You do not have access to that"
-    end
-
-    test "renders error when the import does not exist", %{conn: conn} do
-      assert_error_sent 404, fn ->
-        delete conn, dungeon_import_path(conn, :delete_dungeon_import, -1)
-      end
-    end
-  end
-
   describe "export dungeon with a registered user" do
     setup [:create_user, :create_dungeon]
 
@@ -371,7 +260,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
 
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
-      assert get_flash(conn, :info) == "Generating download."
     end
 
     test "renders errors when file is already being uploaded", %{conn: conn, dungeon: dungeon} do
@@ -382,7 +270,6 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
       conn = post conn, dungeon_export_path(conn, :dungeon_export, dungeon)
 
-      assert get_flash(conn, :error) == "Already exporting"
       assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
     end
   end
@@ -406,26 +293,13 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
     end
   end
 
-  describe "export dungeon delete" do
-    setup [:create_user]
-
-    test "it deletes the export", %{conn: conn, user: user} do
-      dungeon = insert_dungeon()
-      assert export = Shipping.create_export!(%{user_id: user.id, dungeon_id: dungeon.id, file_name: "test.json"})
-      conn = delete conn, dungeon_export_path(conn, :delete_dungeon_export, export.id)
-      assert get_flash(conn, :info) == "Deleted export."
-      assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
-      assert_raise Ecto.NoResultsError, fn -> Shipping.get_export!(export.id) end
-    end
-  end
-
   describe "download dungeon export" do
     setup [:create_user]
 
     test "downloads the dungeon json", %{conn: conn} do
       dungeon = insert_dungeon()
       export = Shipping.create_export!(%{user_id: conn.assigns.current_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
-      conn = post conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
+      conn = get conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
       assert json_response(conn, 200)
       assert Enum.member?(
                conn.resp_headers,
@@ -436,7 +310,7 @@ defmodule DungeonCrawlWeb.DungeonControllerTest do
       other_user = insert_user()
       dungeon = insert_dungeon()
       export = Shipping.create_export!(%{user_id: other_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
-      conn = post conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
+      conn = get conn, dungeon_export_path(conn, :download_dungeon_export, export.id)
       assert redirected_to(conn) == dungeon_export_path(conn, :dungeon_export_list)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
