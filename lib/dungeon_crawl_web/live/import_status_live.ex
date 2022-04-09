@@ -54,7 +54,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
     {:noreply, socket}
   rescue
     Jason.DecodeError -> {:noreply, put_flash(socket, :error, "Import failed; could not parse file")}
-    Ecto.InvalidChangesetError ->  {:noreply, put_flash(socket, :error, "Import failed; bad input")} # _humanize_errors(e.changeset))
+    e in Ecto.InvalidChangesetError ->  {:noreply, put_flash(socket, :error, _humanize_errors(e.changeset))}
     e -> {:noreply, put_flash(socket, :error, "Import failed; #{ Exception.format(:error, e) }")}
   end
 
@@ -110,5 +110,15 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   defp broadcast_status(user_id) do
     Endpoint.broadcast("import_status_#{user_id}", "refresh_status", nil)
     Endpoint.broadcast("import_status", "refresh_status", nil)
+  end
+
+  defp _humanize_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
+    |> Map.values()
+    |> Enum.join(", ")
   end
 end
