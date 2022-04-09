@@ -102,16 +102,6 @@ defmodule DungeonCrawlWeb.DungeonController do
     Ecto.InvalidChangesetError -> _redirect_to_dungeon_export_list(conn)
   end
 
-  def delete_dungeon_export(conn, %{"id" => _id}) do
-    export = conn.assigns.dungeon_export
-
-    Shipping.delete_export(export)
-
-    conn
-    |> put_flash(:info, "Deleted export.")
-    |> _redirect_to_dungeon_export_list()
-  end
-
   def dungeon_export_list(conn, _) do
     assign(conn, :user_id_hash, conn.assigns.current_user.user_id_hash)
     |> render("export.html")
