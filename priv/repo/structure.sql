@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 12.9 (Ubuntu 12.9-0ubuntu0.20.04.1)
--- Dumped by pg_dump version 12.9 (Ubuntu 12.9-0ubuntu0.20.04.1)
+-- Dumped from database version 10.19 (Ubuntu 10.19-0ubuntu0.18.04.1)
+-- Dumped by pg_dump version 10.19 (Ubuntu 10.19-0ubuntu0.18.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,9 +16,23 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
 SET default_tablespace = '';
 
-SET default_table_access_method = heap;
+SET default_with_oids = false;
 
 --
 -- Name: dungeon_exports; Type: TABLE; Schema: public; Owner: -
@@ -288,8 +302,8 @@ CREATE TABLE public.level_instances (
     width integer,
     height integer,
     level_id bigint,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
     state character varying(255),
     dungeon_instance_id bigint,
     number integer,
@@ -331,8 +345,8 @@ CREATE TABLE public.levels (
     name character varying(255),
     width integer,
     height integer,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
     max_instances integer,
     state character varying(255),
     dungeon_id bigint,
@@ -371,8 +385,8 @@ ALTER SEQUENCE public.levels_id_seq OWNED BY public.levels.id;
 CREATE TABLE public.player_locations (
     id bigint NOT NULL,
     user_id_hash character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
     tile_instance_id bigint
 );
 
@@ -402,7 +416,7 @@ ALTER SEQUENCE public.player_locations_id_seq OWNED BY public.player_locations.i
 
 CREATE TABLE public.schema_migrations (
     version bigint NOT NULL,
-    inserted_at timestamp(0) without time zone
+    inserted_at timestamp without time zone
 );
 
 
@@ -612,9 +626,9 @@ CREATE TABLE public.tile_templates (
     description character varying(255),
     color character varying(255),
     background_color character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
-    deleted_at timestamp(0) without time zone,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
+    deleted_at timestamp without time zone,
     user_id bigint,
     version integer DEFAULT 1,
     active boolean,
@@ -705,8 +719,8 @@ CREATE TABLE public.users (
     name character varying(255),
     username character varying(255) NOT NULL,
     password_hash character varying(255),
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
+    inserted_at timestamp without time zone NOT NULL,
+    updated_at timestamp without time zone NOT NULL,
     is_admin boolean DEFAULT false,
     user_id_hash character varying(255),
     color character varying(255),
@@ -1141,7 +1155,7 @@ CREATE UNIQUE INDEX level_instances_dungeon_number_owned_by_player_index ON publ
 -- Name: level_instances_dungeon_number_shared_by_all_players_index; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX level_instances_dungeon_number_shared_by_all_players_index ON public.level_instances USING btree (dungeon_instance_id, number) WHERE (player_location_id IS NULL);
+CREATE UNIQUE INDEX level_instances_dungeon_number_shared_by_all_players_index ON public.level_instances USING btree (dungeon_instance_id, number, player_location_id) WHERE (player_location_id IS NULL);
 
 
 --
