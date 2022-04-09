@@ -429,6 +429,33 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "."
+  test "use_item - used consumable will keep that consumable equipped when there are more",
+       %{socket: socket,
+         player_location: player_location,
+         instance: instance} do
+    player_channel = "players:#{player_location.id}"
+    DungeonCrawlWeb.Endpoint.subscribe(player_channel)
+
+    item = insert_item(%{name: "Cool Thing", script: "you float into the air\n@flying = true", consumable: true})
+    other_item = insert_item(%{name: "Other Thing", script: "what?", consumable: true})
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      Levels.update_tile_state(instance_state, player_tile,
+        %{equipment: [other_item.slug, item.slug, item.slug], equipped: item.slug})
+    end)
+
+    push socket, "use_item", %{"direction" => "up"}
+    assert_broadcast "message", %{message: "you float into the air"}
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
+      assert player_tile.parsed_state[:equipped] == item.slug
+      assert player_tile.parsed_state[:equipment] == [other_item.slug, item.slug]
+      {:ok, instance_state}
+    end)
+  end
+
+  @tag up_tile: "."
   test "does not let the player use weapon item if dungeon to pacifism", %{socket: socket,
                                                                            level_instance: level_instance,
                                                                            player_location: player_location,

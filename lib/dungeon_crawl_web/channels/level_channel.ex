@@ -486,7 +486,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
   defp _item_used_up(player_tile, item, state) do
     equipment = player_tile.parsed_state[:equipment] -- [item.slug]
-    equipped = Enum.at(equipment, 0)
+    equipped = if Enum.member?(equipment, item.slug), do: item.slug, else: Enum.at(equipment, 0)
 
     Levels.update_tile_state(state, player_tile, %{equipment: equipment, equipped: equipped})
   end
