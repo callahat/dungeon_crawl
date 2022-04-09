@@ -142,10 +142,10 @@ defmodule DungeonCrawl.Equipment do
 
   """
   def find_item(attrs \\ %{}) do
-    Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+    Repo.one(from Item.attrs_query(Map.delete(attrs, :slug)), limit: 1, order_by: :id)
   end
   def find_items(attrs \\ %{}) do
-    Repo.all(from _attrs_query(attrs), order_by: :id)
+    Repo.all(from Item.attrs_query(Map.delete(attrs, :slug)), order_by: :id)
   end
 
   @doc """
@@ -174,18 +174,6 @@ defmodule DungeonCrawl.Equipment do
       nil  -> create_item!(attrs)
       item -> item
     end
-  end
-
-  defp _attrs_query(attrs) do
-    Map.delete(attrs, :slug)
-    |> Enum.reduce(Item,
-         fn
-           {x, nil}, query ->
-             from m in query, where: is_nil(field(m, ^x))
-           {x,y}, query ->
-             field_query = [{x, y}] #dynamic keyword list
-             query|>where(^field_query)
-         end)
   end
 
   @doc """

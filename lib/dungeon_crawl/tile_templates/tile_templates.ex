@@ -219,11 +219,11 @@ defmodule DungeonCrawl.TileTemplates do
 
   """
   def find_tile_template(attrs \\ %{}) do
-    Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+    Repo.one(from TileTemplate.attrs_query(attrs), limit: 1, order_by: :id)
   end
-  # todo: spec for this, probably could consolidate this as its a copy paste agains equipment, item,
+
   def find_tile_templates(attrs \\ %{}) do
-    Repo.all(from _attrs_query(attrs), order_by: :id)
+    Repo.all(from TileTemplate.attrs_query(attrs), order_by: :id)
   end
 
   @doc """
@@ -252,17 +252,6 @@ defmodule DungeonCrawl.TileTemplates do
       nil      -> create_tile_template!(attrs)
       template -> template
     end
-  end
-
-  defp _attrs_query(attrs) do
-    Enum.reduce(attrs, TileTemplate,
-      fn
-       {x, nil}, query ->
-         from m in query, where: is_nil(field(m, ^x))
-       {x,y}, query ->
-        field_query = [{x, y}] #dynamic keyword list
-        query|>where(^field_query)
-      end)
   end
 
   @doc """

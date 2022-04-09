@@ -1,4 +1,5 @@
 defmodule DungeonCrawl.Equipment.Item do
+  use DungeonCrawl.AttributeQueryable
   use DungeonCrawl.Sluggable
   use Ecto.Schema
   import Ecto.Changeset

@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.TileShortlists.TileShortlist do
   use Ecto.Schema
+  use DungeonCrawl.AttributeQueryable
   import Ecto.Changeset
 
   alias DungeonCrawl.TileTemplates

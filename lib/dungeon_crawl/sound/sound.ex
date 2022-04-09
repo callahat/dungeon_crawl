@@ -141,7 +141,7 @@ defmodule DungeonCrawl.Sound do
 
   """
   def find_effect(attrs \\ %{}) do
-    Repo.one(from _attrs_query(attrs), limit: 1, order_by: :id)
+    Repo.one(from Effect.attrs_query(Map.delete(attrs, :slug)), limit: 1, order_by: :id)
   end
 
   @doc """
@@ -168,17 +168,6 @@ defmodule DungeonCrawl.Sound do
       nil  -> create_effect!(attrs)
       effect -> effect
     end
-  end
-  defp _attrs_query(attrs) do
-    Map.delete(attrs, :slug)
-    |> Enum.reduce(Effect,
-       fn
-         {x, nil}, query ->
-           from m in query, where: is_nil(field(m, ^x))
-         {x,y}, query ->
-           field_query = [{x, y}] #dynamic keyword list
-           query|>where(^field_query)
-         end)
   end
 
   @doc """
