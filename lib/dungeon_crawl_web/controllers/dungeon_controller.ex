@@ -14,7 +14,7 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
-  plug :assign_dungeon_export when action in [:download_dungeon_export, :delete_dungeon_export]
+  plug :assign_dungeon_export when action in [:download_dungeon_export]
   plug :validate_updateable when action in [:edit, :update]
 
   def index(conn, _params) do
