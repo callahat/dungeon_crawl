@@ -193,8 +193,8 @@ defmodule DungeonCrawl.DungeonsTest do
                   |> Enum.sort
       new_spawn_locations = Repo.preload(new_level, :spawn_locations).spawn_locations
                             |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
-      assert Map.delete(Map.delete(level, :id), :dungeon_id) ==
-             Map.delete(Map.delete(new_level, :id), :dungeon_id)
+      assert Map.drop(level, [:id, :dungeon_id, :inserted_at, :updated_at]) ==
+             Map.drop(new_level, [:id, :dungeon_id, :inserted_at, :updated_at])
       assert old_tiles == new_tiles
       assert old_spawn_locations == new_spawn_locations
     end

@@ -34,14 +34,14 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     # export the dungeon, return the dungeon export id
     export = Repo.preload(export, :dungeon)
     {:ok, _} = Shipping.update_export(export, %{status: :running})
-    broadcast_status({:export, export})
+    _broadcast_status({:export, export})
 
     export_json = DungeonExports.run(export.dungeon_id)
                   |> Json.encode!()
 
     Shipping.update_export(export,
       %{file_name: _file_name(export.dungeon), data: export_json, status: :completed})
-    broadcast_status({:export, export})
+    _broadcast_status({:export, export})
 
     {:reply, :ok, state}
   end
@@ -50,14 +50,14 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   def handle_call({:import, import}, _from, state) do
     # import the dungeon, return the created id
     {:ok, _} = Shipping.update_import(import, %{status: :running})
-    broadcast_status({:import, import})
+    _broadcast_status({:import, import})
 
     import_hash = Json.decode!(import.data)
                   |> DungeonImports.run(import.user_id, import.line_identifier)
 
     Shipping.update_import(import,
       %{dungeon_id: import_hash.dungeon.id, status: :completed})
-    broadcast_status({:import, import})
+    _broadcast_status({:import, import})
 
     {:reply, :ok, state}
   end
@@ -80,7 +80,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
           try do
             GenServer.call(dock_worker, params, @timeout)
           catch
-            e, r -> broadcast_status("error", params)
+            e, r -> _broadcast_status("error", params)
                     Logger.warn("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
                     :ok
           end
@@ -90,11 +90,11 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     end)
   end
 
-  defp broadcast_status(params) do
-    broadcast_status("refresh_status", params)
+  defp _broadcast_status(params) do
+    _broadcast_status("refresh_status", params)
   end
 
-  defp broadcast_status(type, {import_or_export, record}) do
+  defp _broadcast_status(type, {import_or_export, record}) do
     Endpoint.broadcast("#{ import_or_export }_status_#{record.user_id}", type, nil)
     Endpoint.broadcast("#{ import_or_export }_status", type, nil)
   end
