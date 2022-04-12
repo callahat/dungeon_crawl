@@ -225,8 +225,8 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert floor_tt.script == ""
     assert wall_tt.script == ""
     assert rock_tt.script == ""
-    assert c_door_tt.script == "#END\n:OPEN\n#BECOME slug: #{ tmp_o_door_tt_id }\n#SOUND #{ tmp_door_id }"
-    assert o_door_tt.script == "#END\n:CLOSE\n#BECOME slug: #{ tmp_c_door_tt_id }\n#SOUND #{ tmp_door_id }"
+    assert c_door_tt.script == "#END\n:OPEN\n#SOUND #{ tmp_door_id }\n#BECOME slug: #{ tmp_o_door_tt_id }"
+    assert o_door_tt.script == "#END\n:CLOSE\n#SOUND #{ tmp_door_id }\n#BECOME slug: #{ tmp_c_door_tt_id }"
     assert fireball_tt.script == """
       :MAIN
       #WALK @facing
@@ -280,7 +280,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert Dungeons.copy_tile_fields(export.basic_tiles.wall) == Map.delete(wall, :tile_template_id)
     assert Dungeons.copy_tile_fields(export.basic_tiles.rock) == Map.delete(rock, :tile_template_id)
     assert Dungeons.copy_tile_fields(export.basic_tiles.closed_door)
-           |> Map.put(:script, "#END\n:OPEN\n#BECOME slug: #{tmp_o_door_tt_id}\n#SOUND #{tmp_door_id}" )
+           |> Map.put(:script, "#END\n:OPEN\n#SOUND #{tmp_door_id}\n#BECOME slug: #{tmp_o_door_tt_id}" )
            == Map.delete(c_door, :tile_template_id)
     assert Map.merge(Dungeons.copy_tile_fields(export.basic_tiles.floor), %{state: "light_source: true", name: "Floor 2"}) == Map.delete(floor2, :tile_template_id)
     assert Dungeons.copy_tile_fields(@custom_tt)

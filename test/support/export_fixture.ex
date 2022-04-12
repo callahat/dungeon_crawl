@@ -76,7 +76,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
             ["O5vg+ci/SVTpWjnoDV1lpK8am7o=", 0, 2, 0],
             ["RNLJZUrdz+QyRf81annJCmZmzx4=", 0, 3, 0],
             ["RNLJZUrdz+QyRf81annJCmZmzx4=", 1, 1, 0],
-            ["/iVISpc6e8GhH9KDuSHej1LvEMY=", 1, 2, 0],
+            ["cpzSOTZw+KFbCwcfHXH7vgyaluk=", 1, 2, 0],
             ["RNLJZUrdz+QyRf81annJCmZmzx4=", 1, 3, 0],
             ["WlQNZFjrC+hU97qwndt9CWT+pDs=", 2, 1, 0],
             ["WlQNZFjrC+hU97qwndt9CWT+pDs=", 2, 2, 0],
@@ -248,7 +248,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           group_name: "doors",
           name: "Closed Door",
           public: true,
-          script: "#END\n:OPEN\n#BECOME slug: tmp_tt_id_5\n#SOUND tmp_sound_id_3",
+          script: "#END\n:OPEN\n#SOUND tmp_sound_id_3\n#BECOME slug: tmp_tt_id_5",
           slug: "closed_door",
           state: "blocking: true, open: false",
           temp_tt_id: "tmp_tt_id_4",
@@ -268,7 +268,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           group_name: "doors",
           name: "Open Door",
           public: true,
-          script: "#END\n:CLOSE\n#BECOME slug: tmp_tt_id_4\n#SOUND tmp_sound_id_3",
+          script: "#END\n:CLOSE\n#SOUND tmp_sound_id_3\n#BECOME slug: tmp_tt_id_4",
           slug: "open_door",
           state: "blocking: false, open: true",
           temp_tt_id: "tmp_tt_id_5",
@@ -317,7 +317,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
         }
       },
       tiles: %{
-        "/iVISpc6e8GhH9KDuSHej1LvEMY=" => %{
+        "cpzSOTZw+KFbCwcfHXH7vgyaluk=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -327,7 +327,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           character: "+",
           color: nil,
           name: "Closed Door",
-          script: "#END\n:OPEN\n#BECOME slug: tmp_tt_id_5\n#SOUND tmp_sound_id_3",
+          script: "#END\n:OPEN\n#SOUND tmp_sound_id_3\n#BECOME slug: tmp_tt_id_5",
           state: "blocking: true, open: false",
           tile_template_id: "tmp_tt_id_4"
         },

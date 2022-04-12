@@ -182,7 +182,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
            == %{tile_template_id: config.existing_tiles.rock.id, script: ""}
     assert Map.take(c_door_tile, [:tile_template_id, :script])
            == %{tile_template_id: closed_door.id,
-                script: "#END\n:OPEN\n#BECOME slug: #{open_door.slug}\n#SOUND #{door.slug}"}
+                script: "#END\n:OPEN\n#SOUND #{door.slug}\n#BECOME slug: #{open_door.slug}"}
     assert Map.take(floor2_tile, [:tile_template_id, :script, :state])
            == %{tile_template_id: floor.id, state: "light_source: true", script: ""}
     assert Map.take(custom_tile, [:tile_template_id, :script])
@@ -223,8 +223,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
     # tile templates
     assert floor.script == ""
-    assert closed_door.script == "#END\n:OPEN\n#BECOME slug: #{ open_door.slug }\n#SOUND #{ door.slug }"
-    assert open_door.script == "#END\n:CLOSE\n#BECOME slug: #{ closed_door.slug }\n#SOUND #{ door.slug }"
+    assert closed_door.script == "#END\n:OPEN\n#SOUND #{ door.slug }\n#BECOME slug: #{ open_door.slug }"
+    assert open_door.script == "#END\n:CLOSE\n#SOUND #{ door.slug }\n#BECOME slug: #{ closed_door.slug }"
     assert wall.script == ""
     assert fireball.script == """
       :MAIN
