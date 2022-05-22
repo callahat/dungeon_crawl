@@ -281,11 +281,12 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   playing without actually leaving the dungeon.
   """
   def petrify(%Levels{} = state, player_tile) do
-    location = Levels.get_player_location(state, %{id: player_tile.id})
-
     {junk_pile, state} = drop_all_items(state, player_tile)
     {_, state} = Levels.delete_tile(state, player_tile)
-    Player.delete_location!(location)
+
+    # might have already been cleaned up
+    location = Levels.get_player_location(state, %{id: player_tile.id})
+    if location, do: Player.delete_location!(location)
 
     # spawn statue
     z_index_plus_one = Enum.at(Levels.get_tiles(state, junk_pile), 0).z_index + 1
