@@ -56,7 +56,6 @@ defmodule DungeonCrawlWeb.Crawler do
   """
   def leave_and_broadcast(%Player.Location{} = location) do
     tile = Repo.preload(location, [tile: :level]).tile
-    di = Repo.preload(tile, [level: [dungeon: [:locations, :levels]]]).level.dungeon
 
     {:ok, instance} = Registrar.instance_process(tile.level)
 
