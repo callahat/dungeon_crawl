@@ -36,7 +36,7 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
     test "shows chosen instance when no backing db instance", %{conn: conn} do
       instance = setup_level_instance()
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
-      LevelRegistry.create(instance_registry, 2, [], [], %{rows: 0, cols: 0}, instance.dungeon_instance_id, 2)
+      LevelRegistry.create(instance_registry, nil, 2, [], [], %{rows: 0, cols: 0}, instance.dungeon_instance_id, 2)
       conn = get conn, manage_level_process_path(conn, :show, instance.dungeon_instance_id, 2, instance.player_location_id || "none")
       assert html_response(conn, 200) =~ "Orphaned Level Instance Process"
     end
@@ -56,7 +56,7 @@ defmodule DungeonCrawlWeb.ManageLevelInstanceControllerTest do
       assert redirected_to(conn) == manage_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
       :timer.sleep 5
       assert DungeonInstances.get_level(instance.dungeon_instance_id, instance.number)
-      assert :error = LevelRegistry.lookup(instance_registry, instance.number)
+      assert :error = LevelRegistry.lookup(instance_registry, instance.number, instance.player_location_id)
     end
   end
 

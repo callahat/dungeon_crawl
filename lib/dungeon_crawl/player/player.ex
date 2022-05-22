@@ -162,9 +162,7 @@ defmodule DungeonCrawl.Player do
 
   """
   def delete_location!(%Location{} = location) do
-    location = Repo.preload(location, [tile: [level: [dungeon: :dungeon]]])
-
-    Repo.delete!(location.tile)
+    Repo.delete!(location)
 
     location
   end

@@ -38,7 +38,7 @@ defmodule DungeonCrawlWeb.Crawler do
 
   defp _broadcast_join_event(location) do
     tile = Repo.preload(location, [tile: :level]).tile
-    {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.number)
+    {:ok, instance} = Registrar.instance_process(tile.level)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       # "player_joined" could be broadcast here should it be needed for a future feature
@@ -58,7 +58,7 @@ defmodule DungeonCrawlWeb.Crawler do
     tile = Repo.preload(location, [tile: :level]).tile
     di = Repo.preload(tile, [level: [dungeon: [:locations, :levels]]]).level.dungeon
 
-    {:ok, instance} = Registrar.instance_process(di.id, tile.level.number)
+    {:ok, instance} = Registrar.instance_process(tile.level)
 
     deleted_location = LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, tile)

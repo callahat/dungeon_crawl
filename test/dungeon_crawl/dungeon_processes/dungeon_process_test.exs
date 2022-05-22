@@ -136,7 +136,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
       instance_registry = DungeonProcess.get_instance_registry(dungeon_process)
       LevelRegistry.set_dungeon_instance_id(instance_registry, level.dungeon_instance_id)
       assert level_registry = DungeonProcess.get_instance_registry(dungeon_process)
-      assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup_or_create(level_registry, level.number)
+      assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup_or_create(level_registry, level.number, player_location.id)
 
       LevelProcess.run_with(instance_process, fn(state) ->
         Levels.create_player_tile(state, player_tile, player_location)

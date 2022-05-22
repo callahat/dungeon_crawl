@@ -39,7 +39,7 @@ defmodule DungeonCrawl.Action.Travel do
         {:ok, state}
 
       true ->
-        {:ok, dest_instance} = Registrar.instance_process(target_level.dungeon_instance_id, target_level.number)
+        {:ok, dest_instance} = Registrar.instance_process(target_level)
 
         Task.async fn ->
           LevelProcess.run_with(dest_instance, fn (other_instance_state) ->

@@ -349,6 +349,12 @@
                 will not spawn a bullet or activate the currently equipped weapon).</td>
           </tr>
           <tr>
+            <td>solo</td>
+            <td>Defaults as false. When false, the level is univeral and every player will use the same instance.
+                When set to true, each player will have their own instance of this level and will not encounter
+                other players.</td>
+          </tr>
+          <tr>
             <td>visibility</td>
             <td>This sets what the player can see of the level. By default, the top down view of the current
                 level is seen entirely. When it is set to "fog", then the players vision is restricted to line of

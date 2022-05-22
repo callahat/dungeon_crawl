@@ -22,7 +22,9 @@ defmodule DungeonCrawlWeb.LevelChannel do
     {:ok, instance_registry} = Registrar.instance_registry(dungeon_instance_id)
 
     # make sure the instance is up and running
-    {:ok, {_iid, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_number)
+    {:ok, instance} = _get_instance_process(%{instance_registry: instance_registry,
+                                              level_number: level_number,
+                                              level_owner_id: owner_id})
 
     # remove the player from the inactive map
     LevelProcess.run_with(instance, fn (%{inactive_players: inactive_players} = instance_state) ->
@@ -494,8 +496,8 @@ defmodule DungeonCrawlWeb.LevelChannel do
   defp _to_integer(""), do: nil
   defp _to_integer(str) when is_binary(str), do: String.to_integer(str)
 
-  defp _get_instance_process(%{instance_registry: registry, level_number: number}) do
-    {:ok, {_instance_id, process}} = LevelRegistry.lookup_or_create(registry, number)
+  defp _get_instance_process(%{instance_registry: registry, level_number: number, level_owner_id: owner_id}) do
+    {:ok, {_instance_id, process}} = LevelRegistry.lookup_or_create(registry, number, owner_id)
     {:ok, process}
   end
 end

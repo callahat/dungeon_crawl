@@ -9,13 +9,16 @@ defmodule DungeonCrawl.DungeonProcesses.Registrar do
   @doc """
   Returns the instance process given dungeon and instance id if found.
   """
-  def instance_process(dungeon_instance_id, level_number) do
+  def instance_process(dungeon_instance_id, level_number, owner_id) do
     with {:ok, instance_registry} <- instance_registry(dungeon_instance_id),
-         {:ok, {_iid, instance_process}} <- LevelRegistry.lookup_or_create(instance_registry, level_number) do
+         {:ok, {_iid, instance_process}} <- LevelRegistry.lookup_or_create(instance_registry, level_number, owner_id) do
       {:ok, instance_process}
     else
       _ -> nil
     end
+  end
+  def instance_process(%{dungeon_instance_id: diid, number: level_number, player_location_id: owner_id}) do
+    instance_process(diid, level_number, owner_id)
   end
 
   @doc """

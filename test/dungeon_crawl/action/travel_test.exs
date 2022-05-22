@@ -21,8 +21,8 @@ defmodule DungeonCrawl.Action.TravelTest do
     Dungeons.add_spawn_locations(level_2.level_id, [{1, 5}])
     player_location = insert_player_location(%{level_instance_id: level_1.id})
     {:ok, instance_registry} = Registrar.instance_registry(dungeon_instance.id)
-    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number)
-    {:ok, {_, _instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number)
+    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number, nil)
+    {:ok, {_, _instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number, nil)
     LevelProcess.run_with(instance_1, fn (state) ->
       {_player_tile, state} = Levels.create_player_tile(state, Repo.preload(player_location, :tile).tile, player_location)
       {:ok, %{ state | passage_exits: [{Levels.get_tile(state, %{row: 6, col: 9, fade_overlay: "on"}).id,"red"}] }}
@@ -36,7 +36,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
     # travel to floor 1 from floor 1 takes player tile to a spawn coordinate
-    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number)
+    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number, player_location.id)
     LevelProcess.run_with(instance_1, fn (state) ->
       assert {:ok, state} = Travel.passage(player_location, %{match_key: nil}, 1, state)
       level_1_id = level_1.id
@@ -52,7 +52,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
     # travel to floor 1 from floor 1 takes player tile to a spawn coordinate
-    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number)
+    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number, player_location.id)
     LevelProcess.run_with(instance_1, fn (state) ->
       assert {:ok, state} = Travel.passage(player_location, %{match_key: "red"}, 2, state)
       refute Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
@@ -62,7 +62,8 @@ defmodule DungeonCrawl.Action.TravelTest do
     level_2_id = level_2.id
     level_2_number = level_2.number
     level_2_owner_id = level_2.player_location_id
-    {:ok, {_, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number)
+    {:ok, {_, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number, level_2_owner_id)
+    :timer.sleep 1 # try to prevent a race condition where instance_2 hasn't created the tile yet
     LevelProcess.run_with(instance_2, fn (state) ->
       assert %{row: 1, col: 5, level_instance_id: ^level_2_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
       {:ok, state}
@@ -100,7 +101,7 @@ defmodule DungeonCrawl.Action.TravelTest do
 
     # When the target level only has the header, but not level instance created yet
     DungeonInstances.delete_level!(level_2)
-    LevelRegistry.remove(instance_registry, level_2.number)
+    LevelRegistry.remove(instance_registry, level_2.number, level_2_owner_id)
     LevelProcess.run_with(instance_1, fn (state) ->
       assert {:ok, state} = Travel.passage(player_location, %{match_key: "red"}, 2, state)
       assert DungeonInstances.get_level(level_2.dungeon_instance_id, level_2.number)
@@ -108,7 +109,7 @@ defmodule DungeonCrawl.Action.TravelTest do
       {:ok, state}
     end)
 
-    {:ok, {level_2_id, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number)
+    {:ok, {level_2_id, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number, level_2_owner_id)
     LevelProcess.run_with(instance_2, fn (state) ->
       assert %{row: 1, col: 5, level_instance_id: ^level_2_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
       {:ok, state}
@@ -125,7 +126,7 @@ defmodule DungeonCrawl.Action.TravelTest do
 
   test "passage/4 does nothing when target level does not exist", %{player_location: player_location, level_1: level_1, instance_registry: instance_registry} do
     # travel to floor 1 from floor 1 takes player tile to a spawn coordinate
-    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number)
+    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number, player_location.id)
     LevelProcess.run_with(instance_1, fn (state) ->
       assert {:ok, state_travelled} = Travel.passage(player_location, %{match_key: nil}, 12, state)
       assert state == state_travelled
@@ -144,7 +145,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
     # travel to floor 1 from floor 1 takes player tile to a spawn coordinate
-    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number)
+    {:ok, {_, instance_1}} = LevelRegistry.lookup_or_create(instance_registry, level_1.number, player_location.id)
     LevelProcess.run_with(instance_1, fn (state) ->
       assert {:ok, state} = Travel.passage(player_location, %{match_key: "stairs_down"}, 2, state)
       {:ok, state}

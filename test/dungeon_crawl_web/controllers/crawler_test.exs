@@ -22,7 +22,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert dungeon_instance_id == tile.level.dungeon_instance_id
 
     # It registers the player location
-    {:ok, instance} = Registrar.instance_process(tile.level.dungeon_instance_id, tile.level.number)
+    {:ok, instance} = Registrar.instance_process(tile.level)
     location_tile_id = tile.id
     assert %Levels{player_locations: %{^location_tile_id => ^location},
                    map_by_ids: %{^location_tile_id => player_tile}}
@@ -52,11 +52,9 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     expected_row = tile.row
     expected_col = tile.col
     assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: "<div>@</div>"}]}
-#    assert_broadcast "tile_changes", payload
-#    assert %{tiles: [%{row: tile.row, col: tile.col, rendering: "<div>@</div>"}]} == payload
 
     # It registers the player location
-    {:ok, instance} = Registrar.instance_process(di.id, instance.number)
+    {:ok, instance} = Registrar.instance_process(instance)
     location_tile_id = tile.id
     assert %Levels{player_locations: %{^location_tile_id => ^location}} = LevelProcess.get_state(instance)
 
@@ -85,7 +83,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^rendering}]}
 
     # It unregisters the player location
-    {:ok, instance} = Registrar.instance_process(di.id, level_instance.number)
+    {:ok, instance} = Registrar.instance_process(level_instance)
     state = LevelProcess.get_state(instance)
     assert %{^location2_id => %{user_id_hash: "someoneelsetokeeptheinstance"}} = state.player_locations
 

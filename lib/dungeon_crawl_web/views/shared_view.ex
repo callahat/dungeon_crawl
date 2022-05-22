@@ -60,7 +60,7 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   defp _level_as_table(%DungeonInstances.Level{} = level, height, width) do
-    {:ok, instance} = Registrar.instance_process(level.dungeon_instance_id, level.number)
+    {:ok, instance} = Registrar.instance_process(level)
     instance_state = LevelProcess.get_state(instance)
 
     instance_state.map_by_ids

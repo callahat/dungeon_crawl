@@ -208,7 +208,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
       # without duplicating a bunch of other stuff
       level_instance = insert_stubbed_level_instance()
 
-      {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.number)
+      {:ok, instance_process} = Registrar.instance_process(level_instance)
 
       LevelProcess.run_with(instance_process, fn(state) ->
         tile_params = %Tile{level_instance_id: level_instance.id, id: 123, row: 1, col: 2, z_index: 0, character: ".", script: script}

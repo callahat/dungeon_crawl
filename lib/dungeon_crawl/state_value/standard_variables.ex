@@ -9,6 +9,7 @@ defmodule DungeonCrawl.StateValue.StandardVariables do
              "fog_range",
              "reset_player_when_damaged",
              "reset_when_no_players",
+             "solo",
              "pacifism",
              "visibility",
            ]

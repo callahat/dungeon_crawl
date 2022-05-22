@@ -6,10 +6,10 @@ defmodule DungeonCrawlWeb.ManageLevelProcessController do
   alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.Registrar
 
-  def show(conn, %{"di_id" => di_id, "num" => num, "plid" => _plid}) do
+  def show(conn, %{"di_id" => di_id, "num" => num, "plid" => plid}) do
     di_id = String.to_integer(di_id)
     num = String.to_integer(num)
-    case Registrar.instance_process(di_id, num) do
+    case Registrar.instance_process(di_id, num, plid) do
       {:ok, instance_process} ->
         instance_state = LevelProcess.get_state(instance_process)
         instance = Repo.preload(DungeonInstances.get_level(di_id, num), [level: :dungeon])
@@ -21,9 +21,9 @@ defmodule DungeonCrawlWeb.ManageLevelProcessController do
     end
   end
 
-  def delete(conn, %{"di_id" => di_id, "num" => num, "plid" => _plid}) do
+  def delete(conn, %{"di_id" => di_id, "num" => num, "plid" => plid}) do
     case Registrar.instance_registry(String.to_integer(di_id)) do
-      {:ok, instance_registry} -> LevelRegistry.remove(instance_registry, String.to_integer(num))
+      {:ok, instance_registry} -> LevelRegistry.remove(instance_registry, String.to_integer(num), plid)
       _ -> nil
     end
 

@@ -9,8 +9,6 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.StateValue
 
-  @owner_id nil
-
   defstruct level_numbers: %{},
             refs: %{},
             cache: nil,
@@ -41,23 +39,29 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
 
   @doc """
   Looks up the instance pid for `instance_id` stored in `server`.
+  The `owner_id` may be nil to find the universal instance, or an owner_id for a
+  solo instance. Should the solo instance not exist, it will fall back to
+  look for the universal instance.
 
   Returns `{:ok, {instance_id, pid}}` if the instance exists, `:error` otherwise
   """
-  def lookup(server, level_number) do
-    GenServer.call(server, {:lookup, level_number, @owner_id})
+  def lookup(server, level_number, owner_id) do
+    GenServer.call(server, {:lookup, level_number, owner_id})
   end
 
   @doc """
   Looks up or creates the instance pid for `instance_number` stored in `server`.
+  The `owner_id` may be nil to find the universal instance, or an owner_id for a
+  solo instance. Should the solo instance not exist, it will fall back to
+  look for the universal instance.
 
   Returns `{:ok, {instance_id, pid}}`.
   """
-  def lookup_or_create(server, level_number) do
-    case GenServer.call(server, {:lookup, level_number, @owner_id}) do
+  def lookup_or_create(server, level_number, owner_id) do
+    case GenServer.call(server, {:lookup, level_number, owner_id}) do
       :error ->
-        create(server, level_number)
-        lookup(server, level_number)
+        create(server, level_number, owner_id)
+        lookup(server, level_number, owner_id)
 
       {:ok, id_and_pid} ->
         {:ok, id_and_pid}
@@ -68,12 +72,12 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   Ensures there is a instance associated with the given `level` in `server`. `level` can be either a
   level instance, or a level number.
   """
-  def create(server, level_number) when is_integer(level_number) do
-    GenServer.call(server, {:create, level_number, @owner_id})
+  def create(server, level_number, owner_id) when is_integer(level_number) do
+    GenServer.call(server, {:create, level_number, owner_id})
   end
 
-  def create(server, level) do
-    GenServer.call(server, {:create, level})
+  def create(server, level_instance) do
+    GenServer.call(server, {:create, level_instance})
   end
 
   @doc """
@@ -84,15 +88,15 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   If instance_id is nil, an available one will be assigned, and injected into
   all the `tiles`. Returns the `instance_id`.
   """
-  def create(server, instance_id, tiles, spawn_coordinates \\ [], state_values \\ %{}, diid \\ nil, number \\ 1, adjacent \\ %{}, author \\ nil) do
-    GenServer.call(server, {:create, @owner_id, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author})
+  def create(server, owner_id, instance_id, tiles, spawn_coordinates \\ [], state_values \\ %{}, diid \\ nil, number \\ 1, adjacent \\ %{}, author \\ nil) do
+    GenServer.call(server, {:create, owner_id, instance_id, tiles, spawn_coordinates, state_values, diid, number, adjacent, author})
   end
 
   @doc """
   Stops the instance associated with the given `instance_id` in `server`, allowing it to be removed.
   """
-  def remove(server, level_number) do
-    GenServer.cast(server, {:remove, level_number, @owner_id})
+  def remove(server, level_number, owner_id) do
+    GenServer.cast(server, {:remove, level_number, owner_id})
   end
 
   @doc """
@@ -155,7 +159,9 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   def handle_call({:lookup, level_number, owner_id}, _from, %{level_numbers: level_numbers} = level_registry) do
     case Map.fetch(level_numbers, level_number) do
       {:ok, instance_ids} ->
-        {:reply, Map.fetch(instance_ids, owner_id), level_registry}
+        owner_key = if Map.has_key?(instance_ids, nil), do: nil, else: owner_id
+
+        {:reply, Map.fetch(instance_ids, owner_key), level_registry}
       _ ->
         {:reply, :error, level_registry}
     end
@@ -188,8 +194,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     level_header = DungeonInstances.get_level_header(di_id, number)
 
     if level_header do
-      level = DungeonInstances.find_or_create_level(level_header, owner_id)
-      handle_call({:create, level}, from, level_registry)
+      level_instance = DungeonInstances.find_or_create_level(level_header, owner_id)
+      handle_call({:create, level_instance}, from, level_registry)
     else
       Logger.error "Got a CREATE cast for DungeonInstance #{di_id} LevelNumber #{number} but no header matched"
       {:reply, :ok, level_registry}
