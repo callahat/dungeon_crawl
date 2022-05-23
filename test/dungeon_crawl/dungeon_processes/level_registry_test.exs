@@ -20,25 +20,55 @@ defmodule DungeonCrawl.LevelRegistryTest do
     assert %{dungeon_instance_id: 2048} = :sys.get_state(instance_registry)
   end
 
-  test "lookup", %{instance_registry: instance_registry} do
+  test "lookup universal instance", %{instance_registry: instance_registry} do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
 
-    assert :error = LevelRegistry.lookup(instance_registry, instance.number)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, nil)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
 
-    LevelRegistry.create(instance_registry, instance.number)
+    LevelRegistry.create(instance_registry, instance.number, 1)
 
-    assert {:ok, {_instance_id, _instance_pid}} = LevelRegistry.lookup(instance_registry, instance.number)
+    assert {:ok, {_instance_id, _instance_pid}} = LevelRegistry.lookup(instance_registry, instance.number, nil)
+    assert {:ok, {_instance_id, _instance_pid}} = LevelRegistry.lookup(instance_registry, instance.number, 1)
   end
 
-  test "lookup_or_create", %{instance_registry: instance_registry} do
+  test "lookup solo instance", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_level_instance(%{state: "solo: true"})
+    location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "testhash"})
+    LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
+
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, nil)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, location.id)
+
+    LevelRegistry.create(instance_registry, instance.number, location.id)
+
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, nil)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
+    assert {:ok, {_instance_id, _instance_pid}} = LevelRegistry.lookup(instance_registry, instance.number, location.id)
+  end
+
+  test "lookup_or_create universal instance", %{instance_registry: instance_registry} do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
     Dungeons.set_spawn_locations(instance.level_id, [{1,1}])
 
-    assert {:ok, instance_id_and_process} = LevelRegistry.lookup_or_create(instance_registry, instance.number)
+    assert {:ok, instance_id_and_process} = LevelRegistry.lookup_or_create(instance_registry, instance.number, 1)
     # Finds the already existing one
-    assert {:ok, instance_id_and_process} == LevelRegistry.lookup_or_create(instance_registry, instance.number)
+    assert {:ok, instance_id_and_process} == LevelRegistry.lookup_or_create(instance_registry, instance.number, 1)
+    assert {:ok, instance_id_and_process} == LevelRegistry.lookup_or_create(instance_registry, instance.number, nil)
+  end
+
+  test "lookup_or_create solo instance", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_level_instance(%{state: "solo: true"})
+    location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "testhash"})
+    LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
+    Dungeons.set_spawn_locations(instance.level_id, [{1,1}])
+
+    assert {:ok, instance_id_and_process} = LevelRegistry.lookup_or_create(instance_registry, instance.number, location.id)
+    # Finds the already existing one
+    assert {:ok, instance_id_and_process} == LevelRegistry.lookup_or_create(instance_registry, instance.number, location.id)
+    assert {:ok, instance_id_and_process} != LevelRegistry.lookup_or_create(instance_registry, instance.number, nil)
   end
 
   test "create/2", %{instance_registry: instance_registry} do
@@ -57,8 +87,12 @@ defmodule DungeonCrawl.LevelRegistryTest do
     Repo.preload(instance, [dungeon: :dungeon]).dungeon.dungeon
     |> Dungeons.update_dungeon(%{user_id: user.id})
 
-    assert :ok = LevelRegistry.create(instance_registry, instance.number)
-    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number)
+    assert :ok = LevelRegistry.create(instance_registry, instance.number, nil)
+    assert reg_state = :sys.get_state(instance_registry)
+    assert :ok = LevelRegistry.create(instance_registry, instance.number, nil)
+    assert reg_state == :sys.get_state(instance_registry)
+
+    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number, 1)
 
     # the instance level is loaded
     assert %Levels{program_contexts: programs,
@@ -94,6 +128,20 @@ defmodule DungeonCrawl.LevelRegistryTest do
     assert Map.take(author, [:id, :name, :is_admin]) == Map.take(user, [:id, :name, :is_admin])
   end
 
+  test "create/2 when a solo instance", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_level_instance(%{state: "solo: true"})
+    location = insert_player_location(%{level_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
+    instance = %{instance | player_location_id: location.id}
+
+    assert :ok = LevelRegistry.create(instance_registry, instance)
+    assert reg_state = :sys.get_state(instance_registry)
+    assert :ok = LevelRegistry.create(instance_registry, instance)
+    assert reg_state == :sys.get_state(instance_registry)
+
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, nil)
+    assert {:ok, {_instance_id, _instance_pid}} = LevelRegistry.lookup(instance_registry, instance.number, location.id)
+  end
+
   test "create/3..9", %{instance_registry: instance_registry} do
     level_number = 1
     author = %{is_admin: false, id: 12345}
@@ -102,8 +150,13 @@ defmodule DungeonCrawl.LevelRegistryTest do
     tiles = [tile]
 
     assert tile.level_instance_id ==
-             LevelRegistry.create(instance_registry, tile.level_instance_id, tiles, [], %{flag: false}, nil, level_number, %{}, author)
-    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, level_number)
+             LevelRegistry.create(instance_registry, nil, tile.level_instance_id, tiles, [], %{flag: false}, nil, level_number, %{}, author)
+    assert reg_state = :sys.get_state(instance_registry)
+    assert :exists ==
+             LevelRegistry.create(instance_registry, nil, tile.level_instance_id, tiles, [], %{flag: false}, nil, level_number, %{}, author)
+    assert reg_state == :sys.get_state(instance_registry)
+
+    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, level_number, 1)
 
     # the instance level is loaded
     assert %Levels{program_contexts: programs,
@@ -117,9 +170,9 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
     # if no instance_id is given, it gets an available id and returns it
     # if no state values are given, defaults to empty level
-    assert instance_id = LevelRegistry.create(instance_registry, nil, tiles)
+    assert instance_id = LevelRegistry.create(instance_registry, nil, nil, tiles)
     refute instance_id == tile.level_instance_id
-    assert {:ok, {instance_id2, instance_process2}} = LevelRegistry.lookup(instance_registry, level_number)
+    assert {:ok, {instance_id2, instance_process2}} = LevelRegistry.lookup(instance_registry, level_number, 1)
     assert %Levels{program_contexts: _programs,
                    map_by_ids: by_ids,
                    map_by_coords: _by_coords,
@@ -132,42 +185,42 @@ defmodule DungeonCrawl.LevelRegistryTest do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
     DungeonCrawl.Dungeons.delete_level!(Repo.preload(instance, :level).level)
-    log = ExUnit.CaptureLog.capture_log(fn -> LevelRegistry.create(instance_registry, instance.number); :timer.sleep 2 end)
-    assert :error = LevelRegistry.lookup(instance_registry, instance.id)
+    log = ExUnit.CaptureLog.capture_log(fn -> LevelRegistry.create(instance_registry, instance.number, nil); :timer.sleep 2 end)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.id, 1)
     assert log =~ "Got a CREATE cast for DungeonInstance #{instance.dungeon_instance_id} LevelNumber #{instance.number} but no header matched"
    end
 
   test "remove", %{instance_registry: instance_registry} do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
-    LevelRegistry.create(instance_registry, instance.number)
-    assert {:ok, _instance_id_and_process} = LevelRegistry.lookup(instance_registry, instance.number)
+    LevelRegistry.create(instance_registry, instance.number, nil)
+    assert {:ok, _instance_id_and_process} = LevelRegistry.lookup(instance_registry, instance.number, 1)
 
     # seems to take a quick micro second for the cast to be done
-    LevelRegistry.remove(instance_registry, instance.number)
+    LevelRegistry.remove(instance_registry, instance.number, nil)
     :timer.sleep 1
-    assert :error = LevelRegistry.lookup(instance_registry, instance.number)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
   end
 
   test "removes instances on exit", %{instance_registry: instance_registry} do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
-    LevelRegistry.create(instance_registry, instance.number)
-    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number)
+    LevelRegistry.create(instance_registry, instance.number, nil)
+    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number, 1)
 
     GenServer.stop(instance_process)
-    assert :error = LevelRegistry.lookup(instance_registry, instance.number)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
   end
 
   test "removes instance on crash", %{instance_registry: instance_registry} do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
-    LevelRegistry.create(instance_registry, instance.number)
-    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number)
+    LevelRegistry.create(instance_registry, instance.number, nil)
+    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number, 1)
 
     # Stop the bucket with a non-normal reason
     GenServer.stop(instance_process, :shutdown)
-    assert :error = LevelRegistry.lookup(instance_registry, instance.number)
+    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
   end
 
   test "list", %{instance_registry: instance_registry} do
@@ -175,7 +228,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
     instance_id = instance.id
     instance_number = instance.number
-    LevelRegistry.create(instance_registry, instance.number)
+    LevelRegistry.create(instance_registry, instance.number, nil)
 
     assert instance_ids = LevelRegistry.list(instance_registry)
     assert %{^instance_number => %{nil => {^instance_id, _pid}}} = instance_ids
@@ -186,7 +239,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
     instance = insert_stubbed_level_instance()
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
     instance_id = instance.id
-    LevelRegistry.create(instance_registry, instance.number)
+    LevelRegistry.create(instance_registry, instance.number, nil)
 
     assert instance_ids = LevelRegistry.flat_list(instance_registry)
     assert [{^instance_id, _pid}] = instance_ids
@@ -228,8 +281,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
       LevelRegistry.create(instance_registry, level_1)
       LevelRegistry.create(instance_registry, level_2)
 
-      {:ok, {instance_id_1, instance_process_1}} = LevelRegistry.lookup(instance_registry, level_1.number)
-      {:ok, {instance_id_2, instance_process_2}} = LevelRegistry.lookup(instance_registry, level_2.number)
+      {:ok, {instance_id_1, instance_process_1}} = LevelRegistry.lookup(instance_registry, level_1.number, 1)
+      {:ok, {instance_id_2, instance_process_2}} = LevelRegistry.lookup(instance_registry, level_2.number, 1)
 
       assert Process.alive?(instance_registry)
       assert Process.alive?(instance_process_1)

@@ -1,4 +1,4 @@
-<h2>Edit level</h2>
+<h2>Edit level <%= @level.number %></h2>
 
 <div class="text-center">
 <%= render "tile_pallette_sidebar.html", tile_templates: @tile_templates,

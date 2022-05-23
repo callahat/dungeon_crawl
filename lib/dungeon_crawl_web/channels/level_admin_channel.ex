@@ -11,7 +11,7 @@ defmodule DungeonCrawlWeb.LevelAdminChannel do
                                                    |> Enum.map(&_to_integer(&1))
 
     with {:ok, instance_registry} <- Registrar.instance_registry(dungeon_instance_id),
-         {:ok, _instance} <- LevelRegistry.lookup_or_create(instance_registry, level_number),
+         {:ok, _instance} <- LevelRegistry.lookup_or_create(instance_registry, level_number, owner_id),
          %{is_admin: true} <- Account.get_by_user_id_hash(socket.assigns.user_id_hash) do
       socket = assign(socket, :level_number, level_number)
                |> assign(:level_owner_id, owner_id)

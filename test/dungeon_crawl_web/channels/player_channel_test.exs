@@ -58,14 +58,14 @@ defmodule DungeonCrawl.PlayerChannelTest do
     owner_id = level_instance.player_location_id
     push socket, "refresh_level", %{}
     assert_broadcast "change_level", %{level_number: ^level_number, level_owner_id: ^owner_id, level_render: _html}
-    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_number)
+    {:ok, instance_process} = Registrar.instance_process(level_instance)
     assert %{players_visible_coords: _pvcs} = LevelProcess.get_state(instance_process)
   end
 
   @tag visibility: "fog"
   test "update_visible deletes the players visible coords which forces an update when foggy",
        %{socket: socket, location: location, level_instance: level_instance} do
-    {:ok, instance_process} = Registrar.instance_process(level_instance.dungeon_instance_id, level_instance.number)
+    {:ok, instance_process} = Registrar.instance_process(level_instance)
     LevelProcess.run_with(instance_process, fn(state) ->
       {:ok, %{ state | players_visible_coords: %{ location.tile_instance_id => %{} } }}
     end)

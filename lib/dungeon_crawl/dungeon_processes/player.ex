@@ -41,7 +41,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     with player_location when not is_nil(player_location) <- Player.get_location(user_id_hash),
          player_location <- DungeonCrawl.Repo.preload(player_location, [tile: :level]),
          player_level_instance <- player_location.tile.level,
-         {:ok, instance_process} <- Registrar.instance_process(player_level_instance.dungeon_instance_id, player_level_instance.number),
+         {:ok, instance_process} <- Registrar.instance_process(player_level_instance),
          player_tile when not is_nil(player_tile) <- LevelProcess.get_tile(instance_process, player_location.tile_instance_id) do
       _current_stats(player_tile)
       |> _with_equipped(player_tile)
@@ -281,11 +281,12 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   playing without actually leaving the dungeon.
   """
   def petrify(%Levels{} = state, player_tile) do
-    location = Levels.get_player_location(state, %{id: player_tile.id})
-
     {junk_pile, state} = drop_all_items(state, player_tile)
     {_, state} = Levels.delete_tile(state, player_tile)
-    Player.delete_location!(location)
+
+    # might have already been cleaned up
+    location = Levels.get_player_location(state, %{id: player_tile.id})
+    if location, do: Player.delete_location!(location)
 
     # spawn statue
     z_index_plus_one = Enum.at(Levels.get_tiles(state, junk_pile), 0).z_index + 1

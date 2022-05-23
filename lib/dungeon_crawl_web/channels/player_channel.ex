@@ -29,7 +29,9 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   end
 
   def handle_in("refresh_level", _, socket) do
-    {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_number)
+    {:ok, instance_process} = Registrar.instance_process(socket.assigns.dungeon_instance_id,
+                                                         socket.assigns.level_number,
+                                                         socket.assigns.level_owner_id)
     state = LevelProcess.get_state(instance_process)
 
     level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values[:rows], state.state_values[:cols])
@@ -46,7 +48,9 @@ defmodule DungeonCrawlWeb.PlayerChannel do
   end
 
   def handle_in("update_visible", _, socket) do
-    case Registrar.instance_process(socket.assigns.dungeon_instance_id, socket.assigns.level_number) do
+    case Registrar.instance_process(socket.assigns.dungeon_instance_id,
+                                    socket.assigns.level_number,
+                                    socket.assigns.level_owner_id) do
       {:ok, instance_process} ->
         LevelProcess.run_with(instance_process, fn (state) ->
           {:ok, %{ state | players_visible_coords: Map.delete(state.players_visible_coords, socket.assigns.player_tile_id),

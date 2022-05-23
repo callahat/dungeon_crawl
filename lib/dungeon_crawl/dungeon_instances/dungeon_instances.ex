@@ -142,9 +142,16 @@ defmodule DungeonCrawl.DungeonInstances do
   """
   def create_level_header(%Dungeons.Level{} = level, di_id) do
     # TODO: figure out what the type is
-    level_header_attrs = %{level_id: level.id, number: level.number, dungeon_instance_id: di_id}
+    level_header_attrs = %{level_id: level.id,
+                           number: level.number,
+                           dungeon_instance_id: di_id,
+                           type: _level_header_type(level)}
     LevelHeader.changeset(%LevelHeader{}, level_header_attrs)
     |> Repo.insert
+  end
+
+  defp _level_header_type(level) do
+    if level.state && level.state =~ ~r/solo:\s+true/, do: :solo, else: :universal
   end
 
   @doc """

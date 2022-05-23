@@ -56,7 +56,7 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
     instance_registry = DungeonProcess.get_instance_registry(map_set_process)
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     LevelProcess.run_with(instance, fn (instance_state) ->
       {_, state} = Levels.create_player_tile(instance_state, player_location.tile, player_location)
       {:ok, %{ state | rerender_coords: %{}}}
@@ -193,7 +193,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                                       level_instance: level_instance,
                                                       player_location: player_location,
                                                       instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     push socket, "move", %{"direction" => "up"}
     assert LevelProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
@@ -205,7 +205,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                                     level_instance: level_instance,
                                                     player_location: player_location,
                                                     instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     push socket, "move", %{"direction" => "up"}
     assert LevelProcess.get_tile(instance, north_tile.row, north_tile.col) == north_tile
@@ -214,9 +214,9 @@ defmodule DungeonCrawl.LevelChannelTest do
 
   @tag up_tile: "."
   test "move broadcasts a tile_update if its a valid move when starting location only had the tile that moved",
-       %{socket: socket, level_instance: level_instance, instance_registry: instance_registry} do
+       %{socket: socket, level_instance: level_instance, instance_registry: instance_registry, player_location: player_location} do
     tile = Repo.get_by(DungeonInstances.Tile, %{row: @player_row, col: @player_col, z_index: 0})
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     LevelProcess.delete_tile(instance, tile.id)
     push socket, "move", %{"direction" => "up"}
     assert_broadcast "tile_changes", %{tiles: [%{col: 1, row: 2, rendering: "<div>@</div>"}, %{col: 1, row: 3, rendering: "<div> </div>"}]}
@@ -460,7 +460,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                                                            level_instance: level_instance,
                                                                            player_location: player_location,
                                                                            instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     LevelProcess.set_state_values(instance, %{pacifism: true})
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -508,7 +508,7 @@ defmodule DungeonCrawl.LevelChannelTest do
          level_instance: level_instance,
          player_location: player_location,
          instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -524,7 +524,7 @@ defmodule DungeonCrawl.LevelChannelTest do
          level_instance: level_instance,
          player_location: player_location,
          instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -581,7 +581,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                      fn(a,b) -> a.number < b.number end)
                            |> Enum.at(1)
 
-    {:ok, {_, other_instance}} = LevelRegistry.lookup_or_create(instance_registry, other_level_instance.number)
+    {:ok, {_, other_instance}} = LevelRegistry.lookup_or_create(instance_registry, other_level_instance.number, player_location.id)
     other_level_pl = \
     LevelProcess.run_with(other_instance, fn (instance_state) ->
       other_level_pl = insert_player_location(%{level_instance_id: instance_state.instance_id, user_id_hash: "otherlvlhash"})
@@ -668,7 +668,7 @@ defmodule DungeonCrawl.LevelChannelTest do
          player_location: player_location,
          basic_tiles: basic_tiles,
          instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = _player_location_north(player_location)
 
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
@@ -698,7 +698,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     north_tile = _player_location_north(player_location)
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
 
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
 
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
@@ -724,7 +724,7 @@ defmodule DungeonCrawl.LevelChannelTest do
          level_instance: level_instance,
          player_location: player_location,
          instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
 
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
@@ -744,7 +744,7 @@ defmodule DungeonCrawl.LevelChannelTest do
          level_instance: level_instance,
          player_location: player_location,
          instance_registry: instance_registry} do
-    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number)
+    {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
     north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
 
     push socket, "use_door", %{"direction" => "up", "action" => "OPEN"}
