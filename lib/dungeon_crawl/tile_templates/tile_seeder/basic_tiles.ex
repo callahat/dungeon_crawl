@@ -26,7 +26,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
   end
 
   @doc """
-  Seeds the DB with the basic player character tile, returning that record.
+  Seeds the DB with the rock tile, returning that record.
   """
   def rock_tile() do
     create_with_defaults!("rock", %{character: " ", name: "Rock",  description: "Impassible stone", state: "blocking: true", group_name: "terrain"})

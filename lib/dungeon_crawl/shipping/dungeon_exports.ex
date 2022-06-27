@@ -36,6 +36,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> sto_starting_item_slugs(dungeon)
     |> extract_level_and_tile_data(dungeon.levels)
     |> check_tile_templates_for_stoable_slugs()
+    |> add_temp_ids_for_assets()
     |> repoint_ttids_and_slugs(:tiles)
     |> repoint_ttids_and_slugs(:items)
     |> repoint_ttids_and_slugs(:tile_templates)
@@ -107,7 +108,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       export
     else
       tt = TileTemplates.copy_fields(tile_template)
-           |> Map.put(:temp_tt_id, "tmp_tt_id_#{map_size(export.tile_templates)}")
+           |> Map.put(:id, tile_template.id)
+           |> Map.put(:previous_version_id, tile_template.previous_version_id)
 
       %{ export | tile_templates: Map.put(export.tile_templates, tile_template.id, tt)}
     end
@@ -134,8 +136,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       export
     else
       item = Equipment.get_item!(slug)
-             |> Equipment.copy_fields()
-             |> Map.put(:temp_item_id, "tmp_item_id_#{map_size(export.items)}")
+      item = Equipment.copy_fields(item)
+             |> Map.put(:id, item.id)
 
       export = check_for_tile_template_slugs(export, item)
                |> check_for_script_items(item)
@@ -150,8 +152,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       export
     else
       sound = Sound.get_effect_by_slug!(slug)
-              |> Sound.copy_fields()
-              |> Map.put(:temp_sound_id, "tmp_sound_id_#{map_size(export.sounds)}")
+      sound = Sound.copy_fields(sound)
+              |> Map.put(:id, sound.id)
 
       %{ export | sounds: Map.put(export.sounds, slug, sound)}
     end
@@ -182,6 +184,45 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       [_, slug] = String.split(slug_kwarg)
       sto_sound_slug(export, slug)
     end)
+  end
+
+  defp add_temp_ids_for_assets(export) do
+    %{sounds: sounds, items: items, tile_templates: tile_templates} = export
+
+    sounds = sounds
+             |> Enum.sort(fn({_slug_a, assert_a}, {_slug_b, asset_b}) -> assert_a.id < asset_b.id end)
+             |> Enum.reduce(%{}, fn {slug, sound}, sounds ->
+                  sound = Map.delete(sound, :id)
+                          |> Map.put(:temp_sound_id, "tmp_sound_id_#{map_size(sounds)}")
+                  Map.put(sounds, slug, sound)
+                end)
+
+    items = items
+             |> Enum.sort(fn({_slug_a, assert_a}, {_slug_b, asset_b}) -> assert_a.id < asset_b.id end)
+             |> Enum.reduce(%{}, fn {slug, item}, items ->
+                  item = Map.delete(item, :id)
+                         |> Map.put(:temp_item_id, "tmp_item_id_#{map_size(items)}")
+                  Map.put(items, slug, item)
+                end)
+
+    tile_templates = tile_templates
+            |> Enum.sort(fn({_slug_a, asset_a}, {_slug_b, asset_b}) ->
+                 tile_template_oldest_id(asset_a) < tile_template_oldest_id(asset_b)
+               end)
+            |> Enum.reduce(%{}, fn {slug, tile_template}, tile_templates ->
+                 tile_template = Map.delete(tile_template, :id)
+                                 |> Map.delete(:previous_version_id)
+                                 |> Map.put(:temp_tt_id, "tmp_tt_id_#{map_size(tile_templates)}")
+                 Map.put(tile_templates, slug, tile_template)
+               end)
+
+    %{ export | sounds: sounds, items: items, tile_templates: tile_templates}
+  end
+
+  defp tile_template_oldest_id(%{previous_version_id: nil} = tile_template), do: tile_template.id
+  defp tile_template_oldest_id(%{previous_version_id: tile_template_id} = _tile_template) do
+    TileTemplates.get_tile_template!(tile_template_id)
+    |> tile_template_oldest_id()
   end
 
   defp repoint_ttids_and_slugs(export, asset_key) do
