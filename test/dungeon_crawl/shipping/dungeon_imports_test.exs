@@ -87,24 +87,24 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert explosion = TileTemplates.find_tile_template(%{name: "Explosion", user_id: user_id, public: false})
 
     assert comp_tt_fields(floor)
-           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_2"])
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_0"])
     assert comp_tt_fields(closed_door)
            == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_4"])
     assert comp_tt_fields(open_door)
-           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_5"])
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_3"])
     assert comp_tt_fields(wall)
-           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_6"])
-    assert comp_tt_fields(fireball)
-           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_0"])
-    assert comp_tt_fields(explosion)
            == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_1"])
+    assert comp_tt_fields(fireball)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_5"])
+    assert comp_tt_fields(explosion)
+           == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_6"])
 
-    assert floor.id == tile_templates["tmp_tt_id_2"].id
+    assert floor.id == tile_templates["tmp_tt_id_0"].id
     assert closed_door.id == tile_templates["tmp_tt_id_4"].id
-    assert open_door.id == tile_templates["tmp_tt_id_5"].id
-    assert wall.id == tile_templates["tmp_tt_id_6"].id
-    assert fireball.id == tile_templates["tmp_tt_id_0"].id
-    assert explosion.id == tile_templates["tmp_tt_id_1"].id
+    assert open_door.id == tile_templates["tmp_tt_id_3"].id
+    assert wall.id == tile_templates["tmp_tt_id_1"].id
+    assert fireball.id == tile_templates["tmp_tt_id_5"].id
+    assert explosion.id == tile_templates["tmp_tt_id_6"].id
 
     assert floor.active
     assert closed_door.active
@@ -135,9 +135,9 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert door = Sound.find_effect(%{name: "Door", user_id: user_id, public: false})
 
     assert comp_sound_fields(click)
-           == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_1"])
-    assert comp_sound_fields(bomb)
            == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_2"])
+    assert comp_sound_fields(bomb)
+           == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_1"])
     assert comp_sound_fields(door)
            == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_3"])
 
@@ -159,7 +159,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     assert comp_item_fields(gun)
            == comp_item_fields(config.export_hash.items["tmp_item_id_0"])
     assert comp_item_fields(wand)
-           == comp_item_fields(config.export_hash.items["tmp_item_id_1"])
+           == comp_item_fields(config.export_hash.items["tmp_item_id_2"])
 
     assert Map.take(gun, [:user_id, :slug, :public])
            == %{user_id: user_id, slug: "gun_#{ gun.id }", public: false}
