@@ -60,3 +60,12 @@ LevelEditor.init(document.getElementById("level_editor"), StateVariableSubform)
 CharacterPicker.init(document.getElementById("show_character_picker"))
 CodemirrorWrapper.init(document.getElementById("tile_template_script"), document.getElementById("script-tab"))
 TileAnimation.init()
+
+// jQuery hack to get the fixed width characters that are more fixed width to play nicely
+const widestChar = Math.max(
+  ...$(".level_preview table tbody tr td").map(function(index, tag){
+    return tag.getBoundingClientRect().width
+  }).toArray()
+)
+console.log("says its this one:", widestChar)
+document.styleSheets[0].addRule(".level_preview table tbody tr td", `width: ${ widestChar }px;`)
