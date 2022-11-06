@@ -7,7 +7,7 @@ defmodule DungeonCrawlWeb.LevelController do
   alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth, DrunkardsWalk}
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
@@ -18,10 +18,11 @@ defmodule DungeonCrawlWeb.LevelController do
   plug :set_sidebar_col when action in [:edit, :update]
 
   @level_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
+  @selectable_generators ["Rooms", "Labrynth", "Drunkards Walk", "Empty Map"]
 
   def new(conn, _params) do
     changeset = Dungeons.change_level(%Level{}, %{height: conn.assigns.dungeon.default_map_height, width: conn.assigns.dungeon.default_map_width})
-    generators = ["Rooms", "Labrynth", "Empty Map"]
+    generators = @selectable_generators
     render(conn, "new.html", dungeon: conn.assigns.dungeon, level: nil, changeset: changeset, generators: generators, max_dimensions: _max_dimensions())
   end
 
@@ -29,6 +30,7 @@ defmodule DungeonCrawlWeb.LevelController do
     generator = case level_params["generator"] do
                   "Rooms"    -> @level_generator
                   "Labrynth" -> Labrynth
+                  "Drunkards Walk" -> DrunkardsWalk
                   _          -> Empty
                 end
     dungeon = conn.assigns.dungeon
@@ -43,7 +45,7 @@ defmodule DungeonCrawlWeb.LevelController do
         |> put_flash(:info, "Level created successfully.")
         |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
       {:error, :level, changeset, _others} ->
-        generators = ["Rooms", "Labrynth", "Empty Map"]
+        generators = @selectable_generators
         render(conn, "new.html", changeset: changeset, generators: generators, dungeon: conn.assigns.dungeon, max_dimensions: _max_dimensions())
     end
   end
