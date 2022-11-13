@@ -13,7 +13,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
             facing: {0, 0},
             sober: false,
             room_coords: [],
-            iterations: nil
+            iterations: nil,
+            debug: false
 
   alias DungeonCrawl.DungeonGeneration.Entities
   alias DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk
@@ -28,7 +29,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
   ?.  - Floor
   ?#  - Wall
   """
-  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, solo_level \\ nil) do
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, solo_level \\ nil, debug \\ false) do
     map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
             Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
               Map.put map, {row, col}, ?\s
@@ -39,6 +40,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
     floor_factor = _rand_range(30, 45) / 100.0
     floor_needed = round(cave_height * cave_width * floor_factor)
 
+    map =
     %DrunkardsWalk{
       map: map,
       current_coords: starting_coords,
@@ -46,7 +48,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
       cave_width: cave_width,
       solo_level: solo_level,
       floor_needed: floor_needed,
-      iterations: floor_needed * 5
+      iterations: floor_needed * 5,
+      debug: debug
     }
     |> _try_placing_floor()
     |> _generate_drunk()
@@ -56,7 +59,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
     |> Map.fetch!(:map)
 
     # for console debugging purposes only
-#    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify(map, cave_width)
+    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify(map, cave_width)
+    map
   end
 
   defp _centerish_coord(ch, cw, within) do
@@ -97,7 +101,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
   defp _walk(%DrunkardsWalk{} = drunkards_walk, 0), do: drunkards_walk
   defp _walk(%DrunkardsWalk{current_coords: {cr, cc}} = drunkards_walk, steps) do
     # puts debugging when running in iex
-#    _puts_map_debugging(drunkards_walk)
+    _puts_map_debugging(drunkards_walk)
 
     {fr, fc} = _maybe_adjust_facing(drunkards_walk)
 
@@ -178,7 +182,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
 
   defp _drunk_stairs_up(drunkards_walk, 0), do: _stairs_up(drunkards_walk)
   defp _drunk_stairs_up(%DrunkardsWalk{current_coords: {row, col}, map: map} = drunkards_walk, count) do
-#    _puts_map_debugging(drunkards_walk)
+    _puts_map_debugging(drunkards_walk)
 
     if _valid_stair_placement(map, row, col) do
       _replace_tile_at(drunkards_walk, col, row, ?▟)
@@ -274,24 +278,27 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.DrunkardsWalk do
 
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
 
-#  defp _puts_map_debugging(%{facing: facing, current_coords: current_coords, map: map} = drunkards_walk) do
-#    char = case facing do
-#      {1,0} -> ?6
-#      {0, 1} -> ?2
-#      {-1, 0} -> ?4
-#      {0, -1} -> ?8
-#      {1, 1} -> ?3
-#      {1, -1} -> ?3
-#      {-1, 1} -> ?1
-#      {-1, -1} -> ?7
-#      _ -> ?x
-#    end
-#
-#    spaces = drunkards_walk.cave_height * drunkards_walk.cave_width
-#
-#    map_with_pointer = Map.put(map, current_coords, char)
-#    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_pointer, drunkards_walk.cave_width)
-#    IO.puts "spaces: #{spaces}, floors needed: #{drunkards_walk.floor_needed}"
-#    :timer.sleep 10
-#  end
+  # coveralls-ignore-start
+  defp _puts_map_debugging(%{debug: false}), do: nil # nothing to do here
+  defp _puts_map_debugging(%{facing: facing, current_coords: current_coords, map: map} = drunkards_walk) do
+    char = case facing do
+      {1,0} -> ?6
+      {0, 1} -> ?2
+      {-1, 0} -> ?4
+      {0, -1} -> ?8
+      {1, 1} -> ?3
+      {1, -1} -> ?3
+      {-1, 1} -> ?1
+      {-1, -1} -> ?7
+      _ -> ?x
+    end
+
+    spaces = drunkards_walk.cave_height * drunkards_walk.cave_width
+
+    map_with_pointer = Map.put(map, current_coords, char)
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_pointer, drunkards_walk.cave_width)
+    IO.puts "spaces: #{spaces}, floors needed: #{drunkards_walk.floor_needed}"
+    :timer.sleep 10
+  end
+  # coveralls-ignore-stop
 end
