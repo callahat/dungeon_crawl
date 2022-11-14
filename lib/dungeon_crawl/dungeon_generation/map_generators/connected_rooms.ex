@@ -68,7 +68,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
     |> Map.fetch!(:map)
 
     # for console debugging purposes only
-    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify(map, cave_width)
+    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map, cave_width)
     map
   end
 
