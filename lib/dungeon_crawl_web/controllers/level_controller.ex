@@ -7,7 +7,7 @@ defmodule DungeonCrawlWeb.LevelController do
   alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth, DrunkardsWalk}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp}
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
@@ -18,7 +18,7 @@ defmodule DungeonCrawlWeb.LevelController do
   plug :set_sidebar_col when action in [:edit, :update]
 
   @level_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
-  @selectable_generators ["Rooms", "Labrynth", "Drunkards Walk", "Empty Map"]
+  @selectable_generators ["Rooms", "Rooms and Tunnels", "Labrynth", "Drunkards Walk", "Empty Map"]
 
   def new(conn, _params) do
     changeset = Dungeons.change_level(%Level{}, %{height: conn.assigns.dungeon.default_map_height, width: conn.assigns.dungeon.default_map_width})
@@ -28,10 +28,11 @@ defmodule DungeonCrawlWeb.LevelController do
 
   def create(conn, %{"level" => level_params}) do
     generator = case level_params["generator"] do
-                  "Rooms"    -> @level_generator
-                  "Labrynth" -> Labrynth
-                  "Drunkards Walk" -> DrunkardsWalk
-                  _          -> Empty
+                  "Rooms"             -> @level_generator
+                  "Rooms and Tunnels" -> RoomsAndTunnelsBsp
+                  "Labrynth"          -> Labrynth
+                  "Drunkards Walk"    -> DrunkardsWalk
+                  _                   -> Empty
                 end
     dungeon = conn.assigns.dungeon
 

@@ -2,10 +2,11 @@ defmodule DungeonCrawl.DungeonGeneration.InfiniteDungeon do
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Labrynth, DrunkardsWalk}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp}
   alias DungeonCrawl.Repo
 
-  @level_generators Application.get_env(:dungeon_crawl, :generators) || [ConnectedRooms, Labrynth, DrunkardsWalk]
+  @level_generators Application.get_env(:dungeon_crawl, :generators) ||
+                      [ConnectedRooms, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp]
 
   @doc """
   Generates the first two levels of a dungeon. This is meant for "autogenerate and go solo"

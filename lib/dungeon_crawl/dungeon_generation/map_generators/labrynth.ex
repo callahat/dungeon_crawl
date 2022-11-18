@@ -2,13 +2,21 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
   @cave_height     39
   @cave_width      79
 
+  @wall            ?#
+  @floor           ?.
+  @rock            ?\s
+  @stairs_up       ?▟
+
+  @debug_frontier  ??
+
   defstruct map: %{},
             cave_height: nil,
             cave_width: nil,
             solo_level: nil,
             seed_queue: [],
             active_seed: nil,
-            dead_ends: []
+            dead_ends: [],
+            debug: false
 
   alias DungeonCrawl.DungeonGeneration.Entities
   alias DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth
@@ -22,15 +30,15 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
   ?.  - Floor
   ?#  - Wall
   """
-  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, solo_level \\ nil) do
+  def generate(cave_height \\ @cave_height, cave_width \\ @cave_width, solo_level \\ nil, debug \\ false) do
     even_height = rem(cave_height, 2) == 0
     even_width = rem(cave_width, 2) == 0
     map = Enum.to_list(0..cave_height-1) |> Enum.reduce(%{}, fn(row, map) ->
             Enum.to_list(0..cave_width-1) |> Enum.reduce(map, fn(col, map) ->
               if((even_height && row == cave_height-1) || (even_width && col == cave_width-1)) do
-                Map.put map, {row, col}, ?\s
+                Map.put map, {row, col}, @rock
               else
-                Map.put map, {row, col}, ?#
+                Map.put map, {row, col}, @wall
               end
             end)
           end)
@@ -38,23 +46,28 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
     initial_seed = _random_coords(cave_height, cave_width)
     seed_queue = _add_to_seed_queue([], initial_seed)
 
-    labrynth = %Labrynth{map: Map.put(map, initial_seed, ?.),
+    labrynth = %Labrynth{map: Map.put(map, initial_seed, @floor),
                          cave_height: cave_height,
                          cave_width: cave_width,
                          solo_level: solo_level,
                          seed_queue: seed_queue,
-                         active_seed: initial_seed}
+                         active_seed: initial_seed,
+                         debug: debug}
 
-# DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth.generate(5,5) |> DungeonCrawl.DungeonGeneration.Utils.stringify(5) |> IO.puts
+    map =
     _dig_tunnels(labrynth)
     |> _stairs_up()
     |> _add_entities()
     |> Map.fetch!(:map)
+
+    # for console debugging purposes only
+    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map, cave_width)
+    map
   end
 
   defp _stairs_up(%Labrynth{solo_level: nil} = labrynth), do: labrynth
   defp _stairs_up(%Labrynth{map: map, dead_ends: [stair_coords | dead_ends]} = labrynth) do
-    %{ labrynth | map: Map.put(map, stair_coords, ?▟), dead_ends: dead_ends }
+    %{ labrynth | map: Map.put(map, stair_coords, @stairs_up), dead_ends: dead_ends }
   end
 
   defp _add_entities(%Labrynth{solo_level: nil} = labrynth), do: labrynth
@@ -83,10 +96,10 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
 
   # if two  steps in each direction is either not wall or outside coordinate range
   defp _seed_surrounded(map, {row, col}) do
-    map[{row-2, col}] != ?# &&
-    map[{row+2, col}] != ?# &&
-    map[{row, col-2}] != ?# &&
-    map[{row, col+2}] != ?#
+    map[{row-2, col}] != @wall &&
+    map[{row+2, col}] != @wall &&
+    map[{row, col-2}] != @wall &&
+    map[{row, col+2}] != @wall
   end
 
   defp _dig_tunnels(%Labrynth{seed_queue: [], active_seed: nil, dead_ends: dead_ends} = labrynth) do
@@ -96,6 +109,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
 
   # For each direction 75% chance to dig a tunnel two squares, each end becomes a new seed
   defp _dig_tunnels(%Labrynth{} = labrynth) do
+    _puts_map_debugging(labrynth)
+
     labrynth
     |> _maybe_dig({-2, 0})
     |> _maybe_dig({ 2, 0})
@@ -108,9 +123,9 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
   end
 
   defp _maybe_dig(%Labrynth{map: map, seed_queue: seed_queue, active_seed: {row, col}} = labrynth, {d_row, d_col}) do
-    if map[{row + d_row, col + d_col}] == ?# && :rand.uniform(4) == 1 do
-      %{ labrynth | map: Map.merge(map, %{ {row + round(d_row/2), col + round(d_col/2)} => ?.,
-                                           {row + d_row, col + d_col} => ?. }),
+    if map[{row + d_row, col + d_col}] == @wall && :rand.uniform(4) == 1 do
+      %{ labrynth | map: Map.merge(map, %{ {row + round(d_row/2), col + round(d_col/2)} => @floor,
+                                           {row + d_row, col + d_col} => @floor }),
                     seed_queue: _add_to_seed_queue(seed_queue, {row + d_row, col + d_col}) }
     else
       labrynth
@@ -151,9 +166,22 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.Labrynth do
       map[{row-1, col}],
       map[{row, col+1}],
       map[{row, col-1}] ]
-    |> Enum.filter(fn char -> char == ?# end)
+    |> Enum.filter(fn char -> char == @wall end)
     |> length
   end
 
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
+
+  # coveralls-ignore-start
+  defp _puts_map_debugging(%{debug: false}), do: nil # nothing to do here
+  defp _puts_map_debugging(%{seed_queue: seed_queue, map: map} = labrynth) do
+    map_with_seeds = Enum.reduce(seed_queue, map, fn({row, col}, map) ->
+                       Map.put map, {row, col}, @debug_frontier
+                     end)
+
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_seeds, labrynth.cave_width)
+    IO.puts "seed queue: #{length(seed_queue)}"
+    :timer.sleep 10
+  end
+  # coveralls-ignore-stop
 end
