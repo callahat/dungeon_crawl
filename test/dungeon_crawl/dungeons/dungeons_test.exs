@@ -2,7 +2,7 @@ defmodule DungeonCrawl.DungeonsTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty, DrunkardsWalk}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty, DrunkardsWalk, RoomsAndTunnelsBsp}
 
   describe "dungeons" do
     alias DungeonCrawl.Dungeons.Level
@@ -444,6 +444,8 @@ defmodule DungeonCrawl.DungeonsTest do
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(Empty, attrs.(), 1)
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(DrunkardsWalk, attrs.())
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(DrunkardsWalk, attrs.(), 1)
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(RoomsAndTunnelsBsp, attrs.())
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(RoomsAndTunnelsBsp, attrs.(), 1)
     end
 
     test "update_level/2 with valid data updates the level" do
