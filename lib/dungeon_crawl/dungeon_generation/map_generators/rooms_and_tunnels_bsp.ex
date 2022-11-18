@@ -12,10 +12,9 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
   @rock            ?\s
   @stairs_up       ?▟
 
-  @rock_or_wall    '# '
+  @rock_or_wall      '# '
+  @floor_or_corridor '.,'
 
-  @debug_ok        ??
-  @debug_bad       ?x
   @debug_horiz     ?-
   @debug_vert      ?|
 
@@ -98,8 +97,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
 
     child_containers =
     cond do
-#         _rand_range(0,10) == 0 && depth > 0 -> # stop splitting regardless
-      _rand_range(0,1) == 0 && depth > 0 -> # stop splitting regardless
+      _rand_range(1,5) < depth && depth > 0 -> # stop splitting regardless
         {nil, nil}
       mid_row && (mid_col == nil || _rand_range(0,1) == 1) -> # split along the horizontal
         {
@@ -194,11 +192,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
     end
   end
   defp _place_rooms(rooms_and_tunnels,
-                    %Container{top_left_col: tlc,
-                               top_left_row: tlr,
-                               bottom_right_col: brc,
-                               bottom_right_row: brr,
-                               children: {child_1, child_2}}) do
+                    %Container{children: {child_1, child_2}}) do
     _place_rooms(rooms_and_tunnels, child_1)
     |> _place_rooms(child_2)
   end
@@ -274,13 +268,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
       _any_neighbor(map, row, col, @floor)
   end
 
-  defp _lonely_floor(map, row, col) do
-    not(map[{row+1, col}] == @floor && map[{row, col+1}] == @floor ||
-          map[{row+1, col}] == @floor && map[{row, col-1}] == @floor ||
-          map[{row-1, col}] == @floor && map[{row, col+1}] == @floor ||
-          map[{row-1, col}] == @floor && map[{row, col-1}] == @floor)
-  end
-
   defp _any_neighbor(map, row, col, char) do
     map[{row+1, col}] == char ||
       map[{row-1, col}] == char ||
@@ -324,38 +311,43 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
   end
 
   defp _maybe_connect_to_adjacent_room(edge_tiles, map) do
-    with true <- Enum.all?(edge_tiles, fn {_, tile} -> tile == @wall end),
-         door_eligible when door_eligible != [] <-
-           Enum.filter(edge_tiles, fn {{row, col}, _} -> _floor_on_both_sides(map, row, col) end),
-         1 <- _rand_range(1, 1) do
-
-      {coords, _} = Enum.random(door_eligible)
-      Map.put(edge_tiles, coords, Enum.random(@doors))
-    else
-      _ -> edge_tiles
-    end
+    _extra_door_eligible_segments(edge_tiles, map)
+    |> Enum.reduce(edge_tiles, fn segment, door_coords ->
+         if _rand_range(1, 1) == 1 do
+           {coords, _} = Enum.random(segment)
+           Map.put(door_coords, coords, Enum.random(@doors))
+         else
+           door_coords
+         end
+       end)
   end
 
-  # WIP diffent door placement based on wall segments; a wall could have a corridor, then nothing
-  # THEN another room with no other direct door which would be ok for placement, even though
-  # the room edge would already have a  door via the corridor, edge_tiles must be sorted for the
-  # reduce to work
-#  defp _extra_door_eligible_segments(edge_tiles, map) do
-#    Enum.reduce(edge_tiles, %{0 => [], k: 0}, fn({{row, col}, tile}, acc) ->
-#      if(rem(i,10)==1, do: Map.put(Map.put(acc, :k, acc.k+1), acc.k+1, [i]), else: Map.put(acc, acc.k, [i | Map.fetch!(acc, acc.k)]))
-#    end)
-#  end
-# example with a more complicated partition
-#  Enum.reduce( [1000,2000,3001,4001,5000,6000,7001,8000,9000], %{0 => [], k: 0}, fn(i, acc) -> if(rem(i,10)==1, do: Map.put(Map.put(acc, :k, acc.k+1), acc.k+1, [i]), else: Map.put(acc, acc.k, [i | Map.fetch!(acc, acc.k)])) end)
-#  %{
-#    0 => [2000, 1000],
-#    1 => [3001],
-#    2 => [6000, 5000, 4001],
-#    3 => [9000, 8000, 7001],
-#    :k => 3
-#  }
-
-
+  # This function detects which wall tiles are adjacent, and should be considered
+  # separate segments. The goal is to limit one door per corridor and adjoining room.
+  # The current room could have a corridor attached, as well as be adjacent to one or
+  # more rooms along that wall, the corridor will turn into a door, and there is a chance
+  # each attached room may have one but no more than one door connecting directly
+  # to this room.
+  defp _extra_door_eligible_segments(edge_tiles, map) do
+    Enum.reduce(edge_tiles, %{0 => [], chain: 0}, fn({{row, col}, tile}, %{chain: chain} = acc) ->
+      cond do
+        _floor_or_corridor_on_both_sides(map, row, col) ->
+          Map.put(acc, chain, [ {{row, col}, tile} | acc[chain] ])
+        acc[chain] == [] ->
+          acc
+        true ->
+          Map.put(acc, :chain, chain+1)
+          |> Map.put(chain+1, [])
+      end
+    end)
+    |> Map.delete(:chain)
+    # wall segments have been computed, discard any chains that are not all stone or wall
+    |> Enum.map(fn {_, chained_edge_tiles} -> chained_edge_tiles end)
+    |> Enum.filter(fn chained_edge_tiles ->
+         chained_edge_tiles != [] &&
+           Enum.all?(chained_edge_tiles, fn {_, tile} -> Enum.member?(@rock_or_wall, tile) end)
+       end)
+  end
 
   defp _should_be_a_wall(map, row, col) do
     neighbors =
@@ -372,9 +364,11 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
     neighbors != []
   end
 
-  defp _floor_on_both_sides(map, row, col) do
-    map[{row+1, col}] == @floor && map[{row-1, col}] == @floor ||
-      map[{row, col+1}] == @floor && map[{row, col-1}] == @floor
+  defp _floor_or_corridor_on_both_sides(map, row, col) do
+    Enum.member?(@floor_or_corridor, map[{row+1, col}]) &&
+      Enum.member?(@floor_or_corridor, map[{row-1, col}]) ||
+    Enum.member?(@floor_or_corridor, map[{row, col+1}]) &&
+      Enum.member?(@floor_or_corridor, map[{row, col-1}])
   end
 
   defp _place_doors(%RoomsAndTunnelsBsp{map: map} = rooms_and_tunnels) do
@@ -454,8 +448,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
   end
   defp _add_entities(%RoomsAndTunnelsBsp{solo_level: solo_level} = rooms_and_tunnels,
                       %{top_left_row: tlr, top_left_col: tlc, bottom_right_row: brr, bottom_right_col: brc} = coords) do
-
-    chance =
     case :rand.uniform(100) do
       x when x > 99 -> # 1% chance this is a treasure room
         _treasure_room(rooms_and_tunnels, coords)
@@ -528,7 +520,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
     :timer.sleep 200
     r_t
   end
-  defp _puts_map_debugging(%{map: map, cave_width: cave_width} = rooms_and_tunnels,
+  defp _puts_map_debugging(%{map: map, cave_width: cave_width},
                            %Container{} = container) do
     map_with_partitions = _markup_container_boundaries(map, container)
 
