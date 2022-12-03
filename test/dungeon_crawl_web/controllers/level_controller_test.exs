@@ -108,7 +108,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     test "lists all dungeons", %{conn: conn, level: level} do
       Admin.update_setting(%{non_admin_dungeons_enabled: false})
       conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, level)
-      assert redirected_to(conn) == crawler_path(conn, :show)
+      assert redirected_to(conn) == crawler_path(conn, :index)
     end
   end
 

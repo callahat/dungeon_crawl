@@ -219,7 +219,7 @@ defmodule DungeonCrawlWeb.LevelController do
     else
       conn
       |> put_flash(:error, "Edit dungeons is disabled")
-      |> redirect(to: Routes.crawler_path(conn, :show))
+      |> redirect(to: Routes.crawler_path(conn, :index))
       |> halt()
     end
   end

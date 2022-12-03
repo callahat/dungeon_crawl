@@ -1,0 +1,86 @@
+<div class="d-flex flex-column listing-full-height">
+  <div class="d-flex flex-row">
+    Not currently in any dungeon.
+  </div>
+<%= if DungeonCrawl.Admin.get_setting.autogen_solo_enabled do %>
+  <div class="d-flex flex-row">
+<%= link "Generate and go solo", to: Routes.crawler_path(@conn, :create), method: :create, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+  </div>
+<% end %>
+
+
+  <div class="d-flex flex-row">
+    Or join:
+  </div>
+  <div class="d-flex flex-row flex-grow-1 tile_pallette_group table-responsive">
+    <table class="table table-striped-double table-sm">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Name</th>
+          <th>Levels</th>
+          <th></th>
+          <th>Instances/Players</th>
+        </tr>
+      </thead>
+
+      <tbody>
+  <%= for dungeon <- @dungeons do %>
+        <tr>
+          <td>
+            <a class="collapsed" aria-controls="#collapse<%= dungeon.id %>" aria-expanded="false" data-target="#collapse<%= dungeon.id %>" data-toggle="collapse" href="#"><svg class="rotate-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
+              <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+            </svg></a>
+          </td>
+          <td><%= dungeon.name %></td>
+          <td><%= dungeon.levels |> Enum.count %></td>
+          <td><%= link "Scores", to: Routes.score_path(@conn, :index, %{dungeon_id: dungeon.id}) %></td>
+          <td>
+            <table class="table table-sm">
+            <%= for di <- Enum.reject(dungeon.dungeon_instances, fn(di) -> di.is_private end) do %>
+              <tr>
+                <td><%= di.locations |> Enum.count %></td>
+                <td>
+                  <span class="pull-right">
+                    <%= link "Join", to: Routes.crawler_path(@conn, :avatar, dungeon_instance_id: di.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+              <tr>
+                <td colspan=100%>
+                  <span class="pull-right">
+                    <%= if can_start_new_instance(dungeon.id) do %>
+                      Join New Instance:
+                      <%= link "Private", to: Routes.crawler_path(@conn, :avatar, dungeon_id: dungeon.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-warning btn-sm" %>
+
+                      <%= link "Public", to: Routes.crawler_path(@conn, :avatar, dungeon_id: dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+                    <% end %>
+                  </span>
+                </td>
+              <tr>
+            </table>
+          </td>
+
+        </tr>
+        <tr>
+          <td class="flat" colspan="100%">
+            <div id="collapse<%= dungeon.id %>" class="collapse">
+              <div class="row">
+              <div class="col-6">
+                <div class="mx-2"><p><%= dungeon.description %></p></div>
+              </div>
+              <div class="col-6">
+                <div class="title-map">
+                <%= render(SharedView, "dungeon.html", level: Repo.preload(Dungeons.get_title_level(dungeon), :tiles)) %>
+                </div>
+              </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+  <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

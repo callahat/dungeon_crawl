@@ -19,7 +19,7 @@
       </button>
       <div class="navbar-collapse collapse" id="navbarCollapse" style="">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item"><%= link "Dungeon Crawl", to: Routes.crawler_path(@conn, :show), class: "nav-link" %></li>
+          <li class="nav-item"><%= link "Dungeon Crawl", to: Routes.crawler_path(@conn, :index), class: "nav-link" %></li>
         </ul>
         <ul class="navbar-nav mr-0">
           <%= if @current_user do %>
