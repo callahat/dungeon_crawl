@@ -32,29 +32,35 @@ defmodule DungeonCrawlWeb.Router do
 
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
-    get "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
-    get "/dungeons/export/:id", DungeonController, :download_dungeon_export, as: :dungeon_export
-    get "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
-    resources "/dungeons", DungeonController do
-        resources "/levels", LevelController, only: [:new, :create, :edit, :update, :delete], as: "level"
-          post    "/levels/:id/validate_tile", LevelController, :validate_tile, as: "level"
-          get     "/level_edge", LevelController, :level_edge, as: "level"
+
+    scope "/editor", Editor do
+      get "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
+      get "/dungeons/export/:id", DungeonController, :download_dungeon_export, as: :dungeon_export
+      get "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
+
+      scope "/dungeons" do
+        resources "/", DungeonController do
+            resources "/levels", LevelController, only: [:new, :create, :edit, :update, :delete], as: "level"
+              post    "/levels/:id/validate_tile", LevelController, :validate_tile, as: "level"
+              get     "/level_edge", LevelController, :level_edge, as: "level"
+          end
+          post    "/:id/export", DungeonController, :dungeon_export, as: :dungeon_export
+          post    "/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
+          put     "/:id/activate", DungeonController, :activate, as: :dungeon_activate
+          post    "/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl
       end
-      post    "/dungeons/:id/export", DungeonController, :dungeon_export, as: :dungeon_export
-      post    "/dungeons/:id/new_version", DungeonController, :new_version, as: :dungeon_new_version
-      put     "/dungeons/:id/activate", DungeonController, :activate, as: :dungeon_activate
-      post    "/dungeons/:id/test_crawl", DungeonController, :test_crawl, as: :dungeon_test_crawl
 
-    resources "/equipment", EquipmentController
+      resources "/equipment", EquipmentController
 
-    resources "/sound/effects", EffectController
+      resources "/sound/effects", EffectController
 
-    post "/tile_shortlists", TileShortlistController, :create
-    delete "/tile_shortlists", TileShortlistController, :delete
+      post "/tile_shortlists", TileShortlistController, :create
+      delete "/tile_shortlists", TileShortlistController, :delete
 
-    resources "/tile_templates", ManageTileTemplateController
-      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
-      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
+      resources "/tile_templates", TileTemplateController
+        post    "/tile_templates/:id/new_version", TileTemplateController, :new_version, as: :tile_template_new_version
+        put     "/tile_templates/:id/activate", TileTemplateController, :activate, as: :tile_template_activate
+    end
 
     get "/scores", ScoreController, :index
   end
@@ -70,10 +76,6 @@ defmodule DungeonCrawlWeb.Router do
        delete "/dungeon_processes/:di_id/level_processes/:num/:plid", ManageLevelProcessController, :delete
 
     live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
-
-#    resources "/tile_templates", ManageTileTemplateController
-#      post    "/tile_templates/:id/new_version", ManageTileTemplateController, :new_version, as: :manage_tile_template_new_version
-#      put     "/tile_templates/:id/activate", ManageTileTemplateController, :activate, as: :manage_tile_template_activate
   end
 
   # Other scopes may use custom stacks.

@@ -1,8 +1,8 @@
-defmodule DungeonCrawlWeb.TileShortlistViewTest do
+defmodule DungeonCrawlWeb.Editor.TileShortlistViewTest do
   use DungeonCrawlWeb.ConnCase, async: true
 
   alias DungeonCrawl.TileShortlists.TileShortlist
-  alias DungeonCrawlWeb.TileShortlistView
+  alias DungeonCrawlWeb.Editor.TileShortlistView
 
   test "render/2" do
     errors = [

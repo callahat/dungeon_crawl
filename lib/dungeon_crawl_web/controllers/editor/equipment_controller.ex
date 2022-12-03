@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.EquipmentController do
+defmodule DungeonCrawlWeb.Editor.EquipmentController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Equipment

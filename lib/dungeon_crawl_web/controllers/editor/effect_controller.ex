@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.EffectController do
+defmodule DungeonCrawlWeb.Editor.EffectController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Sound

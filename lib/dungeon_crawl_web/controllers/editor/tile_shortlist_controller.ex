@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.TileShortlistController do
+defmodule DungeonCrawlWeb.Editor.TileShortlistController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.TileShortlists

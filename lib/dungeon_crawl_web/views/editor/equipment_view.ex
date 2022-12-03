@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.EquipmentView do
+defmodule DungeonCrawlWeb.Editor.EquipmentView do
   use DungeonCrawl.Web, :view
 
   def error_pre_tag(form, field) do

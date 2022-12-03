@@ -1,7 +1,7 @@
-defmodule DungeonCrawlWeb.LevelViewTest do
+defmodule DungeonCrawlWeb.Editor.LevelViewTest do
   use DungeonCrawlWeb.ConnCase, async: true
 
-  alias DungeonCrawlWeb.LevelView
+  alias DungeonCrawlWeb.Editor.LevelView
 
   test "tile_template_pres/1 returns safely the pre tiles for the given tile templates" do
     tt1 = insert_tile_template(%{character: "1"})

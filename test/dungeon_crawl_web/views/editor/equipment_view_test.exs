@@ -1,7 +1,7 @@
-defmodule DungeonCrawlWeb.EquipmentViewTest do
+defmodule DungeonCrawlWeb.Editor.EquipmentViewTest do
   use DungeonCrawlWeb.ConnCase, async: true
 
-  alias DungeonCrawlWeb.EquipmentView
+  alias DungeonCrawlWeb.Editor.EquipmentView
 
   test "error_pre_tag/2 is like the error_tag, but uses a pre tag instead of default span" do
     {:error, changeset} = DungeonCrawl.Equipment.create_item(%{script: "#IF @bob, NOLABLE"})

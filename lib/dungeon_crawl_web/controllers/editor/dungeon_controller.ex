@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.DungeonController do
+defmodule DungeonCrawlWeb.Editor.DungeonController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Admin

@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.DungeonView do
+defmodule DungeonCrawlWeb.Editor.DungeonView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.Dungeons

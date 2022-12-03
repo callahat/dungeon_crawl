@@ -1,8 +1,8 @@
 <h2>New tile template</h2>
 
 <%= render "form.html", changeset: @changeset, conn: @conn,
-                        action: Routes.manage_tile_template_path(@conn, :create) %>
+                        action: Routes.tile_template_path(@conn, :create) %>
 
-<%= link "Back", to: Routes.manage_tile_template_path(@conn, :index) %>
+<%= link "Back", to: Routes.tile_template_path(@conn, :index) %>
 
 <%= render DungeonCrawlWeb.SharedView, "character_select_modal.html" %>

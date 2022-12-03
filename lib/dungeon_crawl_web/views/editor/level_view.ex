@@ -1,10 +1,10 @@
-defmodule DungeonCrawlWeb.LevelView do
+defmodule DungeonCrawlWeb.Editor.LevelView do
   use DungeonCrawl.Web, :view
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.StateValue.StandardVariables
   alias DungeonCrawl.TileTemplates.TileTemplate
-  alias DungeonCrawlWeb.LevelView
+  alias DungeonCrawlWeb.Editor.LevelView
   alias DungeonCrawlWeb.SharedView
 
   def adjacent_selects(form, dungeons) do
@@ -27,7 +27,7 @@ defmodule DungeonCrawlWeb.LevelView do
   def tile_template_pres(tile_templates, historic \\ false) do
     tile_templates
     |> Enum.map(fn(tt) ->
-         render_to_string(DungeonCrawlWeb.SharedView, "tile_template_pre.html", %{tile_template: tt, historic: historic, shortlist_id: tt.id})
+         render_to_string(SharedView, "tile_template_pre.html", %{tile_template: tt, historic: historic, shortlist_id: tt.id})
        end)
     |> Enum.join("\n")
     |> _make_it_safe()
@@ -61,11 +61,11 @@ defmodule DungeonCrawlWeb.LevelView do
 
   def edge_json(edge, adjacent_tile_edge) when edge in [:north, :south, "north", "south"] do
     (adjacent_tile_edge || [])
-    |> Enum.map(fn tile -> %{"id" => "#{ edge }_#{ tile.col }", "html" => DungeonCrawlWeb.SharedView.tile_and_style(tile)} end)
+    |> Enum.map(fn tile -> %{"id" => "#{ edge }_#{ tile.col }", "html" => SharedView.tile_and_style(tile)} end)
   end
   def edge_json(edge, adjacent_tile_edge) when edge in [:east, :west, "east", "west"] do
     (adjacent_tile_edge || [])
-    |> Enum.map(fn tile -> %{"id" => "#{ edge }_#{ tile.row }", "html" => DungeonCrawlWeb.SharedView.tile_and_style(tile)} end)
+    |> Enum.map(fn tile -> %{"id" => "#{ edge }_#{ tile.row }", "html" => SharedView.tile_and_style(tile)} end)
   end
   def edge_json(_, _), do: []
 

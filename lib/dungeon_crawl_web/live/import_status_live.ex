@@ -11,7 +11,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
   alias DungeonCrawlWeb.Endpoint
 
   def render(assigns) do
-    DungeonCrawlWeb.DungeonView.render("import_live.html", assigns)
+    DungeonCrawlWeb.Editor.DungeonView.render("import_live.html", assigns)
   end
 
   def mount(_params, %{"user_id_hash" => user_id_hash} = _session, socket) do
