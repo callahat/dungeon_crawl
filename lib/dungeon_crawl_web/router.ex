@@ -65,15 +65,15 @@ defmodule DungeonCrawlWeb.Router do
     get "/scores", ScoreController, :index
   end
 
-  scope "/manage", DungeonCrawlWeb do
+  scope "/admin", DungeonCrawlWeb.Admin, as: :admin do
     pipe_through [:browser, :authenticate_user, :verify_user_is_admin]
 
-    resources "/users", ManageUserController
-    resources "/dungeons", ManageDungeonController, except: [:new, :create, :edit, :update]
+    resources "/users", UserController
+    resources "/dungeons", DungeonController, except: [:new, :create, :edit, :update]
     resources "/settings", SettingController, singleton: true, only: [:edit, :update]
-    resources "/dungeon_processes", ManageDungeonProcessController, only: [:index, :show, :delete]
-       get    "/dungeon_processes/:di_id/level_processes/:num/:plid", ManageLevelProcessController, :show
-       delete "/dungeon_processes/:di_id/level_processes/:num/:plid", ManageLevelProcessController, :delete
+    resources "/dungeon_processes", DungeonProcessController, only: [:index, :show, :delete]
+       get    "/dungeon_processes/:di_id/level_processes/:num/:plid", LevelProcessController, :show
+       delete "/dungeon_processes/:di_id/level_processes/:num/:plid", LevelProcessController, :delete
 
     live_dashboard "/dashboard", metrics: DungeonCrawlWeb.Telemetry, ecto_repos: [DungeonCrawl.Repo]
   end
