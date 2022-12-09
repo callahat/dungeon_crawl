@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.LevelControllerTest do
+defmodule DungeonCrawlWeb.Editor.LevelControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.Admin
@@ -34,7 +34,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_dungeon]
 
     test "redirects", %{conn: conn, dungeon: dungeon} do
-      conn = get conn, dungeon_level_path(conn, :new, dungeon.id)
+      conn = get conn, edit_dungeon_level_path(conn, :new, dungeon.id)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -43,7 +43,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_dungeon]
 
     test "redirects", %{conn: conn, dungeon: dungeon} do
-      conn = post conn, dungeon_level_path(conn, :create, dungeon.id), level: @create_attrs
+      conn = post conn, edit_dungeon_level_path(conn, :create, dungeon.id), level: @create_attrs
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -52,7 +52,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_level]
 
     test "redirects", %{conn: conn, level: level} do
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, level)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, level)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -61,7 +61,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_level]
 
     test "redirects", %{conn: conn, level: level} do
-      conn = put conn, dungeon_level_path(conn, :update, level.dungeon_id, level), level: @update_attrs
+      conn = put conn, edit_dungeon_level_path(conn, :update, level.dungeon_id, level), level: @update_attrs
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -70,13 +70,13 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_user, :create_level]
 
     test "returns empty array of errors when its all good", %{conn: conn, level: level} do
-      conn = post conn, dungeon_level_path(conn, :validate_tile, level.dungeon_id, level), tile: @tile_attrs
+      conn = post conn, edit_dungeon_level_path(conn, :validate_tile, level.dungeon_id, level), tile: @tile_attrs
       assert json_response(conn, 200) == %{"errors" => [], "tile" => %{"character" => " ", "col" => 42, "row" => 8, "z_index" => 2}}
     end
 
     test "returns array of validation errors when there are problems", %{conn: conn, level: level} do
       conn = post conn,
-                  dungeon_level_path(conn, :validate_tile, level.dungeon_id, level),
+                  edit_dungeon_level_path(conn, :validate_tile, level.dungeon_id, level),
                   tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp", state_variables: ["foo"], state_values: ["bar"]})
       assert json_response(conn, 200) == %{"errors" => [%{"detail" => "should be at most 1 character(s)", "field" => "character"}],
                                            "tile" => %{"character" => "toobig", "col" => 42, "row" => 8, "state" => "foo: bar", "z_index" => 2}}
@@ -87,7 +87,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_level]
 
     test "redirects", %{conn: conn, level: level} do
-      conn = get conn, dungeon_level_path(conn, :level_edge, level.dungeon_id), edge: "north"
+      conn = get conn, edit_dungeon_level_path(conn, :level_edge, level.dungeon_id), edge: "north"
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -96,7 +96,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_level]
 
     test "redirects", %{conn: conn, level: level} do
-      conn = delete conn, dungeon_level_path(conn, :delete, level.dungeon_id, level)
+      conn = delete conn, edit_dungeon_level_path(conn, :delete, level.dungeon_id, level)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -107,8 +107,8 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
 
     test "lists all dungeons", %{conn: conn, level: level} do
       Admin.update_setting(%{non_admin_dungeons_enabled: false})
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, level)
-      assert redirected_to(conn) == crawler_path(conn, :index)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, level)
+      assert redirected_to(conn) == dungeon_path(conn, :index)
     end
   end
 
@@ -117,7 +117,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
 
     test "lists all levels", %{conn: conn, level: level} do
       Admin.update_setting(%{non_admin_dungeons_enabled: false})
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, level)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, level)
       assert html_response(conn, 200) =~ "Edit level"
     end
   end
@@ -127,7 +127,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_user, :create_dungeon]
 
     test "renders form", %{conn: conn, dungeon: dungeon} do
-      conn = get conn, dungeon_level_path(conn, :new, dungeon.id)
+      conn = get conn, edit_dungeon_level_path(conn, :new, dungeon.id)
       assert html_response(conn, 200) =~ "New level"
     end
   end
@@ -138,11 +138,11 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     test "redirects to show when data is valid", %{conn: conn, dungeon: dungeon} do
       level = insert_autogenerated_level(%{dungeon_id: dungeon.id})
 
-      conn = post conn, dungeon_level_path(conn, :create, dungeon.id), level: @create_attrs
+      conn = post conn, edit_dungeon_level_path(conn, :create, dungeon.id), level: @create_attrs
 
       assert %{id: id} = redirected_params(conn)
       assert "#{dungeon.id}" == id
-      assert redirected_to(conn) == dungeon_path(conn, :show, id)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :show, id)
 
       [^level, new_level] = Repo.preload(dungeon, :levels).levels |> Enum.sort(&(&1.number < &2.number))
       assert new_level.number_north == 1
@@ -150,7 +150,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn, dungeon: dungeon} do
-      conn = post conn, dungeon_level_path(conn, :create, dungeon.id), level: @invalid_attrs
+      conn = post conn, edit_dungeon_level_path(conn, :create, dungeon.id), level: @invalid_attrs
       assert html_response(conn, 200) =~ "New level"
     end
 
@@ -158,7 +158,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
       level = insert_autogenerated_level(%{dungeon_id: dungeon.id})
       attrs = Map.put(@create_attrs, :link_adjacent_levels, "true")
 
-      post conn, dungeon_level_path(conn, :create, dungeon.id), level: attrs
+      post conn, edit_dungeon_level_path(conn, :create, dungeon.id), level: attrs
 
       [linked_level, new_level] = Repo.preload(dungeon, :levels).levels |> Enum.sort(&(&1.number < &2.number))
       assert new_level.number_north == 1
@@ -171,35 +171,35 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_user, :create_level]
 
     test "renders form for editing chosen level", %{conn: conn, level: level} do
-      conn = get conn, dungeon_level_path(conn, :edit, Repo.preload(level, :dungeon).dungeon, level)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, Repo.preload(level, :dungeon).dungeon, level)
       assert html_response(conn, 200) =~ "Edit level"
     end
 
     test "cannot edit active dungeon", %{conn: conn, level: level} do
       {:ok, _dungeon} = Dungeons.update_dungeon(Repo.preload(level, :dungeon).dungeon, %{active: true})
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, level)
-      assert redirected_to(conn) == dungeon_path(conn, :show, level.dungeon_id)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, level)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :show, level.dungeon_id)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
 
     test "level is in a dungeon belonging to someone else", %{conn: conn, level: level} do
       other_user = insert_user()
       {:ok, _dungeon} = Dungeons.update_dungeon(Repo.preload(level, :dungeon).dungeon, %{user_id: other_user.id})
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, level)
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, level)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
 
     test "level is for a different dungeon", %{conn: conn, level: level} do
       other_level = insert_autogenerated_level()
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, other_level)
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, other_level)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
 
     test "gracefully handles bad level id", %{conn: conn, level: level} do
-      conn = get conn, dungeon_level_path(conn, :edit, level.dungeon_id, "foo")
-      assert redirected_to(conn) == dungeon_path(conn, :index)
+      conn = get conn, edit_dungeon_level_path(conn, :edit, level.dungeon_id, "foo")
+      assert redirected_to(conn) == edit_dungeon_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
   end
@@ -219,7 +219,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
                     tile_deletions: "[{\"row\": 0, \"col\": 1, \"z_index\": 0}]",
                     spawn_tiles: "[[4,1],[4,2],[4,3],[500,500]]"}
 
-      conn = put conn, dungeon_level_path(conn, :update, level.dungeon_id, level),
+      conn = put conn, edit_dungeon_level_path(conn, :update, level.dungeon_id, level),
                    level: Map.merge(@update_attrs, tile_data)
 
       assert Dungeons.get_tile(level.id, 1, 1, 0).character == tile_template.character
@@ -244,7 +244,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
       spawn_locations = DungeonCrawl.Repo.preload(level, :spawn_locations).spawn_locations
       assert [%{row: 4, col: 1}, %{row: 4, col: 2}, %{row: 4, col: 3}] = spawn_locations
 
-      assert redirected_to(conn) == dungeon_path(conn, :show, level.dungeon_id)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :show, level.dungeon_id)
 
 
       [updated_level, ^other_level] = Repo.preload(level, dungeon: :levels).dungeon.levels |> Enum.sort(&(&1.number < &2.number))
@@ -256,7 +256,7 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
       other_level = insert_autogenerated_level(%{dungeon_id: level.dungeon_id, number: 2})
       attrs = Map.put(@update_attrs, :link_adjacent_levels, "true")
 
-      put conn, dungeon_level_path(conn, :update, level.dungeon_id, level),
+      put conn, edit_dungeon_level_path(conn, :update, level.dungeon_id, level),
                  level: attrs
 
       [updated_level, linked_level] = Repo.preload(level, dungeon: :levels).dungeon.levels |> Enum.sort(&(&1.number < &2.number))
@@ -266,14 +266,14 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn, level: level} do
-      conn = put conn, dungeon_level_path(conn, :update, level.dungeon_id, level), level: @invalid_attrs
+      conn = put conn, edit_dungeon_level_path(conn, :update, level.dungeon_id, level), level: @invalid_attrs
       assert html_response(conn, 200) =~ "Edit level"
     end
 
     test "cannot update active dungeon", %{conn: conn, level: level} do
       {:ok, _dungeon} = Dungeons.update_dungeon(Repo.preload(level, :dungeon).dungeon, %{active: true})
-      conn = put conn, dungeon_level_path(conn, :update, level.dungeon_id, level), level: @update_attrs
-      assert redirected_to(conn) == dungeon_path(conn, :show, level.dungeon_id)
+      conn = put conn, edit_dungeon_level_path(conn, :update, level.dungeon_id, level), level: @update_attrs
+      assert redirected_to(conn) == edit_dungeon_path(conn, :show, level.dungeon_id)
       assert get_flash(conn, :error) == "Cannot edit an active dungeon"
     end
   end
@@ -282,8 +282,8 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
     setup [:create_user, :create_level]
 
     test "deletes the level", %{conn: conn, level: level} do
-      conn = delete conn, dungeon_level_path(conn, :delete, level.dungeon_id, level)
-      assert redirected_to(conn) == dungeon_path(conn, :show, level.dungeon_id)
+      conn = delete conn, edit_dungeon_level_path(conn, :delete, level.dungeon_id, level)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :show, level.dungeon_id)
       refute Repo.get(Dungeons.Level, level.id)
     end
   end
@@ -295,11 +295,11 @@ defmodule DungeonCrawlWeb.LevelControllerTest do
       other_level = insert_autogenerated_level(%{number: 2, dungeon_id: level.dungeon_id, number_east: 1})
       expected_json = Enum.map(0..4, fn i -> %{"html" => "<div>#</div>", "id" => "east_#{ i }"} end) ++
                       Enum.map(5..20, fn i -> %{"html" => "<div> </div>", "id" => "east_#{ i }"} end)
-      got_conn = get conn, dungeon_level_path(conn, :level_edge, other_level.dungeon_id, edge: "east", level_number: other_level.number)
+      got_conn = get conn, edit_dungeon_level_path(conn, :level_edge, other_level.dungeon_id, edge: "east", level_number: other_level.number)
       assert Enum.sort(json_response(got_conn, 200), fn a,b -> a["id"] < b["id"] end)  ==
              Enum.sort(expected_json, fn a,b -> a["id"] < b["id"] end)
 
-      got_conn = get conn, dungeon_level_path(conn, :level_edge, other_level.dungeon_id, edge: "north", level_number: level.number)
+      got_conn = get conn, edit_dungeon_level_path(conn, :level_edge, other_level.dungeon_id, edge: "north", level_number: level.number)
       assert json_response(got_conn, 200) == []
     end
   end

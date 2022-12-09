@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.EffectControllerTest do
+defmodule DungeonCrawlWeb.Editor.EffectControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   alias DungeonCrawl.Sound.Effect
@@ -9,7 +9,7 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
   describe "non registered users" do
     test "redirects non admin users", %{conn: conn} do
-      conn = get conn, effect_path(conn, :index)
+      conn = get conn, edit_effect_path(conn, :index)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -19,7 +19,7 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
     test "lists all entries on index", %{conn: conn} do
       effects_with_one_of_each_ownership_type(conn.assigns.current_user)
-      conn = get conn, effect_path(conn, :index)
+      conn = get conn, edit_effect_path(conn, :index)
       assert html_response(conn, 200) =~ "Listing Effects"
       assert html_response(conn, 200) =~ "My Effect"
       refute html_response(conn, 200) =~ "Someone elses effect"
@@ -27,78 +27,78 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
     end
 
     test "renders form for new resources", %{conn: conn} do
-      conn = get conn, effect_path(conn, :new)
+      conn = get conn, edit_effect_path(conn, :new)
       assert html_response(conn, 200) =~ "New Effect"
     end
 
     test "creates resource and redirects when data is valid", %{conn: conn} do
-      conn = post conn, effect_path(conn, :create), effect: @valid_attrs
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = post conn, edit_effect_path(conn, :create), effect: @valid_attrs
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       new_effect = Repo.get_by(Effect, @valid_attrs)
       assert new_effect
     end
 
     test "does not create resource and renders errors when data is invalid", %{conn: conn} do
-      conn = post conn, effect_path(conn, :create), effect: @invalid_attrs
+      conn = post conn, edit_effect_path(conn, :create), effect: @invalid_attrs
       assert html_response(conn, 200) =~ "New Effect"
     end
 
     test "shows chosen resource", %{conn: conn} do
       target_effect = insert_effect(Map.put(@valid_attrs, :user_id, conn.assigns.current_user.id))
-      conn = get conn, effect_path(conn, :show, target_effect)
+      conn = get conn, edit_effect_path(conn, :show, target_effect)
       assert html_response(conn, 200) =~ "Show Effect"
     end
 
     test "redirects if chosen resource is someone elses", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = get conn, effect_path(conn, :show, target_effect)
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = get conn, edit_effect_path(conn, :show, target_effect)
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
 
     test "renders page not found when id is nonexistent", %{conn: conn} do
       assert_error_sent 404, fn ->
-        get conn, effect_path(conn, :show, -1)
+        get conn, edit_effect_path(conn, :show, -1)
       end
     end
 
     test "renders form for editing chosen resource", %{conn: conn} do
       target_effect = insert_effect(%{user_id: conn.assigns.current_user.id})
-      conn = get conn, effect_path(conn, :edit, target_effect)
+      conn = get conn, edit_effect_path(conn, :edit, target_effect)
       assert html_response(conn, 200) =~ "Edit Effect"
     end
 
     test "redirects when trying to edit someone elses resource", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = get conn, effect_path(conn, :edit, target_effect)
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = get conn, edit_effect_path(conn, :edit, target_effect)
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
 
     test "updates chosen resource and redirects when data is valid", %{conn: conn} do
       target_effect = insert_effect Map.put(@valid_attrs, :user_id, conn.assigns.current_user.id)
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @update_attrs
-      assert redirected_to(conn) == effect_path(conn, :show, target_effect)
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @update_attrs
+      assert redirected_to(conn) == edit_effect_path(conn, :show, target_effect)
       assert Repo.get_by(Effect, Map.merge(@valid_attrs,@update_attrs))
     end
 
     test "does not update chosen resource and renders errors when data is invalid", %{conn: conn} do
       target_effect = insert_effect(%{user_id: conn.assigns.current_user.id})
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @invalid_attrs
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @invalid_attrs
       assert html_response(conn, 200) =~ "Edit Effect"
     end
 
     test "does not update if chosen resource belongs to someone else", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @update_attrs
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @update_attrs
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       assert get_flash(conn, :error) == "You do not have access to that"
     end
 
     test "deletes chosen resource on delete", %{conn: conn} do
       target_effect = insert_effect(%{user_id: conn.assigns.current_user.id})
-      conn = delete conn, effect_path(conn, :delete, target_effect)
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = delete conn, edit_effect_path(conn, :delete, target_effect)
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       refute Repo.get(Effect, target_effect.id)
     end
   end
@@ -108,7 +108,7 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
     test "lists all entries on index", %{conn: conn} do
       effects_with_one_of_each_ownership_type(conn.assigns.current_user)
-      conn = get conn, effect_path(conn, :index)
+      conn = get conn, edit_effect_path(conn, :index)
       assert html_response(conn, 200) =~ "Listing Effects"
       assert html_response(conn, 200) =~ "My Effect"
       assert html_response(conn, 200) =~ "Someone elses effect"
@@ -117,7 +117,7 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
     test "lists users entries on index", %{conn: conn} do
       effects_with_one_of_each_ownership_type(conn.assigns.current_user)
-      conn = get conn, effect_path(conn, :index, %{list: "mine"})
+      conn = get conn, edit_effect_path(conn, :index, %{list: "mine"})
       assert html_response(conn, 200) =~ "Listing Effects"
       assert html_response(conn, 200) =~ "My Effect"
       refute html_response(conn, 200) =~ "Someone elses effect"
@@ -126,7 +126,7 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
     test "lists unowned entries on index", %{conn: conn} do
       effects_with_one_of_each_ownership_type(conn.assigns.current_user)
-      conn = get conn, effect_path(conn, :index, %{list: "nil"})
+      conn = get conn, edit_effect_path(conn, :index, %{list: "nil"})
       assert html_response(conn, 200) =~ "Listing Effects"
       refute html_response(conn, 200) =~ "My Effect"
       refute html_response(conn, 200) =~ "Someone elses effect"
@@ -134,59 +134,59 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
     end
 
     test "renders form for new resources", %{conn: conn} do
-      conn = get conn, effect_path(conn, :new)
+      conn = get conn, edit_effect_path(conn, :new)
       assert html_response(conn, 200) =~ "New Effect"
     end
 
     test "creates resource and redirects when data is valid", %{conn: conn} do
-      conn = post conn, effect_path(conn, :create), effect: @valid_attrs
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = post conn, edit_effect_path(conn, :create), effect: @valid_attrs
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       new_effect = Repo.get_by(Effect, @valid_attrs)
       assert new_effect
       assert new_effect.user_id == nil
     end
 
     test "creates resource and redirects when data is valid and can own", %{conn: conn} do
-      conn = post conn, effect_path(conn, :create), effect: @valid_attrs, self_owned: "true"
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = post conn, edit_effect_path(conn, :create), effect: @valid_attrs, self_owned: "true"
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       new_effect = Repo.get_by(Effect, @valid_attrs)
       assert new_effect
       assert new_effect.user_id == conn.assigns.current_user.id
     end
 
     test "does not create resource and renders errors when data is invalid", %{conn: conn} do
-      conn = post conn, effect_path(conn, :create), effect: @invalid_attrs
+      conn = post conn, edit_effect_path(conn, :create), effect: @invalid_attrs
       assert html_response(conn, 200) =~ "New Effect"
     end
 
     test "shows chosen resource", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = get conn, effect_path(conn, :show, target_effect)
+      conn = get conn, edit_effect_path(conn, :show, target_effect)
       assert html_response(conn, 200) =~ "Show Effect"
     end
 
     test "renders page not found when id is nonexistent", %{conn: conn} do
       assert_error_sent 404, fn ->
-        get conn, effect_path(conn, :show, -1)
+        get conn, edit_effect_path(conn, :show, -1)
       end
     end
 
     test "renders form for editing chosen resource", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = get conn, effect_path(conn, :edit, target_effect)
+      conn = get conn, edit_effect_path(conn, :edit, target_effect)
       assert html_response(conn, 200) =~ "Edit Effect"
     end
 
     test "can edit active effect", %{conn: conn} do
       effect = insert_effect(%{active: true})
-      conn = get conn, effect_path(conn, :edit, effect), effect: @update_attrs
+      conn = get conn, edit_effect_path(conn, :edit, effect), effect: @update_attrs
       assert html_response(conn, 200) =~ "Edit Effect"
     end
 
     test "updates chosen resource and redirects when data is valid", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @update_attrs, self_owned: "true"
-      assert redirected_to(conn) == effect_path(conn, :show, target_effect)
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @update_attrs, self_owned: "true"
+      assert redirected_to(conn) == edit_effect_path(conn, :show, target_effect)
       updated_effect = Repo.get_by(Effect, Map.merge(@valid_attrs, @update_attrs))
       assert updated_effect
       assert updated_effect.user_id == conn.assigns.current_user.id
@@ -194,8 +194,8 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
     test "updates chosen resource and redirects when data is valid and can assign to no one", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @update_attrs, self_owned: "false"
-      assert redirected_to(conn) == effect_path(conn, :show, target_effect)
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @update_attrs, self_owned: "false"
+      assert redirected_to(conn) == edit_effect_path(conn, :show, target_effect)
       updated_effect = Repo.get_by(Effect, Map.merge(@valid_attrs,@update_attrs))
       assert updated_effect
       assert updated_effect.user_id == nil
@@ -204,8 +204,8 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
     test "updates chosen resource and redirects when data is valid and cannot assign to no one if owned by someone else", %{conn: conn} do
       other_user = insert_user()
       target_effect = insert_effect(Map.put(@valid_attrs, :user_id, other_user.id))
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @update_attrs, self_owned: "false"
-      assert redirected_to(conn) == effect_path(conn, :show, target_effect)
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @update_attrs, self_owned: "false"
+      assert redirected_to(conn) == edit_effect_path(conn, :show, target_effect)
       updated_effect = Repo.get_by(Effect, Map.merge(@valid_attrs, @update_attrs))
       assert updated_effect
       assert updated_effect.user_id == other_user.id
@@ -213,14 +213,14 @@ defmodule DungeonCrawlWeb.EffectControllerTest do
 
     test "does not update chosen resource and renders errors when data is invalid", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = put conn, effect_path(conn, :update, target_effect), effect: @invalid_attrs
+      conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @invalid_attrs
       assert html_response(conn, 200) =~ "Edit Effect"
     end
 
     test "deletes chosen resource on delete", %{conn: conn} do
       target_effect = insert_effect @valid_attrs
-      conn = delete conn, effect_path(conn, :delete, target_effect)
-      assert redirected_to(conn) == effect_path(conn, :index)
+      conn = delete conn, edit_effect_path(conn, :delete, target_effect)
+      assert redirected_to(conn) == edit_effect_path(conn, :index)
       refute Repo.get(Effect, target_effect.id)
     end
   end

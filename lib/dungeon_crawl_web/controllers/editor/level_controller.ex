@@ -44,7 +44,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
 
         conn
         |> put_flash(:info, "Level created successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
       {:error, :level, changeset, _others} ->
         generators = @selectable_generators
         render(conn, "new.html", changeset: changeset, generators: generators, dungeon: conn.assigns.dungeon, max_dimensions: _max_dimensions())
@@ -86,7 +86,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
 
         conn
         |> put_flash(:info, "Level updated successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, conn.assigns.dungeon))
       {:error, changeset} ->
         {low_z, high_z} = Dungeons.get_bounding_z_indexes(level)
         tile_templates = TileTemplates.list_placeable_tile_templates(conn.assigns.current_user)
@@ -197,7 +197,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
 
     conn
     |> put_flash(:info, "Level level deleted successfully.")
-    |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.dungeon))
+    |> redirect(to: Routes.edit_dungeon_path(conn, :show, conn.assigns.dungeon))
   end
 
   def level_edge(conn, %{"dungeon_id" => _dungeon_id, "edge" => edge, "level_number" => level_number}) do
@@ -219,7 +219,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
     else
       conn
       |> put_flash(:error, "Edit dungeons is disabled")
-      |> redirect(to: Routes.crawler_path(conn, :index))
+      |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
   end
@@ -233,7 +233,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> redirect(to: Routes.edit_dungeon_path(conn, :index))
       |> halt()
     end
   end
@@ -251,7 +251,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> redirect(to: Routes.edit_dungeon_path(conn, :index))
       |> halt()
     end
   end
@@ -267,7 +267,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
     else
       conn
       |> put_flash(:error, "Cannot edit an active dungeon")
-      |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.dungeon))
+      |> redirect(to: Routes.edit_dungeon_path(conn, :show, conn.assigns.dungeon))
       |> halt()
     end
   end

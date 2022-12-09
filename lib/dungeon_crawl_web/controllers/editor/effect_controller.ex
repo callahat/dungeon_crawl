@@ -30,7 +30,7 @@ defmodule DungeonCrawlWeb.Editor.EffectController do
       {:ok, _effect} ->
         conn
         |> put_flash(:info, "Effect created successfully.")
-        |> redirect(to: Routes.effect_path(conn, :index))
+        |> redirect(to: Routes.edit_effect_path(conn, :index))
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, "new.html", changeset: changeset)
@@ -55,7 +55,7 @@ defmodule DungeonCrawlWeb.Editor.EffectController do
       {:ok, effect} ->
         conn
         |> put_flash(:info, "Effect updated successfully.")
-        |> redirect(to: Routes.effect_path(conn, :show, effect))
+        |> redirect(to: Routes.edit_effect_path(conn, :show, effect))
 
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, "edit.html", effect: effect, changeset: changeset)
@@ -68,7 +68,7 @@ defmodule DungeonCrawlWeb.Editor.EffectController do
 
     conn
     |> put_flash(:info, "Effect deleted successfully.")
-    |> redirect(to: Routes.effect_path(conn, :index))
+    |> redirect(to: Routes.edit_effect_path(conn, :index))
   end
 
   defp assign_effect(conn, _opts) do
@@ -80,7 +80,7 @@ defmodule DungeonCrawlWeb.Editor.EffectController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.effect_path(conn, :index))
+      |> redirect(to: Routes.edit_effect_path(conn, :index))
       |> halt()
     end
   end

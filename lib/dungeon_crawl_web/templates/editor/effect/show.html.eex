@@ -23,6 +23,6 @@
 
 </ul>
 
-<%= link "Edit", to: Routes.effect_path(@conn, :edit, @effect) %> |
-<%= link "Back", to: Routes.effect_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.effect_path(@conn, :delete, @effect), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+<%= link "Edit", to: Routes.edit_effect_path(@conn, :edit, @effect) %> |
+<%= link "Back", to: Routes.edit_effect_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.edit_effect_path(@conn, :delete, @effect), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>

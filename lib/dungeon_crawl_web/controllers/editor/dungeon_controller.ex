@@ -39,7 +39,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
         conn
         |> put_flash(:info, "Dungeon created successfully.")
 
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
     end
@@ -73,7 +73,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       {:ok, dungeon} ->
         conn
         |> put_flash(:info, "Dungeon updated successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
 
       {:error, changeset} ->
         render(conn, "edit.html", dungeon: dungeon, changeset: changeset, max_dimensions: _max_dimensions())
@@ -108,7 +108,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   end
 
   defp _redirect_to_dungeon_export_list(conn) do
-    redirect(conn, to: Routes.dungeon_export_path(conn, :dungeon_export_list))
+    redirect(conn, to: Routes.edit_dungeon_export_path(conn, :dungeon_export_list))
   end
 
   def download_dungeon_export(conn, %{"id" => _id}) do
@@ -124,7 +124,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
     conn
     |> put_flash(:info, "Dungeon deleted successfully.")
-    |> redirect(to: Routes.dungeon_path(conn, :index))
+    |> redirect(to: Routes.edit_dungeon_path(conn, :index))
   end
 
   def activate(conn, %{"id" => _id}) do
@@ -134,12 +134,12 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       {:ok, active_dungeon} ->
         conn
         |> put_flash(:info, "Dungeon activated.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, active_dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, active_dungeon))
 
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
     end
   end
 
@@ -150,15 +150,15 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       {:ok, new_dungeon_version} ->
         conn
         |> put_flash(:info, "New dungeon version created successfully.")
-        |> redirect(to: Routes.dungeon_path(conn, :show, new_dungeon_version))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, new_dungeon_version))
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
       {:error, :new_levels, _, _} ->
         conn
         |> put_flash(:error, "Cannot create new version; dimensions restricted?")
-        |> redirect(to: Routes.dungeon_path(conn, :show, dungeon))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
     end
   end
 
@@ -166,7 +166,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     if Enum.count(conn.assigns.dungeon.levels) < 1 do
       conn
       |> put_flash(:error, "Add a level first")
-      |> redirect(to: Routes.dungeon_path(conn, :show, conn.assigns.dungeon))
+      |> redirect(to: Routes.edit_dungeon_path(conn, :show, conn.assigns.dungeon))
       |> halt()
     else
      if conn.assigns.player_location, do: leave_and_broadcast(conn.assigns.player_location)
@@ -184,7 +184,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     else
       conn
       |> put_flash(:error, "Edit dungeons is disabled")
-      |> redirect(to: Routes.crawler_path(conn, :index))
+      |> redirect(to: Routes.dungeon_path(conn, :index))
       |> halt()
     end
   end
@@ -203,13 +203,13 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       dungeon.user_id != conn.assigns.current_user.id ->
         conn
         |> put_flash(:error, "You do not have access to that")
-        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :index))
         |> halt()
 
       dungeon.importing ->
         conn
         |> put_flash(:error, "Import still in progress, try again later.")
-        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> redirect(to: Routes.edit_dungeon_path(conn, :index))
         |> halt()
 
       true ->
@@ -227,7 +227,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.dungeon_export_path(conn, :dungeon_export_list))
+      |> redirect(to: Routes.edit_dungeon_export_path(conn, :dungeon_export_list))
       |> halt()
     end
   end
@@ -238,7 +238,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     else
       conn
       |> put_flash(:error, "Cannot edit an active dungeon")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> redirect(to: Routes.edit_dungeon_path(conn, :index))
       |> halt()
     end
   end

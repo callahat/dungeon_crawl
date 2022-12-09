@@ -3,14 +3,14 @@
     <h2 class="inline">Listing tile templates</h2>
   </div>
   <div class="d-flex flex-row">
-    <%= link "New tile template", to: Routes.tile_template_path(@conn, :new) %>
+    <%= link "New tile template", to: Routes.edit_tile_template_path(@conn, :new) %>
   </div>
 
 <%= if @conn.assigns.current_user.is_admin do %>
   <div class="d-flex flex-row">
-    <%= link "All", to: Routes.tile_template_path(@conn, :index) %> |
-    <%= link "Mine", to: Routes.tile_template_path(@conn, :index, %{list: "mine"}) %> |
-    <%= link "Unowned", to: Routes.tile_template_path(@conn, :index, %{list: "nil"}) %>
+    <%= link "All", to: Routes.edit_tile_template_path(@conn, :index) %> |
+    <%= link "Mine", to: Routes.edit_tile_template_path(@conn, :index, %{list: "mine"}) %> |
+    <%= link "Unowned", to: Routes.edit_tile_template_path(@conn, :index, %{list: "nil"}) %>
   </div>
 <% end %>
 
@@ -48,9 +48,9 @@
 
           <td class="text-right">
             <%= activate_or_new_version_button(@conn, tile_template) %>
-            <%= link "Show", to: Routes.tile_template_path(@conn, :show, tile_template), class: "btn btn-light btn-sm" %>
-            <%= unless tile_template.active, do: link "Edit", to: Routes.tile_template_path(@conn, :edit, tile_template), class: "btn btn-light btn-sm" %>
-            <%= link "Delete", to: Routes.tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+            <%= link "Show", to: Routes.edit_tile_template_path(@conn, :show, tile_template), class: "btn btn-light btn-sm" %>
+            <%= unless tile_template.active, do: link "Edit", to: Routes.edit_tile_template_path(@conn, :edit, tile_template), class: "btn btn-light btn-sm" %>
+            <%= link "Delete", to: Routes.edit_tile_template_path(@conn, :delete, tile_template), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
           </td>
         </tr>
   <% end %>

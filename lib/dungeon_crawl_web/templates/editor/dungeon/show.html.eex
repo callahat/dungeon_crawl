@@ -7,7 +7,7 @@
 
 <p><b>Levels:</b> <%= @dungeon.levels |> Enum.count %></p>
 
-<%= link "Add New Level", to: Routes.dungeon_level_path(@conn, :new, @dungeon), class: "btn btn-success btn-sm" %>
+<%= link "Add New Level", to: Routes.edit_dungeon_level_path(@conn, :new, @dungeon), class: "btn btn-success btn-sm" %>
 <br/>
 <span class="small">* = entrance level</span>
 
@@ -32,8 +32,8 @@
     <div class="tab-content" id="levels">
       <%= for level <- @dungeon.levels do %>
         <div class="tab-pane" id="level<%= level.id %>" role="tabpanel" aria-labelledby="level<%= level.id %>-tab">
-          <%= link "Edit Level", to: Routes.dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
-          <%= link "Delete Level", to: Routes.dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/>
+          <%= link "Edit Level", to: Routes.edit_dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
+          <%= link "Delete Level", to: Routes.edit_dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/>
 
           <div class="row">
             <div class="col-4">
@@ -46,8 +46,8 @@
           </div>
           <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", level: level) %>
           <br/>
-          <%= link "Edit Level", to: Routes.dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
-          <%= link "Delete Level", to: Routes.dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/><br/>
+          <%= link "Edit Level", to: Routes.edit_dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
+          <%= link "Delete Level", to: Routes.edit_dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/><br/>
         </div>
       <% end %>
     </div>
@@ -57,9 +57,9 @@
 
 <%= activate_or_new_version_button @conn, @dungeon, @conn.assigns.player_location %> |
 <%= unless @dungeon.active do %>
-<%= link "Edit", to: Routes.dungeon_path(@conn, :edit, @dungeon) %> |
+<%= link "Edit", to: Routes.edit_dungeon_path(@conn, :edit, @dungeon) %> |
 <% end %>
-<%= link "Export Dungeon", to: Routes.dungeon_export_path(@conn, :dungeon_export, @dungeon), method: :post, target: "_blank" %> |
-<%= link "Back", to: Routes.dungeon_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+<%= link "Export Dungeon", to: Routes.edit_dungeon_export_path(@conn, :dungeon_export, @dungeon), method: :post, target: "_blank" %> |
+<%= link "Back", to: Routes.edit_dungeon_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.edit_dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 

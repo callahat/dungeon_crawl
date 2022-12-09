@@ -30,7 +30,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentController do
       {:ok, _item} ->
         conn
         |> put_flash(:info, "Item created successfully.")
-        |> redirect(to: Routes.equipment_path(conn, :index))
+        |> redirect(to: Routes.edit_equipment_path(conn, :index))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -56,7 +56,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentController do
       {:ok, item} ->
         conn
         |> put_flash(:info, "Item updated successfully.")
-        |> redirect(to: Routes.equipment_path(conn, :show, item))
+        |> redirect(to: Routes.edit_equipment_path(conn, :show, item))
       {:error, changeset} ->
         render(conn, "edit.html", item: item, changeset: changeset)
     end
@@ -69,7 +69,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentController do
       {:ok, _} ->
         conn
         |> put_flash(:info, "Item deleted successfully.")
-        |> redirect(to: Routes.equipment_path(conn, :index))
+        |> redirect(to: Routes.edit_equipment_path(conn, :index))
     end
   end
 
@@ -82,7 +82,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.equipment_path(conn, :index))
+      |> redirect(to: Routes.edit_equipment_path(conn, :index))
       |> halt()
     end
   end

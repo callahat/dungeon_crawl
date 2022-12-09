@@ -19,7 +19,7 @@
       </button>
       <div class="navbar-collapse collapse" id="navbarCollapse" style="">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item"><%= link "Dungeon Crawl", to: Routes.crawler_path(@conn, :index), class: "nav-link" %></li>
+          <li class="nav-item"><%= link "Dungeon Crawl", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %></li>
         </ul>
         <ul class="navbar-nav mr-0">
           <%= if @current_user do %>
@@ -50,12 +50,12 @@
               </a>
 
               <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
-                <%= link "Edit Dungeons", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
-                <%= link "Items", to: Routes.equipment_path(@conn, :index), class: "nav-link" %>
-                <%= link "Tile Templates", to: Routes.tile_template_path(@conn, :index), class: "nav-link" %>
-                <%= link "Sound Effects", to: Routes.effect_path(@conn, :index), class: "nav-link" %>
-                <%= link "Dungeon Exports", to: Routes.dungeon_export_path(@conn, :dungeon_export_list), class: "nav-link" %>
-                <%= link "Dungeon Imports", to: Routes.dungeon_import_path(@conn, :dungeon_import), class: "nav-link" %>
+                <%= link "Edit Dungeons", to: Routes.edit_dungeon_path(@conn, :index), class: "nav-link" %>
+                <%= link "Items", to: Routes.edit_equipment_path(@conn, :index), class: "nav-link" %>
+                <%= link "Tile Templates", to: Routes.edit_tile_template_path(@conn, :index), class: "nav-link" %>
+                <%= link "Sound Effects", to: Routes.edit_effect_path(@conn, :index), class: "nav-link" %>
+                <%= link "Dungeon Exports", to: Routes.edit_dungeon_export_path(@conn, :dungeon_export_list), class: "nav-link" %>
+                <%= link "Dungeon Imports", to: Routes.edit_dungeon_import_path(@conn, :dungeon_import), class: "nav-link" %>
               </div>
             </div>
           </li>

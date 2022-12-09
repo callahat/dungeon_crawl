@@ -21,7 +21,7 @@ defmodule DungeonCrawlWeb.Router do
     get "/", PageController, :index
     get "/reference", PageController, :reference
     # TODO: refactor to use the standard resource words
-    get "/crawler/dungeons", CrawlerController, :index
+    get "/dungeons", DungeonController, :index
     get "/crawler", CrawlerController, :show
     post "/crawler", CrawlerController, :create
     post "/crawler/avatar", CrawlerController, :avatar
@@ -33,7 +33,7 @@ defmodule DungeonCrawlWeb.Router do
     resources "/user", UserController, singleton: true
     resources "/sessions", SessionController, only: [:new, :create, :delete]
 
-    scope "/editor", Editor do
+    scope "/editor", Editor, as: :edit do
       get "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
       get "/dungeons/export/:id", DungeonController, :download_dungeon_export, as: :dungeon_export
       get "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import

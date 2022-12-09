@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get conn, "/"
-    assert redirected_to(conn) == crawler_path(conn, :index)
+    assert redirected_to(conn) == dungeon_path(conn, :index)
   end
 
   test "GET /reference", %{conn: conn} do

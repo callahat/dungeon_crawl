@@ -42,7 +42,7 @@
   </li>
 </ul>
 
-<%= link "Edit", to: Routes.equipment_path(@conn, :edit, @item) %> |
-<%= link "Back", to: Routes.equipment_path(@conn, :index) %> |
-<%= link "Delete", to: Routes.equipment_path(@conn, :delete, @item), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+<%= link "Edit", to: Routes.edit_equipment_path(@conn, :edit, @item) %> |
+<%= link "Back", to: Routes.edit_equipment_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.edit_equipment_path(@conn, :delete, @item), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
 

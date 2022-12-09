@@ -9,14 +9,14 @@
 </div>
 
 <%= render "form.html", changeset: @changeset, generators: nil, max_dimensions: @max_dimensions, level: @level, dungeon: @dungeon,
-                        action: Routes.dungeon_level_path(@conn, :update, @dungeon, @level.id) %>
+                        action: Routes.edit_dungeon_level_path(@conn, :update, @dungeon, @level.id) %>
 
 <script>
 window.spawnLocations = <%= {:safe, Jason.encode!(@spawn_locations || {})} %>
 window.adjacent_tiles = <%= {:safe, Jason.encode!(edges_json(@adjacent_level_edge_tiles))} %>
 </script>
 
-<%= link "Back", to: Routes.dungeon_path(@conn, :show, @dungeon) %>
+<%= link "Back", to: Routes.edit_dungeon_path(@conn, :show, @dungeon) %>
 
 <%= render "tile_edit_modal.html" %>
 <%= render "tile_detail_modal.html" %>

@@ -3,14 +3,14 @@
     <h2 class="inline">Listing Effects</h2>
   </div>
   <div class="d-flex flex-row">
-    <%= link "New effect", to: Routes.effect_path(@conn, :new) %>
+    <%= link "New effect", to: Routes.edit_effect_path(@conn, :new) %>
   </div>
 
   <%= if @conn.assigns.current_user.is_admin do %>
   <div class="d-flex flex-row">
-    <%= link "All", to: Routes.effect_path(@conn, :index) %> |
-    <%= link "Mine", to: Routes.effect_path(@conn, :index, %{list: "mine"}) %> |
-    <%= link "Unowned", to: Routes.effect_path(@conn, :index, %{list: "nil"}) %>
+    <%= link "All", to: Routes.edit_effect_path(@conn, :index) %> |
+    <%= link "Mine", to: Routes.edit_effect_path(@conn, :index, %{list: "mine"}) %> |
+    <%= link "Unowned", to: Routes.edit_effect_path(@conn, :index, %{list: "nil"}) %>
   </div>
   <% end %>
 
@@ -44,9 +44,9 @@
         <td><%= if effect.public, do: "Y", else: "N" %></td>
 
         <td class="text-right">
-          <%= link "Show", to: Routes.effect_path(@conn, :show, effect), class: "btn btn-light btn-sm" %>
-          <%= link "Edit", to: Routes.effect_path(@conn, :edit, effect), class: "btn btn-light btn-sm" %>
-          <%= link "Delete", to: Routes.effect_path(@conn, :delete, effect), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+          <%= link "Show", to: Routes.edit_effect_path(@conn, :show, effect), class: "btn btn-light btn-sm" %>
+          <%= link "Edit", to: Routes.edit_effect_path(@conn, :edit, effect), class: "btn btn-light btn-sm" %>
+          <%= link "Delete", to: Routes.edit_effect_path(@conn, :delete, effect), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
         </td>
       </tr>
       <% end %>

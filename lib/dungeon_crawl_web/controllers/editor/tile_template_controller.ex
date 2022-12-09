@@ -31,7 +31,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
       {:ok, _tile_template} ->
         conn
         |> put_flash(:info, "Tile Template created successfully.")
-        |> redirect(to: Routes.tile_template_path(conn, :index))
+        |> redirect(to: Routes.edit_tile_template_path(conn, :index))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
     end
@@ -57,7 +57,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
       {:ok, tile_template} ->
         conn
         |> put_flash(:info, "Tile Template updated successfully.")
-        |> redirect(to: Routes.tile_template_path(conn, :show, tile_template))
+        |> redirect(to: Routes.edit_tile_template_path(conn, :show, tile_template))
       {:error, changeset} ->
         render(conn, "edit.html", tile_template: tile_template, changeset: changeset)
     end
@@ -70,7 +70,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
       {:ok, _} ->
         conn
         |> put_flash(:info, "Tile Template deleted successfully.")
-        |> redirect(to: Routes.tile_template_path(conn, :index))
+        |> redirect(to: Routes.edit_tile_template_path(conn, :index))
     end
   end
 
@@ -82,7 +82,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
     {:ok, active_tile_template} = TileTemplates.update_tile_template(tile_template, %{active: true})
     conn
     |> put_flash(:info, "Tile template activated successfully.")
-    |> redirect(to: Routes.tile_template_path(conn, :show, active_tile_template))
+    |> redirect(to: Routes.edit_tile_template_path(conn, :show, active_tile_template))
   end
 
   def new_version(conn, %{"id" => _id}) do
@@ -92,16 +92,16 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
       {:ok, new_tile_template_version} ->
         conn
         |> put_flash(:info, "New tile template version created successfully.")
-        |> redirect(to: Routes.tile_template_path(conn, :show, new_tile_template_version))
+        |> redirect(to: Routes.edit_tile_template_path(conn, :show, new_tile_template_version))
       {:error, _ = %Ecto.Changeset{}} ->
         # Getting here probably if the original is corrupt; ie, invalid script or something.
         conn
         |> put_flash(:error, "Error creating new version.")
-        |> redirect(to: Routes.tile_template_path(conn, :show, tile_template))
+        |> redirect(to: Routes.edit_tile_template_path(conn, :show, tile_template))
       {:error, message} ->
         conn
         |> put_flash(:error, message)
-        |> redirect(to: Routes.tile_template_path(conn, :show, tile_template))
+        |> redirect(to: Routes.edit_tile_template_path(conn, :show, tile_template))
     end
   end
 
@@ -114,7 +114,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
     else
       conn
       |> put_flash(:error, "You do not have access to that")
-      |> redirect(to: Routes.tile_template_path(conn, :index))
+      |> redirect(to: Routes.edit_tile_template_path(conn, :index))
       |> halt()
     end
   end
@@ -125,7 +125,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateController do
     else
       conn
       |> put_flash(:error, "Cannot edit active tile template")
-      |> redirect(to: Routes.tile_template_path(conn, :index))
+      |> redirect(to: Routes.edit_tile_template_path(conn, :index))
       |> halt()
     end
   end

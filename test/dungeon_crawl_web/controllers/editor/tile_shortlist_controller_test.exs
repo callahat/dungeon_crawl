@@ -1,4 +1,4 @@
-defmodule DungeonCrawlWeb.TileShortlistControllerTest do
+defmodule DungeonCrawlWeb.Editor.TileShortlistControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   @create_attrs %{name: "ampersand", character: "&", state: "flag: true", script: "#end\n:touch\nHEY", color: "green"}
@@ -7,7 +7,7 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
   # Without registered user
   describe "add an item to the shortlist without a registered user" do
     test "redirects", %{conn: conn} do
-      conn = post conn, tile_shortlist_path(conn, :create), tile_shortlist: @create_attrs
+      conn = post conn, edit_tile_shortlist_path(conn, :create), tile_shortlist: @create_attrs
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -16,7 +16,7 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
     setup [:create_user]
 
     test "returns empty array of errors when its all good", %{conn: conn} do
-      conn = post conn, tile_shortlist_path(conn, :create), tile_shortlist: @create_attrs
+      conn = post conn, edit_tile_shortlist_path(conn, :create), tile_shortlist: @create_attrs
       assert %{"attr_hash" => "KC5pOg+1FJk79NA2U7xf83HM8t7iG9SuYuD5lczePX0=",
                "tile_pre" => _tile_pre,
                "tile_shortlist" => %{"animate_background_colors" => nil,
@@ -37,7 +37,7 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
 
     test "returns array of validation errors when there are problems", %{conn: conn} do
       conn = post conn,
-                  tile_shortlist_path(conn, :create),
+                  edit_tile_shortlist_path(conn, :create),
                   tile_shortlist: @invalid_attrs
       assert json_response(conn, 200) == %{"errors" => [%{"detail" => "Unknown command: `alsoderp` - near line 1", "field" => "script"},
                                                         %{"detail" => "Error parsing around: derp", "field" => "state"},
@@ -51,12 +51,12 @@ defmodule DungeonCrawlWeb.TileShortlistControllerTest do
 
     test "returns nothing when its all good", %{conn: conn, user: user} do
       {:ok, shortlist} = DungeonCrawl.TileShortlists.add_to_shortlist(user, %{character: "x"})
-      conn = delete conn, tile_shortlist_path(conn, :delete), tile_shortlist_id: shortlist.id
+      conn = delete conn, edit_tile_shortlist_path(conn, :delete), tile_shortlist_id: shortlist.id
       assert "" = text_response(conn, 200)
     end
 
     test "returns error message when there are problems", %{conn: conn} do
-      conn = delete conn, tile_shortlist_path(conn, :delete), tile_shortlist_id: 1
+      conn = delete conn, edit_tile_shortlist_path(conn, :delete), tile_shortlist_id: 1
       assert json_response(conn, 200) == %{"error" => "Not found"}
     end
   end
