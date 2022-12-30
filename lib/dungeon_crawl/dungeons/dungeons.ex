@@ -92,6 +92,80 @@ defmodule DungeonCrawl.Dungeons do
              order_by: [:id])
   end
 
+  def list_active_dungeons(filters, user_id_hash) do
+    from( [d, user: user] in _active_dungeon_list_query(),
+         order_by: [d.name, user.name])
+    |> _filter(filters, user_id_hash)
+    |> Repo.all()
+  end
+
+  defp _active_dungeon_list_query() do
+    from d in Dungeon, as: :dungeon,
+         where: is_nil(d.deleted_at),
+         where: d.active == ^true,
+         left_join: u in assoc(d, :user),  as: :user
+    #         order_by: [d.name]
+  end
+
+  defp _filter(query, filters, user_id_hash) when is_map(filters) do
+    IO.puts "FILTERS"
+    IO.inspect filters
+    _filter(query, Map.to_list(filters), user_id_hash)
+  end
+
+  defp _filter(query, [], _), do: query
+
+  defp _filter(query, [filter | filters], user_id_hash) do
+    _filter(query, filter, user_id_hash)
+    |> _filter(filters, user_id_hash)
+  end
+
+  defp _filter(query, {:active, active}, _) do
+    from d in query, where: d.active == ^active
+  end
+
+  defp _filter(query, {:name, name}, _) do
+    from [d, user: user] in query,
+         where: like(d.name, ^"%#{name}%") or like(user.name, ^"%#{name}%")
+  end
+
+  defp _filter(query, {:favorite, true}, _) do
+    # todo
+    query
+  end
+
+  defp _filter(query, {:unplayed, true}, user_id_hash) do
+    IO.puts "unplayed filter"
+    from d in query,
+         left_join: s in assoc(d, :scores),  # todo: add line_identifier as fk so the most active dungeon can reference all scores for that line
+         where: not (exists(
+                       from(
+                         s in Score,
+                         where: parent_as(:dungeon).id == s.dungeon_id and s.user_id_hash == ^user_id_hash,
+                         select: 1
+                       )
+                     ))
+  end
+
+  defp _filter(query, {:not_won, true}, user_id_hash) do
+    from d in query,
+         left_join: s in assoc(d, :scores),  # todo: add line_identifier as fk so the most active dungeon can reference all scores for that line
+         where: not (exists(
+                       from(
+                         s in Score,
+                         where: parent_as(:dungeon).id == s.dungeon_id and
+                                s.user_id_hash == ^user_id_hash and
+                                s.victory == true,
+                         select: 1
+                       )
+                     ))
+  end
+
+  # unknown filter, ignore
+  defp _filter(query, _, _) do
+    query
+  end
+
   @doc """
   Returns a list of the most recent dungeon for each line_identifier.
 
@@ -126,6 +200,40 @@ defmodule DungeonCrawl.Dungeons do
              preload: [:user, :locations, dungeon_instances: {di, locations: pmt}],
              select: %{dungeon_id: d.id, dungeon: d},
              order_by: [d.name, pmt.id])
+  end
+
+
+  defp _dungeons_with_player_count_query() do
+    from d in Dungeon,
+         where: is_nil(d.deleted_at),
+         left_join: di in assoc(d, :dungeon_instances),
+         left_join: li in assoc(di, :levels),
+         left_join: t in assoc(li, :tiles),
+         left_join: pmt in assoc(t, :player_location),
+         preload: [:user, :locations, dungeon_instances: {di, locations: pmt}],
+         select: %{dungeon_id: d.id, dungeon: d},
+         order_by: [d.name, pmt.id]
+  end
+
+  def filter_by_name(name) do
+    from(d in _dungeons_with_player_count_query(),
+         where: like(d.name, ^"%#{name}%"))
+    |> Repo.all()
+  end
+
+  def filter_by_author_name(query, name) do
+
+  end
+
+  def filter_by_favorite(query, user_id_hash) do
+
+  end
+
+  def filter_by_unplayed(query, user_id_hash) do
+  end
+
+  def filter_by_not_won(query, user_id_hash) do
+
   end
 
   @doc """

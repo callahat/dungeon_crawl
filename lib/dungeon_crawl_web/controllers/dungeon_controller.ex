@@ -14,6 +14,12 @@ defmodule DungeonCrawlWeb.DungeonController do
     render(conn, "index.html", dungeons: dungeons)
   end
 
+
+  def dungeon_list_live(conn, _opt) do
+    assign(conn, :user_id_hash, conn.assigns.user_id_hash)
+    |> render("dungeon.html")
+  end
+
   defp assign_player_location(conn, _opts) do
     # TODO: get this from the instance?
     player_location = Player.get_location(conn.assigns[:user_id_hash])
