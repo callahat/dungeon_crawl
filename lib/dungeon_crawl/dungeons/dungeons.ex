@@ -14,6 +14,7 @@ defmodule DungeonCrawl.Dungeons do
   alias DungeonCrawl.Dungeons.Level
   alias DungeonCrawl.Dungeons.Tile
   alias DungeonCrawl.Dungeons.SpawnLocation
+  alias DungeonCrawl.Dungeons.Metadata.FavoriteDungeon
 
   alias DungeonCrawl.DungeonInstances
 
@@ -111,7 +112,11 @@ defmodule DungeonCrawl.Dungeons do
   """
   def list_active_dungeons(filters, user_id_hash) do
     from( [d, user: user] in _active_dungeon_list_query(),
-         order_by: [d.name, user.name])
+          left_join: f in FavoriteDungeon,
+                       on: user.user_id_hash == f.user_id_hash and
+                           d.line_identifier == f.line_identifier,
+          select_merge: %{favorited: not is_nil(f)},
+          order_by: [d.name, user.name])
     |> _filter(filters, user_id_hash)
     |> Repo.all()
   end
@@ -120,7 +125,7 @@ defmodule DungeonCrawl.Dungeons do
     from d in Dungeon, as: :dungeon,
          where: is_nil(d.deleted_at),
          where: d.active == ^true,
-         left_join: u in assoc(d, :user),  as: :user
+         left_join: u in assoc(d, :user), as: :user
     #         order_by: [d.name]
   end
 
@@ -146,9 +151,13 @@ defmodule DungeonCrawl.Dungeons do
          where: like(d.name, ^"%#{name}%") or like(user.name, ^"%#{name}%")
   end
 
-  defp _filter(query, {:favorite, true}, _) do
-    # todo
-    query
+  defp _filter(query, {:favorite, favorited}, user_id_hash) do
+    from d in query,
+      where: exists(
+        from(f in FavoriteDungeon,
+             where: f.line_identifier == parent_as(:dungeon).line_identifier and
+                    f.user_id_hash == ^user_id_hash)
+      )
   end
 
   defp _filter(query, {:unplayed, true}, user_id_hash) do

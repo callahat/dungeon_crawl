@@ -26,6 +26,10 @@ defmodule DungeonCrawl.Dungeons.Metadata do
     |> Repo.insert()
   end
 
+  def favorite(line_identifier, user_id_hash) do
+    favorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash})
+  end
+
   @doc """
   Unfavorites a dungeon for a user.
 
@@ -40,5 +44,9 @@ defmodule DungeonCrawl.Dungeons.Metadata do
     else
       {:error, "favorite not found"}
     end
+  end
+
+  def unfavorite(line_identifier, user_id_hash) do
+    unfavorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash})
   end
 end

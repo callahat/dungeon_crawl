@@ -19,6 +19,7 @@
       <%= for dungeon <- @dungeons do %>
       <li class="nav-item px-2">
         <%= link dungeon.name, to: "#", phx_click: "focus#{dungeon.id}" %>
+        <%= {:safe, favorite_star(dungeon, @is_user)} %>
       </li>
       <% end %>
       <li>last</li>
