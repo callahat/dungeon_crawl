@@ -20,14 +20,14 @@ defmodule DungeonCrawl.Dungeons.Metadata do
       iex> favorite(%Dungeon{}, %User{})
       :ok
   """
-  def favorite(%Dungeon{line_identifier: li}, %User{user_id_hash: user_id_hash}) do
-    %FavoriteDungeon{}
-    |> FavoriteDungeon.changeset(%{line_identifier: li, user_id_hash: user_id_hash})
-    |> Repo.insert()
+  def favorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash}) do
+    favorite(line_identifier, user_id_hash)
   end
 
   def favorite(line_identifier, user_id_hash) do
-    favorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash})
+    %FavoriteDungeon{}
+    |> FavoriteDungeon.changeset(%{line_identifier: line_identifier, user_id_hash: user_id_hash})
+    |> Repo.insert()
   end
 
   @doc """
@@ -38,15 +38,16 @@ defmodule DungeonCrawl.Dungeons.Metadata do
       iex> unfavorite(%Dungeon{}, %User{})
       :ok
   """
-  def unfavorite(%Dungeon{line_identifier: li}, %User{user_id_hash: user_id_hash}) do
-    if favorite = Repo.get_by(FavoriteDungeon, %{line_identifier: li, user_id_hash: user_id_hash}) do
-      Repo.delete(favorite)
-    else
-      {:error, "favorite not found"}
-    end
+  def unfavorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash}) do
+    unfavorite(line_identifier, user_id_hash)
   end
 
   def unfavorite(line_identifier, user_id_hash) do
-    unfavorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash})
+    if favorite = Repo.get_by(FavoriteDungeon, %{line_identifier: line_identifier, user_id_hash: user_id_hash}) do
+      Repo.delete(favorite)
+      {:ok, favorite}
+    else
+      {:error, "favorite not found"}
+    end
   end
 end
