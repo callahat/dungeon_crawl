@@ -16,11 +16,7 @@
       </.form>
     </div>
     <ul class="nav flex-column sidebar-scrollable-dungeon-list">
-      <%= for dungeon <- @dungeons ++
-      @dungeons ++ @dungeons  ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons
-       ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons
-        ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons ++ @dungeons
-      do %>
+      <%= for dungeon <- @dungeons do %>
       <li class="nav-item px-2">
         <%= link dungeon.name, to: "#", phx_click: "focus#{dungeon.id}" %>
       </li>
