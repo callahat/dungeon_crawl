@@ -36,4 +36,34 @@ defmodule DungeonCrawl.Dungeons.MetadataTest do
       assert {:error, "favorite not found"} = Metadata.unfavorite(dungeon, user)
     end
   end
+
+  describe "pinned_dungeons" do
+    test "pin/1" do
+      assert {:ok, _favorite} = Metadata.pin(1)
+      assert {:error, _} = Metadata.pin(1)
+    end
+
+    test "pin/1 alternate params" do
+      dungeon = %Dungeon{line_identifier: 1}
+
+      assert {:ok, _favorite} = Metadata.pin(dungeon)
+      assert {:error, _} = Metadata.pin(dungeon)
+    end
+
+    test "unpin/1" do
+      assert {:ok, favorite} = Metadata.pin(1)
+
+      assert {:ok, ^favorite} = Metadata.unpin(1)
+      assert {:error, "pin not found"} = Metadata.unpin(1)
+    end
+
+    test "unpin/1 alternate params" do
+      dungeon = %Dungeon{line_identifier: 1}
+
+      assert {:ok, favorite} = Metadata.pin(dungeon)
+
+      assert {:ok, ^favorite} = Metadata.unpin(dungeon)
+      assert {:error, "pin not found"} = Metadata.unpin(dungeon)
+    end
+  end
 end

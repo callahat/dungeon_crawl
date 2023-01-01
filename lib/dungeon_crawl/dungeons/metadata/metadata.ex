@@ -11,6 +11,7 @@ defmodule DungeonCrawl.Dungeons.Metadata do
   alias DungeonCrawl.Account.User
   alias DungeonCrawl.Dungeons.Dungeon
   alias DungeonCrawl.Dungeons.Metadata.FavoriteDungeon
+  alias DungeonCrawl.Dungeons.Metadata.PinnedDungeon
 
   @doc """
   Favorites a dungeon for a user.
@@ -18,7 +19,7 @@ defmodule DungeonCrawl.Dungeons.Metadata do
   ## Examples
 
       iex> favorite(%Dungeon{}, %User{})
-      :ok
+      {:ok, %FavoriteDungeon{}}
   """
   def favorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash}) do
     favorite(line_identifier, user_id_hash)
@@ -36,7 +37,7 @@ defmodule DungeonCrawl.Dungeons.Metadata do
   ## Examples
 
       iex> unfavorite(%Dungeon{}, %User{})
-      :ok
+      {:ok, %FavoriteDungeon{}}
   """
   def unfavorite(%Dungeon{line_identifier: line_identifier}, %User{user_id_hash: user_id_hash}) do
     unfavorite(line_identifier, user_id_hash)
@@ -48,6 +49,45 @@ defmodule DungeonCrawl.Dungeons.Metadata do
       {:ok, favorite}
     else
       {:error, "favorite not found"}
+    end
+  end
+
+  @doc """
+  Pins a dungeon so it can appear at the top of the list.
+
+  ## Examples
+
+      iex> pin(%Dungeon{}, %User{})
+      {:ok, %PinnedDungeon{}}
+  """
+  def pin(%Dungeon{line_identifier: line_identifier}) do
+    pin(line_identifier)
+  end
+
+  def pin(line_identifier) do
+    %PinnedDungeon{}
+    |> PinnedDungeon.changeset(%{line_identifier: line_identifier})
+    |> Repo.insert()
+  end
+
+  @doc """
+  Unfavorites a dungeon for a user.
+
+  ## Examples
+
+      iex> unpin(%Dungeon{}, %User{})
+      {:ok, %PinnedDungeon{}}
+  """
+  def unpin(%Dungeon{line_identifier: line_identifier}) do
+    unpin(line_identifier)
+  end
+
+  def unpin(line_identifier) do
+    if pin = Repo.get_by(PinnedDungeon, %{line_identifier: line_identifier}) do
+      Repo.delete(pin)
+      {:ok, pin}
+    else
+      {:error, "pin not found"}
     end
   end
 end
