@@ -64,14 +64,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
     {:noreply, assign(socket, :dungeons, dungeons)}
   end
 
-  def handle_info(%{event: "error"}, socket) do
-    {:noreply, put_flash(socket, :error, "Something went wrong.")}
-  end
-
-  def handle_info(_event, socket) do
-    {:noreply, socket}
-  end
-
   defp _assign_stuff(socket, user_id_hash) do
     user = Account.get_by_user_id_hash(user_id_hash)
 

@@ -73,6 +73,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
 
     test "lists exports", %{conn: conn, user: user} do
       dungeon = insert_dungeon(%{id: 2, line_identifier: 1})
+      insert_dungeon(%{id: 10, line_identifier: 3})
 
       {:ok, dungeon_live, html} =
         live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash})
@@ -86,16 +87,16 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
 
       # favoriting
       assert dungeon_live |> render() =~ "favorite_#{ dungeon.line_identifier }"
-      assert dungeon_live |> element(".fa.fa-star-o") |> render_click()
-      refute dungeon_live |> render() =~ "\"fa fa-star-o\""
+      assert dungeon_live |> element("[phx-click='favorite_#{ dungeon.line_identifier }']") |> render_click()
+      refute dungeon_live |> render() =~ "phx-click=\"favorite_#{ dungeon.line_identifier }\""
 
       assert Repo.get_by(FavoriteDungeon,
                %{line_identifier: dungeon.line_identifier, user_id_hash: user.user_id_hash})
 
       # unfavoriting
       assert dungeon_live |> render() =~ "unfavorite_#{ dungeon.line_identifier }"
-      assert dungeon_live |> element(".fa.fa-star") |> render_click()
-      refute dungeon_live |> render() =~ "\"fa fa-star\""
+      assert dungeon_live |> element("[phx-click='unfavorite_#{ dungeon.line_identifier }']") |> render_click()
+      refute dungeon_live |> render() =~ "phx-click=\"unfavorite_#{ dungeon.line_identifier }\""
 
       refute Repo.get_by(FavoriteDungeon,
                %{line_identifier: dungeon.line_identifier, user_id_hash: user.user_id_hash})
@@ -104,15 +105,15 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
 
       # pinning
       assert dungeon_live |> render() =~ "pin_#{ dungeon.line_identifier }"
-      assert dungeon_live |> element(".fa.fa-circle-o") |> render_click()
-      refute dungeon_live |> render() =~ "\"fa fa-circle-o\""
+      assert dungeon_live |> element("[phx-click='pin_#{ dungeon.line_identifier }']") |> render_click()
+      refute dungeon_live |> render() =~ "phx-click=\"pin_#{ dungeon.line_identifier }\""
 
       assert Repo.get_by(PinnedDungeon, %{line_identifier: dungeon.line_identifier})
 
       # unpinning
       assert dungeon_live |> render() =~ "unpin_#{ dungeon.line_identifier }"
-      assert dungeon_live |> element(".fa.fa-thumb-tack") |> render_click()
-      refute dungeon_live |> render() =~ "\"fa fa-thumb-tack\""
+      assert dungeon_live |> element("[phx-click='unpin_#{ dungeon.line_identifier }']") |> render_click()
+      refute dungeon_live |> render() =~ "phx-click=\"unpin_#{ dungeon.line_identifier }\""
 
       refute Repo.get_by(PinnedDungeon, %{line_identifier: dungeon.line_identifier})
     end
@@ -201,6 +202,21 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       refute dungeon_live |> render() =~ "Two Pinned"
       assert dungeon_live |> render() =~ "Three Not Played"
       assert dungeon_live |> render() =~ "Four Not Won"
+    end
+  end
+
+  describe "focus dungeon" do
+    test "displays information about the dungeon in the right pane", %{conn: conn} do
+      dungeon = insert_dungeon(%{id: 2, line_identifier: 1})
+      insert_dungeon(%{id: 10, line_identifier: 3})
+
+      {:ok, dungeon_live, _html} =
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf"})
+
+      assert dungeon_live |> render() =~ "focus#{ dungeon.id }"
+      assert dungeon_live |> element("[phx-click='focus#{dungeon.id}']") |> render_click()
+      refute dungeon_live |> render() =~ "Select a dungeon on the left to learn more about it"
+      assert dungeon_live |> element(".col-7") |> render() =~ dungeon.name
     end
   end
 end
