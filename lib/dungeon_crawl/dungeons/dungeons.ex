@@ -131,8 +131,6 @@ defmodule DungeonCrawl.Dungeons do
   end
 
   defp _filter(query, filters, user_id_hash) when is_map(filters) do
-    IO.puts "FILTERS"
-    IO.inspect filters
     _filter(query, Map.to_list(filters), user_id_hash)
   end
 
@@ -162,7 +160,6 @@ defmodule DungeonCrawl.Dungeons do
   end
 
   defp _filter(query, {:unplayed, true}, user_id_hash) do
-    IO.puts "unplayed filter"
     from d in query,
          left_join: s in assoc(d, :scores),  # todo: add line_identifier as fk so the most active dungeon can reference all scores for that line
          where: not (exists(

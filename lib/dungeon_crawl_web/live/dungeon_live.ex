@@ -7,32 +7,22 @@ defmodule DungeonCrawlWeb.DungeonLive do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Metadata
 
-  alias DungeonCrawlWeb.Endpoint
-
   def render(assigns) do
     DungeonCrawlWeb.DungeonView.render("dungeon_live.html", assigns)
   end
 
   def mount(_params, %{"user_id_hash" => user_id_hash} = _session, socket) do
-    DungeonCrawlWeb.Endpoint.subscribe("dungeon_list_#{user_id_hash}")
-
     {:ok, _assign_stuff(socket, user_id_hash)}
   end
 
   def handle_event("focus" <> dungeon_id, _params, socket) do
-
     {:noreply, _assign_focused_dungeon(socket, dungeon_id)}
   end
 
   def handle_event("search", %{"search" => filters}, socket) do
-    IO.puts "here's the originial"
-    IO.inspect filters
-    IO.inspect Map.keys(socket)
     changeset = _filter_changeset(filters)
-    dungeons = Dungeons.list_active_dungeons(changeset.changes, socket.assigns.user_id_hash)
-#               |> Enum.map(fn(%{dungeon: dungeon}) -> Repo.preload(dungeon, [:levels, :locations, :dungeon_instances]) end)
 
-    socket = assign(socket, :dungeons, dungeons)
+    socket = _assign_dungeons(socket, changeset.changes)
              |> assign(:changeset, changeset)
     {:noreply, socket}
   end
@@ -83,8 +73,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
   end
 
   defp _assign_stuff(socket, user_id_hash) do
-    IO.puts "Assinging suff"
-
     user = Account.get_by_user_id_hash(user_id_hash)
 
     socket
@@ -92,12 +80,12 @@ defmodule DungeonCrawlWeb.DungeonLive do
     |> assign(:is_user, !!user)
     |> assign(:is_admin, user && user.is_admin)
     |> assign(:dungeon, nil)
-    |> _assign_dungeons(nil)
+    |> _assign_dungeons(%{})
     |> _assign_changeset()
   end
 
   defp _assign_dungeons(socket, filter_params) do
-    dungeons = Dungeons.list_active_dungeons(%{}, socket.assigns.user_id_hash)
+    dungeons = Dungeons.list_active_dungeons(filter_params, socket.assigns.user_id_hash)
 
     assign(socket, :dungeons, dungeons)
   end
