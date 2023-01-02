@@ -14,7 +14,7 @@ defmodule DungeonCrawl.Dungeons do
   alias DungeonCrawl.Dungeons.Level
   alias DungeonCrawl.Dungeons.Tile
   alias DungeonCrawl.Dungeons.SpawnLocation
-  alias DungeonCrawl.Dungeons.Metadata.FavoriteDungeon
+  alias DungeonCrawl.Dungeons.Metadata.{FavoriteDungeon, PinnedDungeon}
 
   alias DungeonCrawl.DungeonInstances
 
@@ -115,8 +115,10 @@ defmodule DungeonCrawl.Dungeons do
           left_join: f in FavoriteDungeon,
                        on: user.user_id_hash == f.user_id_hash and
                            d.line_identifier == f.line_identifier,
-          select_merge: %{favorited: not is_nil(f)},
-          order_by: [d.name, user.name])
+          left_join: pin in PinnedDungeon,
+                         on: d.line_identifier == pin.line_identifier,
+          select_merge: %{favorited: not is_nil(f), pinned: not is_nil(pin)},
+          order_by: [is_nil(pin), d.name, user.name])
     |> _filter(filters, user_id_hash)
     |> Repo.all()
   end
@@ -126,7 +128,6 @@ defmodule DungeonCrawl.Dungeons do
          where: is_nil(d.deleted_at),
          where: d.active == ^true,
          left_join: u in assoc(d, :user), as: :user
-    #         order_by: [d.name]
   end
 
   defp _filter(query, filters, user_id_hash) when is_map(filters) do

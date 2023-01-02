@@ -40,27 +40,38 @@ defmodule DungeonCrawlWeb.DungeonLive do
   def handle_event("favorite_" <> line_identifier, _params, socket) do
     Metadata.favorite(line_identifier, socket.assigns.user_id_hash)
 
-    dungeons = _update_dungeon_favorite(socket.assigns.dungeons, line_identifier, true)
-
-    {:noreply, assign(socket, :dungeons, dungeons)}
+    _update_dungeon_field_and_reply(socket, line_identifier, :favorited, true)
   end
 
   def handle_event("unfavorite_" <> line_identifier, _params, socket) do
     Metadata.unfavorite(line_identifier, socket.assigns.user_id_hash)
 
-    dungeons = _update_dungeon_favorite(socket.assigns.dungeons, line_identifier, false)
-
-    {:noreply, assign(socket, :dungeons, dungeons)}
+    _update_dungeon_field_and_reply(socket, line_identifier, :favorited, false)
   end
 
-  defp _update_dungeon_favorite(dungeons, line_identifier, favorited) do
+  def handle_event("pin_" <> line_identifier, _params, socket) do
+    Metadata.pin(line_identifier)
+
+    _update_dungeon_field_and_reply(socket, line_identifier, :pinned, true)
+  end
+
+  def handle_event("unpin_" <> line_identifier, _params, socket) do
+    Metadata.unpin(line_identifier)
+
+    _update_dungeon_field_and_reply(socket, line_identifier, :pinned, false)
+  end
+
+  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do
     line_identifier = String.to_integer(line_identifier)
 
-    Enum.map(dungeons, fn dungeon ->
-      if dungeon.line_identifier == line_identifier,
-         do: %{ dungeon | favorited: favorited },
-         else: dungeon
-    end)
+    dungeons =
+      Enum.map(socket.assigns.dungeons, fn dungeon ->
+        if dungeon.line_identifier == line_identifier,
+           do: %{ dungeon | field => value },
+           else: dungeon
+      end)
+
+    {:noreply, assign(socket, :dungeons, dungeons)}
   end
 
   def handle_info(%{event: "error"}, socket) do
@@ -74,9 +85,12 @@ defmodule DungeonCrawlWeb.DungeonLive do
   defp _assign_stuff(socket, user_id_hash) do
     IO.puts "Assinging suff"
 
+    user = Account.get_by_user_id_hash(user_id_hash)
+
     socket
     |> assign(:user_id_hash, user_id_hash)
-    |> assign(:is_user, !!Account.get_by_user_id_hash(user_id_hash))
+    |> assign(:is_user, !!user)
+    |> assign(:is_admin, user && user.is_admin)
     |> assign(:dungeon, nil)
     |> _assign_dungeons(nil)
     |> _assign_changeset()
@@ -84,9 +98,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
 
   defp _assign_dungeons(socket, filter_params) do
     dungeons = Dungeons.list_active_dungeons(%{}, socket.assigns.user_id_hash)
-#    dungeons = Dungeons.list_active_dungeons_with_player_count()
-#    # might not need this preload anymore
-#               |> Enum.map(fn(%{dungeon: dungeon}) -> Repo.preload(dungeon, [:levels, :locations, :dungeon_instances]) end)
 
     assign(socket, :dungeons, dungeons)
   end

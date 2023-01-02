@@ -13,16 +13,38 @@ defmodule DungeonCrawlWeb.DungeonView do
   def favorite_star(dungeon, true) do
     if dungeon.favorited do
       """
-      <i class="fa fa-star float-right" aria-hidden="true" phx-click="unfavorite_#{dungeon.line_identifier}"></i>
+      <i class="fa fa-star" aria-hidden="true" phx-click="unfavorite_#{dungeon.line_identifier}"></i>
       """
     else
       """
-      <i class="fa fa-star-o float-right" aria-hidden="true" phx-click="favorite_#{dungeon.line_identifier}"></i>
+      <i class="fa fa-star-o" aria-hidden="true" phx-click="favorite_#{dungeon.line_identifier}"></i>
       """
     end
   end
 
   def favorite_star(_, _) do
     ""
+  end
+
+  def dungeon_pin(dungeon, true) do
+    if dungeon.pinned do
+      """
+      <i class="fa fa-thumb-tack" aria-hidden="true" phx-click="unpin_#{dungeon.line_identifier}"></i>
+      """
+    else
+      """
+      <i class="fa fa-circle-o" aria-hidden="true" phx-click="pin_#{dungeon.line_identifier}"></i>
+      """
+    end
+  end
+
+  def dungeon_pin(dungeon, _) do
+    if dungeon.pinned do
+      """
+      <i class="fa fa-thumb-tack" aria-hidden="true" ></i>
+      """
+    else
+      ""
+    end
   end
 end
