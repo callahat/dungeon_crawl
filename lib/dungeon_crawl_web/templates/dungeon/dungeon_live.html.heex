@@ -34,8 +34,63 @@
   </div>
   <div class="col-7">
     <%= if @dungeon do %>
-<!-- actually list other stuff here, and buttons for joining /-->
-      <%= @dungeon.name %>
+      <div>
+        <h3><%= @dungeon.name %></h3>
+        <span class="top-right"><i class="fa fa-times" aria-hidden="true" phx-click="unfocus"></i></span>
+      </div>
+
+      <div class="row">
+        <div class="col-auto">
+          <div class="title-map">
+            <%= render(SharedView, "dungeon.html", level: Repo.preload(Dungeons.get_title_level(@dungeon), :tiles)) %>
+          </div>
+        </div>
+        <div class="col">
+          <div class="text-right">
+            <%= if can_start_new_instance(@dungeon.id) do %>
+              Create New Game:
+              <%= link "Private", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-warning btn-sm" %>
+              <%= link "Public", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+            <% end %>
+          </div>
+          <div><p><%= @dungeon.description %></p></div>
+          <div><p>Levels: <%= @dungeon.levels |> Enum.count %></p></div>
+          <div><%= link "High Scores", to: Routes.score_path(@socket, :index, %{dungeon_id: @dungeon.id}) %></div>
+          <div>
+            Latest scores:
+            <table class="table table-sm">
+              <thead>
+              <tr>
+                <th></th>
+                <th>Score</th>
+                <th>Player</th>
+                <th>Date</th>
+                <th>Steps</th>
+                <th>Deaths</th>
+                <th>Result</th>
+                <th>Victory</th>
+              </tr>
+              </thead>
+              <tbody>
+              <%= for score <- @scores do %>
+              <tr>
+                <td><%= score.place %></td>
+                <td><%= score.score %></td>
+                <td>
+                  <%= false && Account.get_name(score.user) %>
+                </td>
+                <td><%= score.inserted_at %></td>
+                <td><%= score.steps %></td>
+                <td><%= score.deaths %></td>
+                <td><%= score.result %></td>
+                <td><%= score.victory %></td>
+              </tr>
+              <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     <% else %>
       Select a dungeon on the left to learn more about it. Or, to start a solo
       randomly generated experience, click the button below.

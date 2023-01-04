@@ -219,4 +219,21 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       assert dungeon_live |> element(".col-7") |> render() =~ dungeon.name
     end
   end
+
+  describe "unfocus dungeon" do
+    test "clears the focused dungeon", %{conn: conn} do
+      dungeon = insert_dungeon(%{id: 2, line_identifier: 1})
+      insert_dungeon(%{id: 10, line_identifier: 3})
+
+      {:ok, dungeon_live, _html} =
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf"})
+
+      assert dungeon_live |> element("[phx-click='focus#{dungeon.id}']") |> render_click()
+
+      assert dungeon_live |> render() =~ "unfocus"
+      assert dungeon_live |> element("[phx-click='unfocus']") |> render_click()
+      assert dungeon_live |> render() =~ "Select a dungeon on the left to learn more about it"
+      refute dungeon_live |> element(".col-7") |> render() =~ dungeon.name
+    end
+  end
 end

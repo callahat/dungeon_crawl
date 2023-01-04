@@ -309,6 +309,12 @@ input#tile_template_character {
   height: min-content;
 }
 
+.top-right {
+  position: absolute;
+  top: 0;
+  right: 0
+}
+
 /*
  * Navbar
  */

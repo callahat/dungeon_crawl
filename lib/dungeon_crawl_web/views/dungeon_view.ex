@@ -1,6 +1,7 @@
 defmodule DungeonCrawlWeb.DungeonView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeons
   alias DungeonCrawlWeb.SharedView

@@ -93,7 +93,6 @@ defmodule DungeonCrawl.Dungeons do
              order_by: [:id])
   end
 
-
   @doc """
   Returns the list of active dungeons, given filters and a user_id_hash to be used with
   certain filters (such as not played / not won / favorite).

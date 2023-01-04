@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Metadata
+  alias DungeonCrawl.Scores
 
   def render(assigns) do
     DungeonCrawlWeb.DungeonView.render("dungeon_live.html", assigns)
@@ -17,6 +18,10 @@ defmodule DungeonCrawlWeb.DungeonLive do
 
   def handle_event("focus" <> dungeon_id, _params, socket) do
     {:noreply, _assign_focused_dungeon(socket, dungeon_id)}
+  end
+
+  def handle_event("unfocus", _params, socket) do
+    {:noreply, _assign_focused_dungeon(socket, nil)}
   end
 
   def handle_event("search", %{"search" => filters}, socket) do
@@ -79,14 +84,26 @@ defmodule DungeonCrawlWeb.DungeonLive do
   defp _assign_dungeons(socket, filter_params) do
     dungeons = Dungeons.list_active_dungeons(filter_params, socket.assigns.user_id_hash)
 
+    dungeon = if socket.assigns.dungeon &&
+                   Enum.member?(Enum.map(dungeons, &(&1.id)), socket.assigns.dungeon.id),
+                do: socket.assigns.dungeon,
+                else: nil
+
     assign(socket, :dungeons, dungeons)
+    |> _assign_focused_dungeon(dungeon)
   end
+
+  defp _assign_focused_dungeon(socket, nil), do: assign(socket, :dungeon, nil)
+
+  defp _assign_focused_dungeon(socket, %{id: dungeon_id}), do: _assign_focused_dungeon(socket, dungeon_id)
 
   defp _assign_focused_dungeon(socket, dungeon_id) do
     dungeon = Dungeons.get_dungeon(dungeon_id)
               |> Repo.preload([:levels, :locations, :dungeon_instances])
+    scores = Scores.list_new_scores(dungeon.id, 10)
 
-    assign(socket, :dungeon, dungeon)
+    assign(socket, :scores, scores)
+    |> assign(:dungeon, dungeon)
   end
 
   defp _assign_changeset(socket) do
