@@ -4,11 +4,11 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
   import Phoenix.LiveViewTest
 
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.Dungeons.Metadata
   alias DungeonCrawl.Dungeons.Metadata.{FavoriteDungeon, PinnedDungeon}
-  alias DungeonCrawl.Scores
 
   alias DungeonCrawlWeb.DungeonLive
+
+  @filters %{name: "", favorite: false, unplayed: false, not_won: false}
 
   defp create_user(_) do
     user = insert_user(%{username: "CSwaggins"})
@@ -136,79 +136,44 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
     end
 
     test "searching on multiple things", %{conn: conn, user: user} do
-      filters = %{name: "", favorite: false, unplayed: false, not_won: false}
-
-      dungeon1 = insert_dungeon(%{name: "One Favorite"})
-      dungeon2 = insert_dungeon(%{name: "Two Pinned"})
-      _dungeon3 = insert_dungeon(%{name: "Three Not Played"})
-      dungeon4 = insert_dungeon(%{name: "Four Not Won"})
-
-      Metadata.pin(dungeon2)
-      Metadata.favorite(dungeon1, user)
-
-      Scores.create_score(%{dungeon_id: dungeon1.id, user_id_hash: user.user_id_hash, score: 9, victory: true})
-      Scores.create_score(%{dungeon_id: dungeon2.id, user_id_hash: user.user_id_hash, score: 4, victory: true})
-      Scores.create_score(%{dungeon_id: dungeon4.id, user_id_hash: user.user_id_hash, score: 0, victory: false})
+      # more thorough coverage done in dungeons_test file
+      dungeon1 = insert_dungeon(%{name: "One Dungeon"})
+      dungeon2 = insert_dungeon(%{name: "Two Dungeon"})
 
       {:ok, dungeon_live, _html} =
         live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash})
 
-      assert dungeon_live |> render() =~ "One Favorite"
-      assert dungeon_live |> render() =~ "Two Pinned"
-      assert dungeon_live |> render() =~ "Three Not Played"
-      assert dungeon_live |> render() =~ "Four Not Won"
+      assert dungeon_live |> render() =~ dungeon1.name
+      assert dungeon_live |> render() =~ dungeon2.name
 
       assert dungeon_live
-             |> form("#search-form", search: %{ filters | name: "Two", favorite: true})
+             |> form("#search-form", search: %{@filters | name: "Two"})
              |> render_change()
 
-      refute dungeon_live |> render() =~ "One Favorite"
-      refute dungeon_live |> render() =~ "Two Pinned"
-      refute dungeon_live |> render() =~ "Three Not Played"
-      refute dungeon_live |> render() =~ "Four Not Won"
+      refute dungeon_live |> render() =~ dungeon1.name
+      assert dungeon_live |> render() =~ dungeon2.name
 
       assert dungeon_live
-             |> form("#search-form", search: %{filters | favorite: true})
+             |> form("#search-form", search: %{@filters | name: "Two", favorite: true})
              |> render_change()
 
-      assert dungeon_live |> render() =~ "One Favorite"
-      refute dungeon_live |> render() =~ "Two Pinned"
-      refute dungeon_live |> render() =~ "Three Not Played"
-      refute dungeon_live |> render() =~ "Four Not Won"
+      refute dungeon_live |> render() =~ dungeon1.name
+      refute dungeon_live |> render() =~ dungeon2.name
 
+      # cleared filters
       assert dungeon_live
-             |> form("#search-form", search: %{filters | unplayed: true})
+             |> form("#search-form", search: @filters)
              |> render_change()
 
-      refute dungeon_live |> render() =~ "One Favorite"
-      refute dungeon_live |> render() =~ "Two Pinned"
-      assert dungeon_live |> render() =~ "Three Not Played"
-      refute dungeon_live |> render() =~ "Four Not Won"
-
-      assert dungeon_live
-             |> form("#search-form", search: %{filters | name: "Not", not_won: true})
-             |> render_change()
-
-      refute dungeon_live |> render() =~ "One Favorite"
-      refute dungeon_live |> render() =~ "Two Pinned"
-      assert dungeon_live |> render() =~ "Three Not Played"
-      assert dungeon_live |> render() =~ "Four Not Won"
-
-      assert dungeon_live
-             |> form("#search-form", search: %{filters | name: "Not"})
-             |> render_change()
-
-      refute dungeon_live |> render() =~ "One Favorite"
-      refute dungeon_live |> render() =~ "Two Pinned"
-      assert dungeon_live |> render() =~ "Three Not Played"
-      assert dungeon_live |> render() =~ "Four Not Won"
+      assert dungeon_live |> render() =~ dungeon1.name
+      assert dungeon_live |> render() =~ dungeon2.name
     end
   end
 
   describe "focus dungeon" do
     test "displays information about the dungeon in the right pane", %{conn: conn} do
-      dungeon = insert_dungeon(%{id: 2, line_identifier: 1})
-      insert_dungeon(%{id: 10, line_identifier: 3})
+      dungeon = insert_dungeon(%{id: 2, line_identifier: 1, name: "Dungeon One"})
+      insert_dungeon(%{id: 10, line_identifier: 3, name: "Dungeon Two"})
 
       {:ok, dungeon_live, _html} =
         live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf"})
@@ -217,6 +182,18 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       assert dungeon_live |> element("[phx-click='focus#{dungeon.id}']") |> render_click()
       refute dungeon_live |> render() =~ "Select a dungeon on the left to learn more about it"
       assert dungeon_live |> element(".col-7") |> render() =~ dungeon.name
+
+      # focus will be retained on filtering when the dungeon is among the filtered list
+      assert dungeon_live
+             |> form("#search-form", search: %{ @filters | name: dungeon.name})
+             |> render_change()
+      assert dungeon_live |> element(".col-7") |> render() =~ dungeon.name
+
+      # focus lost on filtering when the dungeon is not among the filtered list
+      assert dungeon_live
+             |> form("#search-form", search: %{ @filters | name: "whargarbl"})
+             |> render_change()
+      refute dungeon_live |> element(".col-7") |> render() =~ dungeon.name
     end
   end
 

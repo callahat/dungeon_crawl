@@ -2,7 +2,9 @@ defmodule DungeonCrawl.DungeonsTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.Dungeons.Metadata
   alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty, DrunkardsWalk, RoomsAndTunnelsBsp}
+  alias DungeonCrawl.Scores
 
   describe "dungeons" do
     alias DungeonCrawl.Dungeons.Level
@@ -39,6 +41,58 @@ defmodule DungeonCrawl.DungeonsTest do
       dungeon_fixture()
       Dungeons.delete_dungeon(dungeon_deleted)
       assert Dungeons.list_dungeons(:soft_deleted) == [Dungeons.get_dungeon(dungeon_deleted.id)]
+    end
+
+    test "list_active_dungeons/2 returns a list of filtered dungeons" do
+      author = insert_user(%{name: "Threepwood"})
+      user = insert_user()
+
+      dungeon1 = insert_dungeon(%{name: "One Favorite", user_id: author.id})
+      dungeon2 = insert_dungeon(%{name: "Two Pinned", user_id: author.id})
+      dungeon3 = insert_dungeon(%{name: "Three Not Played"})
+      dungeon4 = insert_dungeon(%{name: "Four Not Won"})
+
+      Metadata.pin(dungeon2)
+      Metadata.favorite(dungeon1, user)
+
+      Scores.create_score(%{dungeon_id: dungeon1.id, user_id_hash: user.user_id_hash, score: 9, victory: true})
+      Scores.create_score(%{dungeon_id: dungeon2.id, user_id_hash: user.user_id_hash, score: 4, victory: true})
+      Scores.create_score(%{dungeon_id: dungeon4.id, user_id_hash: user.user_id_hash, score: 0, victory: false})
+
+      # no filters
+      assert Enum.map(Dungeons.list_active_dungeons(%{}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon2.name, dungeon4.name, dungeon1.name, dungeon3.name ]
+
+      # single filter
+      # name
+      assert Enum.map(Dungeons.list_active_dungeons(%{name: "Not"}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon4.name, dungeon3.name ]
+      assert Enum.map(Dungeons.list_active_dungeons(%{name: "Threepwood"}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon2.name, dungeon1.name]
+
+      # favorite
+      assert Enum.map(Dungeons.list_active_dungeons(%{favorite: true}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon1.name ]
+
+      # unplayed
+      assert Enum.map(Dungeons.list_active_dungeons(%{unplayed: true}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon3.name ]
+
+      # not_won
+      assert Enum.map(Dungeons.list_active_dungeons(%{not_won: true}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon4.name, dungeon3.name ]
+
+      # multiple filters
+      assert Enum.map(Dungeons.list_active_dungeons(%{name: "not", not_won: true}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon4.name, dungeon3.name ]
+      assert Enum.map(Dungeons.list_active_dungeons(%{unplayed: true, not_won: true}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon3.name ]
+      assert Enum.map(Dungeons.list_active_dungeons(%{unplayed: true, favorite: true}, user.user_id_hash), &(&1.name)) ==
+               [ ]
+
+      # invalid filters get ignored/doesn't cause an error
+      assert Enum.map(Dungeons.list_active_dungeons(%{hamburgers: "slider"}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon2.name, dungeon4.name, dungeon1.name, dungeon3.name ]
     end
 
     test "list_dungeons_with_player_count/0 returns all dungeons preloaded with the players in the level instances" do
