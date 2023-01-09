@@ -92,8 +92,12 @@
         </div>
       </div>
     <% else %>
-      Select a dungeon on the left to learn more about it. Or, to start a solo
-      randomly generated experience, click the button below.
+      Select a dungeon on the left to learn more about it.<br/>
+
+      <%= if DungeonCrawl.Admin.get_setting.autogen_solo_enabled do %>
+        Or, to start a solo randomly generated experience, click the button below.<br/>
+        <%= link "Generate and go solo", to: Routes.crawler_path(@socket, :create), method: :create, data: [confirm: "Are you sure?"], csrf_token: @controller_csrf, class: "btn btn-danger btn-sm" %>
+      <% end %>
     <% end %>
   </div>
 </div>

@@ -12,8 +12,8 @@ defmodule DungeonCrawlWeb.DungeonLive do
     DungeonCrawlWeb.DungeonView.render("dungeon_live.html", assigns)
   end
 
-  def mount(_params, %{"user_id_hash" => user_id_hash} = _session, socket) do
-    {:ok, _assign_stuff(socket, user_id_hash)}
+  def mount(_params, %{"user_id_hash" => user_id_hash, "controller_csrf" => controller_csrf} = _session, socket) do
+    {:ok, _assign_stuff(socket, user_id_hash, controller_csrf)}
   end
 
   def handle_event("focus" <> dungeon_id, _params, socket) do
@@ -69,11 +69,12 @@ defmodule DungeonCrawlWeb.DungeonLive do
     {:noreply, assign(socket, :dungeons, dungeons)}
   end
 
-  defp _assign_stuff(socket, user_id_hash) do
+  defp _assign_stuff(socket, user_id_hash, controller_csrf) do
     user = Account.get_by_user_id_hash(user_id_hash)
 
     socket
     |> assign(:user_id_hash, user_id_hash)
+    |> assign(:controller_csrf, controller_csrf)
     |> assign(:is_user, !!user)
     |> assign(:is_admin, user && user.is_admin)
     |> assign(:dungeon, nil)

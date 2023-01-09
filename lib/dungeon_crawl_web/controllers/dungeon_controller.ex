@@ -14,9 +14,9 @@ defmodule DungeonCrawlWeb.DungeonController do
     render(conn, "index.html", dungeons: dungeons)
   end
 
-
   def dungeon_list_live(conn, _opt) do
     assign(conn, :user_id_hash, conn.assigns.user_id_hash)
+    |> assign(:controller_csrf, Phoenix.Controller.get_csrf_token())
     |> render("dungeon.html")
   end
 
