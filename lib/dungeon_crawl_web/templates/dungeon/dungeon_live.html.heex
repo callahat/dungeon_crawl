@@ -49,8 +49,8 @@
           <div class="text-right">
             <%= if can_start_new_instance(@dungeon.id) do %>
               Create New Game:
-              <%= link "Private", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-warning btn-sm" %>
-              <%= link "Public", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+              <%= link "Private", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id, is_private: true), method: :post, data: [confirm: "Are you sure?"], csrf_token: @controller_csrf, class: "btn btn-warning btn-sm" %>
+              <%= link "Public", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id), method: :post, data: [confirm: "Are you sure?"], csrf_token: @controller_csrf, class: "btn btn-danger btn-sm" %>
             <% end %>
           </div>
           <div><p><%= @dungeon.description %></p></div>
