@@ -36,6 +36,7 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
     field :favorited, :boolean, virtual: true, default: nil
 
     has_many :dungeon_instances, DungeonInstances.Dungeon, on_delete: :delete_all#, foreign_key: :map_set_id
+    has_many :public_dungeon_instances, DungeonInstances.Dungeon, where: [is_private: false]
     has_many :levels, Dungeons.Level, on_delete: :delete_all#, foreign_key: :map_set_id
     has_many :spawn_locations, through: [:levels, :spawn_locations], on_delete: :delete_all
     has_many :locations, through: [:dungeon_instances, :locations], on_delete: :delete_all

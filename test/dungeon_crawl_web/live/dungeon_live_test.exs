@@ -25,7 +25,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       dungeon = insert_dungeon()
 
       {:ok, _dungeon_live, html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf"})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf", "controller_csrf" => "csrf"})
 
       assert html =~ "focus#{ dungeon.id }"
       assert html =~ dungeon.name
@@ -42,7 +42,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       dungeon = insert_dungeon(%{id: 2, line_identifier: 1})
 
       {:ok, dungeon_live, html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
 
       assert html =~ "focus#{ dungeon.id }"
       assert html =~ dungeon.name
@@ -76,7 +76,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       insert_dungeon(%{id: 10, line_identifier: 3})
 
       {:ok, dungeon_live, html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
 
       assert html =~ "focus#{ dungeon.id }"
       assert html =~ dungeon.name
@@ -124,7 +124,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
 
     test "no dungeons to search", %{conn: conn, user: user} do
       {:ok, dungeon_live, _html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
 
       refute dungeon_live |> has_element?(".sidebar-scrollable-dungeon-list li")
 
@@ -141,7 +141,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       dungeon2 = insert_dungeon(%{name: "Two Dungeon"})
 
       {:ok, dungeon_live, _html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
 
       assert dungeon_live |> render() =~ dungeon1.name
       assert dungeon_live |> render() =~ dungeon2.name
@@ -176,7 +176,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       insert_dungeon(%{id: 10, line_identifier: 3, name: "Dungeon Two"})
 
       {:ok, dungeon_live, _html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf"})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf", "controller_csrf" => "csrf"})
 
       assert dungeon_live |> render() =~ "focus#{ dungeon.id }"
       assert dungeon_live |> element("[phx-click='focus#{dungeon.id}']") |> render_click()
@@ -203,7 +203,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       insert_dungeon(%{id: 10, line_identifier: 3})
 
       {:ok, dungeon_live, _html} =
-        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf"})
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => "asdf", "controller_csrf" => "csrf"})
 
       assert dungeon_live |> element("[phx-click='focus#{dungeon.id}']") |> render_click()
 
