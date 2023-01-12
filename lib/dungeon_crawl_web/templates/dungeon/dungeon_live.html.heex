@@ -10,9 +10,13 @@
 
         <%= label f, :unplayed %>
         <%= checkbox f, :unplayed %>
+        <br/>
 
         <%= label f, :not_won %>
         <%= checkbox f, :not_won %>
+
+        <%= label f, :existing %>
+        <%= checkbox f, :existing %>
       </.form>
     </div>
     <ul class="nav flex-column sidebar-scrollable-dungeon-list">
@@ -25,6 +29,7 @@
         </div>
       </li>
       <% end %>
+      <li><hr/></li>
     </ul>
   </nav>
 </div>

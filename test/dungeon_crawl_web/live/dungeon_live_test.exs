@@ -126,13 +126,13 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       {:ok, dungeon_live, _html} =
         live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
 
-      refute dungeon_live |> has_element?(".sidebar-scrollable-dungeon-list li")
+      refute dungeon_live |> has_element?(".sidebar-scrollable-dungeon-list li.nav-item")
 
       assert dungeon_live
              |> form("#search-form", search: %{name: "Main"})
              |> render_change()
 
-      refute dungeon_live |> has_element?(".sidebar-scrollable-dungeon-list li")
+      refute dungeon_live |> has_element?(".sidebar-scrollable-dungeon-list li.nav-item")
     end
 
     test "searching on multiple things", %{conn: conn, user: user} do

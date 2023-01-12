@@ -248,7 +248,7 @@ input#tile_template_character {
 .sidebar-scrollable-dungeon-list {
   overflow: scroll;
   flex-wrap: nowrap;
-  height: calc(100vh - 120px); /* minus the height of the filter fields, probably should just have this on the right */
+  height: calc(100vh - 140px); /* minus the height of the filter fields, probably should just have this on the right */
 }
 
 @supports ((position: -webkit-sticky) or (position: sticky)) {

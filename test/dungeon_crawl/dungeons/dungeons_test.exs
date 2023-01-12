@@ -3,6 +3,7 @@ defmodule DungeonCrawl.DungeonsTest do
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Metadata
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty, DrunkardsWalk, RoomsAndTunnelsBsp}
   alias DungeonCrawl.Scores
 
@@ -52,12 +53,17 @@ defmodule DungeonCrawl.DungeonsTest do
       dungeon3 = insert_dungeon(%{name: "Three Not Played"})
       dungeon4 = insert_dungeon(%{name: "Four Not Won"})
 
+      DungeonInstances.create_dungeon(dungeon2, "testuser1", false)
+      DungeonInstances.create_dungeon(dungeon4, "testuser2", true)
+
       Metadata.pin(dungeon2)
       Metadata.favorite(dungeon1, user)
 
       Scores.create_score(%{dungeon_id: dungeon1.id, user_id_hash: user.user_id_hash, score: 9, victory: true})
       Scores.create_score(%{dungeon_id: dungeon2.id, user_id_hash: user.user_id_hash, score: 4, victory: true})
+      Scores.create_score(%{dungeon_id: dungeon2.id, user_id_hash: user.user_id_hash, score: 2, victory: false})
       Scores.create_score(%{dungeon_id: dungeon4.id, user_id_hash: user.user_id_hash, score: 0, victory: false})
+      Scores.create_score(%{dungeon_id: dungeon4.id, user_id_hash: user.user_id_hash, score: 1, victory: false})
 
       # no filters
       assert Enum.map(Dungeons.list_active_dungeons(%{}, user.user_id_hash), &(&1.name)) ==
@@ -81,6 +87,10 @@ defmodule DungeonCrawl.DungeonsTest do
       # not_won
       assert Enum.map(Dungeons.list_active_dungeons(%{not_won: true}, user.user_id_hash), &(&1.name)) ==
                [ dungeon4.name, dungeon3.name ]
+
+      # existing dungeon instance
+      assert Enum.map(Dungeons.list_active_dungeons(%{existing: true}, user.user_id_hash), &(&1.name)) ==
+               [ dungeon2.name ]
 
       # multiple filters
       assert Enum.map(Dungeons.list_active_dungeons(%{name: "not", not_won: true}, user.user_id_hash), &(&1.name)) ==

@@ -117,11 +117,11 @@ defmodule DungeonCrawlWeb.DungeonLive do
   defp _filter_changeset(data \\ %{}) do
     Ecto.Changeset.change(
       {
-        %{name: nil, favorite: false, unplayed: false, not_won: false},
-        %{name: :string, favorite: :boolean, unplayed: :boolean, not_won: :boolean}
+        %{name: nil, favorite: false, unplayed: false, not_won: false, existing: false},
+        %{name: :string, favorite: :boolean, unplayed: :boolean, not_won: :boolean, existing: :boolean}
       },
       %{}
     )
-    |> Ecto.Changeset.cast(data, [:name, :favorite, :unplayed, :not_won])
+    |> Ecto.Changeset.cast(data, [:name, :favorite, :unplayed, :not_won, :existing])
   end
 end

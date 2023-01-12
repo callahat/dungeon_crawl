@@ -162,7 +162,6 @@ defmodule DungeonCrawl.Dungeons do
 
   defp _filter(query, {:unplayed, true}, user_id_hash) do
     from d in query,
-         left_join: s in assoc(d, :scores),  # todo: add line_identifier as fk so the most active dungeon can reference all scores for that line
          where: not (exists(
                        from(
                          s in Score,
@@ -174,7 +173,6 @@ defmodule DungeonCrawl.Dungeons do
 
   defp _filter(query, {:not_won, true}, user_id_hash) do
     from d in query,
-         left_join: s in assoc(d, :scores),  # todo: add line_identifier as fk so the most active dungeon can reference all scores for that line
          where: not (exists(
                        from(
                          s in Score,
@@ -184,6 +182,18 @@ defmodule DungeonCrawl.Dungeons do
                          select: 1
                        )
                      ))
+  end
+
+  defp _filter(query, {:existing, true}, _user_id_hash) do
+    from d in query,
+         where: exists(
+                  from(
+                      di in DungeonInstances.Dungeon,
+                      where: parent_as(:dungeon).id == di.dungeon_id and
+                             di.is_private != true,
+                      select: 1
+                   )
+                 )
   end
 
   # unknown filter, ignore
