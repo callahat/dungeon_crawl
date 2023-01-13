@@ -287,6 +287,9 @@ input#tile_template_character {
   padding: 0;
 }
 
+.alert-margin-l-3 {
+  margin-left: 25%;
+}
 /*
  * Content
  */
