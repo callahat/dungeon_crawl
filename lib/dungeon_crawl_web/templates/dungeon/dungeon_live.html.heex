@@ -5,18 +5,18 @@
         <%= text_input f, :name, class: "w-100",
               title: "Fitler by name or author", placeholder: "Fitler by name or author" %>
 
-        <%= label f, :favorite %>
-        <%= checkbox f, :favorite %>
+        <%= label f, :favorite, title: "Only show favorite dungeons" %>
+        <%= checkbox f, :favorite, title: "Only show favorite dungeons" %>
 
-        <%= label f, :unplayed %>
-        <%= checkbox f, :unplayed %>
+        <%= label f, :unplayed, title: "Only show dungeons you haven't played" %>
+        <%= checkbox f, :unplayed, title: "Only show dungeons you haven't played" %>
         <br/>
 
-        <%= label f, :not_won %>
-        <%= checkbox f, :not_won %>
+        <%= label f, :not_won, title: "Only show dungeons you haven't won" %>
+        <%= checkbox f, :not_won, title: "Only show dungeons you haven't won" %>
 
-        <%= label f, :existing %>
-        <%= checkbox f, :existing %>
+        <%= label f, :existing, title: "Only show dungeons with existing games you can join" %>
+        <%= checkbox f, :existing, title: "Only show dungeons with existing games you can join" %>
       </.form>
     </div>
     <ul class="nav flex-column sidebar-scrollable-dungeon-list">
