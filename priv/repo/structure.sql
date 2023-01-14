@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 10.19 (Ubuntu 10.19-0ubuntu0.18.04.1)
--- Dumped by pg_dump version 10.19 (Ubuntu 10.19-0ubuntu0.18.04.1)
+-- Dumped from database version 10.22 (Ubuntu 10.22-0ubuntu0.18.04.1)
+-- Dumped by pg_dump version 10.22 (Ubuntu 10.22-0ubuntu0.18.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -118,7 +118,8 @@ CREATE TABLE public.dungeon_instances (
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     passcode character varying(8),
-    is_private boolean
+    is_private boolean,
+    host_name character varying(255)
 );
 
 
@@ -218,6 +219,38 @@ CREATE SEQUENCE public.effects_id_seq
 --
 
 ALTER SEQUENCE public.effects_id_seq OWNED BY public.effects.id;
+
+
+--
+-- Name: favorite_dungeons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.favorite_dungeons (
+    id bigint NOT NULL,
+    user_id_hash character varying(255),
+    line_identifier integer,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: favorite_dungeons_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.favorite_dungeons_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: favorite_dungeons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.favorite_dungeons_id_seq OWNED BY public.favorite_dungeons.id;
 
 
 --
@@ -376,6 +409,37 @@ CREATE SEQUENCE public.levels_id_seq
 --
 
 ALTER SEQUENCE public.levels_id_seq OWNED BY public.levels.id;
+
+
+--
+-- Name: pinned_dungeons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pinned_dungeons (
+    id bigint NOT NULL,
+    line_identifier integer,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
+);
+
+
+--
+-- Name: pinned_dungeons_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.pinned_dungeons_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: pinned_dungeons_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.pinned_dungeons_id_seq OWNED BY public.pinned_dungeons.id;
 
 
 --
@@ -783,6 +847,13 @@ ALTER TABLE ONLY public.effects ALTER COLUMN id SET DEFAULT nextval('public.effe
 
 
 --
+-- Name: favorite_dungeons id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.favorite_dungeons ALTER COLUMN id SET DEFAULT nextval('public.favorite_dungeons_id_seq'::regclass);
+
+
+--
 -- Name: items id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -808,6 +879,13 @@ ALTER TABLE ONLY public.level_instances ALTER COLUMN id SET DEFAULT nextval('pub
 --
 
 ALTER TABLE ONLY public.levels ALTER COLUMN id SET DEFAULT nextval('public.levels_id_seq'::regclass);
+
+
+--
+-- Name: pinned_dungeons id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pinned_dungeons ALTER COLUMN id SET DEFAULT nextval('public.pinned_dungeons_id_seq'::regclass);
 
 
 --
@@ -914,6 +992,14 @@ ALTER TABLE ONLY public.effects
 
 
 --
+-- Name: favorite_dungeons favorite_dungeons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.favorite_dungeons
+    ADD CONSTRAINT favorite_dungeons_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: items items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -943,6 +1029,14 @@ ALTER TABLE ONLY public.level_instances
 
 ALTER TABLE ONLY public.levels
     ADD CONSTRAINT levels_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: pinned_dungeons pinned_dungeons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pinned_dungeons
+    ADD CONSTRAINT pinned_dungeons_pkey PRIMARY KEY (id);
 
 
 --
@@ -1103,6 +1197,13 @@ CREATE INDEX effects_user_id_slug_index ON public.effects USING btree (user_id, 
 
 
 --
+-- Name: favorite_dungeons_user_id_hash_line_identifier_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX favorite_dungeons_user_id_hash_line_identifier_index ON public.favorite_dungeons USING btree (user_id_hash, line_identifier);
+
+
+--
 -- Name: items_slug_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1191,6 +1292,13 @@ CREATE INDEX levels_dungeon_id_index ON public.levels USING btree (dungeon_id);
 --
 
 CREATE UNIQUE INDEX levels_dungeon_id_number_index ON public.levels USING btree (dungeon_id, number);
+
+
+--
+-- Name: pinned_dungeons_line_identifier_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX pinned_dungeons_line_identifier_index ON public.pinned_dungeons USING btree (line_identifier);
 
 
 --
@@ -1596,3 +1704,6 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220313043817);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313045333);
 INSERT INTO public."schema_migrations" (version) VALUES (20220313173501);
 INSERT INTO public."schema_migrations" (version) VALUES (20220321034751);
+INSERT INTO public."schema_migrations" (version) VALUES (20221230234056);
+INSERT INTO public."schema_migrations" (version) VALUES (20230101225443);
+INSERT INTO public."schema_migrations" (version) VALUES (20230111020708);
