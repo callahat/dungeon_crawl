@@ -13,7 +13,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
-  plug :assign_player_location # when action in [:show, :create, :avatar, :validate_avatar, :invite, :validate_invite, :destroy]
+  plug :assign_player_location
   plug :validate_crawling when action in [:show, :destroy]
   plug :validate_not_crawling  when action in [:create, :avatar, :validate_avatar, :invite, :validate_invite]
   plug :validate_passcode when action in [:invite, :validate_invite]
