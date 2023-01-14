@@ -2,7 +2,6 @@ defmodule DungeonCrawlWeb.DungeonController do
   use DungeonCrawl.Web, :controller
 
   alias DungeonCrawl.Player
-  alias DungeonCrawl.Dungeons
 
   plug :assign_player_location # when action in [:show, :create, :avatar, :validate_avatar, :invite, :validate_invite, :destroy]
   plug :validate_not_crawling when action in [:index]
