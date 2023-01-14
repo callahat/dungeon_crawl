@@ -237,28 +237,6 @@ defmodule DungeonCrawl.Dungeons do
   end
 
   @doc """
-  Returns a list of dungeons with the instances and players preloaded.
-
-  ## Examples
-
-    iex > list_dungeons_with_player_count()
-    [%{dungeon: %Dungeon{}, player_count: 4}, ...]
-  """
-  def list_active_dungeons_with_player_count() do
-    # Todo: move the counts back here
-    Repo.all(from d in Dungeon,
-             where: is_nil(d.deleted_at),
-             where: d.active == ^true,
-             left_join: di in assoc(d, :dungeon_instances),
-             left_join: li in assoc(di, :levels),
-             left_join: t in assoc(li, :tiles),
-             left_join: pmt in assoc(t, :player_location),
-             preload: [:user, :locations, dungeon_instances: {di, locations: pmt}],
-             select: %{dungeon_id: d.id, dungeon: d},
-             order_by: [d.name, pmt.id])
-  end
-
-  @doc """
   Gets the number of instances for the given Dungeon.
 
     ## Examples

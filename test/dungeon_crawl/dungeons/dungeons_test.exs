@@ -133,21 +133,6 @@ defmodule DungeonCrawl.DungeonsTest do
       assert Dungeons.list_dungeons_by_lines(user) == [dungeon_1b, dungeon_2, dungeon_3]
     end
 
-    test "list_active_dungeons_with_player_count/0 returns all active dungeons preloaded with the players in the level instances" do
-      insert_stubbed_dungeon_instance(%{active: false})
-      insert_stubbed_dungeon_instance(%{active: true, deleted_at: NaiveDateTime.utc_now |> NaiveDateTime.truncate(:second)})
-
-      di = insert_stubbed_dungeon_instance(%{active: true})
-      level = Repo.preload(di, :levels).levels |> Enum.at(0)
-
-      insert_player_location(%{level_instance_id: level.id})
-
-      assert [%{dungeon_id: dungeon_id, dungeon: dungeon}] = Dungeons.list_active_dungeons_with_player_count()
-
-      assert dungeon_id == di.dungeon_id
-      assert Enum.count(dungeon.locations) == 1
-    end
-
     test "instance_count/1 returns the number of instances existing for the dungeon" do
       assert Dungeons.instance_count(1) == 0
 

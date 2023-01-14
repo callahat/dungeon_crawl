@@ -7,17 +7,10 @@ defmodule DungeonCrawlWeb.DungeonController do
   plug :assign_player_location # when action in [:show, :create, :avatar, :validate_avatar, :invite, :validate_invite, :destroy]
   plug :validate_not_crawling when action in [:index]
 
-  def index_old(conn, _opt) do
-    dungeons = Dungeons.list_active_dungeons_with_player_count()
-               |> Enum.map(fn(%{dungeon: dungeon}) -> Repo.preload(dungeon, [:levels, :locations, :dungeon_instances]) end)
-
-    render(conn, "index.html", dungeons: dungeons)
-  end
-
   def index(conn, _opt) do
     assign(conn, :user_id_hash, conn.assigns.user_id_hash)
     |> assign(:controller_csrf, Phoenix.Controller.get_csrf_token())
-    |> render("dungeon.html")
+    |> render("index.html")
   end
 
   defp assign_player_location(conn, _opts) do

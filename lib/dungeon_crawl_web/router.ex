@@ -21,7 +21,6 @@ defmodule DungeonCrawlWeb.Router do
     get "/", PageController, :index
     get "/reference", PageController, :reference
     # TODO: refactor to use the standard resource words
-    get "/dungeons/old", DungeonController, :index_old, as: :old_dungeon
     get "/dungeons", DungeonController, :index
     get "/crawler", CrawlerController, :show
     post "/crawler", CrawlerController, :create

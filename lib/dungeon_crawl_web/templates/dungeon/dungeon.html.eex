@@ -1,2 +1,0 @@
-<%= live_render(@conn, DungeonCrawlWeb.DungeonLive, session: %{"user_id_hash" => @user_id_hash, "controller_csrf" => @controller_csrf}) %>
-
