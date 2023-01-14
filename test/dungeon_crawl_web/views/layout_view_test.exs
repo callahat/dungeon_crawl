@@ -2,7 +2,7 @@ defmodule DungeonCrawlWeb.LayoutViewTest do
   use DungeonCrawlWeb.ConnCase, async: true
 
   alias DungeonCrawl.Admin
-  
+
   import DungeonCrawlWeb.LayoutView
 
   test "main_tag_class/1" do

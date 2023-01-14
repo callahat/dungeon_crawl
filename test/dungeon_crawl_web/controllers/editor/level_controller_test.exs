@@ -3,7 +3,7 @@ defmodule DungeonCrawlWeb.Editor.LevelControllerTest do
 
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeons
-  @create_attrs %{name: "some name", height: 40, width: 80, number_north: 1}
+  @create_attrs %{name: "some name", height: 40, width: 80, number_north: 1, generator: "Rooms"}
   @update_attrs %{name: "new name", height: 40, width: 40, number_north: 2}
   @invalid_attrs %{height: 1}
   @tile_attrs %{"background_color" => "",
