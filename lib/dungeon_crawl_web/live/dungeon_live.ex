@@ -100,7 +100,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
 
   defp _assign_focused_dungeon(socket, dungeon_id) do
     dungeon = Dungeons.get_dungeon(dungeon_id)
-              |> Repo.preload([:levels, [public_dungeon_instances: :locations]])
+              |> Repo.preload([:user, :levels, [public_dungeon_instances: :locations]])
 
     scores = Scores.list_new_scores(dungeon.id, 10)
 

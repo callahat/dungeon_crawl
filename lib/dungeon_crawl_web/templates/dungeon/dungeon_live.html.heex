@@ -52,7 +52,8 @@
         </div>
         <div class="col">
           <div><p><%= @dungeon.description %></p></div>
-          <div><p>Levels: <%= @dungeon.levels |> Enum.count %></p></div>
+          <div>Levels: <%= @dungeon.levels |> Enum.count %></div>
+          <div>Author: <%= @dungeon.user.name %></div>
           <div class="text-right">
             <%= if can_start_new_instance(@dungeon.id) do %>
             Create New Game:
@@ -61,62 +62,33 @@
             <% end %>
           </div>
           <%= if Enum.count(@dungeon.public_dungeon_instances) > 0 do %>
-          Joinable Games
-          <table class="table table-sm">
-            <tr>
-              <th>ID</th>
-              <th>Host</th>
-              <th>Players</th>
-              <th></th>
-            </tr>
-            <%= for di <- @dungeon.public_dungeon_instances do %>
-            <tr>
-              <td><%= di.id %></td>
-              <td><%= di.host_name %></td>
-              <td><%= di.locations |> Enum.count %></td>
-              <td>
+            Joinable Games
+            <table class="table table-sm">
+              <tr>
+                <th>ID</th>
+                <th>Host</th>
+                <th>Players</th>
+                <th></th>
+              </tr>
+              <%= for di <- @dungeon.public_dungeon_instances do %>
+              <tr>
+                <td><%= di.id %></td>
+                <td><%= di.host_name %></td>
+                <td><%= di.locations |> Enum.count %></td>
+                <td>
                   <span class="pull-right">
                     <%= link "Join", to: Routes.crawler_path(@socket, :avatar, dungeon_instance_id: di.id), method: :post, data: [confirm: "Are you sure?"], csrf_token: @controller_csrf, class: "btn btn-danger btn-sm" %>
                   </span>
-              </td>
-            </tr>
-            <% end %>
-          </table>
-          <% end %>
-          <div><%= link "High Scores", to: Routes.score_path(@socket, :index, %{dungeon_id: @dungeon.id}) %></div>
-          <div>
-            Latest scores:
-            <table class="table table-sm">
-              <thead>
-              <tr>
-                <th></th>
-                <th>Score</th>
-                <th>Player</th>
-                <th>Date</th>
-                <th>Steps</th>
-                <th>Deaths</th>
-                <th>Result</th>
-                <th>Victory</th>
-              </tr>
-              </thead>
-              <tbody>
-              <%= for score <- @scores do %>
-              <tr>
-                <td><%= score.place %></td>
-                <td><%= score.score %></td>
-                <td>
-                  <%= Account.get_name(score.user) %>
                 </td>
-                <td><%= score.inserted_at %></td>
-                <td><%= score.steps %></td>
-                <td><%= score.deaths %></td>
-                <td><%= score.result %></td>
-                <td><%= score.victory %></td>
               </tr>
               <% end %>
-              </tbody>
             </table>
-          </div>
+          <% end %>
+          <%= if @scores != [] do %>
+            <%= render "scores.html", socket: @socket, dungeon: @dungeon, scores: @scores %>
+          <% else %>
+            No scores yet :/
+          <% end %>
         </div>
       </div>
     <% else %>
