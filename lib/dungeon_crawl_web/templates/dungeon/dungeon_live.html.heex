@@ -53,7 +53,7 @@
         <div class="col">
           <div><p><%= @dungeon.description %></p></div>
           <div>Levels: <%= @dungeon.levels |> Enum.count %></div>
-          <div>Author: <%= @dungeon.user.name %></div>
+          <div>Author: <%= @author_name %></div>
           <div class="text-right">
             <%= if can_start_new_instance(@dungeon.id) do %>
             Create New Game:
