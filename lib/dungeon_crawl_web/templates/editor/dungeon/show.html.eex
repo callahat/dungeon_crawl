@@ -1,0 +1,65 @@
+<h2><%= @dungeon.name %></h2>
+<p><%= @dungeon.description %></p>
+<p><b>Title Map:</b> <%= title_level_name(@title_level) %></p>
+<p><b>Author:</b> <%= @owner_name %></p>
+<p><b>Version:</b> <%= @dungeon.version %> (<%= if @dungeon.active, do: "A", else: "Ina" %>ctive)</p>
+<%= render SharedView, "show_state_fields.html", state: @dungeon.state %>
+
+<p><b>Levels:</b> <%= @dungeon.levels |> Enum.count %></p>
+
+<%= link "Add New Level", to: Routes.edit_dungeon_level_path(@conn, :new, @dungeon), class: "btn btn-success btn-sm" %>
+<br/>
+<span class="small">* = entrance level</span>
+
+<div class="row no-gutters">
+  <div class="text-center col-3">
+    <div class="nav nav-pills flex-column text-left max-content" role="tablist">
+<%= for level <- Enum.sort(@dungeon.levels, fn(a,b) -> a.number < b.number end) do %>
+      <a class="nav-link small"
+         id="level<%= level.id %>-tab"
+         data-toggle="pill"
+         href="#level<%= level.id %>"
+         role="tab"
+         aria-controls="level<%= level.id %>"
+         aria-orientation="vertical"
+         aria-selected="true">
+        <%= if level.entrance, do: "*", else: {:safe, "&nbsp;"} %> (<%= level.height %>x<%= level.width %>) <%= level.number %> - <%= level.name %>
+      </a>
+<% end %>
+    </div>
+  </div>
+  <div class="col-9">
+    <div class="tab-content" id="levels">
+      <%= for level <- @dungeon.levels do %>
+        <div class="tab-pane" id="level<%= level.id %>" role="tabpanel" aria-labelledby="level<%= level.id %>-tab">
+          <%= link "Edit Level", to: Routes.edit_dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
+          <%= link "Delete Level", to: Routes.edit_dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/>
+
+          <div class="row">
+            <div class="col-4">
+              <b>Adjacent levels:</b>
+              <%= adjacent_level_names(level) %>
+            </div>
+            <div class="col-6">
+              <%= render SharedView, "show_state_fields.html", state: level.state %>
+            </div>
+          </div>
+          <%= render(DungeonCrawlWeb.SharedView, "dungeon.html", level: level) %>
+          <br/>
+          <%= link "Edit Level", to: Routes.edit_dungeon_level_path(@conn, :edit, @dungeon, level), class: "btn btn-secondary btn-sm" %> |
+          <%= link "Delete Level", to: Routes.edit_dungeon_level_path(@conn, :delete, @dungeon, level), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %><br/><br/>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+</div>
+
+<%= activate_or_new_version_button @conn, @dungeon, @conn.assigns.player_location %> |
+<%= unless @dungeon.active do %>
+<%= link "Edit", to: Routes.edit_dungeon_path(@conn, :edit, @dungeon) %> |
+<% end %>
+<%= link "Export Dungeon", to: Routes.edit_dungeon_export_path(@conn, :dungeon_export, @dungeon), method: :post, target: "_blank" %> |
+<%= link "Back", to: Routes.edit_dungeon_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.edit_dungeon_path(@conn, :delete, @dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+

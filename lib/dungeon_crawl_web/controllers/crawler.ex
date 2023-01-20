@@ -1,4 +1,5 @@
 defmodule DungeonCrawlWeb.Crawler do
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.LevelProcess
@@ -31,7 +32,9 @@ defmodule DungeonCrawlWeb.Crawler do
   end
 
   def join_and_broadcast(%Dungeons.Dungeon{} = where, user_id_hash, user_avatar, is_private) do
-    {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(where, is_private, true)
+    player_name = Account.get_name(user_id_hash)
+
+    {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(where, player_name, is_private, true)
 
     join_and_broadcast(dungeon_instance, user_id_hash, user_avatar, is_private)
   end

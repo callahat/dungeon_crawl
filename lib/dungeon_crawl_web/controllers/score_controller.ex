@@ -48,7 +48,7 @@ defmodule DungeonCrawlWeb.ScoreController do
   end
 
   def index(conn, _params) do
-    scores = Scores.list_new_scores()
+    scores = Scores.list_new_scores(10)
     render(conn, "index.html", scores: scores, details: %{})
   end
 end

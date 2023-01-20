@@ -28,10 +28,21 @@ defmodule DungeonCrawl.ScoresTest do
       assert Scores.list_scores() == [%{score | place: 1}]
     end
 
-    test "list_new_scores/0 returns most recent scores" do
+    test "list_new_scores/1 returns most recent scores" do
       Enum.each(0..15, fn i -> score_fixture(%{score: i}) end)
-      scores = Scores.list_new_scores()
+      scores = Scores.list_new_scores(10)
       assert length(scores) == 10
+      [newest | _] = scores
+      [oldest | _] = Enum.reverse(scores)
+      assert newest.id > oldest.id
+    end
+
+    test "list_new_scores/2 returns most recent scores for a dungeon" do
+      other_dungeon = insert_dungeon(%{name: "other"})
+      Enum.each(0..15, fn i -> score_fixture(%{score: i}) end)
+      Enum.each(0..3, fn i -> score_fixture(%{score: i, dungeon_id: other_dungeon.id}) end)
+      scores = Scores.list_new_scores(other_dungeon.id, 10)
+      assert length(scores) == 4
       [newest | _] = scores
       [oldest | _] = Enum.reverse(scores)
       assert newest.id > oldest.id

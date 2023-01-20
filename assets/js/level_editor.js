@@ -3,8 +3,8 @@ let LevelEditor = {
     let level_id = element.getAttribute("data-level-id"),
         dungeon_id = element.getAttribute("data-dungeon-id")
     this.state_variable_subform = state_variable_subform
-    this.validate_tile_url = "/dungeons/" + dungeon_id +"/levels/" + level_id + "/validate_tile"
-    this.map_edge_url = "/dungeons/" + dungeon_id +"/level_edge"
+    this.validate_tile_url = "/editor/dungeons/" + dungeon_id +"/levels/" + level_id + "/validate_tile"
+    this.map_edge_url = "/editor/dungeons/" + dungeon_id +"/level_edge"
 
     for(let tile_template of document.getElementsByName("paintable_tile_template")){
       tile_template.addEventListener('click', e => { this.updateActiveTile(e.target) });
@@ -915,7 +915,7 @@ let LevelEditor = {
     context.addTileToShortlist(attributes, context)
   },
   addTileToShortlist(shortlist_attributes, context){
-    $.post("/tile_shortlists", {tile_shortlist: shortlist_attributes,
+    $.post("/editor/tile_shortlists", {tile_shortlist: shortlist_attributes,
                                 _csrf_token: document.getElementsByName("_csrf_token")[0].value})
      .done(function(resp){
         if(resp.errors && resp.errors.length > 0){
@@ -944,7 +944,7 @@ let LevelEditor = {
   remoteActiveTileFromShortlist(){
     document.querySelector("#tile_shortlist_entries [data-shortlist-id='" + this.active_shortlist_id + "']")?.remove()
     let context = this
-    $.ajax("/tile_shortlists",
+    $.ajax("/editor/tile_shortlists",
            {data: {tile_shortlist_id: this.active_shortlist_id,
                           _csrf_token: document.getElementsByName("_csrf_token")[0].value},
                           type: 'DELETE'})

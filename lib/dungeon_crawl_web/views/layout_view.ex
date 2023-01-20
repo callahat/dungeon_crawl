@@ -6,8 +6,15 @@ defmodule DungeonCrawlWeb.LayoutView do
   def main_tag_class(assigns) do
     case Map.get(assigns, :sidebar_col) do
       3 -> "ml-sm-auto col-md-9 col-lg-9 px-4"
-      2 -> "ml-sm-auto col-md-10 col-lg-10 px-4"
+      2 -> "ml-sm-auto col-md-10 col-lg-10 px-4" # this might not be used anymore anywhere
       _ -> "ml-sm-auto col-md-12 col-lg-12 px-4"
+    end
+  end
+
+  def alert_class(conn) do
+    case Map.get(conn, :request_path) do
+      "/dungeons" -> "alert-margin-l-3"
+      _ -> ""
     end
   end
 

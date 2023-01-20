@@ -121,7 +121,7 @@ defmodule DungeonCrawlWeb.ImportStatusLiveTest do
       Endpoint.broadcast("import_status_#{ user.id }", "refresh_status", {:import, import})
 
       assert import_live |> render() =~ "completed"
-      assert import_live |> element("a", dungeon.name) |> render() =~ "href=\"/dungeons/#{dungeon.id}"
+      assert import_live |> element("a", dungeon.name) |> render() =~ "href=\"/editor/dungeons/#{dungeon.id}"
     end
   end
 

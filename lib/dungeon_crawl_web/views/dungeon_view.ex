@@ -1,38 +1,51 @@
 defmodule DungeonCrawlWeb.DungeonView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.Account
+  alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.StateValue.StandardVariables
   alias DungeonCrawlWeb.SharedView
+  alias DungeonCrawl.Repo
 
-  def activate_or_new_version_button(conn, dungeon, location) do
-    if dungeon.active do
-      unless Dungeons.next_version_exists?(dungeon) do
-        link "New Version", to: Routes.dungeon_new_version_path(conn, :new_version, dungeon), method: :post, data: [confirm: "Are you sure?"], class: "btn btn-info btn-sm"
-      end
+  def can_start_new_instance(dungeon_id) do
+    is_nil(Admin.get_setting.max_instances) or Dungeons.instance_count(dungeon_id) < Admin.get_setting.max_instances
+  end
+
+  def favorite_star(dungeon, true) do
+    if dungeon.favorited do
+      """
+      <i class="fa fa-star" aria-hidden="true" phx-click="unfavorite_#{dungeon.line_identifier}"></i>
+      """
     else
-      crawl_msg = if location, do: "Your current crawl will be lost, "
-      [link("Test Crawl", to: Routes.dungeon_test_crawl_path(conn, :test_crawl, dungeon), method: :post, data: [confirm: "#{crawl_msg}Are you sure?"], class: "btn btn-info btn-sm"), " ",
-      link("Activate", to: Routes.dungeon_activate_path(conn, :activate, dungeon), method: :put, data: [confirm: "Are you sure?"], class: "btn btn-success btn-sm")]
+      """
+      <i class="fa fa-star-o" aria-hidden="true" phx-click="favorite_#{dungeon.line_identifier}"></i>
+      """
     end
   end
 
-  def adjacent_level_names(level) do
-    names = Dungeons.adjacent_level_names(level)
-    {:safe,
-      """
-      <table class="table table-sm compact-table">
-        <tr><td>North:</td><td>#{ names.north }</td></tr>
-        <tr><td>South:</td><td>#{ names.south }</td></tr>
-        <tr><td>West:</td><td>#{ names.west }</td></tr>
-        <tr><td>East:</td><td>#{ names.east }</td></tr>
-      </table>
-      """
-    }
+  def favorite_star(_, _) do
+    ""
   end
 
-  def title_level_name(nil), do: "<no levels>"
-  def title_level_name(level) do
-    "#{level.number} #{level.name}"
+  def dungeon_pin(dungeon, true) do
+    if dungeon.pinned do
+      """
+      <i class="fa fa-thumb-tack" aria-hidden="true" phx-click="unpin_#{dungeon.line_identifier}"></i>
+      """
+    else
+      """
+      <i class="fa fa-circle-o" aria-hidden="true" phx-click="pin_#{dungeon.line_identifier}"></i>
+      """
+    end
+  end
+
+  def dungeon_pin(dungeon, _) do
+    if dungeon.pinned do
+      """
+      <i class="fa fa-thumb-tack" aria-hidden="true" ></i>
+      """
+    else
+      ""
+    end
   end
 end

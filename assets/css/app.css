@@ -245,6 +245,12 @@ input#tile_template_character {
   overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
 }
 
+.sidebar-scrollable-dungeon-list {
+  overflow: scroll;
+  flex-wrap: nowrap;
+  height: calc(100vh - 140px); /* minus the height of the filter fields, probably should just have this on the right */
+}
+
 @supports ((position: -webkit-sticky) or (position: sticky)) {
   .sidebar-sticky {
     position: -webkit-sticky;
@@ -281,6 +287,9 @@ input#tile_template_character {
   padding: 0;
 }
 
+.alert-margin-l-3 {
+  margin-left: 25%;
+}
 /*
  * Content
  */
@@ -301,6 +310,12 @@ input#tile_template_character {
 
 .listing-full-height table {
   height: min-content;
+}
+
+.top-right {
+  position: absolute;
+  top: 0;
+  right: 0
 }
 
 /*

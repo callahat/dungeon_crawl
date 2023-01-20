@@ -27,8 +27,16 @@ defmodule DungeonCrawl.Scores do
   @doc """
   Returns the list of most recent scores.
   """
-  def list_new_scores(top \\ 10) do
+  def list_new_scores(top) do
     _order_recent_descending(DungeonCrawl.Scores.Score)
+    |> _limit(top)
+    |> _preload_dungeon_and_user()
+    |> Repo.all()
+  end
+
+  def list_new_scores(dungeon_id, top) do
+    from(s in DungeonCrawl.Scores.Score, where: s.dungeon_id == ^dungeon_id)
+    |> _order_recent_descending()
     |> _limit(top)
     |> _preload_dungeon_and_user()
     |> Repo.all()

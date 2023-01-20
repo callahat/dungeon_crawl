@@ -1,0 +1,25 @@
+<h2>Show user</h2>
+
+<ul>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @user.name %>
+  </li>
+
+  <li>
+    <strong>Username:</strong>
+    <%= @user.username %>
+  </li>
+
+  <li>
+    <strong>Is Admin:</strong>
+    <%= @user.is_admin %>
+  </li>
+
+</ul>
+
+<%= link "Edit", to: Routes.admin_user_path(@conn, :edit, @user) %> |
+<%= link "Back", to: Routes.admin_user_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.admin_user_path(@conn, :delete, @user), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+

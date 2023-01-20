@@ -1,0 +1,48 @@
+<h2>Show item</h2>
+
+<ul>
+  <li>
+    <strong>Name:</strong>
+    <%= @item.name %>
+  </li>
+
+  <li>
+    <strong>Slug:</strong>
+    <%= @item.slug %>
+  </li>
+
+  <li>
+    <strong>Description:</strong>
+    <%= @item.description %>
+  </li>
+
+  <li>
+    <strong>Owner:</strong>
+    <%= @owner_name %>
+  </li>
+
+  <li>
+    <strong>Public:</strong>
+    <%= if @item.public, do: "Yes", else: "No" %>
+  </li>
+
+  <li>
+    <strong>Weapon:</strong>
+    <%= if @item.weapon, do: "Yes", else: "No" %>
+  </li>
+
+  <li>
+    <strong>Consumable:</strong>
+    <%= if @item.consumable, do: "Yes", else: "No" %>
+  </li>
+
+  <li>
+    <strong>Script:</strong>
+    <pre class="script"><%= @item.script %></pre>
+  </li>
+</ul>
+
+<%= link "Edit", to: Routes.edit_equipment_path(@conn, :edit, @item) %> |
+<%= link "Back", to: Routes.edit_equipment_path(@conn, :index) %> |
+<%= link "Delete", to: Routes.edit_equipment_path(@conn, :delete, @item), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
+

@@ -33,10 +33,10 @@ defmodule DungeonCrawl.Admin do
 
   ## Examples
 
-      iex> update_setting(setting, %{field: new_value})
+      iex> update_setting(%{field: new_value})
       {:ok, %Setting{}}
 
-      iex> update_setting(setting, %{field: bad_value})
+      iex> update_setting(%{field: bad_value})
       {:error, %Ecto.Changeset{}}
   """
   def update_setting(attrs) do

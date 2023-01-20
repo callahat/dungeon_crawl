@@ -1,0 +1,32 @@
+<%= render "flash_live.html", flash: @flash %>
+
+<div class="row no-gutters">
+  <div class="col-3">
+  </div>
+  <div class="col-7" id="dungeonExports">
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <%= if @is_admin do %><th>User</th><% end %>
+          <th>Dungeon ID</th>
+          <th>Filename</th>
+          <th>Started</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      <%= for export <- @exports do %>
+        <tr>
+          <%= if @is_admin do %><td><%= export.user.username %></td><% end %>
+          <td><%= export.dungeon_id %></td>
+          <td><%= if export.file_name, do: link export.file_name, to: Routes.edit_dungeon_export_path(@socket, :download_dungeon_export, export.id) %></td>
+          <td><%= export.inserted_at %></td>
+          <td><%= export.status %></td>
+          <td><%= link "Delete", to: "#", phx_click: "delete#{export.id}", data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
+        </tr>
+      <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

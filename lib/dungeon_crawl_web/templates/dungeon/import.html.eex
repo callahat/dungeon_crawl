@@ -1,5 +1,0 @@
-<h2>Import dungeon</h2>
-
-<%= live_render(@conn, DungeonCrawlWeb.ImportStatusLive, session: %{"user_id_hash" => @user_id_hash}) %>
-
-<%= link "Back", to: Routes.dungeon_path(@conn, :index) %>
