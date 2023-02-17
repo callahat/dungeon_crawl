@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.PlayerTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.Account.User
   alias DungeonCrawl.Player
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
@@ -19,13 +20,19 @@ defmodule DungeonCrawl.PlayerTest do
     end
 
     test "get_location/1" do
-      location = location_fixture()
+      uid = "getLocation"
+      location = location_fixture(%{user_id_hash: uid})
       assert Player.get_location(%{id: location.id}) == location
+      assert Player.get_location(uid) == location
+      assert Player.get_location(%User{user_id_hash: uid}) == location
     end
 
     test "get_location!/1" do
-      location = location_fixture(%{user_id_hash: "getLocation"})
-      assert Player.get_location!("getLocation") == location
+      uid = "getLocation"
+      location = location_fixture(%{user_id_hash: uid})
+      assert Player.get_location!(%{id: location.id}) == location
+      assert Player.get_location!(uid) == location
+      assert Player.get_location!(%User{user_id_hash: uid}) == location
     end
 
     test "create_location/1 with valid data returns a location" do
@@ -149,6 +156,7 @@ defmodule DungeonCrawl.PlayerTest do
       assert 0 == Player.players_in_level(%DungeonInstances.Level{id: 9999999})
       location = location_fixture() |> Repo.preload(:tile)
       assert 1 == Player.players_in_level(%DungeonInstances.Level{id: location.tile.level_instance_id})
+      assert 1 == Player.players_in_level(%{instance_id: location.tile.level_instance_id})
     end
 
     test "players_in_level/1 returns the number of players id given a level" do

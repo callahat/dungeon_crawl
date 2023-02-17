@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Account
+  alias DungeonCrawl.Account.User
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
@@ -28,8 +29,11 @@ defmodule DungeonCrawl.Player do
       ** (Ecto.NoResultsError)
 
   """
+  def get_location(%User{user_id_hash: uid}), do: Repo.get_by(Location, %{user_id_hash: uid})
   def get_location(%{id: location_id}), do: Repo.get_by(Location, %{id: location_id})
   def get_location(user_id_hash), do: Repo.get_by(Location, %{user_id_hash: user_id_hash})
+  def get_location!(%User{user_id_hash: uid}), do: Repo.get_by!(Location, %{user_id_hash: uid})
+  def get_location!(%{id: location_id}), do: Repo.get_by!(Location, %{id: location_id})
   def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
 
   @doc """
