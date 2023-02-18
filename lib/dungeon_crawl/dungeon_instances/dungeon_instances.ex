@@ -269,10 +269,10 @@ defmodule DungeonCrawl.DungeonInstances do
 
   ## Examples
 
-      iex> get_tile(123)
+      iex> get_tile(123, 1,3)
       %Tile{}
 
-      iex> get_tile(456)
+      iex> get_tile(456, 13324, 13432)
       nil
 
   """

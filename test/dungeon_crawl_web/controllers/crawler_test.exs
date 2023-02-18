@@ -6,10 +6,13 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar, DungeonRegistry}
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
+
+  import DungeonCrawl.GamesFixtures
 
   test "join_and_broadcast/4 joining a dungeon" do
     Equipment.Seeder.gun()
@@ -60,6 +63,50 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     # cleanup
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+  end
+
+  test "load_and_broadcast/4 loading a save" do
+    Equipment.Seeder.gun()
+
+    user = insert_user()
+    save = Repo.preload(save_fixture(%{user_id_hash: user.user_id_hash}), :dungeon_instance)
+    level_instance = DungeonInstances.get_level(save.level_instance_id)
+    di_id = save.dungeon_instance.id
+
+    assert tile = Crawler.load_and_broadcast(save.id)
+    assert location = Player.get_location(user.user_id_hash)
+
+    # the user won't be here yet, but other players might so go ahead and broadcast
+    # to any that might witness
+    {:ok, _, _socket} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
+      |> subscribe_and_join(LevelChannel, "level:#{di_id}:#{level_instance.number}:")
+
+    expected_row = tile.row
+    expected_col = tile.col
+    assert save.row == tile.row
+    assert save.col == tile.col
+    expected_rendering = "<div style='color: #{user.color};background-color: #{user.background_color}'>@</div>"
+    assert_broadcast "tile_changes",
+                     %{tiles: [%{
+                       row: ^expected_row,
+                       col: ^expected_col,
+                       rendering: ^expected_rendering}]}
+
+    level_instance = DungeonInstances.get_level(save.level_instance_id)
+
+    # It registers the player location
+    {:ok, instance} = Registrar.instance_process(level_instance)
+    location_tile_id = tile.id
+    assert %Levels{player_locations: %{^location_tile_id => ^location}} = LevelProcess.get_state(instance)
+
+    # cleanup
+    DungeonRegistry.remove(DungeonInstanceRegistry, di_id)
+  end
+
+  test "load_and_broadcast/4 but its a bad save" do
+    # there are other possible errors, but testing one is sufficient for this level
+    assert {:error, "Save not found"} = Crawler.load_and_broadcast(-1)
   end
 
   test "leave_and_broadcast" do

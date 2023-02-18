@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.Crawler do
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.Registrar
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
 
@@ -47,6 +48,19 @@ defmodule DungeonCrawlWeb.Crawler do
       # "player_joined" could be broadcast here should it be needed for a future feature
       Levels.create_player_tile(instance_state, tile, location)
     end)
+  end
+
+  @doc """
+  Loads a save record, finds or reinitializes the instance, and broadcasts the event
+  to the channed
+  """
+  def load_and_broadcast(save_id) do
+    with {:ok, location} <- Games.load_save(save_id) do
+      _broadcast_join_event(location)
+    else
+      # maybe this should be handled in the crawler controller, it will definitely need to handle it
+      error -> error
+    end
   end
 
   @doc """

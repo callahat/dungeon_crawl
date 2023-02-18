@@ -42,7 +42,9 @@ defmodule DungeonCrawl.Games do
   def get_save(id), do: Repo.get(Save, id)
 
   @doc """
-  Creates a save.
+  Creates a save. Ideally this data should be fresh from the proces as the database
+  might not have the most up to date information on the user tile, since syncing is
+  expensive and only happens periodically.
 
   ## Examples
 
@@ -78,7 +80,8 @@ defmodule DungeonCrawl.Games do
   end
 
   @doc """
-  Loads a save.
+  Loads a save. The only creates the record in the database, it does
+  not handle adding the entry to the level process.
 
   ## Examples
 
@@ -96,12 +99,12 @@ defmodule DungeonCrawl.Games do
          level_instance = DungeonInstances.get_level(save.level_instance_id) do
       # location; row / col may be different depending on the dungeons load spawn setting
       top_tile = DungeonInstances.get_tile(level_instance.id, save.row, save.col)
-      z_index = if top_tile, do: top_tile.z_index + 100, else: 0
+      z_index = if top_tile, do: top_tile.z_index + 100, else: 100
 
       tile =
-        Map.take(save, [:row, :col, :level_instance_id])
+        Map.take(save, [:row, :col, :level_instance_id, :state])
         |> Map.merge(Map.take(player, [:name, :color, :background_color]))
-        |> Map.put(:z_index, z_index)
+        |> Map.merge(%{z_index: z_index, character: "@"})
         |> DungeonInstances.create_tile!()
 
       Player.create_location(%{user_id_hash: save.user_id_hash, tile_instance_id: tile.id})

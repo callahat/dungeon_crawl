@@ -72,7 +72,17 @@ defmodule DungeonCrawl.GamesTest do
       refute Player.get_location(user.user_id_hash)
 
       assert {:ok, %Location{}} = Games.load_save(save.id)
-      assert Player.get_location(user.user_id_hash)
+      assert location = Player.get_location(user.user_id_hash)
+      assert %{background_color: "whitesmoke",
+               character: "@",
+               col: 42,
+               color: "black",
+               name: "Some User",
+               row: 42,
+               script: "",
+               state: "player: true",
+               z_index: 100
+             } = DungeonCrawl.Repo.preload(location, :tile).tile
 
       # won't load a game when already crawling
       assert {:error, 'Player already in a game'} = Games.load_save(save.id)
