@@ -110,12 +110,12 @@ defmodule DungeonCrawl.Games do
       Player.create_location(%{user_id_hash: save.user_id_hash, tile_instance_id: tile.id})
     else
       %Location{} ->
-        {:error, 'Player already in a game'}
+        {:error, "Player already in a game"}
       _ ->
         if is_nil(get_save(id)) do
-          {:error, 'Save not found'}
+          {:error, "Save not found"}
         else
-          {:error, 'Player not found'}
+          {:error, "Player not found"}
         end
     end
   end

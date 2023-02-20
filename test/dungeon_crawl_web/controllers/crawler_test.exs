@@ -5,9 +5,10 @@ defmodule DungeonCrawlWeb.CrawlerTest do
   alias DungeonCrawlWeb.Crawler
 
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.Dungeons.Dungeon
+  alias DungeonCrawl.Dungeons.{Dungeon, Tile}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar, DungeonRegistry}
+  alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
@@ -167,6 +168,45 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     # Score was created
     assert [score] = DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score)
     assert score.result == "Gave Up, Level: 1"
+
+    # cleanup
+    DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+  end
+
+  test "save_and_leave_and_broadcast/1" do
+    level_instance = insert_stubbed_level_instance(%{},
+      [%Tile{character: ".", row: 1, col: 1, z_index: 0}])
+
+    di = DungeonCrawl.Repo.preload(level_instance, :dungeon).dungeon
+
+    location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
+
+    {:ok, _, _socket} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
+      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
+
+    # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
+    {location, save} = Crawler.save_and_leave_and_broadcast(location)
+    assert %Player.Location{} = location = Repo.preload(location, :tile)
+
+    expected_row = location.tile.row
+    expected_col = location.tile.col
+    rendering = "<div>.</div>"
+    assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^rendering}]}
+
+    # It unregisters the player location
+    {:ok, instance} = Registrar.instance_process(level_instance)
+    state = LevelProcess.get_state(instance)
+    assert %{} == state.player_locations
+
+    # It did not destroy the dungeon
+    assert Dungeons.get_dungeon(di.dungeon_id)
+
+    # No score is created
+    assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
+
+    # It creates the save
+    assert %Save{user_id_hash: "itsmehash"} = save
 
     # cleanup
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
