@@ -12,6 +12,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
+  alias DungeonCrawl.StateValue.Parser
 
   import DungeonCrawl.GamesFixtures
 
@@ -181,6 +182,11 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
 
+    location = location
+               |> Player.change_location()
+               |> Ecto.Changeset.put_change(:inserted_at, NaiveDateTime.add(location.inserted_at, -120))
+               |> Repo.update!()
+
     {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
       |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
@@ -206,7 +212,9 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
 
     # It creates the save
-    assert %Save{user_id_hash: "itsmehash"} = save
+    assert %Save{user_id_hash: "itsmehash", state: state} = save
+    %{duration: duration} = Parser.parse!(state)
+    assert_in_delta duration, 120, 1
 
     # cleanup
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)

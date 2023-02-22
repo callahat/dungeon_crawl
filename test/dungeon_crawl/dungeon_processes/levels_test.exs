@@ -740,7 +740,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   test "gameover/3 - ends game for all players in instance" do
     instance = insert_stubbed_level_instance(%{}, [
-                 %Tile{character: "@", row: 1, col: 3, state: "damage: 10, player: true, score: 3, steps: 10", name: "player"},
+                 %Tile{character: "@", row: 1, col: 3, state: "duration: 123, damage: 10, player: true, score: 3, steps: 10", name: "player"},
                  %Tile{character: "@", row: 1, col: 4, state: "damage: 10, player: true, score: 1, steps: 99", name: "player"}
                ])
     [player_tile_1, player_tile_2] = Repo.preload(instance, :tiles).tiles
@@ -799,6 +799,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
              dungeon_id: ^dungeon_id,
              victory: true,
              result: "Win"} = score_2
+    # player location 1 was "inserted" 13 seconds ago
+    assert_in_delta score_1.duration, 123 + 13, 1
 
     # doesn't make new scores when the tiles already have gameover state
     Levels.gameover(updated_state, player_tile_1.id, true, "Won Still")
