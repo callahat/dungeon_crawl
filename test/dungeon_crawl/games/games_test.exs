@@ -19,6 +19,31 @@ defmodule DungeonCrawl.GamesTest do
       assert Games.list_saved_games() == [save]
     end
 
+    test "list_saved_games/1 returns all saved_games for given user id hash and dungeon id" do
+      save1 = save_fixture(%{user_id_hash: "one"})
+      save_fixture(%{user_id_hash: "one"})
+      save_fixture()
+      dungeon_id = Repo.preload(save1, :dungeon_instance).dungeon_instance.dungeon_id
+      assert Games.list_saved_games(%{user_id_hash: "one", dungeon_id: dungeon_id}) == [save1]
+      assert Games.list_saved_games(%{user_id_hash: "derp", dungeon_id: dungeon_id}) == []
+    end
+
+    test "list_saved_games/1 returns all saved_games for given dungeon id" do
+      save1 = save_fixture(%{user_id_hash: "one"})
+      save_fixture(%{user_id_hash: "one"})
+      dungeon_id = Repo.preload(save1, :dungeon_instance).dungeon_instance.dungeon_id
+      assert Games.list_saved_games(%{dungeon_id: dungeon_id}) == [save1]
+    end
+
+    test "list_saved_games/1 returns all saved_games for given user id hash" do
+      save1 = save_fixture(%{user_id_hash: "one"})
+      save2 = save_fixture(%{user_id_hash: "one"})
+      save3 = save_fixture()
+      assert Games.list_saved_games(%{user_id_hash: "one"}) == [save1, save2]
+      assert Games.list_saved_games(%{user_id_hash: save3.user_id_hash}) == [save3]
+      assert Games.list_saved_games(%{user_id_hash: "derp"}) == []
+    end
+
     test "get_save/1 returns the save with given id" do
       save = save_fixture()
       assert Games.get_save(save.id) == save
@@ -57,12 +82,12 @@ defmodule DungeonCrawl.GamesTest do
     end
 
     test "load_save/1 invalid save id returns error" do
-      assert {:error, 'Save not found'} = Games.load_save(1)
+      assert {:error, "Save not found"} = Games.load_save(1)
     end
 
     test "load_save/1 invalid user" do
       save = save_fixture(%{user_id_hash: "junk"})
-      assert {:error, 'Player not found'} = Games.load_save(save.id)
+      assert {:error, "Player not found"} = Games.load_save(save.id)
     end
 
     test "load_save/1 creates the player location and tile instance" do
@@ -85,7 +110,7 @@ defmodule DungeonCrawl.GamesTest do
              } = DungeonCrawl.Repo.preload(location, :tile).tile
 
       # won't load a game when already crawling
-      assert {:error, 'Player already in a game'} = Games.load_save(save.id)
+      assert {:error, "Player already in a game"} = Games.load_save(save.id)
     end
 
     test "delete_save/1 deletes the save" do

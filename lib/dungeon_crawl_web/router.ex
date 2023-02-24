@@ -28,6 +28,7 @@ defmodule DungeonCrawlWeb.Router do
     post "/crawler/validate_avatar", CrawlerController, :validate_avatar
     get "/crawler/:dungeon_instance_id/:passcode", CrawlerController, :invite
     post "/crawler/:dungeon_instance_id/:passcode", CrawlerController, :validate_invite
+    post "/crawler/save_and_quit", CrawlerController, :save_and_quit
     delete "/crawler", CrawlerController, :destroy
 
     resources "/user", UserController, singleton: true

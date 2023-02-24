@@ -11,7 +11,11 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, LevelProcess}
 
-  import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
+  import DungeonCrawlWeb.Crawler, only: [
+    join_and_broadcast: 4,
+    leave_and_broadcast: 1,
+    save_and_leave_and_broadcast: 1
+  ]
 
   plug :assign_player_location
   plug :validate_crawling when action in [:show, :destroy]
@@ -97,6 +101,16 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
   def validate_invite(conn, %{"user" => _user} = params) do
     validate_avatar(conn, params)
+  end
+
+  def save_and_quit(conn, _opts) do
+    location = Player.get_location(conn.assigns[:user_id_hash])
+
+    save_and_leave_and_broadcast(location)
+
+    conn
+    |> put_flash(:info, "Saved")
+    |> redirect(to: Routes.dungeon_path(conn, :index))
   end
 
   def destroy(conn, %{"dungeon_id" => dungeon_id, "score_id" => score_id}) do

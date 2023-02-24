@@ -24,6 +24,26 @@ defmodule DungeonCrawl.Games do
   def list_saved_games do
     Repo.all(Save)
   end
+  def list_saved_games(%{user_id_hash: user_id_hash, dungeon_id: dungeon_id}) do
+    Repo.all(from s in _dungeon_saves(dungeon_id),
+             where: s.user_id_hash == ^user_id_hash)
+  end
+  def list_saved_games(%{dungeon_id: dungeon_id}) do
+    Repo.all(from s in _dungeon_saves(dungeon_id))
+  end
+  def list_saved_games(%{user_id_hash: user_id_hash}) do
+    Repo.all(from s in Save,
+             where: s.user_id_hash == ^user_id_hash)
+  end
+
+  defp _dungeon_saves(dungeon_id) do
+    from s in Save,
+         left_join: l in DungeonInstances.Level,
+                on: l.id == s.level_instance_id,
+         left_join: di in DungeonInstances.Dungeon,
+                on: di.id == l.dungeon_instance_id,
+         where: di.dungeon_id == ^dungeon_id
+  end
 
   @doc """
   Gets a single save.
