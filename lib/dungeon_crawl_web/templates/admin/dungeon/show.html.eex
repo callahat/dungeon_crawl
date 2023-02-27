@@ -13,6 +13,7 @@
     <th>ID</th>
     <th>Private?</th>
     <th>Players</th>
+    <th>Saves</th>
     <th></th>
   </tr>
   <%= for di <- @dungeon.dungeon_instances do %>
@@ -20,9 +21,37 @@
     <td><%= link di.id, to: Routes.admin_dungeon_path(@conn, :show, @dungeon, instance_id: di.id) %></td>
     <td><%= di.is_private %></td>
     <td><%= Enum.count(di.locations) %></td>
+    <td><%= Enum.count(di.saves) %></td>
     <td><%= link "Delete Instance", to: Routes.admin_dungeon_path(@conn, :delete, @dungeon, instance_id: di.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
   </tr>
+
+  <%= if @dungeon_instance && di.id == @dungeon_instance.id do %>
+    <tr>
+      <td><b class="pull-right">Saved Games</b></td>
+      <td colspan=3>
+    <%= if Enum.count(@dungeon_instance.saves) > 0 do %>
+      <table class="table table-sm">
+        <tr>
+          <th>Player</th>
+          <th>Level</th>
+          <th></th>
+        </tr>
+        <%= for save <-  @dungeon_instance.saves do %>
+        <tr>
+          <td><%= Account.get_name(save.user_id_hash) %></td>
+          <td><%= save.level_instance.number %></td>
+          <td><%= link "Delete Save", to: Routes.admin_dungeon_path(@conn, :delete, @dungeon, instance_id: @dungeon_instance.id, save_id: save.id), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
+        </tr>
+        <% end %>
+      </table>
+      <% else %>
+      <p>No saved games</p>
+      <% end %>
+    <% end %>
+      </td>
+    </tr>
   <% end %>
+
   <%= if @dungeon_instance do %>
   <tr>
     <td><%= link "(non instance view)", to: Routes.admin_dungeon_path(@conn, :show, @dungeon) %></td>

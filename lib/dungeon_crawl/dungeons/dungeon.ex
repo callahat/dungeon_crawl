@@ -42,6 +42,10 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
     has_many :locations, through: [:dungeon_instances, :locations], on_delete: :delete_all
     has_many :next_versions, Dungeons.Dungeon, foreign_key: :previous_version_id, on_delete: :nilify_all
     has_many :scores, Score, on_delete: :delete_all#, foreign_key: :map_set_id
+    # a lot of these has_many are used as counts, if these pages start slowing down
+    # see what of these should become a function that returns a count, instead of preloading
+    # all the records and counting via Enum.count/1
+    has_many :saves, through: [:dungeon_instances, :saves], on_delete: :delete_all
 
     belongs_to :previous_version, Dungeons.Dungeon, foreign_key: :previous_version_id
     belongs_to :user, User

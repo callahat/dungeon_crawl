@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.DungeonInstances.MapSetTest do
+defmodule DungeonCrawl.DungeonInstances.DungeonTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.DungeonInstances.Dungeon
