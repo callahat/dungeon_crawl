@@ -111,7 +111,6 @@ defmodule DungeonCrawl.GamesTest do
       save = save_fixture(%{user_id_hash: user.user_id_hash})
 
       refute Player.get_location(user.user_id_hash)
-      assert Player.get_location(%{id: save.location_id})
 
       assert {:ok, %Location{}} = Games.load_save(save.id)
       assert location = Player.get_location(user.user_id_hash)

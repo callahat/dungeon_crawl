@@ -286,8 +286,8 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     conn = post conn, crawler_path(conn, :save_and_quit)
     assert redirected_to(conn) == dungeon_path(conn, :index)
     assert get_flash(conn, :info) == "Saved"
-    # location is not deleted
-    assert Player.get_location(location)
+    # location is deleted
+    refute Player.get_location(location)
     assert DungeonInstances.get_dungeon(dungeon_instance.id)
     assert Dungeons.get_level(instance.level_id)
     level_instance_id = instance.id
