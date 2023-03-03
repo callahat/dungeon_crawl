@@ -125,6 +125,15 @@ defmodule DungeonCrawl.PlayerTest do
       assert Repo.preload(location, :tile).tile.z_index > 3
     end
 
+    test "set_tile_instance_id/1" do
+      location = location_fixture()
+      assert tile_instance_id = location.tile_instance_id
+      location = Player.set_tile_instance_id(location, nil)
+      refute location.tile_instance_id
+      location = Player.set_tile_instance_id(location, tile_instance_id)
+      assert location.tile_instance_id == tile_instance_id
+    end
+
     test "delete_location!/1 deletes the location associated with the user_id_hash" do
       location_fixture(%{user_id_hash: "deletedHash"})
       assert %Location{} = Player.delete_location!("deletedHash")

@@ -176,9 +176,9 @@ defmodule DungeonCrawlWeb.TestHelpers do
       user_id_hash: "good_hash",
     }, attrs)
 
-    tile_id = if changes[:tile_instance_id], do: changes[:tile_instance_id], else: insert_player_tile(changes).id
+    tile = if changes[:tile_instance_id], do: changes[:tile_instance_id], else: insert_player_tile(changes)
 
-    DungeonCrawl.Player.create_location!(%{user_id_hash: changes.user_id_hash, tile_instance_id: tile_id})
+    DungeonCrawl.Player.create_location!(%{user_id_hash: changes.user_id_hash, tile_instance_id: tile.id})
   end
 
   def insert_score(dungeon_id, attrs \\ %{}) do

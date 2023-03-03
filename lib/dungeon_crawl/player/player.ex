@@ -29,12 +29,18 @@ defmodule DungeonCrawl.Player do
       ** (Ecto.NoResultsError)
 
   """
-  def get_location(%User{user_id_hash: uid}), do: Repo.get_by(Location, %{user_id_hash: uid})
+  def get_location(%User{user_id_hash: uid}), do: Repo.one(_active_location_query(uid))
   def get_location(%{id: location_id}), do: Repo.get_by(Location, %{id: location_id})
-  def get_location(user_id_hash), do: Repo.get_by(Location, %{user_id_hash: user_id_hash})
-  def get_location!(%User{user_id_hash: uid}), do: Repo.get_by!(Location, %{user_id_hash: uid})
+  def get_location(user_id_hash), do: Repo.one(_active_location_query(user_id_hash))
+  def get_location!(%User{user_id_hash: uid}), do: Repo.one!(_active_location_query(uid))
   def get_location!(%{id: location_id}), do: Repo.get_by!(Location, %{id: location_id})
-  def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
+  def get_location!(user_id_hash), do: Repo.one!(_active_location_query(user_id_hash))
+
+  def _active_location_query(user_id_hash) do
+    from l in Location,
+    where: l.user_id_hash == ^user_id_hash and
+      not is_nil(l.tile_instance_id)
+  end
 
   @doc """
   Creates a location.
@@ -151,6 +157,19 @@ defmodule DungeonCrawl.Player do
     tile_state = Enum.join([player_tile.state, equipped, equipment], ", ")
 
     Repo.update!(Tile.changeset(player_tile, %{state: tile_state }))
+  end
+
+  @doc """
+  Sets the tile instance id. When set to nil, this indicates an inactive (or saved) location.
+
+  ## Examples
+
+      iex> set_tile_instance_id(%Location{}, tile_instance_id)
+      %Location{}
+  """
+  def set_tile_instance_id(%Location{} = location, tile_instance_id) do
+    change_location(location, %{tile_instance_id: tile_instance_id})
+    |> Repo.update!()
   end
 
   @doc """

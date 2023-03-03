@@ -281,12 +281,13 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
   test "saves and redirects to the crawler list", %{conn: conn, user: user} do
     dungeon_instance = insert_stubbed_dungeon_instance(%{active: true})
     instance = Repo.preload(dungeon_instance, :levels).levels |> Enum.at(0)
-    insert_player_location(%{level_instance_id: instance.id, user_id_hash: user.user_id_hash, row: 2, z_index: 1})
+    location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: user.user_id_hash, row: 2, z_index: 1})
 
     conn = post conn, crawler_path(conn, :save_and_quit)
     assert redirected_to(conn) == dungeon_path(conn, :index)
     assert get_flash(conn, :info) == "Saved"
-    refute Player.get_location(user.user_id_hash)
+    # location is not deleted
+    assert Player.get_location(location)
     assert DungeonInstances.get_dungeon(dungeon_instance.id)
     assert Dungeons.get_level(instance.level_id)
     level_instance_id = instance.id

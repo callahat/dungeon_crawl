@@ -71,24 +71,28 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     Equipment.Seeder.gun()
 
     user = insert_user()
-    save = Repo.preload(save_fixture(%{user_id_hash: user.user_id_hash}), :dungeon_instance)
+    save = Repo.preload(save_fixture(%{user_id_hash: user.user_id_hash, row: 0, col: 0}), :dungeon_instance)
     level_instance = DungeonInstances.get_level(save.level_instance_id)
     di_id = save.dungeon_instance.id
 
-    assert tile = Crawler.load_and_broadcast(save.id)
-    assert location = Player.get_location(user.user_id_hash)
+    other_user = insert_user()
+    insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: other_user.user_id_hash, state: "cash: 2, score: 10"})
 
     # the user won't be here yet, but other players might so go ahead and broadcast
     # to any that might witness
     {:ok, _, _socket} =
-      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: other_user.user_id_hash})
       |> subscribe_and_join(LevelChannel, "level:#{di_id}:#{level_instance.number}:")
+
+    assert tile = Crawler.load_and_broadcast(save.id)
+    assert location = Player.get_location(user.user_id_hash)
 
     expected_row = tile.row
     expected_col = tile.col
     assert save.row == tile.row
     assert save.col == tile.col
     expected_rendering = "<div style='color: #{user.color};background-color: #{user.background_color}'>@</div>"
+
     assert_broadcast "tile_changes",
                      %{tiles: [%{
                        row: ^expected_row,
@@ -186,19 +190,20 @@ defmodule DungeonCrawlWeb.CrawlerTest do
                |> Player.change_location()
                |> Ecto.Changeset.put_change(:inserted_at, NaiveDateTime.add(location.inserted_at, -120))
                |> Repo.update!()
+               |> Repo.preload([:tile])
 
     {:ok, _, _socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
       |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
 
-    # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
-    {location, save} = Crawler.save_and_leave_and_broadcast(location)
-    assert %Player.Location{} = location = Repo.preload(location, :tile)
-
     expected_row = location.tile.row
     expected_col = location.tile.col
-    rendering = "<div>.</div>"
-    assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^rendering}]}
+    expected_rendering = "<div>.</div>"
+
+    # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
+    assert %Save{} = save = Crawler.save_and_leave_and_broadcast(location)
+
+    assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
 
     # It unregisters the player location
     {:ok, instance} = Registrar.instance_process(level_instance)

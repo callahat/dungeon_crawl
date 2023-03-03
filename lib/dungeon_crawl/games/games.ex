@@ -10,7 +10,6 @@ defmodule DungeonCrawl.Games do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Player
-  alias DungeonCrawl.Player.Location
 
   @doc """
   Returns the list of saved_games.
@@ -74,11 +73,21 @@ defmodule DungeonCrawl.Games do
       iex> create_save(%{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
+      iex> create_save(%{field: value}, %Location{})
+      {:ok, %Save{}}
   """
-  def create_save(attrs \\ %{}) do
+  def create_save(attrs) do
     %Save{}
     |> Save.changeset(attrs)
     |> Repo.insert()
+  end
+  def create_save(attrs, %Player.Location{} = location) do
+    Player.set_tile_instance_id(location, nil)
+
+    %{user_id_hash: location.user_id_hash}
+    |> Map.merge(Map.take(attrs, [:row, :col, :level_instance_id, :state]))
+    |> Map.put(:location_id, location.id)
+    |> create_save()
   end
 
   @doc """
@@ -112,9 +121,11 @@ defmodule DungeonCrawl.Games do
       {:error, <reason>}
   """
   def load_save(id) do
-    with save when not is_nil(save) <- get_save(id),
+    save = get_save(id)
+    with save when not is_nil(save) <- save,
          player when not is_nil(player) <- Account.get_by_user_id_hash(save.user_id_hash),
-         nil <- Player.get_location(save.user_id_hash),
+         location when not is_nil(location) <- Player.get_location(%{id: save.location_id}),
+         nil <- location.tile_instance_id,
          # database constraint prevents this from being nil
          level_instance = DungeonInstances.get_level(save.level_instance_id) do
       # location; row / col may be different depending on the dungeons load spawn setting
@@ -127,15 +138,20 @@ defmodule DungeonCrawl.Games do
         |> Map.merge(%{z_index: z_index, character: "@"})
         |> DungeonInstances.create_tile!()
 
-      Player.create_location(%{user_id_hash: save.user_id_hash, tile_instance_id: tile.id})
+      location = Player.set_tile_instance_id(location, tile.id)
+
+      {:ok, location}
     else
-      %Location{} ->
+      tile_instance_id when is_integer(tile_instance_id) ->
         {:error, "Player already in a game"}
       _ ->
-        if is_nil(get_save(id)) do
-          {:error, "Save not found"}
-        else
-          {:error, "Player not found"}
+        cond do
+          is_nil(save) ->
+            {:error, "Save not found"}
+          is_nil(Account.get_by_user_id_hash(save.user_id_hash)) ->
+            {:error, "Player not found"}
+          true ->
+            {:error, "Location not found"}
         end
     end
   end

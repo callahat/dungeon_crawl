@@ -97,7 +97,7 @@ defmodule DungeonCrawlWeb.Crawler do
   ## Examples
 
       iex> leave_and_broadcast(instance, player_location)
-      {%Player.Location{}, %Save{}}
+      %Save{}
   """
   def save_and_leave_and_broadcast(%Player.Location{} = location) do
     # TODO: check that this method may be called for the dungeon, once i figure that out
@@ -105,7 +105,7 @@ defmodule DungeonCrawlWeb.Crawler do
 
     {:ok, instance} = Registrar.instance_process(tile.level)
 
-    {deleted_location, save} = LevelProcess.run_with(instance, fn (instance_state) ->
+    LevelProcess.run_with(instance, fn (instance_state) ->
       seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, location.inserted_at)
       duration = (tile.parsed_state[:duration] || 0) + seconds
       player_tile = Levels.get_tile_by_id(instance_state, tile)
@@ -114,17 +114,11 @@ defmodule DungeonCrawlWeb.Crawler do
       # Its up to the designer of a dungeon to not have cases where a player could save
       # and take with them items needed for other players to advance or win. A player who saves
       # the game takes all their stuff on their tile with them to come back later.
-      {:ok, save} = %{user_id_hash: location.user_id_hash}
-                    |> Map.merge(Map.take(player_tile, [:row, :col, :level_instance_id, :state]))
-                    |> Games.create_save()
+      {:ok, save} = Games.create_save(player_tile, location)
 
-      {_deleted_instance_location, instance_state} = Levels.delete_tile(instance_state, tile)
+      {_deleted_tile, instance_state} = Levels.delete_tile(instance_state, tile)
 
-      deleted_location = Player.delete_location!(location)
-
-      {{deleted_location, save}, instance_state}
+      {save, instance_state}
     end)
-
-    {deleted_location, save}
   end
 end
