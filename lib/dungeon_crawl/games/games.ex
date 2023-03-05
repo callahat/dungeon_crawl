@@ -45,6 +45,26 @@ defmodule DungeonCrawl.Games do
   end
 
   @doc """
+  Returns true if there are saves for this dungeon instance
+  """
+  def has_saved_games?(%DungeonInstances.Level{dungeon_instance_id: id}) do
+    has_saved_games?(id)
+  end
+  def has_saved_games?(%DungeonInstances.Dungeon{id: id}) do
+    has_saved_games?(id)
+  end
+  def has_saved_games?(dungeon_instance_id) when is_integer(dungeon_instance_id) do
+    Repo.exists?(_dungeon_instance_saves(dungeon_instance_id))
+  end
+
+  defp _dungeon_instance_saves(di_id) do
+    from s in Save,
+         left_join: l in DungeonInstances.Level,
+         on: l.id == s.level_instance_id,
+         where: l.dungeon_instance_id == ^di_id
+  end
+
+  @doc """
   Gets a single save.
 
   Raises `Ecto.NoResultsError` if the Save does not exist.

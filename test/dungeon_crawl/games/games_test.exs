@@ -44,6 +44,15 @@ defmodule DungeonCrawl.GamesTest do
       assert Games.list_saved_games(%{user_id_hash: "derp"}) == []
     end
 
+    test "has_saved_games?/1" do
+      save = save_fixture(%{user_id_hash: "one"})
+             |> Repo.preload(:dungeon_instance)
+      assert Games.has_saved_games?(save.level_instance)
+      assert Games.has_saved_games?(save.dungeon_instance)
+      assert Games.has_saved_games?(save.dungeon_instance.id)
+      refute Games.has_saved_games?(save.dungeon_instance.id + 1)
+    end
+
     test "get_save/1 returns the save with given id" do
       save = save_fixture()
       assert Games.get_save(save.id) == save
