@@ -9,6 +9,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonInstances.Tile
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Player.Location
 
   setup do
@@ -160,6 +161,21 @@ defmodule DungeonCrawl.DungeonProcessTest do
       :timer.sleep 50
       assert Dungeons.get_dungeon(dungeon.id)
       refute DungeonInstances.get_dungeon(dungeon_instance.id)
+      refute Process.alive?(dungeon_process)
+    end
+
+    test "no players, process dies, instance kept if saves",
+         %{dungeon_process: dungeon_process, dungeon_instance: dungeon_instance} do
+      level = Repo.preload(dungeon_instance, :levels).levels |> Enum.at(0)
+      dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
+      DungeonProcess.set_dungeon_instance(dungeon_process, dungeon_instance)
+      DungeonProcess.set_dungeon(dungeon_process, dungeon)
+      assert Process.alive?(dungeon_process)
+      assert {:ok, _} = Games.create_save(%{level_instance_id: level.id, user_id_hash: "test", row: 1, col: 1, state: "ok: ok"})
+      DungeonProcess.start_scheduler(dungeon_process, 0) # check for players immediately
+      :timer.sleep 50
+      assert Dungeons.get_dungeon(dungeon.id)
+      assert DungeonInstances.get_dungeon(dungeon_instance.id)
       refute Process.alive?(dungeon_process)
     end
 
