@@ -11,6 +11,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
+  alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.TileTemplates
 
@@ -31,6 +32,30 @@ defmodule DungeonCrawl.Player do
   def get_location(%{id: location_id}), do: Repo.get_by(Location, %{id: location_id})
   def get_location(user_id_hash), do: Repo.get_by(Location, %{user_id_hash: user_id_hash})
   def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
+
+  @doc """
+  Returns if the given player currently has an existing game (ie, currently crawling)
+
+  ## Examples
+
+      iex> is_crawling?("user_id_hash")
+      true
+
+      iex> is_crawling?(456)
+      false
+  """
+  def is_crawling?(%{id: location_id}), do: Repo.exists?(from l in Location, where: l.id == ^location_id)
+  def is_crawling?(user_id_hash), do: Repo.exists?(from l in Location, where: l.user_id_hash == ^user_id_hash)
+
+  @doc """
+  Returns if the given player currently has saved games.
+
+  ## Examples
+
+      iex> has_saved_games?("user_id_hash")
+      true
+  """
+  def has_saved_games?(user_id_hash), do: Repo.exists?(from s in Save, where: s.user_id_hash == ^user_id_hash)
 
   @doc """
   Creates a location.

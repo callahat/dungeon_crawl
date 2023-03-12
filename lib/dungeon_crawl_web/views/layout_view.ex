@@ -21,4 +21,8 @@ defmodule DungeonCrawlWeb.LayoutView do
   def user_can_edit_dungeons(user) do
     user.is_admin or Admin.get_setting().non_admin_dungeons_enabled
   end
+
+  def in_crawler_controller?(conn) do
+    controller_module(conn) == Elixir.DungeonCrawlWeb.CrawlerController
+  end
 end

@@ -25,4 +25,9 @@ defmodule DungeonCrawlWeb.LayoutViewTest do
     assert user_can_edit_dungeons(%{is_admin: true})
     refute user_can_edit_dungeons(%{is_admin: false})
   end
+
+  test "in_crawler_controller?/1" do
+    assert in_crawler_controller?(%{private: %{phoenix_controller: Elixir.DungeonCrawlWeb.CrawlerController}})
+    refute in_crawler_controller?(%{private: %{phoenix_controller: AnyOtherController}})
+  end
 end

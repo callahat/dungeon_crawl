@@ -44,6 +44,7 @@ defmodule DungeonCrawl.Games do
          where: di.dungeon_id == ^dungeon_id
   end
 
+  # TODO: should these live in the DungeonInstances module?
   @doc """
   Returns true if there are saves for this dungeon instance
   """

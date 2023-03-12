@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.Auth do
   import Phoenix.Controller
   alias DungeonCrawlWeb.Router.Helpers
   alias DungeonCrawl.Account
+  alias DungeonCrawl.Player
 
   def init(opts) do
     Keyword.fetch!(opts, :repo)
@@ -40,6 +41,8 @@ defmodule DungeonCrawlWeb.Auth do
     conn
     |> assign(:current_user, user)
     |> assign(:user_id_hash, user.user_id_hash)
+    |> assign(:is_crawling?, Player.is_crawling?(user.user_id_hash))
+    |> assign(:has_saved_games?, Player.has_saved_games?(user.user_id_hash))
     |> put_token(user.user_id_hash)
   end
 
@@ -54,6 +57,8 @@ defmodule DungeonCrawlWeb.Auth do
     assign(conn, :current_user, nil)
     |> put_token(user_id_hash)
     |> assign(:user_id_hash, user_id_hash)
+    |> assign(:is_crawling?, Player.is_crawling?(user_id_hash))
+    |> assign(:has_saved_games?, false)
     |> configure_session(renew: true)
   end
 

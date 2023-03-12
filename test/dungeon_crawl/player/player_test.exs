@@ -10,6 +10,8 @@ defmodule DungeonCrawl.PlayerTest do
   describe "player_locations" do
     alias DungeonCrawl.Player.Location
 
+    import DungeonCrawl.GamesFixtures
+
     @valid_attrs %{user_id_hash: "some content"}
     @invalid_attrs %{user_id_hash: nil}
 
@@ -26,6 +28,22 @@ defmodule DungeonCrawl.PlayerTest do
     test "get_location!/1" do
       location = location_fixture(%{user_id_hash: "getLocation"})
       assert Player.get_location!("getLocation") == location
+    end
+
+    test "is_crawling?/1" do
+      user = insert_user(%{user_id_hash: "notcrawling"})
+      location = location_fixture(%{user_id_hash: "crawlingplayer"})
+      assert Player.is_crawling?(location.user_id_hash)
+      assert Player.is_crawling?(location)
+      refute Player.is_crawling?("fakeplayer")
+      refute Player.is_crawling?(user.user_id_hash)
+    end
+
+    test "has_saved_games?/1" do
+      user = insert_user(%{user_id_hash: "nosaves"})
+      save = save_fixture()
+      assert Player.has_saved_games?(save.user_id_hash)
+      refute Player.has_saved_games?(user.user_id_hash)
     end
 
     test "create_location/1 with valid data returns a location" do
