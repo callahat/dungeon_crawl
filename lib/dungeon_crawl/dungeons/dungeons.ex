@@ -18,6 +18,8 @@ defmodule DungeonCrawl.Dungeons do
 
   alias DungeonCrawl.DungeonInstances
 
+  alias DungeonCrawl.Games.Save
+
   alias DungeonCrawl.Scores.Score
 
   alias DungeonCrawl.TileTemplates
@@ -122,7 +124,9 @@ defmodule DungeonCrawl.Dungeons do
                            d.line_identifier == f.line_identifier,
           left_join: pin in PinnedDungeon,
                          on: d.line_identifier == pin.line_identifier,
-          select_merge: %{favorited: not is_nil(f), pinned: not is_nil(pin)},
+          left_join: s in subquery(_has_saved_games_query(user_id_hash)),
+                     on: s.id == d.id,
+          select_merge: %{favorited: not is_nil(f), pinned: not is_nil(pin), saved: not is_nil(s)},
           order_by: [is_nil(pin), d.name, user.name])
     |> _filter(filters, user_id_hash)
     |> Repo.all()
@@ -133,6 +137,14 @@ defmodule DungeonCrawl.Dungeons do
          where: is_nil(d.deleted_at),
          where: d.active == ^true,
          left_join: u in assoc(d, :user), as: :user
+  end
+
+  defp _has_saved_games_query(user_id_hash) do
+    from d in _active_dungeon_list_query(),
+         left_join: s in assoc(d, :saves),
+         where: s.user_id_hash == ^user_id_hash,
+         select: d.id,
+         group_by: d.id
   end
 
   defp _filter(query, filters, user_id_hash) when is_map(filters) do
@@ -194,6 +206,21 @@ defmodule DungeonCrawl.Dungeons do
                       select: 1
                    )
                  )
+  end
+
+  defp _filter(query, {:has_saves, true}, user_id_hash) do
+    from d in query,
+         where: exists(
+           from(s in Save,
+             left_join: li in DungeonInstances.Level,
+               on: s.level_instance_id == li.id,
+             left_join: di in DungeonInstances.Dungeon,
+               on: li.dungeon_instance_id == di.id,
+             where: s.user_id_hash == ^user_id_hash and
+                    di.dungeon_id == parent_as(:dungeon).id,
+             select: 1
+           )
+         )
   end
 
   # unknown filter, ignore

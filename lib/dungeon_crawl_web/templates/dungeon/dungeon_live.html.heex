@@ -24,6 +24,7 @@
       <li class="nav-item px-2">
         <%= link dungeon.name, to: "#", phx_click: "focus#{dungeon.id}" %>
         <div class="float-right text-center">
+        <%= {:safe, saved_game(dungeon)} %>
         <%= {:safe, dungeon_pin(dungeon, @is_admin)} %>
         <%= {:safe, favorite_star(dungeon, @is_user)} %>
         </div>
@@ -54,6 +55,12 @@
           <div><p><%= @dungeon.description %></p></div>
           <div>Levels: <%= @dungeon.levels |> Enum.count %></div>
           <div>Author: <%= @author_name %></div>
+
+          <%= if @dungeon.saves != [] do %>
+          <%= render "saved_game_list.html", socket: @socket, saves: @dungeon.saves, controller_csrf: @controller_csrf %>
+          <hr/>
+          <% end %>
+
           <div class="text-right">
             <%= if can_start_new_instance(@dungeon.id) do %>
             Create New Game:
@@ -61,6 +68,7 @@
             <%= link "Public", to: Routes.crawler_path(@socket, :avatar, dungeon_id: @dungeon.id), method: :post, data: [confirm: "Are you sure?"], csrf_token: @controller_csrf, class: "btn btn-danger btn-sm" %>
             <% end %>
           </div>
+
           <%= if Enum.count(@dungeon.public_dungeon_instances) > 0 do %>
             Joinable Games
             <table class="table table-sm">

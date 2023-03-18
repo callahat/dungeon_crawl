@@ -106,22 +106,29 @@ defmodule DungeonCrawl.GamesTest do
       assert save == Games.get_save(save.id)
     end
 
-    test "load_save/1 invalid save id returns error" do
-      assert {:error, "Save not found"} = Games.load_save(1)
+    test "load_save/2 invalid save id returns error" do
+      user = insert_user()
+      assert {:error, "Save not found"} = Games.load_save(1, user.user_id_hash)
     end
 
-    test "load_save/1 invalid user" do
+    test "load_save/2 nonexistant user" do
       save = save_fixture(%{user_id_hash: "junk"})
-      assert {:error, "Player not found"} = Games.load_save(save.id)
+      assert {:error, "Player not found"} = Games.load_save(save.id, "junk")
     end
 
-    test "load_save/1 creates the player location and tile instance" do
+    test "load_save/2 invalid user" do
+      user = insert_user()
+      save = save_fixture(%{user_id_hash: "junk"})
+      assert {:error, "Save does not belong to player"} = Games.load_save(save.id, user.user_id_hash)
+    end
+
+    test "load_save/2 creates the player location and tile instance" do
       user = insert_user()
       save = save_fixture(%{user_id_hash: user.user_id_hash})
 
       refute Player.get_location(user.user_id_hash)
 
-      assert {:ok, %Location{}} = Games.load_save(save.id)
+      assert {:ok, %Location{}} = Games.load_save(save.id, user.user_id_hash)
       assert location = Player.get_location(user.user_id_hash)
       assert %{background_color: "whitesmoke",
                character: "@",
@@ -135,7 +142,7 @@ defmodule DungeonCrawl.GamesTest do
              } = DungeonCrawl.Repo.preload(location, :tile).tile
 
       # won't load a game when already crawling
-      assert {:error, "Player already in a game"} = Games.load_save(save.id)
+      assert {:error, "Player already in a game"} = Games.load_save(save.id, user.user_id_hash)
     end
 
     test "delete_save/1 deletes the save" do

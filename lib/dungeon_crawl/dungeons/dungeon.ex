@@ -34,6 +34,7 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
 
     field :pinned, :boolean, virtual: true, default: nil
     field :favorited, :boolean, virtual: true, default: nil
+    field :saved, :boolean, virtual: true, default: nil
 
     has_many :dungeon_instances, DungeonInstances.Dungeon, on_delete: :delete_all#, foreign_key: :map_set_id
     has_many :public_dungeon_instances, DungeonInstances.Dungeon, where: [is_private: false]

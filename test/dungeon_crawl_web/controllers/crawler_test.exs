@@ -67,7 +67,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
   end
 
-  test "load_and_broadcast/4 loading a save" do
+  test "load_and_broadcast/2 loading a save" do
     Equipment.Seeder.gun()
 
     user = insert_user()
@@ -84,7 +84,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: other_user.user_id_hash})
       |> subscribe_and_join(LevelChannel, "level:#{di_id}:#{level_instance.number}:")
 
-    assert tile = Crawler.load_and_broadcast(save.id)
+    assert tile = Crawler.load_and_broadcast(save.id, user.user_id_hash)
     assert location = Player.get_location(user.user_id_hash)
 
     expected_row = tile.row
@@ -110,9 +110,10 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     DungeonRegistry.remove(DungeonInstanceRegistry, di_id)
   end
 
-  test "load_and_broadcast/4 but its a bad save" do
+  test "load_and_broadcast/2 but its a bad save" do
+    user = insert_user()
     # there are other possible errors, but testing one is sufficient for this level
-    assert {:error, "Save not found"} = Crawler.load_and_broadcast(-1)
+    assert {:error, "Save not found"} = Crawler.load_and_broadcast(-1, user.user_id_hash)
   end
 
   test "leave_and_broadcast" do

@@ -14,12 +14,13 @@ defmodule DungeonCrawlWeb.CrawlerController do
   import DungeonCrawlWeb.Crawler, only: [
     join_and_broadcast: 4,
     leave_and_broadcast: 1,
-    save_and_leave_and_broadcast: 1
+    save_and_leave_and_broadcast: 1,
+    load_and_broadcast: 2
   ]
 
   plug :assign_player_location
   plug :validate_crawling when action in [:show, :destroy]
-  plug :validate_not_crawling  when action in [:create, :avatar, :validate_avatar, :invite, :validate_invite]
+  plug :validate_not_crawling  when action in [:create, :avatar, :validate_avatar, :invite, :validate_invite, :load]
   plug :validate_passcode when action in [:invite, :validate_invite]
   plug :validate_active_or_owner when action in [:avatar, :validate_avatar]
   plug :validate_autogen_solo_enabled when action in [:create]
@@ -111,6 +112,20 @@ defmodule DungeonCrawlWeb.CrawlerController do
     conn
     |> put_flash(:info, "Saved")
     |> redirect(to: Routes.dungeon_path(conn, :index))
+  end
+
+  def load(conn, %{"save_id" => save_id}) do
+    case load_and_broadcast(save_id, conn.assigns[:user_id_hash]) do
+      {:error, message} ->
+        conn
+        |> put_flash(:error, message)
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+
+      di_id ->
+        conn
+        |> Plug.Conn.put_session(:dungeon_instance_id, di_id)
+        |> redirect(to: Routes.crawler_path(conn, :show))
+    end
   end
 
   def destroy(conn, %{"dungeon_id" => dungeon_id, "score_id" => score_id}) do

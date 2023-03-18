@@ -140,11 +140,12 @@ defmodule DungeonCrawl.Games do
       iex> load_save(id)
       {:error, <reason>}
   """
-  def load_save(id) do
+  def load_save(id, user_id_hash) do
     save = get_save(id)
     with save when not is_nil(save) <- save,
-         player when not is_nil(player) <- Account.get_by_user_id_hash(save.user_id_hash),
-         location when is_nil(location) <- Player.get_location(save.user_id_hash),
+         true <- save.user_id_hash == user_id_hash || :not_owner,
+         player when not is_nil(player) <- Account.get_by_user_id_hash(user_id_hash),
+         location when is_nil(location) <- Player.get_location(user_id_hash),
          # database constraint prevents this from being nil
          level_instance = DungeonInstances.get_level(save.level_instance_id) do
       # location; row / col may be different depending on the dungeons load spawn setting
@@ -163,6 +164,8 @@ defmodule DungeonCrawl.Games do
     else
       tile_instance_id when is_integer(tile_instance_id) ->
         {:error, "Player already in a game"}
+      :not_owner ->
+        {:error, "Save does not belong to player"}
       _ ->
         cond do
           is_nil(save) ->

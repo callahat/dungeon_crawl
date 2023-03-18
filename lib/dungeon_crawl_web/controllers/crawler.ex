@@ -54,8 +54,8 @@ defmodule DungeonCrawlWeb.Crawler do
   Loads a save record, finds or reinitializes the instance, and broadcasts the event
   to the channed
   """
-  def load_and_broadcast(save_id) do
-    with {:ok, location} <- Games.load_save(save_id) do
+  def load_and_broadcast(save_id, user_id_hash) do
+    with {:ok, location} <- Games.load_save(save_id, user_id_hash) do
       _broadcast_join_event(location)
     else
       # maybe this should be handled in the crawler controller, it will definitely need to handle it

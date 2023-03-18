@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
   use DungeonCrawlWeb.ConnCase
 
   import Plug.Conn, only: [assign: 3]
+  import DungeonCrawl.GamesFixtures
 
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Player
@@ -293,6 +294,20 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     level_instance_id = instance.id
     assert [%Games.Save{level_instance_id: ^level_instance_id}] =
              Games.list_saved_games(%{user_id_hash: user.user_id_hash})
+  end
+
+  @tag login_as: "maxheadroom"
+  test "loads and redirects to the crawler show", %{conn: conn, user: user} do
+    save = save_fixture(%{user_id_hash: user.user_id_hash})
+    others_save = save_fixture()
+
+    updated_conn = post conn, crawler_path(conn, :load, %{save_id: others_save.id})
+    assert get_flash(updated_conn, :error) == "Save does not belong to player"
+    assert redirected_to(updated_conn) == dungeon_path(updated_conn, :index)
+
+    updated_conn = post conn, crawler_path(conn, :load, %{save_id: save.id})
+    refute get_flash(updated_conn, :error) == "Save does not belong to player"
+    assert redirected_to(updated_conn) == crawler_path(updated_conn, :show)
   end
 
   # destroy

@@ -12,8 +12,7 @@
         <%= link "Save and Quit", to: Routes.crawler_path(@conn, :save_and_quit), method: :post, data: [confirm: "Really save and quit?"], class: "nav-link" %>
       <% else %>
         <%= link "New", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
-      <!-- TODO: implement this page /-->
-        <%= link "Load", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
+        <%= link "Load", to: Routes.dungeon_path(@conn, :saved_games), class: "nav-link" %>
       <% end %>
     </div>
   </div>

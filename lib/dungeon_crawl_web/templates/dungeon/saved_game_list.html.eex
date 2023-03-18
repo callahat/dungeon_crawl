@@ -1,0 +1,9 @@
+<div class="text-right">
+  Saved Games
+  <%= for save <- @saves do %>
+  <div class="text-right pb-1">
+    <span>Played for: <%= formatted_saved_duration(save) %></span>
+    <%= link "Load", to: Routes.crawler_path(@socket, :load, save_id: save.id), method: :post, data: [confirm: "Are you sure?"], csrf_token: @controller_csrf, class: "btn btn-danger btn-sm" %>
+  </div>
+  <% end %>
+</div>
