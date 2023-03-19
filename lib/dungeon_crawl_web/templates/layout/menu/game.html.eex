@@ -7,9 +7,13 @@
 
     <div class="bg-dark dropdown-menu" aria-labelledby="gamesMenuLink">
       <%= if @is_crawling? do %>
-        <%= if !in_crawler_controller?(@conn), do: link "Resume", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
-        <%= link "Quit",to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "nav-link" %>
-        <%= link "Save and Quit", to: Routes.crawler_path(@conn, :save_and_quit), method: :post, data: [confirm: "Really save and quit?"], class: "nav-link" %>
+        <%= if !in_crawler_controller?(@conn) do %>
+          <%= link "Resume", to: Routes.crawler_path(@conn, :show), class: "nav-link" %>
+        <% else %>
+          <%= link "Quit",to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "nav-link" %>
+          <%= link "Save and Quit", to: Routes.crawler_path(@conn, :save_and_quit), method: :post, data: [confirm: "Really save and quit?"], class: "nav-link" %>
+          <%= link "Invite", to: "#", class: "nav-link", id: "invite_link" %>
+        <% end %>
       <% else %>
         <%= link "New", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
         <%= link "Load", to: Routes.dungeon_path(@conn, :saved_games), class: "nav-link" %>
