@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
   use DungeonCrawlWeb.ConnCase
 
   import Phoenix.LiveViewTest
+  import DungeonCrawl.GamesFixtures
 
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons.Metadata.{FavoriteDungeon, PinnedDungeon}
@@ -211,6 +212,23 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       assert dungeon_live |> element("[phx-click='unfocus']") |> render_click()
       assert dungeon_live |> render() =~ "Select a dungeon on the left to learn more about it"
       refute dungeon_live |> element(".col-7") |> render() =~ dungeon.name
+    end
+  end
+
+  describe "delete saved game" do
+    setup [:create_user]
+
+    test "clears the focused save", %{conn: conn, user: user} do
+      save = save_fixture(%{user_id_hash: user.user_id_hash})
+             |> Repo.preload(dungeon_instance: :dungeon)
+
+      {:ok, dungeon_live, _html} =
+        live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
+
+      assert dungeon_live |> element("[phx-click='focus#{save.dungeon_instance.dungeon.id}']") |> render_click()
+      assert dungeon_live |> render() =~ "Saved Games"
+      assert dungeon_live |> element("[phx-click='delete_save_#{save.id}']") |> render_click()
+      refute dungeon_live |> render() =~ "phx-click='delete_save_#{save.id}"
     end
   end
 end

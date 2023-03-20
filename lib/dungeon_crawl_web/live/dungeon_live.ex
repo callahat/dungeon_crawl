@@ -6,6 +6,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Metadata
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Scores
 
   def render(assigns) do
@@ -54,6 +55,16 @@ defmodule DungeonCrawlWeb.DungeonLive do
     Metadata.unpin(line_identifier)
 
     _update_dungeon_field_and_reply(socket, line_identifier, :pinned, false)
+  end
+
+  def handle_event("delete_save_" <> save_id, _params, socket) do
+    with save <- Games.get_save(save_id),
+         true <- save.user_id_hash == socket.assigns.user_id_hash do
+      Games.delete_save(save)
+      {:noreply, assign(socket, :dungeon, Repo.preload(socket.assigns.dungeon, :saves, force: true))}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do

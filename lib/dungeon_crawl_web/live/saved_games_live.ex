@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.SavedGamesLive do
 
   alias DungeonCrawl.Account
   alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Scores
 
@@ -23,9 +24,17 @@ defmodule DungeonCrawlWeb.SavedGamesLive do
     {:noreply, _assign_focused_dungeon(socket, nil)}
   end
 
-  defp _assign_stuff(socket, user_id_hash, controller_csrf) do
-    user = Account.get_by_user_id_hash(user_id_hash)
+  def handle_event("delete_save_" <> save_id, _params, socket) do
+    with save <- Games.get_save(save_id),
+         true <- save.user_id_hash == socket.assigns.user_id_hash do
+      Games.delete_save(save)
+      {:noreply, assign(socket, :dungeon, Repo.preload(socket.assigns.dungeon, :saves, force: true))}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
 
+  defp _assign_stuff(socket, user_id_hash, controller_csrf) do
     socket
     |> assign(:user_id_hash, user_id_hash)
     |> assign(:controller_csrf, controller_csrf)
