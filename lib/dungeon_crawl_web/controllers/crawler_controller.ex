@@ -10,6 +10,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.DungeonGeneration.InfiniteDungeon
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, LevelProcess}
+  alias DungeonCrawl.StateValue.Parser
 
   import DungeonCrawlWeb.Crawler, only: [
     join_and_broadcast: 4,
@@ -18,6 +19,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     load_and_broadcast: 2
   ]
 
+  plug :set_sidebar_col
   plug :assign_player_location
   plug :validate_crawling when action in [:show, :destroy]
   plug :validate_not_crawling  when action in [:create, :avatar, :validate_avatar, :invite, :validate_invite, :load]
@@ -25,23 +27,29 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_active_or_owner when action in [:avatar, :validate_avatar]
   plug :validate_autogen_solo_enabled when action in [:create]
   plug :validate_instance_limit when action in [:invite, :avatar, :validate_avatar]
+  plug :validate_saveable when action in [:save_and_quit]
 
   def show(conn, _opts) do
     # TODO: eventually have this get the location and other details from the level/dungeon process instead of DB which may have stale info
     player_location = conn.assigns[:player_location]
 
-    dungeon = if player_location, do: Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon,
-                                  else: nil
-    dungeon = if dungeon, do: Repo.preload(dungeon, :dungeon), else: nil
+    dungeon = Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon
+    dungeon = Repo.preload(dungeon, :dungeon)
 
     scorable = _scorable_dungeon(dungeon)
+
+    saveable = !!(dungeon.dungeon.active &&
+      Parser.parse!(dungeon.state)[:saveable] &&
+      conn.assigns.current_user)
 
     {:ok, instance_process} = Registrar.instance_process(player_location.tile.level)
     level = Map.put(LevelProcess.get_state(instance_process), :id, player_location.tile.level.id)
     player_tile = LevelProcess.get_tile(instance_process, player_location.tile.id)
     {player_stats, level, player_coord_id} = {PlayerInstance.current_stats(player_location.user_id_hash), level, "#{player_tile.row}_#{player_tile.col}"}
 
-    render(conn, "show.html", player_location: player_location, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level, player_coord_id: player_coord_id)
+    conn
+    |> Plug.Conn.put_session(:saveable, saveable)
+    |> render("show.html", player_location: player_location, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level, player_coord_id: player_coord_id)
   end
 
   def _scorable_dungeon(nil), do: false
@@ -121,9 +129,9 @@ defmodule DungeonCrawlWeb.CrawlerController do
         |> put_flash(:error, message)
         |> redirect(to: Routes.dungeon_path(conn, :index))
 
-      di_id ->
+      tile ->
         conn
-        |> Plug.Conn.put_session(:dungeon_instance_id, di_id)
+        |> Plug.Conn.put_session(:dungeon_instance_id, Repo.preload(tile, :level).level.dungeon_instance_id)
         |> redirect(to: Routes.crawler_path(conn, :show))
     end
   end
@@ -252,6 +260,19 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
   defp validate_instance_limit(conn, _opts), do: conn
 
+  defp validate_saveable(conn, _opts) do
+    case Plug.Conn.get_session(conn, :saveable) do
+      true ->
+        conn
+
+      _ ->
+        conn
+        |> put_flash(:error, "Cannot save")
+        |> redirect(to: Routes.crawler_path(conn, :show))
+        |> halt()
+    end
+  end
+
   defp join(conn, params) do
     join_target = cond do
                     params["passcode"] -> :dungeon
@@ -270,5 +291,10 @@ defmodule DungeonCrawlWeb.CrawlerController do
       params["passcode"] -> Routes.crawler_path(conn, :validate_invite, params["dungeon_instance_id"], params["passcode"], params)
       true -> Routes.crawler_path(conn, :validate_avatar, params)
     end
+  end
+
+  defp set_sidebar_col(conn, _opts) do
+    conn
+    |> assign(:sidebar_col, 3)
   end
 end

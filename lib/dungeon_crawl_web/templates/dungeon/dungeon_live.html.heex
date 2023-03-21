@@ -56,8 +56,8 @@
           <div>Levels: <%= @dungeon.levels |> Enum.count %></div>
           <div>Author: <%= @author_name %></div>
 
-          <%= if @dungeon.saves != [] do %>
-          <%= render "saved_game_list.html", socket: @socket, saves: @dungeon.saves, controller_csrf: @controller_csrf %>
+          <%= if @saves != [] do %>
+          <%= render "saved_game_list.html", socket: @socket, saves: @saves, controller_csrf: @controller_csrf %>
           <hr/>
           <% end %>
 

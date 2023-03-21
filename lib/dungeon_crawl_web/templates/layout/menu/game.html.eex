@@ -1,4 +1,3 @@
-<%= if @current_user do %>
 <li class="nav-item">
   <div class="dropdown">
     <a class="nav-link dropdown-toggle" href="#" id="gamesMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -11,18 +10,17 @@
           <%= link "Resume", to: Routes.crawler_path(@conn, :show), class: "nav-link" %>
         <% else %>
           <%= link "Quit",to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "nav-link" %>
+          <%= if Plug.Conn.get_session(@conn, :saveable) do %>
           <%= link "Save and Quit", to: Routes.crawler_path(@conn, :save_and_quit), method: :post, data: [confirm: "Really save and quit?"], class: "nav-link" %>
+          <% end %>
           <%= link "Invite", to: "#", class: "nav-link", id: "invite_link" %>
         <% end %>
       <% else %>
         <%= link "New", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
+        <%= if @current_user do %>
         <%= link "Load", to: Routes.dungeon_path(@conn, :saved_games), class: "nav-link" %>
+        <% end %>
       <% end %>
     </div>
   </div>
 </li>
-<% else %>
-<li class="nav-item">
-  <%= link "Game", to: Routes.dungeon_path(@conn, :index), class: "nav-link" %>
-</li>
-<% end %>

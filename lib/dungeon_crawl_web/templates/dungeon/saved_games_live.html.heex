@@ -36,7 +36,7 @@
           <div><p><%= @dungeon.description %></p></div>
           <div>Levels: <%= @dungeon.levels |> Enum.count %></div>
           <div>Author: <%= @author_name %></div>
-          <%= render "saved_game_list.html", socket: @socket, saves: @dungeon.saves, controller_csrf: @controller_csrf %>
+          <%= render "saved_game_list.html", socket: @socket, saves: @saves, controller_csrf: @controller_csrf %>
         </div>
       </div>
     <% else %>

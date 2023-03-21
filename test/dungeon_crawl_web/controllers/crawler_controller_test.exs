@@ -279,11 +279,37 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
   end
 
   @tag login_as: "maxheadroom"
-  test "saves and redirects to the crawler list", %{conn: conn, user: user} do
+  test "save_and_quit shows error if dungeon not saveable", %{conn: conn, user: user} do
     dungeon_instance = insert_stubbed_dungeon_instance(%{active: true})
     instance = Repo.preload(dungeon_instance, :levels).levels |> Enum.at(0)
     location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: user.user_id_hash, row: 2, z_index: 1})
 
+    conn = post conn, crawler_path(conn, :save_and_quit)
+    assert redirected_to(conn) == crawler_path(conn, :show)
+    assert get_flash(conn, :error) == "Cannot save"
+    assert Player.get_location(location)
+  end
+
+  test "save_and_quit shows error if user is not logged in", %{conn: conn} do
+    dungeon_instance = insert_stubbed_dungeon_instance(%{active: true, state: "saveable: true"})
+    instance = Repo.preload(dungeon_instance, :levels).levels |> Enum.at(0)
+    location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "notloggedin", row: 2, z_index: 1})
+
+    conn = post conn, crawler_path(conn, :save_and_quit)
+    assert redirected_to(conn) == crawler_path(conn, :show)
+    assert get_flash(conn, :error) == "Cannot save"
+    assert Player.get_location(location)
+  end
+
+  @tag login_as: "maxheadroom"
+  test "saves and redirects to the crawler list", %{conn: conn, user: user} do
+    dungeon_instance = insert_stubbed_dungeon_instance(%{active: true, state: "saveable: true"})
+    instance = Repo.preload(dungeon_instance, :levels).levels |> Enum.at(0)
+    location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: user.user_id_hash, row: 2, z_index: 1})
+
+    conn = conn
+           |> Plug.Test.init_test_session(%{})
+           |> Plug.Conn.put_session(:saveable, true)
     conn = post conn, crawler_path(conn, :save_and_quit)
     assert redirected_to(conn) == dungeon_path(conn, :index)
     assert get_flash(conn, :info) == "Saved"

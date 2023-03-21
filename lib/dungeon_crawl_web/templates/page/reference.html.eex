@@ -397,6 +397,12 @@
                 for the player(s). Defaults to false.</td>
           </tr>
           <tr>
+            <td>saveable</td>
+            <td>When set to true, players will be able to save their progress when they quit.
+                The dungeon instance will be persisted, even when there are no players remaining.
+                Defaults to false.</td>
+          </tr>
+          <tr>
             <td>starting_lives</td>
             <td>The number of lives a player starts with. When a player dies, they lose a life. When
                 their lives reach zero the game ends. Defaults to -1 (infinite lives), but can be set to

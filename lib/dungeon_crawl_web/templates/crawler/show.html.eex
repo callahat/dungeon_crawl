@@ -6,7 +6,7 @@
   <%= render "gameover_modal.html", conn: @conn, scorable: @scorable %>
   <%= render "volume_modal.html" %>
 
-  <div class="col-9 offset-3">
+  <div class="col-12">
     <input id="player" type="hidden" data-location-id="<%= @player_location.id %>" />
     <%= render(DungeonCrawlWeb.SharedView,
                "dungeon_instance.html",
