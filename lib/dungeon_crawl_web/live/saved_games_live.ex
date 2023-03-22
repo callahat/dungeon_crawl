@@ -24,8 +24,8 @@ defmodule DungeonCrawlWeb.SavedGamesLive do
   end
 
   def handle_event("delete_save_" <> save_id, _params, socket) do
-    with save <- Games.get_save(save_id),
-         true <- save.user_id_hash == socket.assigns.user_id_hash do
+    save = Games.get_save(save_id, socket.assigns.user_id_hash)
+    if save do
       Games.delete_save(save)
       saves = socket.assigns.saves |> Enum.reject(fn s -> s.id == save.id end)
       line_identifier = socket.assigns.dungeon.line_identifier
@@ -33,7 +33,7 @@ defmodule DungeonCrawlWeb.SavedGamesLive do
       assign(socket, :saves, saves)
       |> _update_dungeon_field_and_reply(line_identifier, :saved, saves != [])
     else
-      _ -> {:noreply, socket}
+      {:noreply, socket}
     end
   end
 

@@ -80,6 +80,7 @@ defmodule DungeonCrawl.Games do
 
   """
   def get_save(id), do: Repo.get(Save, id)
+  def get_save(id, user_id_hash), do: Repo.get_by(Save, %{id: id, user_id_hash: user_id_hash})
 
   @doc """
   Creates a save. Ideally this data should be fresh from the proces as the database
