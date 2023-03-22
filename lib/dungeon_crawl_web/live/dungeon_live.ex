@@ -61,15 +61,20 @@ defmodule DungeonCrawlWeb.DungeonLive do
     with save <- Games.get_save(save_id),
          true <- save.user_id_hash == socket.assigns.user_id_hash do
       Games.delete_save(save)
-      {:noreply, assign(socket, :dungeon, Repo.preload(socket.assigns.dungeon, :saves, force: true))}
+      saves = socket.assigns.saves |> Enum.reject(fn s -> s.id == save.id end)
+      line_identifier = socket.assigns.dungeon.line_identifier
+
+      assign(socket, :saves, saves)
+      |> _update_dungeon_field_and_reply(line_identifier, :saved, saves != [])
     else
       _ -> {:noreply, socket}
     end
   end
 
-  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do
-    line_identifier = String.to_integer(line_identifier)
 
+  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) when is_binary(line_identifier),
+       do: _update_dungeon_field_and_reply(socket, String.to_integer(line_identifier), field, value)
+  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do
     dungeons =
       Enum.map(socket.assigns.dungeons, fn dungeon ->
         if dungeon.line_identifier == line_identifier,

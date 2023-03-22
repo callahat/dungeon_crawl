@@ -225,10 +225,13 @@ defmodule DungeonCrawlWeb.DungeonLiveTest do
       {:ok, dungeon_live, _html} =
         live_isolated(conn, DungeonLive, session: %{"user_id_hash" => user.user_id_hash, "controller_csrf" => "csrf"})
 
+      assert dungeon_live |> element(".fa.fa-floppy-o") |> has_element?()
       assert dungeon_live |> element("[phx-click='focus#{save.dungeon_instance.dungeon.id}']") |> render_click()
       assert dungeon_live |> render() =~ "Saved Games"
       assert dungeon_live |> element("[phx-click='delete_save_#{save.id}']") |> render_click()
-      refute dungeon_live |> render() =~ "phx-click='delete_save_#{save.id}"
+      refute dungeon_live |> element("[phx-click='delete_save_#{save.id}']") |> has_element?()
+      # also removes the floppy icon since there are no more saves for the user for this dungeon
+      refute dungeon_live |> element(".fa.fa-floppy-o") |> has_element?()
     end
   end
 end
