@@ -186,11 +186,6 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     di = DungeonCrawl.Repo.preload(level_instance, :dungeon).dungeon
 
     location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
-
-    location = location
-               |> Player.change_location()
-               |> Ecto.Changeset.put_change(:inserted_at, NaiveDateTime.add(location.inserted_at, -120))
-               |> Repo.update!()
                |> Repo.preload([:tile])
 
     {:ok, _, _socket} =
@@ -201,13 +196,20 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     expected_col = location.tile.col
     expected_rendering = "<div>.</div>"
 
+    {:ok, instance} = Registrar.instance_process(level_instance)
+
+    LevelProcess.run_with(instance, fn(state) ->
+      player_tile = Levels.get_tile_by_id(state, location.tile)
+
+      Levels.update_tile_state(state, player_tile, %{duration: 120})
+    end)
+
     # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
     assert %Save{} = save = Crawler.save_and_leave_and_broadcast(location)
 
     assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
 
     # It unregisters the player location
-    {:ok, instance} = Registrar.instance_process(level_instance)
     state = LevelProcess.get_state(instance)
     assert %{} == state.player_locations
 

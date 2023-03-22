@@ -107,8 +107,8 @@ defmodule DungeonCrawlWeb.Crawler do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, location.inserted_at)
-      duration = (tile.parsed_state[:duration] || 0) + seconds
       player_tile = Levels.get_tile_by_id(instance_state, tile)
+      duration = (player_tile.parsed_state[:duration] || 0) + seconds
       {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{duration: duration})
 
       # Its up to the designer of a dungeon to not have cases where a player could save
