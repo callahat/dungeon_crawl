@@ -99,13 +99,22 @@ defmodule DungeonCrawlWeb.Crawler do
       iex> leave_and_broadcast(instance, player_location)
       %Save{}
   """
-  def save_and_leave_and_broadcast(%Player.Location{} = location) do
-    # TODO: check that this method may be called for the dungeon, once i figure that out
+  def save_and_broadcast(%Player.Location{} = location, saveable, delete_location \\ true) do
     tile = Repo.preload(location, [tile: :level]).tile
 
     {:ok, instance} = Registrar.instance_process(tile.level)
 
     LevelProcess.run_with(instance, fn (instance_state) ->
+      # different saveable modes may not delete existing saves;
+      # this will always be a truthy value, later saveable might be something else
+      # such as when multiple saves are allowed or a set number of save slots is allowed
+      # If its not saveable, then this function should not have been called
+      if saveable == true do
+        dungeon_id = DungeonInstances.get_dungeon!(instance_state.dungeon_instance_id).dungeon_id
+        Games.list_saved_games(%{user_id_hash: location.user_id_hash, dungeon_id: dungeon_id})
+        |> Enum.each(&Games.delete_save/1)
+      end
+
       seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, location.inserted_at)
       player_tile = Levels.get_tile_by_id(instance_state, tile)
       duration = (player_tile.parsed_state[:duration] || 0) + seconds
@@ -114,11 +123,18 @@ defmodule DungeonCrawlWeb.Crawler do
       # Its up to the designer of a dungeon to not have cases where a player could save
       # and take with them items needed for other players to advance or win. A player who saves
       # the game takes all their stuff on their tile with them to come back later.
-      {:ok, save} = Games.create_save(player_tile, location)
+      {:ok, save} = %{user_id_hash: location.user_id_hash}
+                    |> Map.merge(Map.take(player_tile, [:row, :col, :level_instance_id, :state]))
+                    |> Games.create_save()
 
-      {_deleted_tile, instance_state} = Levels.delete_tile(instance_state, tile)
 
-      {save, instance_state}
+      if delete_location do
+        Player.delete_location!(location.user_id_hash)
+        {_deleted_tile, instance_state} = Levels.delete_tile(instance_state, tile)
+        {save, instance_state}
+      else
+        {save, instance_state}
+      end
     end)
   end
 end

@@ -15,8 +15,9 @@ defmodule DungeonCrawlWeb.CrawlerController do
   import DungeonCrawlWeb.Crawler, only: [
     join_and_broadcast: 4,
     leave_and_broadcast: 1,
-    save_and_leave_and_broadcast: 1,
-    load_and_broadcast: 2
+    save_and_broadcast: 2,
+    save_and_broadcast: 3,
+    load_and_broadcast: 2,
   ]
 
   plug :set_sidebar_col
@@ -27,7 +28,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
   plug :validate_active_or_owner when action in [:avatar, :validate_avatar]
   plug :validate_autogen_solo_enabled when action in [:create]
   plug :validate_instance_limit when action in [:invite, :avatar, :validate_avatar]
-  plug :validate_saveable when action in [:save_and_quit]
+  plug :validate_saveable when action in [:save, :save_and_quit]
 
   def show(conn, _opts) do
     # TODO: eventually have this get the location and other details from the level/dungeon process instead of DB which may have stale info
@@ -112,10 +113,20 @@ defmodule DungeonCrawlWeb.CrawlerController do
     validate_avatar(conn, params)
   end
 
+  def save(conn, _opts) do
+    location = Player.get_location(conn.assigns[:user_id_hash])
+
+    save_and_broadcast(location, Plug.Conn.get_session(conn, :saveable), false)
+
+    conn
+    |> put_flash(:info, "Saved")
+    |> redirect(to: Routes.crawler_path(conn, :show))
+  end
+
   def save_and_quit(conn, _opts) do
     location = Player.get_location(conn.assigns[:user_id_hash])
 
-    save_and_leave_and_broadcast(location)
+    save_and_broadcast(location, Plug.Conn.get_session(conn, :saveable))
 
     conn
     |> put_flash(:info, "Saved")

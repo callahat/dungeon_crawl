@@ -11,6 +11,7 @@
         <% else %>
           <%= link "Quit",to: Routes.crawler_path(@conn, :destroy), method: :delete, data: [confirm: "No going back, are you sure?"], class: "nav-link" %>
           <%= if Plug.Conn.get_session(@conn, :saveable) do %>
+          <%= link "Save", to: Routes.crawler_path(@conn, :save), method: :post, class: "nav-link" %>
           <%= link "Save and Quit", to: Routes.crawler_path(@conn, :save_and_quit), method: :post, data: [confirm: "Really save and quit?"], class: "nav-link" %>
           <% end %>
           <%= link "Invite", to: "#", class: "nav-link", id: "invite_link" %>

@@ -103,13 +103,6 @@ defmodule DungeonCrawl.Games do
     |> Save.changeset(attrs)
     |> Repo.insert()
   end
-  def create_save(attrs, %Player.Location{} = location) do
-    Player.delete_location!(location.user_id_hash)
-
-    %{user_id_hash: location.user_id_hash}
-    |> Map.merge(Map.take(attrs, [:row, :col, :level_instance_id, :state]))
-    |> create_save()
-  end
 
   @doc """
   Updates a save.

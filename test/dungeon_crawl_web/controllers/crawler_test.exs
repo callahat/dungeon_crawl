@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
   alias DungeonCrawl.Dungeons.{Dungeon, Tile}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar, DungeonRegistry}
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
@@ -179,52 +180,117 @@ defmodule DungeonCrawlWeb.CrawlerTest do
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
   end
 
-  test "save_and_leave_and_broadcast/1" do
-    level_instance = insert_stubbed_level_instance(%{},
-      [%Tile{character: ".", row: 1, col: 1, z_index: 0}])
+  describe "save_and_broadcast/2/3" do
+    setup do
+      level_instance = insert_stubbed_level_instance(%{},
+        [%Tile{character: ".", row: 1, col: 1, z_index: 0}])
 
-    di = DungeonCrawl.Repo.preload(level_instance, :dungeon).dungeon
+      di = DungeonCrawl.Repo.preload(level_instance, :dungeon).dungeon
 
-    location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
-               |> Repo.preload([:tile])
+      location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
+                 |> Repo.preload([:tile])
 
-    {:ok, _, _socket} =
-      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
-      |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
+      {:ok, _, _socket} =
+        socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
+        |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
 
-    expected_row = location.tile.row
-    expected_col = location.tile.col
-    expected_rendering = "<div>.</div>"
+      {:ok, instance} = Registrar.instance_process(level_instance)
 
-    {:ok, instance} = Registrar.instance_process(level_instance)
+      LevelProcess.run_with(instance, fn(state) ->
+        player_tile = Levels.get_tile_by_id(state, location.tile)
 
-    LevelProcess.run_with(instance, fn(state) ->
-      player_tile = Levels.get_tile_by_id(state, location.tile)
+        Levels.update_tile_state(state, player_tile, %{duration: 120})
+      end)
 
-      Levels.update_tile_state(state, player_tile, %{duration: 120})
-    end)
+      %{location: location, instance: instance, dungeon_instance: di}
+    end
 
-    # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
-    assert %Save{} = save = Crawler.save_and_leave_and_broadcast(location)
+    test "defaults to quitting which deletes the location",
+         %{location: location, instance: instance, dungeon_instance: di} do
+      expected_row = location.tile.row
+      expected_col = location.tile.col
+      expected_rendering = "<div>.</div>"
 
-    assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
+      # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
+      assert %Save{} = save = Crawler.save_and_broadcast(location, true)
 
-    # It unregisters the player location
-    state = LevelProcess.get_state(instance)
-    assert %{} == state.player_locations
+      assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
 
-    # It did not destroy the dungeon
-    assert Dungeons.get_dungeon(di.dungeon_id)
+      # It unregisters the player location
+      state = LevelProcess.get_state(instance)
+      assert %{} == state.player_locations
 
-    # No score is created
-    assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
+      # It did not destroy the dungeon
+      assert Dungeons.get_dungeon(di.dungeon_id)
 
-    # It creates the save
-    assert %Save{user_id_hash: "itsmehash", state: state} = save
-    %{duration: duration} = Parser.parse!(state)
-    assert_in_delta duration, 120, 1
+      # No score is created
+      assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
 
-    # cleanup
-    DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+      # It creates the save
+      assert %Save{user_id_hash: "itsmehash", state: state} = save
+      %{duration: duration} = Parser.parse!(state)
+      assert_in_delta duration, 120, 1
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
+
+    test "default when saveable is true deletes the previous existing saves for that dungeon",
+         %{location: location, dungeon_instance: di} do
+      level_instance_id = Repo.preload(location, :tile).tile.level_instance_id
+      _other_save = save_fixture(%{user_id_hash: location.user_id_hash})
+      previous_save = save_fixture(%{user_id_hash: location.user_id_hash, level_instance_id: level_instance_id})
+
+      assert %Save{} = Crawler.save_and_broadcast(location, true)
+
+      refute Games.get_save(previous_save.id)
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
+
+    test "saving without quitting creates the save",
+         %{location: location, instance: instance, dungeon_instance: di} do
+      expected_row = location.tile.row
+      expected_col = location.tile.col
+      expected_rendering = "<div>@</div>"
+
+      # PLAYER STILL THERE ----
+      assert %Save{} = save = Crawler.save_and_broadcast(location, true, false)
+
+      assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
+
+      # It keeps the player location - only difference with the above test
+      state = LevelProcess.get_state(instance)
+      assert %{location.tile_instance_id => Player.get_location(location)} == state.player_locations
+
+      # It did not destroy the dungeon
+      assert Dungeons.get_dungeon(di.dungeon_id)
+
+      # No score is created
+      assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
+
+      # It creates the save
+      assert %Save{user_id_hash: "itsmehash", state: state} = save
+      %{duration: duration} = Parser.parse!(state)
+      assert_in_delta duration, 120, 1
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
+
+    test "saving without quitting when saveable is true deletes the previous existing saves for that dungeon",
+         %{location: location, dungeon_instance: di} do
+      level_instance_id = Repo.preload(location, :tile).tile.level_instance_id
+      _other_save = save_fixture(%{user_id_hash: location.user_id_hash})
+      previous_save = save_fixture(%{user_id_hash: location.user_id_hash, level_instance_id: level_instance_id})
+
+      assert %Save{} = Crawler.save_and_broadcast(location, true, false)
+
+      refute Games.get_save(previous_save.id)
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
   end
 end
