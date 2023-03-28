@@ -9,6 +9,8 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   def index(conn, _opt) do
     assign(conn, :user_id_hash, conn.assigns.user_id_hash)
+    |> assign(:focus_dungeon_id, Plug.Conn.get_session(conn, :focus_dungeon_id))
+    |> Plug.Conn.put_session(:focus_dungeon_id, nil)
     |> assign(:controller_csrf, Phoenix.Controller.get_csrf_token())
     |> render("index.html")
   end

@@ -34,6 +34,25 @@ defmodule DungeonCrawl.Player do
   def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
 
   @doc """
+  Returns the id of the dungeon of which the location ultimately belongs
+
+  ## Examples
+
+      iex> dungeon_id(location)
+      123
+  """
+  def dungeon_id(%Location{id: location_id}), do: dungeon_id(location_id)
+  def dungeon_id(location_id) when is_integer(location_id) do
+    Repo.one(from loc in Location,
+             where: loc.id == ^location_id,
+             left_join: t in assoc(loc, :tile),
+             left_join: level in assoc(t, :level),
+             left_join: di in assoc(level, :dungeon),
+             left_join: d in assoc(di, :dungeon),
+             select: d.id)
+  end
+
+  @doc """
   Returns if the given player currently has an existing game (ie, currently crawling)
 
   ## Examples

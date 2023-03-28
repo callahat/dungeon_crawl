@@ -13,8 +13,12 @@ defmodule DungeonCrawlWeb.DungeonLive do
     DungeonCrawlWeb.DungeonView.render("dungeon_live.html", assigns)
   end
 
-  def mount(_params, %{"user_id_hash" => user_id_hash, "controller_csrf" => controller_csrf} = _session, socket) do
-    {:ok, _assign_stuff(socket, user_id_hash, controller_csrf)}
+  def mount(_params,
+        %{"user_id_hash" => user_id_hash,
+          "controller_csrf" => controller_csrf,
+          "focus_dungeon_id" => dungeon_id} = _session,
+        socket) do
+    {:ok, _assign_stuff(socket, user_id_hash, controller_csrf, dungeon_id)}
   end
 
   def handle_event("focus" <> dungeon_id, _params, socket) do
@@ -85,7 +89,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
     {:noreply, assign(socket, :dungeons, dungeons)}
   end
 
-  defp _assign_stuff(socket, user_id_hash, controller_csrf) do
+  defp _assign_stuff(socket, user_id_hash, controller_csrf, dungeon_id) do
     user = Account.get_by_user_id_hash(user_id_hash)
 
     socket
@@ -94,6 +98,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
     |> assign(:is_user, !!user)
     |> assign(:is_admin, user && user.is_admin)
     |> assign(:dungeon, nil)
+    |> _assign_focused_dungeon(dungeon_id)
     |> _assign_dungeons(%{})
     |> _assign_changeset()
   end
@@ -117,7 +122,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
   defp _assign_focused_dungeon(socket, dungeon_id) do
     dungeon = Dungeons.get_dungeon(dungeon_id)
               |> Repo.preload([:user, :levels, [public_dungeon_instances: :locations]])
-    author_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
+    author_name = if dungeon.user_id, do: dungeon.user.name, else: "<None>"
     saves = Repo.preload(dungeon, :saves).saves
             |> Enum.filter(fn(save) -> save.user_id_hash == socket.assigns.user_id_hash end)
 

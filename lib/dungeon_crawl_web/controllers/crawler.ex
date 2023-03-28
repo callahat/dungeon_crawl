@@ -90,7 +90,6 @@ defmodule DungeonCrawlWeb.Crawler do
     deleted_location
   end
 
-
   @doc """
   The given player location leaves a level instance and broadcast the event to the channel.
 
