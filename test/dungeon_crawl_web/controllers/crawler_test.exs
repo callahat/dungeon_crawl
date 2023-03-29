@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
   alias DungeonCrawlWeb.LevelChannel
   alias DungeonCrawlWeb.Crawler
 
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.{Dungeon, Tile}
   alias DungeonCrawl.DungeonInstances
@@ -182,13 +183,15 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
   describe "save_and_broadcast/2/3" do
     setup do
+      author = insert_user(%{username: "Swaggins"})
       level_instance = insert_stubbed_level_instance(%{},
         [%Tile{character: ".", row: 1, col: 1, z_index: 0}])
 
-      di = DungeonCrawl.Repo.preload(level_instance, :dungeon).dungeon
+      di = DungeonCrawl.Repo.preload(level_instance, [dungeon: :dungeon]).dungeon
+      Dungeons.update_dungeon(di.dungeon, %{user_id: author.id})
 
       location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
-                 |> Repo.preload([:tile])
+                 |> Repo.preload([tile: :level])
 
       {:ok, _, _socket} =
         socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
@@ -210,6 +213,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
       expected_row = location.tile.row
       expected_col = location.tile.col
       expected_rendering = "<div>.</div>"
+      user = Repo.preload(location.tile.level, [dungeon: [dungeon: :user]]).dungeon.dungeon.user
 
       # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
       assert %Save{} = save = Crawler.save_and_broadcast(location, true)
@@ -230,6 +234,8 @@ defmodule DungeonCrawlWeb.CrawlerTest do
       assert %Save{user_id_hash: "itsmehash", state: state} = save
       %{duration: duration} = Parser.parse!(state)
       assert_in_delta duration, 120, 1
+      assert save.level_name == "#{ location.tile.level.number } - #{ location.tile.level.name }"
+      assert save.host_name == "#{ Account.get_name(user) }"
 
       # cleanup
       DungeonRegistry.remove(DungeonInstanceRegistry, di.id)

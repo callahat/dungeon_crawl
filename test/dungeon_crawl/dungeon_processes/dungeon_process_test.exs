@@ -171,7 +171,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
       DungeonProcess.set_dungeon_instance(dungeon_process, dungeon_instance)
       DungeonProcess.set_dungeon(dungeon_process, dungeon)
       assert Process.alive?(dungeon_process)
-      assert {:ok, _} = Games.create_save(%{level_instance_id: level.id, user_id_hash: "test", row: 1, col: 1, state: "ok: ok"})
+      assert {:ok, _} = Games.create_save(%{level_instance_id: level.id, user_id_hash: "test", row: 1, col: 1, state: "ok: ok", level_name: "sadf", host_name: "qwerty"})
       DungeonProcess.start_scheduler(dungeon_process, 0) # check for players immediately
       :timer.sleep 50
       assert Dungeons.get_dungeon(dungeon.id)

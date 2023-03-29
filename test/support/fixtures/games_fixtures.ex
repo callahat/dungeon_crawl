@@ -23,6 +23,8 @@ defmodule DungeonCrawl.GamesFixtures do
         state: "player: true",
         user_id_hash: user_id_hash,
         level_instance_id: level_instance_id,
+        host_name: "Rufus",
+        level_name: "3 - Nowhere",
       })
       |> Games.create_save()
 

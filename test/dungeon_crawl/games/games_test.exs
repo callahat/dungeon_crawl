@@ -69,13 +69,16 @@ defmodule DungeonCrawl.GamesTest do
       location = insert_player_location(%{level_instance_id: level_instance.id})
 
       valid_attrs = %{col: 42, row: 42, state: "valid: state", user_id_hash: "some user_id_hash",
-        level_instance_id: level_instance.id, location_id: location.id}
+        level_instance_id: level_instance.id, location_id: location.id, host_name: "Bob",
+        level_name: "1 - test"}
 
       assert {:ok, %Save{} = save} = Games.create_save(valid_attrs)
       assert save.col == 42
       assert save.row == 42
       assert save.state == "valid: state"
       assert save.user_id_hash == "some user_id_hash"
+      assert save.host_name == "Bob"
+      assert save.level_name == "1 - test"
     end
 
     test "create_save/1 with invalid data returns error changeset" do

@@ -108,9 +108,9 @@ defmodule DungeonCrawlWeb.Crawler do
       # this will always be a truthy value, later saveable might be something else
       # such as when multiple saves are allowed or a set number of save slots is allowed
       # If its not saveable, then this function should not have been called
+      dungeon = Repo.preload(DungeonInstances.get_dungeon!(instance_state.dungeon_instance_id), [dungeon: :user]).dungeon
       if saveable == true do
-        dungeon_id = DungeonInstances.get_dungeon!(instance_state.dungeon_instance_id).dungeon_id
-        Games.list_saved_games(%{user_id_hash: location.user_id_hash, dungeon_id: dungeon_id})
+        Games.list_saved_games(%{user_id_hash: location.user_id_hash, dungeon_id: dungeon.id})
         |> Enum.each(&Games.delete_save/1)
       end
 
@@ -122,7 +122,9 @@ defmodule DungeonCrawlWeb.Crawler do
       # Its up to the designer of a dungeon to not have cases where a player could save
       # and take with them items needed for other players to advance or win. A player who saves
       # the game takes all their stuff on their tile with them to come back later.
-      {:ok, save} = %{user_id_hash: location.user_id_hash}
+      {:ok, save} = %{user_id_hash: location.user_id_hash,
+                      host_name: Account.get_name(dungeon.user),
+                      level_name: "#{ tile.level.number } - #{ tile.level.name }"}
                     |> Map.merge(Map.take(player_tile, [:row, :col, :level_instance_id, :state]))
                     |> Games.create_save()
 
