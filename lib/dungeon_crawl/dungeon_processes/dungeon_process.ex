@@ -231,6 +231,5 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
       DungeonInstances.delete_dungeon(state.dungeon_instance)
     end
   end
-
 end
 

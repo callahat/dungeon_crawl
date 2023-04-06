@@ -91,11 +91,14 @@ defmodule DungeonCrawlWeb.Crawler do
   end
 
   @doc """
-  The given player location leaves a level instance and broadcast the event to the channel.
+  Attempt to save the given player location.
 
   ## Examples
 
-      iex> leave_and_broadcast(instance, player_location)
+      iex> save_and_broadcast(player_location, true)
+      %Save{}
+
+      iex> save_and_broadcast(player_location, true, false)
       %Save{}
   """
   def save_and_broadcast(%Player.Location{} = location, saveable, delete_location \\ true) do
@@ -109,6 +112,9 @@ defmodule DungeonCrawlWeb.Crawler do
       # such as when multiple saves are allowed or a set number of save slots is allowed
       # If its not saveable, then this function should not have been called
       dungeon = Repo.preload(DungeonInstances.get_dungeon!(instance_state.dungeon_instance_id), [dungeon: :user]).dungeon
+
+      # This is here in case there are other "truthy" saveable settings later which may
+      # deal with clearing old saved games differently.
       if saveable == true do
         Games.list_saved_games(%{user_id_hash: location.user_id_hash, dungeon_id: dungeon.id})
         |> Enum.each(&Games.delete_save/1)
