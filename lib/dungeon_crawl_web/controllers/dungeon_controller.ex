@@ -3,7 +3,6 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   alias DungeonCrawl.Player
 
-  plug :assign_player_location
   plug :validate_not_crawling
   plug :validate_logged_in when action in [:saved_games]
 
@@ -21,18 +20,8 @@ defmodule DungeonCrawlWeb.DungeonController do
     |> render("saved_games.html")
   end
 
-  defp assign_player_location(conn, _opts) do
-    # TODO: get this from the instance?
-    player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(tile: [:level])
-
-    conn
-    |> assign(:player_location, player_location)
-  end
-
   defp validate_not_crawling(conn, _opts) do
-    # TODO: make use of the flag set set by Auth
-    if conn.assigns.player_location == nil do
+    unless conn.assigns.is_crawling? do
       conn
     else
       conn
