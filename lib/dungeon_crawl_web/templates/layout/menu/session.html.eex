@@ -1,0 +1,6 @@
+<%= if @current_user do %>
+<li class="nav-item"><%= link "Log out", to: Routes.session_path(@conn, :delete, @current_user), method: "delete", class: "nav-link" %></li>
+<% else %>
+<li class="nav-item"><%= link "Register", to: Routes.user_path(@conn, :new), class: "nav-link" %></li>
+<li class="nav-item"><%= link "Log in", to: Routes.session_path(@conn, :new), class: "nav-link" %></li>
+<% end %>

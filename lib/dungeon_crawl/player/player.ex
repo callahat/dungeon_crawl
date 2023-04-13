@@ -11,6 +11,7 @@ defmodule DungeonCrawl.Player do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon, Level, Tile}
+  alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Player.Location
   alias DungeonCrawl.TileTemplates
 
@@ -31,6 +32,49 @@ defmodule DungeonCrawl.Player do
   def get_location(%{id: location_id}), do: Repo.get_by(Location, %{id: location_id})
   def get_location(user_id_hash), do: Repo.get_by(Location, %{user_id_hash: user_id_hash})
   def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
+
+  @doc """
+  Returns the id of the dungeon of which the location ultimately belongs
+
+  ## Examples
+
+      iex> dungeon_id(location)
+      123
+  """
+  def dungeon_id(%Location{id: location_id}), do: dungeon_id(location_id)
+  def dungeon_id(location_id) when is_integer(location_id) do
+    Repo.one(from loc in Location,
+             where: loc.id == ^location_id,
+             left_join: t in assoc(loc, :tile),
+             left_join: level in assoc(t, :level),
+             left_join: di in assoc(level, :dungeon),
+             left_join: d in assoc(di, :dungeon),
+             select: d.id)
+  end
+
+  @doc """
+  Returns if the given player currently has an existing game (ie, currently crawling)
+
+  ## Examples
+
+      iex> is_crawling?("user_id_hash")
+      true
+
+      iex> is_crawling?(456)
+      false
+  """
+  def is_crawling?(%{id: location_id}), do: Repo.exists?(from l in Location, where: l.id == ^location_id)
+  def is_crawling?(user_id_hash), do: Repo.exists?(from l in Location, where: l.user_id_hash == ^user_id_hash)
+
+  @doc """
+  Returns if the given player currently has saved games.
+
+  ## Examples
+
+      iex> has_saved_games?("user_id_hash")
+      true
+  """
+  def has_saved_games?(user_id_hash), do: Repo.exists?(from s in Save, where: s.user_id_hash == ^user_id_hash)
 
   @doc """
   Creates a location.
@@ -147,6 +191,19 @@ defmodule DungeonCrawl.Player do
     tile_state = Enum.join([player_tile.state, equipped, equipment], ", ")
 
     Repo.update!(Tile.changeset(player_tile, %{state: tile_state }))
+  end
+
+  @doc """
+  Sets the tile instance id. When set to nil, this indicates an inactive (or saved) location.
+
+  ## Examples
+
+      iex> set_tile_instance_id(%Location{}, tile_instance_id)
+      %Location{}
+  """
+  def set_tile_instance_id(%Location{} = location, tile_instance_id) do
+    change_location(location, %{tile_instance_id: tile_instance_id})
+    |> Repo.update!()
   end
 
   @doc """

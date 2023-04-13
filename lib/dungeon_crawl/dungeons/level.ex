@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Dungeons.Level do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.TileTemplates.TileTemplate
-  # TODO: remove some of these fields that have been moved to dungeons, rename dungeons to map to standardize
+
   schema "levels" do
     field :name, :string
     field :number, :integer, default: 1

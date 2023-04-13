@@ -3,6 +3,7 @@ defmodule DungeonCrawl.DungeonInstances.Level do
   import Ecto.Changeset
 
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.Games.Save
 
   schema "level_instances" do
     field :height, :integer
@@ -25,6 +26,7 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     has_many :tiles, DungeonCrawl.DungeonInstances.Tile, on_delete: :delete_all, foreign_key: :level_instance_id
     has_many :locations, through: [:tiles, :player_location], on_delete: :delete_all
     has_many :spawn_locations, through: [:level, :spawn_locations]
+    has_many :saves, Save, on_delete: :delete_all, foreign_key: :level_instance_id
 
     timestamps()
   end

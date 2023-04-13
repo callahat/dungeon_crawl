@@ -6,14 +6,19 @@ defmodule DungeonCrawlWeb.DungeonLive do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Metadata
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Scores
 
   def render(assigns) do
     DungeonCrawlWeb.DungeonView.render("dungeon_live.html", assigns)
   end
 
-  def mount(_params, %{"user_id_hash" => user_id_hash, "controller_csrf" => controller_csrf} = _session, socket) do
-    {:ok, _assign_stuff(socket, user_id_hash, controller_csrf)}
+  def mount(_params,
+        %{"user_id_hash" => user_id_hash,
+          "controller_csrf" => controller_csrf,
+          "focus_dungeon_id" => dungeon_id} = _session,
+        socket) do
+    {:ok, _assign_stuff(socket, user_id_hash, controller_csrf, dungeon_id)}
   end
 
   def handle_event("focus" <> dungeon_id, _params, socket) do
@@ -56,9 +61,24 @@ defmodule DungeonCrawlWeb.DungeonLive do
     _update_dungeon_field_and_reply(socket, line_identifier, :pinned, false)
   end
 
-  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do
-    line_identifier = String.to_integer(line_identifier)
+  def handle_event("delete_save_" <> save_id, _params, socket) do
+    save = Games.get_save(save_id, socket.assigns.user_id_hash)
+    if save do
+      Games.delete_save(save)
+      saves = socket.assigns.saves |> Enum.reject(fn s -> s.id == save.id end)
+      line_identifier = socket.assigns.dungeon.line_identifier
 
+      assign(socket, :saves, saves)
+      |> _update_dungeon_field_and_reply(line_identifier, :saved, saves != [])
+    else
+      {:noreply, socket}
+    end
+  end
+
+
+  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) when is_binary(line_identifier),
+       do: _update_dungeon_field_and_reply(socket, String.to_integer(line_identifier), field, value)
+  defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do
     dungeons =
       Enum.map(socket.assigns.dungeons, fn dungeon ->
         if dungeon.line_identifier == line_identifier,
@@ -69,7 +89,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
     {:noreply, assign(socket, :dungeons, dungeons)}
   end
 
-  defp _assign_stuff(socket, user_id_hash, controller_csrf) do
+  defp _assign_stuff(socket, user_id_hash, controller_csrf, dungeon_id) do
     user = Account.get_by_user_id_hash(user_id_hash)
 
     socket
@@ -78,6 +98,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
     |> assign(:is_user, !!user)
     |> assign(:is_admin, user && user.is_admin)
     |> assign(:dungeon, nil)
+    |> _assign_focused_dungeon(dungeon_id)
     |> _assign_dungeons(%{})
     |> _assign_changeset()
   end
@@ -101,13 +122,16 @@ defmodule DungeonCrawlWeb.DungeonLive do
   defp _assign_focused_dungeon(socket, dungeon_id) do
     dungeon = Dungeons.get_dungeon(dungeon_id)
               |> Repo.preload([:user, :levels, [public_dungeon_instances: :locations]])
-    author_name = if dungeon.user_id, do: Repo.preload(dungeon, :user).user.name, else: "<None>"
+    author_name = if dungeon.user_id, do: dungeon.user.name, else: "<None>"
+    saves = Repo.preload(dungeon, :saves).saves
+            |> Enum.filter(fn(save) -> save.user_id_hash == socket.assigns.user_id_hash end)
 
     scores = Scores.list_new_scores(dungeon.id, 10)
 
     assign(socket, :scores, scores)
     |> assign(:author_name, author_name)
     |> assign(:dungeon, dungeon)
+    |> assign(:saves, saves)
   end
 
   defp _assign_changeset(socket) do

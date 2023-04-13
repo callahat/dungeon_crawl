@@ -10,33 +10,48 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.DungeonGeneration.InfiniteDungeon
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, LevelProcess}
+  alias DungeonCrawl.Games
+  alias DungeonCrawl.StateValue.Parser
 
-  import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
+  import DungeonCrawlWeb.Crawler, only: [
+    join_and_broadcast: 4,
+    leave_and_broadcast: 1,
+    save_and_broadcast: 2,
+    save_and_broadcast: 3,
+    load_and_broadcast: 2,
+  ]
 
+  plug :set_sidebar_col
   plug :assign_player_location
   plug :validate_crawling when action in [:show, :destroy]
-  plug :validate_not_crawling  when action in [:create, :avatar, :validate_avatar, :invite, :validate_invite]
+  plug :validate_not_crawling  when action in [:create, :avatar, :validate_avatar, :invite, :validate_invite, :load]
   plug :validate_passcode when action in [:invite, :validate_invite]
   plug :validate_active_or_owner when action in [:avatar, :validate_avatar]
   plug :validate_autogen_solo_enabled when action in [:create]
   plug :validate_instance_limit when action in [:invite, :avatar, :validate_avatar]
+  plug :validate_saveable when action in [:save, :save_and_quit]
 
   def show(conn, _opts) do
     # TODO: eventually have this get the location and other details from the level/dungeon process instead of DB which may have stale info
     player_location = conn.assigns[:player_location]
 
-    dungeon = if player_location, do: Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon,
-                                  else: nil
-    dungeon = if dungeon, do: Repo.preload(dungeon, :dungeon), else: nil
+    dungeon = Repo.preload(player_location, [tile: [level: :dungeon]]).tile.level.dungeon
+    dungeon = Repo.preload(dungeon, :dungeon)
 
     scorable = _scorable_dungeon(dungeon)
+
+    saveable = !!(dungeon.dungeon.active &&
+      Parser.parse!(dungeon.state)[:saveable] &&
+      conn.assigns.current_user)
 
     {:ok, instance_process} = Registrar.instance_process(player_location.tile.level)
     level = Map.put(LevelProcess.get_state(instance_process), :id, player_location.tile.level.id)
     player_tile = LevelProcess.get_tile(instance_process, player_location.tile.id)
     {player_stats, level, player_coord_id} = {PlayerInstance.current_stats(player_location.user_id_hash), level, "#{player_tile.row}_#{player_tile.col}"}
 
-    render(conn, "show.html", player_location: player_location, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level, player_coord_id: player_coord_id)
+    conn
+    |> Plug.Conn.put_session(:saveable, saveable)
+    |> render("show.html", player_location: player_location, player_stats: player_stats, dungeon: dungeon, scorable: scorable, level: level, player_coord_id: player_coord_id)
   end
 
   def _scorable_dungeon(nil), do: false
@@ -99,10 +114,49 @@ defmodule DungeonCrawlWeb.CrawlerController do
     validate_avatar(conn, params)
   end
 
+  def save(conn, _opts) do
+    location = Player.get_location(conn.assigns[:user_id_hash])
+
+    save_and_broadcast(location, Plug.Conn.get_session(conn, :saveable), false)
+
+    conn
+    |> put_flash(:info, "Saved")
+    |> redirect(to: Routes.crawler_path(conn, :show))
+  end
+
+  def save_and_quit(conn, _opts) do
+    location = Player.get_location(conn.assigns[:user_id_hash])
+    dungeon_id = Player.dungeon_id(location)
+
+    save_and_broadcast(location, Plug.Conn.get_session(conn, :saveable))
+
+    conn
+    |> put_flash(:info, "Saved")
+    |> Plug.Conn.put_session(:focus_dungeon_id, dungeon_id)
+    |> redirect(to: Routes.dungeon_path(conn, :index))
+  end
+
+  def load(conn, %{"save_id" => save_id}) do
+    case load_and_broadcast(save_id, conn.assigns[:user_id_hash]) do
+      {:error, message} ->
+        conn
+        |> put_flash(:error, message)
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+
+      tile ->
+        conn
+        |> Plug.Conn.put_session(:dungeon_instance_id, Repo.preload(tile, :level).level.dungeon_instance_id)
+        |> redirect(to: Routes.crawler_path(conn, :show))
+    end
+  end
+
   def destroy(conn, %{"dungeon_id" => dungeon_id, "score_id" => score_id}) do
     location = Player.get_location(conn.assigns[:user_id_hash])
 
     leave_and_broadcast(location)
+
+    Games.list_saved_games(%{user_id_hash: conn.assigns[:user_id_hash], dungeon_id: dungeon_id})
+    |> Enum.each(fn save -> Games.delete_save(save) end)
 
     conn
     |> put_flash(:info, "Dungeon cleared.")
@@ -110,16 +164,26 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
 
   def destroy(conn, _opts) do
-    location = Player.get_location(conn.assigns[:user_id_hash])
+    case Plug.Conn.get_session(conn, :saveable) do
+      true ->
+        conn
+        |> put_flash(:error, "Can only save, or save and quit")
+        |> redirect(to: Routes.crawler_path(conn, :show))
 
-    dungeon = Player.get_dungeon(location)
-    post_leave_path = if dungeon.active || dungeon.autogenerated, do: Routes.dungeon_path(conn, :index), else: Routes.edit_dungeon_path(conn, :show, dungeon)
+      _ ->
+        location = Player.get_location(conn.assigns[:user_id_hash])
+        dungeon_id = Player.dungeon_id(location)
 
-    leave_and_broadcast(location)
+        dungeon = Player.get_dungeon(location)
+        post_leave_path = if dungeon.active || dungeon.autogenerated, do: Routes.dungeon_path(conn, :index), else: Routes.edit_dungeon_path(conn, :show, dungeon)
 
-    conn
-    |> put_flash(:info, "Dungeon cleared.")
-    |> redirect(to: post_leave_path)
+        leave_and_broadcast(location)
+
+        conn
+        |> put_flash(:info, "Dungeon cleared.")
+        |> Plug.Conn.put_session(:focus_dungeon_id, dungeon_id)
+        |> redirect(to: post_leave_path)
+    end
   end
 
   defp assign_player_location(conn, _opts) do
@@ -223,6 +287,19 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
   defp validate_instance_limit(conn, _opts), do: conn
 
+  defp validate_saveable(conn, _opts) do
+    case Plug.Conn.get_session(conn, :saveable) do
+      true ->
+        conn
+
+      _ ->
+        conn
+        |> put_flash(:error, "Cannot save")
+        |> redirect(to: Routes.crawler_path(conn, :show))
+        |> halt()
+    end
+  end
+
   defp join(conn, params) do
     join_target = cond do
                     params["passcode"] -> :dungeon
@@ -241,5 +318,10 @@ defmodule DungeonCrawlWeb.CrawlerController do
       params["passcode"] -> Routes.crawler_path(conn, :validate_invite, params["dungeon_instance_id"], params["passcode"], params)
       true -> Routes.crawler_path(conn, :validate_avatar, params)
     end
+  end
+
+  defp set_sidebar_col(conn, _opts) do
+    conn
+    |> assign(:sidebar_col, 3)
   end
 end

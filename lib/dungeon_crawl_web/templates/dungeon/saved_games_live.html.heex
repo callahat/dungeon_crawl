@@ -1,0 +1,46 @@
+<div class="text-left">
+  <nav class="col-md-3 col-lg-3 d-none d-md-block bg-light sidebar compact">
+    <ul class="nav flex-column sidebar-scrollable-dungeon-list">
+      <%= for dungeon <- @dungeons do %>
+      <li class="nav-item px-2">
+        <%= link dungeon.name, to: "#", phx_click: "focus#{dungeon.id}" %>
+        <div class="float-right text-center">
+        <%= {:safe, saved_game(dungeon)} %>
+        <%= {:safe, dungeon_pin(dungeon)} %>
+        <%= {:safe, favorite_star(dungeon)} %>
+        </div>
+      </li>
+      <% end %>
+      <li><hr/></li>
+    </ul>
+  </nav>
+</div>
+
+<div class="row no-gutters">
+  <div class="col-3">
+  </div>
+  <div class="col-7">
+    <%= if @dungeon do %>
+      <div>
+        <h3><%= @dungeon.name %></h3>
+        <span class="top-right"><i class="fa fa-times" aria-hidden="true" phx-click="unfocus"></i></span>
+      </div>
+
+      <div class="row">
+        <div class="col-auto">
+          <div class="title-map">
+            <%= render(SharedView, "dungeon.html", level: Repo.preload(Dungeons.get_title_level(@dungeon), :tiles)) %>
+          </div>
+        </div>
+        <div class="col">
+          <div><p><%= @dungeon.description %></p></div>
+          <div>Levels: <%= @dungeon.levels |> Enum.count %></div>
+          <div>Author: <%= @author_name %></div>
+          <%= render "saved_game_list.html", socket: @socket, saves: @saves, controller_csrf: @controller_csrf %>
+        </div>
+      </div>
+    <% else %>
+      Select a saved game by its dungeon on the left to learn more about it.<br/>
+    <% end %>
+  </div>
+</div>

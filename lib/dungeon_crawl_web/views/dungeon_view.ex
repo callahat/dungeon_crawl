@@ -6,9 +6,20 @@ defmodule DungeonCrawlWeb.DungeonView do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawlWeb.SharedView
   alias DungeonCrawl.Repo
+  alias DungeonCrawl.StateValue.Parser
+
+  import DungeonCrawlWeb.ScoreView, only: [format_duration: 1]
 
   def can_start_new_instance(dungeon_id) do
     is_nil(Admin.get_setting.max_instances) or Dungeons.instance_count(dungeon_id) < Admin.get_setting.max_instances
+  end
+
+  def saved_game(dungeon) do
+    if dungeon.saved do
+      "<i class=\"fa fa-floppy-o\"></i>"
+    else
+      ""
+    end
   end
 
   def favorite_star(dungeon, true) do
@@ -25,6 +36,16 @@ defmodule DungeonCrawlWeb.DungeonView do
 
   def favorite_star(_, _) do
     ""
+  end
+
+  def favorite_star(dungeon) do
+    if dungeon.favorited do
+      """
+      <i class="fa fa-star" aria-hidden="true"></i>
+      """
+    else
+      ""
+    end
   end
 
   def dungeon_pin(dungeon, true) do
@@ -47,5 +68,20 @@ defmodule DungeonCrawlWeb.DungeonView do
     else
       ""
     end
+  end
+
+  def dungeon_pin(dungeon) do
+    if dungeon.pinned do
+      """
+      <i class="fa fa-thumb-tack" aria-hidden="true"></i>
+      """
+    else
+      ""
+    end
+  end
+
+  def formatted_saved_duration(save) do
+    Parser.parse!(save.state)[:duration]
+    |> format_duration()
   end
 end

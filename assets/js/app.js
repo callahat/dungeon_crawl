@@ -44,6 +44,7 @@ import TileAnimation from "./tile_animation"
 import AvatarPreview from "./avatar_preview"
 import Sound from "./sound"
 import StateVariableSubform from "./state_variable_subform"
+import InviteLink from "./invite_link"
 
 Sound.init(zzfx)
 StateVariableSubform.init(document.getElementById("dungeon_state_variables"))
@@ -57,6 +58,7 @@ TileTemplatePreview.init(document.getElementById("character_preview_small"))
 AvatarPreview.init(document.getElementById("avatar_preview"))
 AvatarPreview.init(document.getElementById("avatar_preview_small"))
 LevelEditor.init(document.getElementById("level_editor"), StateVariableSubform)
+InviteLink.init(document.getElementById("invite_link"))
 CharacterPicker.init(document.getElementById("show_character_picker"))
 CodemirrorWrapper.init(document.getElementById("tile_template_script"), document.getElementById("script-tab"))
 TileAnimation.init()

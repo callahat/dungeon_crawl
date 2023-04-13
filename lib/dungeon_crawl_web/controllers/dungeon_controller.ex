@@ -3,31 +3,40 @@ defmodule DungeonCrawlWeb.DungeonController do
 
   alias DungeonCrawl.Player
 
-  plug :assign_player_location # when action in [:show, :create, :avatar, :validate_avatar, :invite, :validate_invite, :destroy]
-  plug :validate_not_crawling when action in [:index]
+  plug :validate_not_crawling
+  plug :validate_logged_in when action in [:saved_games]
 
   def index(conn, _opt) do
     assign(conn, :user_id_hash, conn.assigns.user_id_hash)
+    |> assign(:focus_dungeon_id, Plug.Conn.get_session(conn, :focus_dungeon_id))
+    |> Plug.Conn.put_session(:focus_dungeon_id, nil)
     |> assign(:controller_csrf, Phoenix.Controller.get_csrf_token())
     |> render("index.html")
   end
 
-  defp assign_player_location(conn, _opts) do
-    # TODO: get this from the instance?
-    player_location = Player.get_location(conn.assigns[:user_id_hash])
-                      |> Repo.preload(tile: [:level])
-
-    conn
-    |> assign(:player_location, player_location)
+  def saved_games(conn, _opt) do
+    assign(conn, :user_id_hash, conn.assigns.user_id_hash)
+    |> assign(:controller_csrf, Phoenix.Controller.get_csrf_token())
+    |> render("saved_games.html")
   end
 
   defp validate_not_crawling(conn, _opts) do
-    if conn.assigns.player_location == nil do
+    unless conn.assigns.is_crawling? do
       conn
     else
       conn
       |> redirect(to: Routes.crawler_path(conn, :show))
       |> halt()
+    end
+  end
+
+  defp validate_logged_in(conn, _opts) do
+    if conn.assigns.current_user == nil do
+      conn
+      |> redirect(to: Routes.dungeon_path(conn, :index))
+      |> halt()
+    else
+      conn
     end
   end
 end

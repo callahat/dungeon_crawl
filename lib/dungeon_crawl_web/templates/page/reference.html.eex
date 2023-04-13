@@ -254,6 +254,11 @@
             <td>How many times the player has died</td>
           </tr>
           <tr>
+            <td>duration</td>
+            <td>How many seconds the player had already spent in the dungeon. Used for calculating
+                total duration for the score when a dungeon has saving enabled.</td>
+          </tr>
+          <tr>
             <td>lives</td>
             <td>How many lives a player has. -1 for infinite lives. Otherwise, triggers an
                 end game event when it reaches zero, preventing the player from respawning.</td>
@@ -390,6 +395,12 @@
             <td>no_scoring</td>
             <td>When this is set to true, when an end game event occurs no score will be recorded
                 for the player(s). Defaults to false.</td>
+          </tr>
+          <tr>
+            <td>saveable</td>
+            <td>When set to true, players will be able to save their progress when they quit.
+                The dungeon instance will be persisted, even when there are no players remaining.
+                Defaults to false.</td>
           </tr>
           <tr>
             <td>starting_lives</td>

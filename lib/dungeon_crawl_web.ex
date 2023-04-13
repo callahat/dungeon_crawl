@@ -43,6 +43,7 @@ defmodule DungeonCrawl.Web do
   def view do
     quote do
       use Phoenix.View, root: "lib/dungeon_crawl_web/templates",
+                        pattern: "**/*",
                         namespace: DungeonCrawlWeb
 
       # Import convenience functions from controllers

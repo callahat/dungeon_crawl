@@ -1,6 +1,7 @@
 defmodule DungeonCrawl.StateValue.StandardVariables do
   @dungeon [
              "no_scoring",
+             "saveable",
              "starting_equipment",
              "starting_lives",
            ]

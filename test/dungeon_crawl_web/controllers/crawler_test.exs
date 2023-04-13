@@ -4,12 +4,19 @@ defmodule DungeonCrawlWeb.CrawlerTest do
   alias DungeonCrawlWeb.LevelChannel
   alias DungeonCrawlWeb.Crawler
 
+  alias DungeonCrawl.Account
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.Dungeons.Dungeon
+  alias DungeonCrawl.Dungeons.{Dungeon, Tile}
+  alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar, DungeonRegistry}
+  alias DungeonCrawl.Games
+  alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
+  alias DungeonCrawl.StateValue.Parser
+
+  import DungeonCrawl.GamesFixtures
 
   test "join_and_broadcast/4 joining a dungeon" do
     Equipment.Seeder.gun()
@@ -60,6 +67,55 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     # cleanup
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+  end
+
+  test "load_and_broadcast/2 loading a save" do
+    Equipment.Seeder.gun()
+
+    user = insert_user()
+    save = Repo.preload(save_fixture(%{user_id_hash: user.user_id_hash, row: 0, col: 0}), :dungeon_instance)
+    level_instance = DungeonInstances.get_level(save.level_instance_id)
+    di_id = save.dungeon_instance.id
+
+    other_user = insert_user()
+    insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: other_user.user_id_hash, state: "cash: 2, score: 10"})
+
+    # the user won't be here yet, but other players might so go ahead and broadcast
+    # to any that might witness
+    {:ok, _, _socket} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: other_user.user_id_hash})
+      |> subscribe_and_join(LevelChannel, "level:#{di_id}:#{level_instance.number}:")
+
+    assert tile = Crawler.load_and_broadcast(save.id, user.user_id_hash)
+    assert location = Player.get_location(user.user_id_hash)
+
+    expected_row = tile.row
+    expected_col = tile.col
+    assert save.row == tile.row
+    assert save.col == tile.col
+    expected_rendering = "<div style='color: #{user.color};background-color: #{user.background_color}'>@</div>"
+
+    assert_broadcast "tile_changes",
+                     %{tiles: [%{
+                       row: ^expected_row,
+                       col: ^expected_col,
+                       rendering: ^expected_rendering}]}
+
+    level_instance = DungeonInstances.get_level(save.level_instance_id)
+
+    # It registers the player location
+    {:ok, instance} = Registrar.instance_process(level_instance)
+    location_tile_id = tile.id
+    assert %Levels{player_locations: %{^location_tile_id => ^location}} = LevelProcess.get_state(instance)
+
+    # cleanup
+    DungeonRegistry.remove(DungeonInstanceRegistry, di_id)
+  end
+
+  test "load_and_broadcast/2 but its a bad save" do
+    user = insert_user()
+    # there are other possible errors, but testing one is sufficient for this level
+    assert {:error, "Save not found"} = Crawler.load_and_broadcast(-1, user.user_id_hash)
   end
 
   test "leave_and_broadcast" do
@@ -123,5 +179,124 @@ defmodule DungeonCrawlWeb.CrawlerTest do
 
     # cleanup
     DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+  end
+
+  describe "save_and_broadcast/2/3" do
+    setup do
+      author = insert_user(%{username: "Swaggins"})
+      level_instance = insert_stubbed_level_instance(%{},
+        [%Tile{character: ".", row: 1, col: 1, z_index: 0}])
+
+      di = DungeonCrawl.Repo.preload(level_instance, [dungeon: :dungeon]).dungeon
+      Dungeons.update_dungeon(di.dungeon, %{user_id: author.id})
+
+      location = insert_player_location(%{level_instance_id: level_instance.id, row: 1, user_id_hash: "itsmehash", state: "cash: 2, score: 10"})
+                 |> Repo.preload([tile: :level])
+
+      {:ok, _, _socket} =
+        socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: "itsmehash"})
+        |> subscribe_and_join(LevelChannel, "level:#{di.id}:#{level_instance.number}:#{level_instance.player_location_id}")
+
+      {:ok, instance} = Registrar.instance_process(level_instance)
+
+      LevelProcess.run_with(instance, fn(state) ->
+        player_tile = Levels.get_tile_by_id(state, location.tile)
+
+        Levels.update_tile_state(state, player_tile, %{duration: 120})
+      end)
+
+      %{location: location, instance: instance, dungeon_instance: di}
+    end
+
+    test "defaults to quitting which deletes the location",
+         %{location: location, instance: instance, dungeon_instance: di} do
+      expected_row = location.tile.row
+      expected_col = location.tile.col
+      expected_rendering = "<div>.</div>"
+      user = Repo.preload(location.tile.level, [dungeon: [dungeon: :user]]).dungeon.dungeon.user
+
+      # PLAYER LEAVES, AND ONE PLAYER IS LEFT ----
+      assert %Save{} = save = Crawler.save_and_broadcast(location, true)
+
+      assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
+
+      # It unregisters the player location
+      state = LevelProcess.get_state(instance)
+      assert %{} == state.player_locations
+
+      # It did not destroy the dungeon
+      assert Dungeons.get_dungeon(di.dungeon_id)
+
+      # No score is created
+      assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
+
+      # It creates the save
+      assert %Save{user_id_hash: "itsmehash", state: state} = save
+      %{duration: duration} = Parser.parse!(state)
+      assert_in_delta duration, 120, 1
+      assert save.level_name == "#{ location.tile.level.number } - #{ location.tile.level.name }"
+      assert save.host_name == "#{ Account.get_name(user) }"
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
+
+    test "default when saveable is true deletes the previous existing saves for that dungeon",
+         %{location: location, dungeon_instance: di} do
+      level_instance_id = Repo.preload(location, :tile).tile.level_instance_id
+      _other_save = save_fixture(%{user_id_hash: location.user_id_hash})
+      previous_save = save_fixture(%{user_id_hash: location.user_id_hash, level_instance_id: level_instance_id})
+
+      assert %Save{} = Crawler.save_and_broadcast(location, true)
+
+      refute Games.get_save(previous_save.id)
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
+
+    test "saving without quitting creates the save",
+         %{location: location, instance: instance, dungeon_instance: di} do
+      expected_row = location.tile.row
+      expected_col = location.tile.col
+      expected_rendering = "<div>@</div>"
+
+      # PLAYER STILL THERE ----
+      assert %Save{} = save = Crawler.save_and_broadcast(location, true, false)
+
+      assert_broadcast "tile_changes", %{tiles: [%{row: ^expected_row, col: ^expected_col, rendering: ^expected_rendering}]}
+
+      # It keeps the player location - only difference with the above test
+      state = LevelProcess.get_state(instance)
+      assert %{location.tile_instance_id => Player.get_location(location)} == state.player_locations
+
+      # It did not destroy the dungeon
+      assert Dungeons.get_dungeon(di.dungeon_id)
+
+      # No score is created
+      assert DungeonCrawl.Repo.all(DungeonCrawl.Scores.Score) == []
+
+      # It creates the save
+      assert %Save{user_id_hash: "itsmehash", state: state} = save
+      %{duration: duration} = Parser.parse!(state)
+      assert_in_delta duration, 120, 1
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
+
+    test "saving without quitting when saveable is true deletes the previous existing saves for that dungeon",
+         %{location: location, dungeon_instance: di} do
+      level_instance_id = Repo.preload(location, :tile).tile.level_instance_id
+      _other_save = save_fixture(%{user_id_hash: location.user_id_hash})
+      previous_save = save_fixture(%{user_id_hash: location.user_id_hash, level_instance_id: level_instance_id})
+
+      assert %Save{} = Crawler.save_and_broadcast(location, true, false)
+
+      refute Games.get_save(previous_save.id)
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, di.id)
+    end
   end
 end

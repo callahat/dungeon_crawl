@@ -24,53 +24,15 @@
         <ul class="navbar-nav mr-0">
           <%= if @current_user do %>
           <li class="nav-item"><%= link @current_user.username, to: Routes.user_path(@conn, :show), class: "nav-link" %></li>
-          <%=   if @current_user.is_admin do %>
-          <li class="nav-item">
-            <div class="dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="adminMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Admin
-              </a>
-
-              <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
-                <%= link "Users", to: Routes.admin_user_path(@conn, :index), class: "nav-link" %>
-                <%= link "Dungeons", to: Routes.admin_dungeon_path(@conn, :index), class: "nav-link" %>
-                <%= link "Dungeon Processes", to: Routes.admin_dungeon_process_path(@conn, :index), class: "nav-link" %>
-                <%= link "Settings", to: Routes.admin_setting_path(@conn, :edit), class: "nav-link" %>
-                <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "nav-link" %>
-              </div>
-            </div>
-          </li>
-          <%   end %>
-
-          <%=  if user_can_edit_dungeons(@current_user) do %>
-          <li class="nav-item">
-            <div class="dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="adminMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Editors
-              </a>
-
-              <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
-                <%= link "Edit Dungeons", to: Routes.edit_dungeon_path(@conn, :index), class: "nav-link" %>
-                <%= link "Items", to: Routes.edit_equipment_path(@conn, :index), class: "nav-link" %>
-                <%= link "Tile Templates", to: Routes.edit_tile_template_path(@conn, :index), class: "nav-link" %>
-                <%= link "Sound Effects", to: Routes.edit_effect_path(@conn, :index), class: "nav-link" %>
-                <%= link "Dungeon Exports", to: Routes.edit_dungeon_export_path(@conn, :dungeon_export_list), class: "nav-link" %>
-                <%= link "Dungeon Imports", to: Routes.edit_dungeon_import_path(@conn, :dungeon_import), class: "nav-link" %>
-              </div>
-            </div>
-          </li>
-          <%   end %>
+          <%= render("menu/admin.html", conn: @conn, current_user: @current_user) %>
+          <%= render("menu/dungeon_editing.html", conn: @conn, current_user: @current_user) %>
           <% end %>
 
+          <%= render("menu/game.html", conn: @conn, current_user: @current_user, is_crawling?: @is_crawling?, has_saved_games?: @has_saved_games?) %>
           <li class="nav-item"><%= link "Scores", to: Routes.score_path(@conn, :index), class: "nav-link" %></li>
           <li class="nav-item"><%= link "Reference", to: Routes.page_path(@conn, :reference), class: "nav-link" %></li>
 
-          <%= if @current_user do %>
-          <li class="nav-item"><%= link "Log out", to: Routes.session_path(@conn, :delete, @current_user), method: "delete", class: "nav-link" %></li>
-          <% else %>
-          <li class="nav-item"><%= link "Register", to: Routes.user_path(@conn, :new), class: "nav-link" %></li>
-          <li class="nav-item"><%= link "Log in", to: Routes.session_path(@conn, :new), class: "nav-link" %></li>
-          <% end %>
+          <%= render("menu/session.html", conn: @conn, current_user: @current_user) %>
         </ul>
       </div>
     </nav>

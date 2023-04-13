@@ -1,6 +1,8 @@
 defmodule DungeonCrawlWeb.Admin.DungeonView do
   use DungeonCrawl.Web, :view
 
+  alias DungeonCrawl.Account
+
   def level_header_links(conn, dungeon_instance, level, dungeon) do
     for level_header <- Enum.sort(dungeon_instance.level_headers, fn(a,b) -> a.number < b.number end) do
       _level_header_link(conn, level_header, level, dungeon, dungeon_instance.id)
