@@ -251,16 +251,19 @@ defmodule DungeonCrawlWeb.CrawlerController do
   end
 
   defp validate_active_or_owner(%{params: %{"dungeon_instance_id" => di_id}} = conn, _opts) do
-    dungeon_instance = Repo.preload(DungeonInstances.get_dungeon!(di_id), :dungeon)
-
-    if dungeon_instance && !dungeon_instance.dungeon.deleted_at && dungeon_instance.dungeon.active && !dungeon_instance.is_private do #|| conn.assigns.current_user.is_admin
+    with dungeon_instance when not is_nil(dungeon_instance) <- DungeonInstances.get_dungeon(di_id),
+         dungeon_instance = Repo.preload(dungeon_instance, :dungeon),
+         true <- !dungeon_instance.dungeon.deleted_at &&
+           dungeon_instance.dungeon.active &&
+           !dungeon_instance.is_private do
       conn
       |> assign(:instance, dungeon_instance)
     else
-      conn
-      |> put_flash(:error, "Cannot join that instance")
-      |> redirect(to: Routes.dungeon_path(conn, :index))
-      |> halt()
+      _ ->
+        conn
+        |> put_flash(:error, "Cannot join that instance")
+        |> redirect(to: Routes.dungeon_path(conn, :index))
+        |> halt()
     end
   end
 
