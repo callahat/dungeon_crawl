@@ -18,6 +18,8 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     field :number_east, :integer
     field :number_west, :integer
 
+    field :passage_exits, DungeonCrawl.EctoPassageExits
+
     belongs_to :level, DungeonCrawl.Dungeons.Level
     # Should this direct link go away since the level is a child of the header, which is also a child of dungeon instance?
     belongs_to :dungeon, DungeonCrawl.DungeonInstances.Dungeon, foreign_key: :dungeon_instance_id
@@ -36,7 +38,8 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     # Probably don't need all these validations as it will copy them from the level, which already has these validations
     level_instance
     |> cast(attrs, [:name, :dungeon_instance_id, :level_id, :number, :entrance, :height, :width, :state,
-                    :number_north, :number_south, :number_east, :number_west, :level_header_id, :player_location_id])
+                    :number_north, :number_south, :number_east, :number_west, :level_header_id, :player_location_id,
+                    :passage_exits])
     |> cast_assoc(:tiles)
     |> validate_length(:name, max: 32)
     |> validate_required([:level_id, :dungeon_instance_id, :height, :width])
