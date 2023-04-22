@@ -1,72 +1,59 @@
 defmodule DungeonCrawl.EctoPassageExits do
   use Ecto.Type
-  def type, do: :string
+  def type, do: :jsonb
 
-  # Can't use a map, since the same tile_id could have multiple exits
-  # going to it
+  def cast(data) do
+    cond do
+      is_nil(data) || data == []->
+        {:ok, []}
 
-  @passage_exit_tuple "{(\\d+,[^,\s]+?)}"
+      _valid_inner_tuple(data) ->
+        detupled_data =
+          data
+          |> Enum.map(fn {tile_id, key} -> [tile_id, key] end)
 
-  def cast(exits) when is_binary(exits) do
-    case _passage_exits(exits) do
-      nil ->
-        :error
+        { :ok, detupled_data }
 
-      exits ->
-        list = _passage_exits_to_list(exits)
-        {:ok, list}
+      _valid_inner_list(data) ->
+        {:ok, data}
+
+      true -> :error
     end
   end
-
-  def cast(exits) when is_list(exits) do
-    if _valid_passage_exits?(exits) do
-      {:ok, exits}
-    else
-      :error
-    end
-  end
-
-  def cast(_), do: :error
 
   def load(data) do
-    {:ok, _passage_exits_to_list(_passage_exits(data))}
-  rescue
-    _ -> :error
-  end
+    if _valid_inner_list(data) do
+      tupled_data =
+        data
+        |> Enum.map(fn [tile_id, key] -> {tile_id, key} end)
 
-  def dump(exits) do
-    if _valid_passage_exits?(exits) do
-      {:ok, _stringify_passage_exits(exits)}
+      {:ok, tupled_data}
     else
       :error
     end
   end
 
-  defp _valid_passage_exits?(exits) do
-    Enum.all?(exits, fn {id, key} -> is_integer(id) && is_binary(key) end)
-  rescue
-    _ -> false
-  end
-
-  defp _passage_exits(exits) when is_binary(exits) do
-    case Regex.run(
-           ~r/\A#{ @passage_exit_tuple }(?:,#{ @passage_exit_tuple })*\z/,
-           exits) do
-      nil                -> nil
-      [ _match | exits ] -> exits
+  def dump(data) do
+    if _valid_inner_list(data) do
+      {:ok, data}
+    else
+      :error
     end
   end
 
-  defp _passage_exits_to_list(exits) do
-    exits
-    |> Enum.map(fn passage_exit ->
-      [tile_id, key] = String.split(passage_exit, ",")
-      {String.to_integer(tile_id), key}
-    end)
+  defp _valid_inner_tuple(data) do
+    is_list(data) &&
+      Enum.all?(data, fn
+        {tile_id, passage_key} -> is_integer(tile_id) && is_binary(passage_key)
+        _ -> false
+      end)
   end
 
-  def _stringify_passage_exits(exits) do
-    Enum.map(exits, fn {id, key} -> "{#{ id },#{ key}}" end)
-    |> Enum.join(",")
+  defp _valid_inner_list(data) do
+    is_list(data) &&
+      Enum.all?(data, fn
+        [tile_id, passage_key] -> is_integer(tile_id) && is_binary(passage_key)
+        _ -> false
+      end)
   end
 end
