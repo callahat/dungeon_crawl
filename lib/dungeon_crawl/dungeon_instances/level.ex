@@ -5,6 +5,10 @@ defmodule DungeonCrawl.DungeonInstances.Level do
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Games.Save
 
+  defmodule EctoPassageExits do
+    use DungeonCrawl.EctoTupleListable, [&is_integer/1, &is_binary/1]
+  end
+
   schema "level_instances" do
     field :height, :integer
     field :name, :string
@@ -18,7 +22,7 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     field :number_east, :integer
     field :number_west, :integer
 
-    field :passage_exits, DungeonCrawl.EctoPassageExits
+    field :passage_exits, EctoPassageExits, default: []
 
     belongs_to :level, DungeonCrawl.Dungeons.Level
     # Should this direct link go away since the level is a child of the header, which is also a child of dungeon instance?

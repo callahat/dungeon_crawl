@@ -60,7 +60,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
     {:ok, %{dungeon: _, levels: [instance | _]}} = DungeonInstances.create_dungeon(Repo.preload(level, :dungeon).dungeon, "testuser")
 
-    DungeonInstances.Level.changeset(instance, Map.take(attrs, [:player_location_id]))
+    DungeonInstances.Level.changeset(instance, Map.take(attrs, [:player_location_id, :passage_exits]))
     |> Repo.update!
   end
 
