@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.SluggableTest do
+defmodule DungeonCrawl.EctoTupleListableTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.EctoTupleListable
