@@ -23,7 +23,7 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     field :number_west, :integer
 
     field :passage_exits, EctoPassageExits, default: []
-    field :program_contexts, :map, default: %{}
+    field :program_contexts, DungeonCrawl.EctoProgramContexts, default: %{}
 
     belongs_to :level, DungeonCrawl.Dungeons.Level
     # Should this direct link go away since the level is a child of the header, which is also a child of dungeon instance?

@@ -260,8 +260,6 @@ defmodule DungeonCrawl.DungeonInstances do
     Repo.delete!(level)
   end
 
-  alias DungeonCrawl.DungeonInstances.Tile
-
   @doc """
   Gets a single tile_instance, with the highest z_index for given coordinates
 

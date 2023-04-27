@@ -6,6 +6,9 @@ defmodule DungeonCrawl.Player.Location do
     field :user_id_hash, :string
     belongs_to :tile, DungeonCrawl.DungeonInstances.Tile, foreign_key: :tile_instance_id
 
+    field :name, :string, virtual: true, default: nil
+    field :parsed_state, :map, virtual: true, default: nil
+
     timestamps()
   end
 

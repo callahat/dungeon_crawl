@@ -130,6 +130,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   def send_event(%Levels{program_contexts: program_contexts} = state, %{id: tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
     case program_contexts do
       %{^tile_id => %{program: program, object_id: object_id}} ->
+        sender = Map.drop(sender, [:tile, :inserted_at, :updated_at, :__meta__]) # the struct is still used elsewhere
         %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
                                                                                object_id: object_id,
                                                                                state: state,
