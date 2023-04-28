@@ -246,19 +246,24 @@ defmodule DungeonCrawl.DungeonInstances do
 
   ## Examples
 
-      iex> update_level(level)
+      iex> update_level(123, attrs)
       {:ok, level}
 
       iex> update_level(level, attrs)
       {:ok, level}
   """
-  def update_level(%Level{} = level) do
-    update_level(level, Map.drop(level, [:__meta__, :__struct__, :tiles]))
+  def update_level(nil, level_attrs) do
+    nil
   end
 
-  def update_level(%Level{} = level, level_attrs = %{}) do
+  def update_level(%Level{} = level, level_attrs) do
     Level.changeset(level, level_attrs)
     |> Repo.update()
+  end
+
+  def update_level(level_id, level_attrs) do
+    get_level(level_id)
+    |> update_level(level_attrs)
   end
 
   @doc """
