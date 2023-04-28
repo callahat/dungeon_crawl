@@ -242,6 +242,26 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Updates a level instance
+
+  ## Examples
+
+      iex> update_level(level)
+      {:ok, level}
+
+      iex> update_level(level, attrs)
+      {:ok, level}
+  """
+  def update_level(%Level{} = level) do
+    update_level(level, Map.drop(level, [:__meta__, :__struct__, :tiles]))
+  end
+
+  def update_level(%Level{} = level, level_attrs = %{}) do
+    Level.changeset(level, level_attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Deletes a Level Instance.
 
   ## Examples

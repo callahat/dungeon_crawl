@@ -27,7 +27,6 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             adjacent_level_numbers: %{},
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
-            tile_template_slug_cache: %{},
             inactive_players: %{},
             players_visible_coords: %{},
             players_los_coords: %{},

@@ -62,7 +62,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
   end
 
   describe "level_instances" do
-    alias DungeonCrawl.DungeonInstances.{Dungeon, Level, LevelHeader}
+    alias DungeonCrawl.DungeonInstances.{Dungeon, Level, LevelHeader, Tile}
 
     test "get_level!/1 returns the level with given id" do
       instance = insert_stubbed_level_instance()
@@ -164,6 +164,39 @@ defmodule DungeonCrawl.DungeonInstancesTest do
 
     test "find_or_create_level/2 with a nil header" do
       refute DungeonInstances.find_or_create_level(nil, 69420)
+    end
+
+    test "update_level/1 updates the level in the database" do
+      level_instance = insert_stubbed_level_instance(%{state: "flag: false"}, [
+        %Tile{character: "?", row: 1, col: 3, state: "blocking: true", script: "#end\n:touch\nHi"}
+      ])
+
+      level_instance = %{ level_instance | passage_exits: [{123, "gold"}, {9, "gamma"}] }
+
+      assert {:ok, updated_instance} = DungeonInstances.update_level(level_instance)
+      assert updated_instance.passage_exits == [{123, "gold"}, {9, "gamma"}]
+      assert Map.delete(updated_instance, :passage_exits) ==
+               Map.delete(level_instance, :passage_exits)
+    end
+
+    test "update_level/2 updates the level based on the attributes" do
+      original_level_instance = insert_stubbed_level_instance(%{state: "flag: false"}, [
+        %Tile{character: "?", row: 1, col: 3, state: "blocking: true", script: "#end\n:touch\nHi"}
+      ])
+
+      level_instance = %{ original_level_instance | number_east: 3 }
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_level(level_instance,
+                 %{passage_exits: [{123, "gold"}, {9, "gamma"}]})
+
+      assert updated_instance.passage_exits == [{123, "gold"}, {9, "gamma"}]
+      assert Map.delete(updated_instance, :passage_exits) ==
+               Map.delete(level_instance, :passage_exits)
+      assert updated_instance.number_east == 3
+      # since the level_instance struct was updated, but also parameters are passed in,
+      # the level_instance struct changes are not used.
+      refute Repo.get(Level, original_level_instance.id).number_east == 3
     end
 
     test "delete_level/1 deletes a level instance" do
