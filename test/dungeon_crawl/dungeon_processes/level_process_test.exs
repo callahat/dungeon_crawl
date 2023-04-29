@@ -124,6 +124,14 @@ defmodule DungeonCrawl.LevelProcessTest do
                     instance_id: _ } = LevelProcess.get_state(instance_process)
   end
 
+  test "load_program_contexts", %{instance_process: instance_process} do
+    assert LevelProcess.load_program_contexts(instance_process, nil) == false
+    assert LevelProcess.load_program_contexts(instance_process, %{}) == false
+    assert LevelProcess.load_program_contexts(instance_process, %{123 => %{}}) == true
+
+    assert %{123 => %{}} == LevelProcess.get_state(instance_process).program_contexts
+  end
+
   test "load_spawn_coordinates", %{instance_process: instance_process} do
     assert :ok = LevelProcess.load_spawn_coordinates(instance_process, [{1,1}, {2,3}, {4,5}])
     assert %Levels{ spawn_coordinates: spawn_coordinates } = LevelProcess.get_state(instance_process)

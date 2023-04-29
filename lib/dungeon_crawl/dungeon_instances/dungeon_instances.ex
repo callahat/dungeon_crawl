@@ -252,7 +252,7 @@ defmodule DungeonCrawl.DungeonInstances do
       iex> update_level(level, attrs)
       {:ok, level}
   """
-  def update_level(nil, level_attrs) do
+  def update_level(nil, _level_attrs) do
     nil
   end
 
