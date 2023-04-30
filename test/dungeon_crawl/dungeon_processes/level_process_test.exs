@@ -124,6 +124,12 @@ defmodule DungeonCrawl.LevelProcessTest do
                     instance_id: _ } = LevelProcess.get_state(instance_process)
   end
 
+  test "set_passage_exits", %{instance_process: instance_process} do
+    LevelProcess.set_passage_exits(instance_process, [{123, "Vermilion"}, {4, "red"}])
+
+    assert [{123, "Vermilion"}, {4, "red"}] == LevelProcess.get_state(instance_process).passage_exits
+  end
+
   test "load_program_contexts", %{instance_process: instance_process} do
     assert LevelProcess.load_program_contexts(instance_process, nil) == false
     assert LevelProcess.load_program_contexts(instance_process, %{}) == false

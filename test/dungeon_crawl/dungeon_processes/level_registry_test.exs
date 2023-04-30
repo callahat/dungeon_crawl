@@ -140,7 +140,10 @@ defmodule DungeonCrawl.LevelRegistryTest do
     instance = Level.changeset(instance,
                  %{
                    number_north: instance.number,
-                   program_contexts: %{tile.id => %{program: alt_program, event_sender: %{tile_id: 123}, object_id: tile.id}}})
+                   program_contexts: %{tile.id => %{program: alt_program, event_sender: %{tile_id: 123}, object_id: tile.id}},
+                   passage_exits: [{123, "Puce"}]
+                 }
+               )
                |> Repo.update!
 
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
@@ -153,7 +156,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
     assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number, 1)
 
     # the instance level is loaded
-    assert %Levels{program_contexts: programs} = LevelProcess.get_state(instance_process)
+    assert %Levels{program_contexts: programs, passage_exits: passage_exits} = LevelProcess.get_state(instance_process)
     assert programs == %{tile.id => %{
              object_id: tile.id,
              program: %Program{broadcasts: [],
@@ -170,6 +173,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
              event_sender: %{tile_id: 123}
            }
          }
+    assert passage_exits == [{123, "Puce"}]
   end
 
   test "create/2 when a solo instance", %{instance_registry: instance_registry} do

@@ -95,6 +95,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @doc """
+  Initializes the level with passage exits if applicable.
+  """
+  def set_passage_exits(instance, passage_exits) do
+    GenServer.cast(instance, {:set_passage_exits, {passage_exits}})
+  end
+
+  @doc """
   Initializes the level with program contexts if applicable.
   Returns false if there were no program contexts to load,
   otherwise return true.
@@ -310,6 +317,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   def handle_cast({:create_tile, {tile, skip_programs}}, %Levels{} = state) do
     {_tile, state} = Levels.create_tile(state, tile, skip_programs)
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:set_passage_exits, {passage_exits}}, %Levels{} = state) do
+    {:noreply, %{ state | passage_exits: passage_exits }}
   end
 
   @impl true
