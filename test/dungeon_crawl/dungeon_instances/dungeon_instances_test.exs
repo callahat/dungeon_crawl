@@ -51,6 +51,34 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert Repo.preload(header, :levels).levels == []
     end
 
+    test "update_dungeon/2 when given the dungeon" do
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "flag: false"})
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_dungeon(
+                 dungeon_instance,
+                 %{state: "flag: true, a: b"})
+      assert updated_instance.state == "flag: true, a: b"
+      assert Map.delete(updated_instance, :state) ==
+               Map.delete(dungeon_instance, :state)
+    end
+
+    test "update_dungeon/2 when given the level instance id" do
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "flag: false"})
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_dungeon(
+                 dungeon_instance.id,
+                 %{state: "flag: true, a: b"})
+      assert updated_instance.state == "flag: true, a: b"
+      assert Map.delete(updated_instance, :state) ==
+               Map.delete(dungeon_instance, :state)
+    end
+
+    test "update_dungeon/2 when dungeon not found" do
+      refute DungeonInstances.update_dungeon(nil, %{number_north: 2})
+    end
+
     test "delete_dungeon/1" do
       dungeon = insert_stubbed_dungeon_instance(%{active: true})
       level = Repo.preload(dungeon, :levels).levels |> Enum.at(0)

@@ -6,6 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
   alias DungeonCrawl.DungeonProcesses.DungeonProcess
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.Games
+  alias DungeonCrawl.StateValue
 
   require Logger
 
@@ -227,7 +228,11 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
   end
 
   defp _handle_idle_dungeon(state) do
-    unless(Games.has_saved_games?(state.dungeon_instance)) do
+    if(Games.has_saved_games?(state.dungeon_instance)) do
+      DungeonInstances.update_dungeon(state.dungeon_instance, %{
+        state: StateValue.Parser.stringify(state.state_values)
+      })
+    else
       DungeonInstances.delete_dungeon(state.dungeon_instance)
     end
   end

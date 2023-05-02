@@ -11,7 +11,6 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   alias DungeonCrawl.DungeonProcesses.Render
   alias DungeonCrawl.DungeonProcesses.Sound
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.StateValue
   alias DungeonCrawl.Scripting.Program
   alias DungeonCrawl.StateValue
 

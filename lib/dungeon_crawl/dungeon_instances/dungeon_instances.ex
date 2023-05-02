@@ -68,6 +68,31 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Updates a dungeon instance
+
+  ## Examples
+
+      iex> update_dungeon(123, attrs)
+      {:ok, dungeon}
+
+      iex> update_dungeon(dungeon, attrs)
+      {:ok, dungeon}
+  """
+  def update_dungeon(nil, _dungeon_attrs) do
+    nil
+  end
+
+  def update_dungeon(%Dungeon{} = dungeon, dungeon_attrs) do
+    Dungeon.changeset(dungeon, dungeon_attrs)
+    |> Repo.update()
+  end
+
+  def update_dungeon(dungeon_id, dungeon_attrs) do
+    get_dungeon(dungeon_id)
+    |> update_dungeon(dungeon_attrs)
+  end
+
+  @doc """
   Deletes a Dungeon Instance.
 
   ## Examples
