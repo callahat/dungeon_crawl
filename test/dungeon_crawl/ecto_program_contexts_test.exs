@@ -222,6 +222,10 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
     test "returns error when its invalid" do
       assert EctoProgramContexts.cast("junk") == :error
       assert EctoProgramContexts.cast([]) == :error
+      assert EctoProgramContexts.cast(%{123 => ["__TUPLE__", "A"], "456" => {"C","D"}})
+             == :error
+      assert EctoProgramContexts.cast(%{123 => ["__ATOM__", "A"]})
+             == :error
     end
 
     test "returns ok when empty" do
@@ -273,6 +277,8 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
     test "doesn't dump bad data to the database" do
       assert EctoProgramContexts.dump("someone edited this...") == :error
       assert EctoProgramContexts.dump([%{1 => "key"}]) == :error
+      assert EctoProgramContexts.dump(%{"1" => :atom}) == :error
+      assert EctoProgramContexts.dump(%{"2" => {:one, :two}}) == :error
     end
 
     test "returns ok when empty" do
