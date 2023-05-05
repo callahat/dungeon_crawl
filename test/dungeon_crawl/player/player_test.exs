@@ -21,13 +21,29 @@ defmodule DungeonCrawl.PlayerTest do
     end
 
     test "get_location/1" do
-      location = location_fixture()
-      assert Player.get_location(%{id: location.id}) == location
+      location1 = location_fixture(%{tile_instance_id: nil})
+      location2 = location_fixture()
+      assert Player.get_location(%{id: location1.id}) == location1
+      assert Player.get_location(%{id: location2.id}) == location2
+      refute Player.get_location(location1.user_id_hash)
+      assert Player.get_location(location2.user_id_hash) == location2
     end
 
     test "get_location!/1" do
-      location = location_fixture(%{user_id_hash: "getLocation"})
-      assert Player.get_location!("getLocation") == location
+      _location1 = location_fixture(%{user_id_hash: "getLocation", tile_instance_id: nil})
+      location2 = location_fixture(%{user_id_hash: "getLocation"})
+      location3 = location_fixture(%{user_id_hash: "third"})
+      _location4 = location_fixture(%{user_id_hash: "fourth", tile_instance_id: nil})
+      assert Player.get_location!("getLocation") == location2
+      assert Player.get_location!("third") == location3
+      assert_raise Ecto.NoResultsError, fn -> Player.get_location!("fourth") end
+    end
+
+    test "update_location!/2" do
+      location = location_fixture()
+      assert location.tile_instance_id != nil
+      assert location = Player.update_location!(location, %{tile_instance_id: nil})
+      assert location.tile_instance_id == nil
     end
 
     test "dungeon_id/1" do
@@ -46,6 +62,11 @@ defmodule DungeonCrawl.PlayerTest do
       assert Player.is_crawling?(location)
       refute Player.is_crawling?("fakeplayer")
       refute Player.is_crawling?(user.user_id_hash)
+
+      # When not crawling, indicated by a nil tile_instance_id - this is just a saved location
+      location2 = location_fixture(%{user_id_hash: "notcrawlingplayer", tile_instance_id: nil})
+      refute Player.is_crawling?(location2.user_id_hash)
+      refute Player.is_crawling?(location2)
     end
 
     test "has_saved_games?/1" do

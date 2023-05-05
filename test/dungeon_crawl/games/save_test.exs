@@ -13,7 +13,10 @@ defmodule DungeonCrawl.Dungeons.SaveTest do
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
-    changeset = Save.changeset(%Save{}, Map.put(@valid_attrs, :level_instance_id, insert_stubbed_level_instance().id))
+    level_instance = insert_stubbed_level_instance()
+    location = insert_player_location(%{level_instance_id: level_instance.id})
+    other_attrs = %{level_instance_id: level_instance.id, player_location_id: location.id}
+    changeset = Save.changeset(%Save{}, Map.merge(@valid_attrs, other_attrs))
     assert changeset.valid?
   end
 

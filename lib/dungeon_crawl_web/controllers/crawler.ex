@@ -101,7 +101,7 @@ defmodule DungeonCrawlWeb.Crawler do
       iex> save_and_broadcast(player_location, true, false)
       %Save{}
   """
-  def save_and_broadcast(%Player.Location{} = location, saveable, delete_location \\ true) do
+  def save_and_broadcast(%Player.Location{} = location, saveable, quitting \\ true) do
     tile = Repo.preload(location, [tile: :level]).tile
 
     {:ok, instance} = Registrar.instance_process(tile.level)
@@ -129,14 +129,15 @@ defmodule DungeonCrawlWeb.Crawler do
       # and take with them items needed for other players to advance or win. A player who saves
       # the game takes all their stuff on their tile with them to come back later.
       {:ok, save} = %{user_id_hash: location.user_id_hash,
+                      player_location_id: location.id,
                       host_name: Account.get_name(dungeon.user),
                       level_name: "#{ tile.level.number } - #{ tile.level.name }"}
                     |> Map.merge(Map.take(player_tile, [:row, :col, :level_instance_id, :state]))
                     |> Games.create_save()
 
 
-      if delete_location do
-        Player.delete_location!(location.user_id_hash)
+      if quitting do
+        Player.update_location!(location, %{tile_instance_id: nil})
         {_deleted_tile, instance_state} = Levels.delete_tile(instance_state, tile)
         {save, instance_state}
       else
