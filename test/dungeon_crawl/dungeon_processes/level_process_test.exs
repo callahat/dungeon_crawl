@@ -724,6 +724,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert :ok = LevelProcess.delete_tile(instance_process, new_tile_1.id)
 
     Process.monitor(instance_process)
+
+    # Trigger the message handling under test
     assert :ok = Process.send(instance_process, :write_db, [])
     :timer.sleep 10 # let the process do its thing
     refute_receive _
@@ -731,13 +733,15 @@ defmodule DungeonCrawl.LevelProcessTest do
     refute Repo.get(Tile, tile_id_2)
     assert "O" == Repo.get(Tile, tile_id_3).character
 
-    # new tiles younger than 2 write_db iterations don't get persisted to the DB yet
-    assert new_tile_2 == LevelProcess.get_tile(instance_process, 1, 7)
-    assert is_binary(new_tile_2.id)
-    persisted_older_new_tile = LevelProcess.get_tile(instance_process, 1, 6)
-    # new tiles that live past 2 or more write_db iterations get persisted to the DB
-    assert is_integer(persisted_older_new_tile.id)
-    assert "G" == Repo.get(Tile, persisted_older_new_tile.id).character
+    # new tiles get persisted to the DB
+    assert persisted_new_tile_1 = LevelProcess.get_tile(instance_process, 1, 6)
+    assert is_integer(persisted_new_tile_1.id)
+    assert "G" == Repo.get(Tile, persisted_new_tile_1.id).character
+
+    assert persisted_new_tile_2 = LevelProcess.get_tile(instance_process, 1, 7)
+    assert Map.delete(new_tile_2, :id) == Map.delete(persisted_new_tile_2, :id)
+    assert is_integer(persisted_new_tile_2.id)
+    assert "M" == Repo.get(Tile, persisted_new_tile_2.id).character
   end
 
   test "write_db stops the instance when the backing record is gone", %{instance_process: instance_process,
