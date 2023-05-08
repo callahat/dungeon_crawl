@@ -490,7 +490,8 @@ CREATE TABLE public.saved_games (
     inserted_at timestamp(0) without time zone NOT NULL,
     updated_at timestamp(0) without time zone NOT NULL,
     host_name character varying(255),
-    level_name character varying(255)
+    level_name character varying(255),
+    player_location_id bigint
 );
 
 
@@ -1377,6 +1378,13 @@ CREATE INDEX saved_games_level_instance_id_index ON public.saved_games USING btr
 
 
 --
+-- Name: saved_games_player_location_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX saved_games_player_location_id_index ON public.saved_games USING btree (player_location_id);
+
+
+--
 -- Name: scores_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1633,6 +1641,14 @@ ALTER TABLE ONLY public.saved_games
 
 
 --
+-- Name: saved_games saved_games_player_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.saved_games
+    ADD CONSTRAINT saved_games_player_location_id_fkey FOREIGN KEY (player_location_id) REFERENCES public.player_locations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: scores scores_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1780,3 +1796,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20230213021530);
 INSERT INTO public."schema_migrations" (version) VALUES (20230329004316);
 INSERT INTO public."schema_migrations" (version) VALUES (20230419013928);
 INSERT INTO public."schema_migrations" (version) VALUES (20230422105230);
+INSERT INTO public."schema_migrations" (version) VALUES (20230504032224);
