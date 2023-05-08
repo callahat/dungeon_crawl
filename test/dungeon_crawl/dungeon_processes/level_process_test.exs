@@ -583,6 +583,38 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert DungeonCrawl.Repo.get Level, level_instance.id
   end
 
+  test "perform_actions no players", %{instance_process: instance_process, level_instance: level_instance} do
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {:ok, %{ state | count_to_idle: 0,
+        state_values: %{something: "else"},
+        passage_exits: [{123, "cornflower blue"}],
+        program_contexts: %{
+          7 => %{
+            event_sender: nil,
+            object_id: 236,
+            program: %Program{status: :alive}}
+        }
+      }}
+    end)
+
+    ref = Process.monitor(instance_process)
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    # terminates the process, leaves the instance
+    assert_receive {:DOWN, ^ref, :process, ^instance_process, :normal}
+    assert record = DungeonCrawl.Repo.get(Level, level_instance.id)
+    assert %{
+      state: "something: else",
+      passage_exits: [{123, "cornflower blue"}],
+      program_contexts: %{
+        7 => %{
+          event_sender: nil,
+          object_id: 236,
+          program: %Program{status: :alive}}
+      }} = record
+  end
+
   test "check_on_inactive_players", %{instance_process: instance_process, level_instance: level_instance} do
     player_tile = DungeonInstances.create_tile!(
                     %{character: "@",
