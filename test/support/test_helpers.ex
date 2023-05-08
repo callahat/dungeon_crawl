@@ -60,7 +60,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
     {:ok, %{dungeon: _, levels: [instance | _]}} = DungeonInstances.create_dungeon(Repo.preload(level, :dungeon).dungeon, "testuser")
 
-    DungeonInstances.Level.changeset(instance, Map.take(attrs, [:player_location_id]))
+    DungeonInstances.Level.changeset(instance, Map.take(attrs, [:player_location_id, :passage_exits, :program_contexts]))
     |> Repo.update!
   end
 
@@ -176,9 +176,11 @@ defmodule DungeonCrawlWeb.TestHelpers do
       user_id_hash: "good_hash",
     }, attrs)
 
-    tile = if changes[:tile_instance_id], do: changes[:tile_instance_id], else: insert_player_tile(changes)
+    tile_id = if Map.has_key?(changes, :tile_instance_id),
+                 do: changes[:tile_instance_id],
+                 else: insert_player_tile(changes).id
 
-    DungeonCrawl.Player.create_location!(%{user_id_hash: changes.user_id_hash, tile_instance_id: tile.id})
+    DungeonCrawl.Player.create_location!(%{user_id_hash: changes.user_id_hash, tile_instance_id: tile_id})
   end
 
   def insert_score(dungeon_id, attrs \\ %{}) do

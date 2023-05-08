@@ -45,3 +45,6 @@ erl_crash.dump
 
 # other lock files
 *.~lock*
+
+# IDE files
+.idea

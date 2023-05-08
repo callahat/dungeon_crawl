@@ -174,7 +174,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     {instance_id, _} = Map.get(owner_ids, owner_id, {0, nil})
     instance_id = instance_id + 1
     tiles = Enum.map(tiles, fn(t) -> Map.put(t, :level_instance_id, instance_id) end)
-    level_params = %{player_location_id: owner_id, number: number, id: instance_id}
+    level_params = %{player_location_id: owner_id, number: number, id: instance_id, program_contexts: %{}, passage_exits: []}
     {:reply, instance_id, _create_instance(level_params, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry)}
   end
 
@@ -184,7 +184,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     if Map.has_key?(instance_ids, owner_id) do
       {:reply, :exists, level_registry}
     else
-      level_params = %{player_location_id: owner_id, number: number, id: instance_id}
+      level_params = %{player_location_id: owner_id, number: number, id: instance_id, program_contexts: %{}, passage_exits: []}
       {:reply, instance_id, _create_instance(level_params, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry)}
     end
   end
@@ -283,7 +283,10 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     LevelProcess.set_author(instance_process, author)
     LevelProcess.set_cache(instance_process, cache)
     LevelProcess.set_state_values(instance_process, state_values)
-    LevelProcess.load_level(instance_process, tiles)
+    LevelProcess.set_passage_exits(instance_process, level_instance.passage_exits)
+    skip_programs =
+      LevelProcess.load_program_contexts(instance_process, level_instance.program_contexts)
+    LevelProcess.load_level(instance_process, tiles, skip_programs)
     LevelProcess.load_spawn_coordinates(instance_process, spawn_coordinates)
     _link_player_locations(instance_process, level_instance.id)
     LevelProcess.set_adjacent_level_numbers(instance_process, adjacent)

@@ -260,6 +260,19 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
       light_sources: light_sources
     } = state
     assert light_sources == %{}
+
+    # Does not start the program if skip_programs (third param) is true
+    tile_good_script = %Tile{character: "U", row: 1, col: 4, id: 123, script: "#SHOOT north"}
+    {new_tile, state} = Levels.create_tile(%Levels{}, tile_good_script, true)
+    assert %{id: 123, character: "U"} = new_tile
+    assert %Levels{
+             map_by_ids: %{123 => ^new_tile},
+             map_by_coords: %{ {1, 4} => %{0 => 123} },
+             rerender_coords: %{%{col: 4, row: 1} => true},
+           } = state
+    assert state.new_pids == []
+    assert state.light_sources == %{}
+    assert state.program_contexts == %{}
   end
 
   test "set_tile_id/3" do

@@ -68,6 +68,31 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Updates a dungeon instance
+
+  ## Examples
+
+      iex> update_dungeon(123, attrs)
+      {:ok, dungeon}
+
+      iex> update_dungeon(dungeon, attrs)
+      {:ok, dungeon}
+  """
+  def update_dungeon(nil, _dungeon_attrs) do
+    nil
+  end
+
+  def update_dungeon(%Dungeon{} = dungeon, dungeon_attrs) do
+    Dungeon.changeset(dungeon, dungeon_attrs)
+    |> Repo.update()
+  end
+
+  def update_dungeon(dungeon_id, dungeon_attrs) do
+    get_dungeon(dungeon_id)
+    |> update_dungeon(dungeon_attrs)
+  end
+
+  @doc """
   Deletes a Dungeon Instance.
 
   ## Examples
@@ -242,6 +267,31 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Updates a level instance
+
+  ## Examples
+
+      iex> update_level(123, attrs)
+      {:ok, level}
+
+      iex> update_level(level, attrs)
+      {:ok, level}
+  """
+  def update_level(nil, _level_attrs) do
+    nil
+  end
+
+  def update_level(%Level{} = level, level_attrs) do
+    Level.changeset(level, level_attrs)
+    |> Repo.update()
+  end
+
+  def update_level(level_id, level_attrs) do
+    get_level(level_id)
+    |> update_level(level_attrs)
+  end
+
+  @doc """
   Deletes a Level Instance.
 
   ## Examples
@@ -259,8 +309,6 @@ defmodule DungeonCrawl.DungeonInstances do
   def delete_level!(%Level{} = level) do
     Repo.delete!(level)
   end
-
-  alias DungeonCrawl.DungeonInstances.Tile
 
   @doc """
   Gets a single tile_instance, with the highest z_index for given coordinates

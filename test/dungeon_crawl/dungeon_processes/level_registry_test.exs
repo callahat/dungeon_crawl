@@ -4,7 +4,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances.{Level, Tile}
   alias DungeonCrawl.DungeonProcesses.{LevelRegistry,LevelProcess,Levels}
-  alias DungeonCrawl.Scripting.Program
+  alias DungeonCrawl.Scripting.{Parser,Program}
 
   setup do
     instance_registry = start_supervised!(%{
@@ -126,6 +126,54 @@ defmodule DungeonCrawl.LevelRegistryTest do
     assert instance_id == instance.id
     assert adjacent_level_numbers == %{"east" => nil, "north" => instance.number, "south" => nil, "west" => nil}
     assert Map.take(author, [:id, :name, :is_admin]) == Map.take(user, [:id, :name, :is_admin])
+  end
+
+  test "create/2 when program contexts exist in the DB", %{instance_registry: instance_registry} do
+    user = insert_user()
+    button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
+    instance = insert_stubbed_level_instance(%{state: "flag: false"},
+      [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
+        Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
+        %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: "", script: ""}])
+    tile = Repo.get_by(Tile, %{level_instance_id: instance.id, row: 1, col: 2})
+    {:ok, alt_program} = Parser.parse("#END\n:TOUCH\n*BZZZZ")
+    instance = Level.changeset(instance,
+                 %{
+                   number_north: instance.number,
+                   program_contexts: %{tile.id => %{program: alt_program, event_sender: %{tile_id: 123}, object_id: tile.id}},
+                   passage_exits: [{123, "Puce"}]
+                 }
+               )
+               |> Repo.update!
+
+    LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
+
+    Repo.preload(instance, [dungeon: :dungeon]).dungeon.dungeon
+    |> Dungeons.update_dungeon(%{user_id: user.id})
+
+    assert :ok = LevelRegistry.create(instance_registry, instance.number, nil)
+
+    assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, instance.number, 1)
+
+    # the instance level is loaded
+    assert %Levels{program_contexts: programs, passage_exits: passage_exits} = LevelProcess.get_state(instance_process)
+    assert programs == %{tile.id => %{
+             object_id: tile.id,
+             program: %Program{broadcasts: [],
+               instructions: %{1 => [:halt, [""]],
+                 2 => [:noop, "TOUCH"],
+                 3 => [:text, [["*BZZZZ"]]]},
+               labels: %{"touch" => [[2, true]]},
+               locked: false,
+               pc: 0,
+               responses: [],
+               status: :idle,
+               wait_cycles: 0
+             },
+             event_sender: %{tile_id: 123}
+           }
+         }
+    assert passage_exits == [{123, "Puce"}]
   end
 
   test "create/2 when a solo instance", %{instance_registry: instance_registry} do

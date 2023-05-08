@@ -27,7 +27,6 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
             adjacent_level_numbers: %{},
             rerender_coords: %{},
             count_to_idle: @count_to_idle,
-            tile_template_slug_cache: %{},
             inactive_players: %{},
             players_visible_coords: %{},
             players_los_coords: %{},
@@ -130,6 +129,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   def send_event(%Levels{program_contexts: program_contexts} = state, %{id: tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
     case program_contexts do
       %{^tile_id => %{program: program, object_id: object_id}} ->
+        sender = Map.drop(sender, [:tile, :inserted_at, :updated_at, :__meta__]) # the struct is still used elsewhere
         %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
                                                                                object_id: object_id,
                                                                                state: state,
@@ -200,15 +200,19 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   Does not update `dirty_ids` since this tile should already exist in the DB for it to have an id.
   Does touch `rerender_coords` as this may result in something to be rendered.
   """
-  def create_tile(%Levels{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = tile) do
+  def create_tile(state, tile, skip_program \\ false)
+
+  def create_tile(%Levels{new_id_counter: new_id_counter, new_ids: new_ids} = state, %{id: nil} = tile, skip_program) do
     new_id = "new_#{new_id_counter}"
-    create_tile(%{ state | new_id_counter: new_id_counter + 1, new_ids: Map.put(new_ids, new_id, 0) }, %{ tile | id: new_id })
+    create_tile(%{ state | new_id_counter: new_id_counter + 1, new_ids: Map.put(new_ids, new_id, 0) }, %{ tile | id: new_id }, skip_program)
   end
 
-  def create_tile(%Levels{} = state, tile) do
+  def create_tile(%Levels{} = state, tile, skip_program) do
     tile = _with_parsed_state(tile)
     {tile, state} = _register_tile(state, tile)
-    {_, tile, state} = _parse_and_start_program(state, tile)
+    {_, tile, state} = unless skip_program,
+                              do: _parse_and_start_program(state, tile),
+                              else: {nil, tile, state}
     rerender_coords = Map.put_new(state.rerender_coords, Map.take(tile, [:row, :col]), true)
     {tile, %{ state | rerender_coords: rerender_coords} }
   end

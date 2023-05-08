@@ -5,6 +5,10 @@ defmodule DungeonCrawl.DungeonInstances.Level do
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Games.Save
 
+  defmodule EctoPassageExits do
+    use DungeonCrawl.EctoTupleListable, [&is_integer/1, &is_binary/1]
+  end
+
   schema "level_instances" do
     field :height, :integer
     field :name, :string
@@ -17,6 +21,9 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     field :number_south, :integer
     field :number_east, :integer
     field :number_west, :integer
+
+    field :passage_exits, EctoPassageExits, default: []
+    field :program_contexts, DungeonCrawl.EctoProgramContexts, default: %{}
 
     belongs_to :level, DungeonCrawl.Dungeons.Level
     # Should this direct link go away since the level is a child of the header, which is also a child of dungeon instance?
@@ -36,7 +43,8 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     # Probably don't need all these validations as it will copy them from the level, which already has these validations
     level_instance
     |> cast(attrs, [:name, :dungeon_instance_id, :level_id, :number, :entrance, :height, :width, :state,
-                    :number_north, :number_south, :number_east, :number_west, :level_header_id, :player_location_id])
+                    :number_north, :number_south, :number_east, :number_west, :level_header_id, :player_location_id,
+                    :passage_exits, :program_contexts])
     |> cast_assoc(:tiles)
     |> validate_length(:name, max: 32)
     |> validate_required([:level_id, :dungeon_instance_id, :height, :width])

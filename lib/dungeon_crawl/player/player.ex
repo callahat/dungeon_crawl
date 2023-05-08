@@ -29,9 +29,33 @@ defmodule DungeonCrawl.Player do
       ** (Ecto.NoResultsError)
 
   """
-  def get_location(%{id: location_id}), do: Repo.get_by(Location, %{id: location_id})
-  def get_location(user_id_hash), do: Repo.get_by(Location, %{user_id_hash: user_id_hash})
-  def get_location!(user_id_hash), do: Repo.get_by!(Location, %{user_id_hash: user_id_hash})
+  def get_location(%{id: location_id}) do
+    Repo.one(from loc in Location, where: loc.id == ^location_id)
+  end
+  def get_location(user_id_hash) do
+    Repo.one(from loc in Location,
+             where: loc.user_id_hash == ^user_id_hash and
+                    not is_nil(loc.tile_instance_id))
+  end
+  def get_location!(user_id_hash) do
+    Repo.one!(from loc in Location,
+              where: loc.user_id_hash == ^user_id_hash and
+                     not is_nil(loc.tile_instance_id))
+  end
+
+  @doc """
+  Updates the player location
+
+  ## Examples
+
+      iex> update_location(%Location{}, attrs)
+      %Location{}
+  """
+  def update_location!(%Location{} = location, attrs) do
+    location
+    |> Location.changeset(attrs)
+    |> Repo.update!()
+  end
 
   @doc """
   Returns the id of the dungeon of which the location ultimately belongs
@@ -63,8 +87,14 @@ defmodule DungeonCrawl.Player do
       iex> is_crawling?(456)
       false
   """
-  def is_crawling?(%{id: location_id}), do: Repo.exists?(from l in Location, where: l.id == ^location_id)
-  def is_crawling?(user_id_hash), do: Repo.exists?(from l in Location, where: l.user_id_hash == ^user_id_hash)
+  def is_crawling?(%{id: location_id}) do
+    Repo.exists?(from l in Location, where: l.id == ^location_id and
+                                            not is_nil(l.tile_instance_id))
+  end
+  def is_crawling?(user_id_hash) do
+    Repo.exists?(from l in Location, where: l.user_id_hash == ^user_id_hash and
+                                            not is_nil(l.tile_instance_id))
+  end
 
   @doc """
   Returns if the given player currently has saved games.

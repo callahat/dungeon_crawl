@@ -410,7 +410,8 @@ defmodule DungeonCrawlWeb.CrawlerControllerTest do
     assert redirected_to(conn) == dungeon_path(conn, :index)
     assert get_flash(conn, :info) == "Saved"
     # location is deleted
-    refute Player.get_location(location)
+    assert location = Player.get_location(location)
+    assert location.tile_instance_id == nil
     assert DungeonInstances.get_dungeon(dungeon_instance.id)
     assert Dungeons.get_level(instance.level_id)
     level_instance_id = instance.id

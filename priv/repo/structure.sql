@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 10.22 (Ubuntu 10.22-0ubuntu0.18.04.1)
--- Dumped by pg_dump version 10.22 (Ubuntu 10.22-0ubuntu0.18.04.1)
+-- Dumped from database version 10.23 (Ubuntu 10.23-0ubuntu0.18.04.1)
+-- Dumped by pg_dump version 10.23 (Ubuntu 10.23-0ubuntu0.18.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -346,7 +346,9 @@ CREATE TABLE public.level_instances (
     number_east integer,
     number_west integer,
     player_location_id bigint,
-    level_header_id bigint
+    level_header_id bigint,
+    passage_exits jsonb,
+    program_contexts jsonb
 );
 
 
@@ -472,6 +474,44 @@ CREATE SEQUENCE public.player_locations_id_seq
 --
 
 ALTER SEQUENCE public.player_locations_id_seq OWNED BY public.player_locations.id;
+
+
+--
+-- Name: saved_games; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.saved_games (
+    id bigint NOT NULL,
+    user_id_hash character varying(255),
+    "row" integer,
+    col integer,
+    state character varying(2048),
+    level_instance_id bigint,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL,
+    host_name character varying(255),
+    level_name character varying(255),
+    player_location_id bigint
+);
+
+
+--
+-- Name: saved_games_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.saved_games_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: saved_games_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.saved_games_id_seq OWNED BY public.saved_games.id;
 
 
 --
@@ -896,6 +936,13 @@ ALTER TABLE ONLY public.player_locations ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: saved_games id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.saved_games ALTER COLUMN id SET DEFAULT nextval('public.saved_games_id_seq'::regclass);
+
+
+--
 -- Name: scores id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1045,6 +1092,14 @@ ALTER TABLE ONLY public.pinned_dungeons
 
 ALTER TABLE ONLY public.player_locations
     ADD CONSTRAINT player_locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: saved_games saved_games_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.saved_games
+    ADD CONSTRAINT saved_games_pkey PRIMARY KEY (id);
 
 
 --
@@ -1316,6 +1371,20 @@ CREATE INDEX player_locations_user_id_hash_index ON public.player_locations USIN
 
 
 --
+-- Name: saved_games_level_instance_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX saved_games_level_instance_id_index ON public.saved_games USING btree (level_instance_id);
+
+
+--
+-- Name: saved_games_player_location_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX saved_games_player_location_id_index ON public.saved_games USING btree (player_location_id);
+
+
+--
 -- Name: scores_dungeon_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1564,6 +1633,22 @@ ALTER TABLE ONLY public.player_locations
 
 
 --
+-- Name: saved_games saved_games_level_instance_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.saved_games
+    ADD CONSTRAINT saved_games_level_instance_id_fkey FOREIGN KEY (level_instance_id) REFERENCES public.level_instances(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: saved_games saved_games_player_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.saved_games
+    ADD CONSTRAINT saved_games_player_location_id_fkey FOREIGN KEY (player_location_id) REFERENCES public.player_locations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: scores scores_dungeon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1707,3 +1792,8 @@ INSERT INTO public."schema_migrations" (version) VALUES (20220321034751);
 INSERT INTO public."schema_migrations" (version) VALUES (20221230234056);
 INSERT INTO public."schema_migrations" (version) VALUES (20230101225443);
 INSERT INTO public."schema_migrations" (version) VALUES (20230111020708);
+INSERT INTO public."schema_migrations" (version) VALUES (20230213021530);
+INSERT INTO public."schema_migrations" (version) VALUES (20230329004316);
+INSERT INTO public."schema_migrations" (version) VALUES (20230419013928);
+INSERT INTO public."schema_migrations" (version) VALUES (20230422105230);
+INSERT INTO public."schema_migrations" (version) VALUES (20230504032224);

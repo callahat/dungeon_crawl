@@ -208,7 +208,7 @@ defmodule DungeonCrawlWeb.CrawlerTest do
       %{location: location, instance: instance, dungeon_instance: di}
     end
 
-    test "defaults to quitting which deletes the location",
+    test "defaults to quitting which clears the tile from the location",
          %{location: location, instance: instance, dungeon_instance: di} do
       expected_row = location.tile.row
       expected_col = location.tile.col
@@ -223,6 +223,10 @@ defmodule DungeonCrawlWeb.CrawlerTest do
       # It unregisters the player location
       state = LevelProcess.get_state(instance)
       assert %{} == state.player_locations
+
+      # player location still exists but tile_instance_id is nil'ed
+      assert updated_location = Player.get_location(location)
+      assert updated_location.tile_instance_id == nil
 
       # It did not destroy the dungeon
       assert Dungeons.get_dungeon(di.dungeon_id)

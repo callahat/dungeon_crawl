@@ -137,6 +137,7 @@ defmodule DungeonCrawl.Games do
   def load_save(id, user_id_hash) do
     save = get_save(id)
     with save when not is_nil(save) <- save,
+         save = Repo.preload(save, :player_location),
          true <- save.user_id_hash == user_id_hash || :not_owner,
          player when not is_nil(player) <- Account.get_by_user_id_hash(user_id_hash),
          location when is_nil(location) <- Player.get_location(user_id_hash),
@@ -152,9 +153,7 @@ defmodule DungeonCrawl.Games do
         |> Map.merge(%{z_index: z_index, character: "@"})
         |> DungeonInstances.create_tile!()
 
-      location = Player.create_location!(%{user_id_hash: save.user_id_hash, tile_instance_id: tile.id})
-
-      {:ok, location}
+      {:ok, Player.update_location!(save.player_location, %{tile_instance_id: tile.id})}
     else
       tile_instance_id when is_integer(tile_instance_id) ->
         {:error, "Player already in a game"}
@@ -185,7 +184,13 @@ defmodule DungeonCrawl.Games do
 
   """
   def delete_save(%Save{} = save) do
-    Repo.delete(save)
+    location = Repo.preload(save, :player_location).player_location
+    if location.tile_instance_id do
+      Repo.delete(save)
+    else
+      Repo.delete(location)
+      {:ok, save}
+    end
   end
 
   @doc """

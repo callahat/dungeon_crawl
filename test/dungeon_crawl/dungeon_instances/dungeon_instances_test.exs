@@ -51,6 +51,34 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert Repo.preload(header, :levels).levels == []
     end
 
+    test "update_dungeon/2 when given the dungeon" do
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "flag: false"})
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_dungeon(
+                 dungeon_instance,
+                 %{state: "flag: true, a: b"})
+      assert updated_instance.state == "flag: true, a: b"
+      assert Map.delete(updated_instance, :state) ==
+               Map.delete(dungeon_instance, :state)
+    end
+
+    test "update_dungeon/2 when given the level instance id" do
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "flag: false"})
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_dungeon(
+                 dungeon_instance.id,
+                 %{state: "flag: true, a: b"})
+      assert updated_instance.state == "flag: true, a: b"
+      assert Map.delete(updated_instance, :state) ==
+               Map.delete(dungeon_instance, :state)
+    end
+
+    test "update_dungeon/2 when dungeon not found" do
+      refute DungeonInstances.update_dungeon(nil, %{number_north: 2})
+    end
+
     test "delete_dungeon/1" do
       dungeon = insert_stubbed_dungeon_instance(%{active: true})
       level = Repo.preload(dungeon, :levels).levels |> Enum.at(0)
@@ -62,7 +90,7 @@ defmodule DungeonCrawl.DungeonInstancesTest do
   end
 
   describe "level_instances" do
-    alias DungeonCrawl.DungeonInstances.{Dungeon, Level, LevelHeader}
+    alias DungeonCrawl.DungeonInstances.{Dungeon, Level, LevelHeader, Tile}
 
     test "get_level!/1 returns the level with given id" do
       instance = insert_stubbed_level_instance()
@@ -164,6 +192,42 @@ defmodule DungeonCrawl.DungeonInstancesTest do
 
     test "find_or_create_level/2 with a nil header" do
       refute DungeonInstances.find_or_create_level(nil, 69420)
+    end
+
+    test "update_level/2 when given the level" do
+      level_instance = insert_stubbed_level_instance(%{state: "flag: false"}, [
+        %Tile{character: "?", row: 1, col: 3, state: "blocking: true", script: "#end\n:touch\nHi"}
+      ])
+
+      level_instance = %{ level_instance | passage_exits: [{123, "gold"}, {9, "gamma"}] }
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_level(
+                 level_instance,
+                 %{passage_exits: [{123, "gold"}, {9, "gamma"}]})
+      assert updated_instance.passage_exits == [{123, "gold"}, {9, "gamma"}]
+      assert Map.delete(updated_instance, :passage_exits) ==
+               Map.delete(level_instance, :passage_exits)
+    end
+
+    test "update_level/2 when given the level instance id" do
+      level_instance = insert_stubbed_level_instance(%{state: "flag: false"}, [
+        %Tile{character: "?", row: 1, col: 3, state: "blocking: true", script: "#end\n:touch\nHi"}
+      ])
+
+      level_instance = %{ level_instance | passage_exits: [{123, "gold"}, {9, "gamma"}] }
+
+      assert {:ok, updated_instance} =
+               DungeonInstances.update_level(
+                 level_instance.id,
+                 %{passage_exits: [{123, "gold"}, {9, "gamma"}]})
+      assert updated_instance.passage_exits == [{123, "gold"}, {9, "gamma"}]
+      assert Map.delete(updated_instance, :passage_exits) ==
+               Map.delete(level_instance, :passage_exits)
+    end
+
+    test "update_level/2 when level not found" do
+      refute DungeonInstances.update_level(nil, %{number_north: 2})
     end
 
     test "delete_level/1 deletes a level instance" do

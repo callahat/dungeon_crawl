@@ -170,12 +170,23 @@ defmodule DungeonCrawl.DungeonProcessTest do
       dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
       DungeonProcess.set_dungeon_instance(dungeon_process, dungeon_instance)
       DungeonProcess.set_dungeon(dungeon_process, dungeon)
+      DungeonProcess.set_state_values(dungeon_process, %{flag: true, counter: 4})
       assert Process.alive?(dungeon_process)
-      assert {:ok, _} = Games.create_save(%{level_instance_id: level.id, user_id_hash: "test", row: 1, col: 1, state: "ok: ok", level_name: "sadf", host_name: "qwerty"})
+      assert {:ok, _} = Games.create_save(%{
+               level_instance_id: level.id,
+               user_id_hash: "test",
+               row: 1,
+               col: 1,
+               state: "ok: ok",
+               level_name: "sadf",
+               host_name: "qwerty",
+               player_location_id: insert_player_location(%{level_instance_id: level.id}).id
+             })
       DungeonProcess.start_scheduler(dungeon_process, 0) # check for players immediately
       :timer.sleep 50
       assert Dungeons.get_dungeon(dungeon.id)
-      assert DungeonInstances.get_dungeon(dungeon_instance.id)
+      assert dungeon_instance = DungeonInstances.get_dungeon(dungeon_instance.id)
+      assert dungeon_instance.state == "counter: 4, flag: true"
       refute Process.alive?(dungeon_process)
     end
 

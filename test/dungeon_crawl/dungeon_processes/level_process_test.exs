@@ -124,6 +124,20 @@ defmodule DungeonCrawl.LevelProcessTest do
                     instance_id: _ } = LevelProcess.get_state(instance_process)
   end
 
+  test "set_passage_exits", %{instance_process: instance_process} do
+    LevelProcess.set_passage_exits(instance_process, [{123, "Vermilion"}, {4, "red"}])
+
+    assert [{123, "Vermilion"}, {4, "red"}] == LevelProcess.get_state(instance_process).passage_exits
+  end
+
+  test "load_program_contexts", %{instance_process: instance_process} do
+    assert LevelProcess.load_program_contexts(instance_process, nil) == false
+    assert LevelProcess.load_program_contexts(instance_process, %{}) == false
+    assert LevelProcess.load_program_contexts(instance_process, %{123 => %{}}) == true
+
+    assert %{123 => %{}} == LevelProcess.get_state(instance_process).program_contexts
+  end
+
   test "load_spawn_coordinates", %{instance_process: instance_process} do
     assert :ok = LevelProcess.load_spawn_coordinates(instance_process, [{1,1}, {2,3}, {4,5}])
     assert %Levels{ spawn_coordinates: spawn_coordinates } = LevelProcess.get_state(instance_process)
@@ -569,6 +583,38 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert DungeonCrawl.Repo.get Level, level_instance.id
   end
 
+  test "perform_actions no players", %{instance_process: instance_process, level_instance: level_instance} do
+    LevelProcess.run_with(instance_process, fn(state) ->
+      {:ok, %{ state | count_to_idle: 0,
+        state_values: %{something: "else"},
+        passage_exits: [{123, "cornflower blue"}],
+        program_contexts: %{
+          7 => %{
+            event_sender: nil,
+            object_id: 236,
+            program: %Program{status: :alive}}
+        }
+      }}
+    end)
+
+    ref = Process.monitor(instance_process)
+
+    assert :ok = Process.send(instance_process, :perform_actions, [])
+
+    # terminates the process, leaves the instance
+    assert_receive {:DOWN, ^ref, :process, ^instance_process, :normal}
+    assert record = DungeonCrawl.Repo.get(Level, level_instance.id)
+    assert %{
+      state: "something: else",
+      passage_exits: [{123, "cornflower blue"}],
+      program_contexts: %{
+        7 => %{
+          event_sender: nil,
+          object_id: 236,
+          program: %Program{status: :alive}}
+      }} = record
+  end
+
   test "check_on_inactive_players", %{instance_process: instance_process, level_instance: level_instance} do
     player_tile = DungeonInstances.create_tile!(
                     %{character: "@",
@@ -710,6 +756,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert :ok = LevelProcess.delete_tile(instance_process, new_tile_1.id)
 
     Process.monitor(instance_process)
+
+    # Trigger the message handling under test
     assert :ok = Process.send(instance_process, :write_db, [])
     :timer.sleep 10 # let the process do its thing
     refute_receive _
@@ -717,13 +765,15 @@ defmodule DungeonCrawl.LevelProcessTest do
     refute Repo.get(Tile, tile_id_2)
     assert "O" == Repo.get(Tile, tile_id_3).character
 
-    # new tiles younger than 2 write_db iterations don't get persisted to the DB yet
-    assert new_tile_2 == LevelProcess.get_tile(instance_process, 1, 7)
-    assert is_binary(new_tile_2.id)
-    persisted_older_new_tile = LevelProcess.get_tile(instance_process, 1, 6)
-    # new tiles that live past 2 or more write_db iterations get persisted to the DB
-    assert is_integer(persisted_older_new_tile.id)
-    assert "G" == Repo.get(Tile, persisted_older_new_tile.id).character
+    # new tiles get persisted to the DB
+    assert persisted_new_tile_1 = LevelProcess.get_tile(instance_process, 1, 6)
+    assert is_integer(persisted_new_tile_1.id)
+    assert "G" == Repo.get(Tile, persisted_new_tile_1.id).character
+
+    assert persisted_new_tile_2 = LevelProcess.get_tile(instance_process, 1, 7)
+    assert Map.delete(new_tile_2, :id) == Map.delete(persisted_new_tile_2, :id)
+    assert is_integer(persisted_new_tile_2.id)
+    assert "M" == Repo.get(Tile, persisted_new_tile_2.id).character
   end
 
   test "write_db stops the instance when the backing record is gone", %{instance_process: instance_process,
