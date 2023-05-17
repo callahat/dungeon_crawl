@@ -44,6 +44,32 @@ defmodule DungeonCrawl.GamesTest do
       assert Games.list_saved_games(%{user_id_hash: "derp"}) == []
     end
 
+    test "list_saved_games_on_old_versions/1 returns all saved_games for given user id hash and dungeon id" do
+      dungeon = insert_stubbed_dungeon()
+      {:ok, %{dungeon: old_di}} = DungeonCrawl.DungeonInstances.create_dungeon(dungeon, "test")
+      old_instance = Repo.preload(old_di, :levels).levels |> Enum.at(0)
+      old_save = save_fixture(%{user_id_hash: "one", level_instance_id: old_instance.id})
+      another_old_save = save_fixture(%{user_id_hash: "two", level_instance_id: old_instance.id})
+
+      {:ok, dungeon_v2} = DungeonCrawl.Dungeons.create_new_dungeon_version(dungeon)
+      {:ok, dungeon_v2} = DungeonCrawl.Dungeons.activate_dungeon(dungeon_v2)
+      {:ok, %{dungeon: di}} = DungeonCrawl.DungeonInstances.create_dungeon(dungeon_v2, "test")
+      instance = Repo.preload(di, :levels).levels |> Enum.at(0)
+      _save = save_fixture(%{user_id_hash: "one", level_instance_id: instance.id})
+
+      assert Games.list_saved_games_on_old_versions(%{user_id_hash: "one", dungeon_id: dungeon.id}) ==
+               [old_save]
+      assert Games.list_saved_games_on_old_versions(%{dungeon_id: dungeon.id}) ==
+               [old_save, another_old_save]
+
+      # As long as the dungeons share the same line, the function will get saves for
+      # all but the active version
+      assert Games.list_saved_games_on_old_versions(%{user_id_hash: "one", dungeon_id: dungeon_v2.id}) ==
+               Games.list_saved_games_on_old_versions(%{user_id_hash: "one", dungeon_id: dungeon.id})
+      assert Games.list_saved_games_on_old_versions(%{dungeon_id: dungeon_v2.id}) ==
+               Games.list_saved_games_on_old_versions(%{dungeon_id: dungeon.id})
+    end
+
     test "has_saved_games?/1" do
       save = save_fixture(%{user_id_hash: "one"})
              |> Repo.preload(:dungeon_instance)
