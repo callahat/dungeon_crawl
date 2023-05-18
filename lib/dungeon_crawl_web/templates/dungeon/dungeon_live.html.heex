@@ -60,6 +60,10 @@
           <%= render "saved_game_list.html", socket: @socket, saves: @saves, controller_csrf: @controller_csrf %>
           <hr/>
           <% end %>
+          <%= if @old_saves != [] do %>
+          <%= render "old_saved_game_list.html", socket: @socket, old_saves: @old_saves, controller_csrf: @controller_csrf %>
+          <hr/>
+          <% end %>
 
           <div class="text-right">
             <%= if can_start_new_instance(@dungeon.id) do %>
