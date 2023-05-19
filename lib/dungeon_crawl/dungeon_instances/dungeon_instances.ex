@@ -311,6 +311,47 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Gets the tile differences for the given instance and the base level
+  """
+  def tile_difference_from_base(%Level{id: level_id} = level) do
+    base_level = Repo.preload(level, :level).level
+
+    new_tiles = Repo.all(from ti in _instance_tiles(level_id),
+                         except: ^_unchanged_instance_tiles(base_level.id, level_id))
+    deleted_tiles = Repo.all(from t in _base_level_tiles(base_level.id),
+                             except: ^_unchanged_base_tiles(base_level.id, level_id))
+    [new_tiles, deleted_tiles]
+  end
+
+  defp _instance_tiles(level_instance_id) do
+    from ti in Tile, where: ti.level_instance_id == ^level_instance_id
+  end
+
+  defp _unchanged_instance_tiles(base_level_id, level_instance_id) do
+    from ti in Tile,
+         right_join: bt in subquery(_base_level_tiles(base_level_id)),
+         on: bt.row == ti.row and bt.col == ti.col and bt.z_index == ti.z_index,
+         where: ti.level_instance_id == ^level_instance_id and
+                coalesce(ti.name, "") == coalesce(bt.name, "") and
+                coalesce(ti.state, "") == coalesce(bt.state, "") and
+                coalesce(ti.script, "") == coalesce(bt.script, "")
+  end
+
+  defp _base_level_tiles(base_level_id) do
+    from t in Dungeons.Tile, where: t.level_id == ^base_level_id
+  end
+
+  defp _unchanged_base_tiles(base_level_id, level_instance_id) do
+    from bt in Dungeons.Tile,
+    left_join: ti in subquery(_instance_tiles(level_instance_id)),
+    on: bt.row == ti.row and bt.col == ti.col and bt.z_index == ti.z_index,
+    where: bt.level_id == ^base_level_id and
+           coalesce(ti.name, "") == coalesce(bt.name, "") and
+           coalesce(ti.state, "") == coalesce(bt.state, "") and
+           coalesce(ti.script, "") == coalesce(bt.script, "")
+  end
+
+  @doc """
   Gets a single tile_instance, with the highest z_index for given coordinates
 
   Returns `nil` if the Map tile does not exist.

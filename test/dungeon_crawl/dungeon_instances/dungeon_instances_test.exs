@@ -249,6 +249,38 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert %Level{} = DungeonInstances.delete_level!(instance)
       assert_raise Ecto.NoResultsError, fn -> DungeonInstances.get_level!(instance.id) end
     end
+
+    test "tile_difference_from_base/1" do
+      level_instance = insert_stubbed_level_instance(%{}, [
+        %Tile{character: "?", row: 1, col: 3, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+        %Tile{character: ".", row: 2, col: 3, name: "dot", script: "/s"},
+        %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+        %Tile{character: "x", row: 4, col: 3},
+        %Tile{character: "y", row: 5, col: 3, name: "Wall"}
+      ])
+
+      tile_a = DungeonInstances.get_tile(level_instance.id, 1, 3)
+      _tile_b = DungeonInstances.get_tile(level_instance.id, 2, 3)
+      tile_c = DungeonInstances.get_tile(level_instance.id, 3, 3)
+      _tile_d = DungeonInstances.get_tile(level_instance.id, 4, 3)
+      _tile_e = DungeonInstances.get_tile(level_instance.id, 5, 3)
+
+      tile_a_moved = Repo.update!(Tile.changeset(tile_a, %{col: 1}))
+      tile_c_changed = Repo.update!(Tile.changeset(tile_c, %{state: "blocking: false"}))
+      tile_f_created = Repo.insert!(Tile.changeset(%Tile{}, %{level_instance_id: level_instance.id, character: "N", row: 6, col: 3}))
+
+      base_tile_a = Map.take(tile_a, [:row, :col, :z_index])
+                    |> Map.put(:level_id, level_instance.level_id)
+                    |> DungeonCrawl.Dungeons.get_tile!()
+      base_tile_c = Map.take(tile_c, [:row, :col, :z_index])
+                    |> Map.put(:level_id, level_instance.level_id)
+                    |> DungeonCrawl.Dungeons.get_tile!()
+
+      assert [new_tiles, deleted_tiles] = DungeonInstances.tile_difference_from_base(level_instance)
+      assert [tile_a_moved, tile_c_changed, tile_f_created] == Enum.sort(new_tiles, fn a,b -> a.id < b.id end)
+      assert [base_tile_a, base_tile_c] ==
+               Enum.sort(deleted_tiles, fn a,b -> a.id < b.id end)
+    end
   end
 
   describe "tile_instances" do
