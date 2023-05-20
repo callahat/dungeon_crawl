@@ -304,7 +304,7 @@ defmodule DungeonCrawl.Dungeons do
              left_join: s in Score, on: s.dungeon_id == d.id,
              where: d.line_identifier == ^line_identifier and
                     is_nil(d.deleted_at) and
-                    d.is_active == ^true,
+                    d.active == ^true,
              limit: 1)
   end
 
