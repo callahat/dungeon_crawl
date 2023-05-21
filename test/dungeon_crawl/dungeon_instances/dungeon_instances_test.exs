@@ -281,6 +281,39 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert [base_tile_a, base_tile_c] ==
                Enum.sort(deleted_tiles, fn a,b -> a.id < b.id end)
     end
+
+    test "tile_difference/2" do
+      level_instance_base = insert_stubbed_level_instance(%{}, [
+        %Tile{character: "?", row: 1, col: 3, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+        %Tile{character: ".", row: 2, col: 3, name: "dot", script: "/s"},
+        %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+      ]) |> Repo.preload(:level)
+
+      tile_a_base = DungeonInstances.get_tile(level_instance_base.id, 1, 3)
+
+      level_instance_updated = insert_stubbed_level_instance(%{}, [
+        %Tile{character: "?", row: 1, col: 1, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+        %Tile{character: "!", row: 2, col: 3, name: "dot", script: "/s"},
+        %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+        %Tile{character: "x", row: 4, col: 3},
+      ])
+
+      tile_a_updated = DungeonInstances.get_tile(level_instance_updated.id, 1, 1)
+      tile_d_updated = DungeonInstances.get_tile(level_instance_updated.id, 4, 3)
+
+      assert [new_tiles, deleted_tiles] = DungeonInstances.tile_difference(level_instance_updated, level_instance_base)
+      assert [tile_a_updated, tile_d_updated] == Enum.sort(new_tiles, fn a,b -> a.id < b.id end)
+      assert [tile_a_base] == deleted_tiles
+
+
+      tile_a_base_level = Map.take(tile_a_base, [:row, :col, :z_index])
+                    |> Map.put(:level_id, level_instance_base.level_id)
+                    |> DungeonCrawl.Dungeons.get_tile!()
+
+      assert [new_tiles, deleted_tiles] = DungeonInstances.tile_difference(level_instance_updated, level_instance_base.level)
+      assert [tile_a_updated, tile_d_updated] == Enum.sort(new_tiles, fn a,b -> a.id < b.id end)
+      assert [tile_a_base_level] == deleted_tiles
+    end
   end
 
   describe "tile_instances" do
