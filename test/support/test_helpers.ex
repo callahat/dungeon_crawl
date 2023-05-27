@@ -17,7 +17,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
 
     %DungeonCrawl.Account.User{}
     |> DungeonCrawl.Account.User.admin_changeset(changes)
-    |> DungeonCrawl.Account.User.put_user_id_hash(:base64.encode(:crypto.strong_rand_bytes(24)))
+    |> DungeonCrawl.Account.User.put_user_id_hash(attrs[:user_id_hash] || :base64.encode(:crypto.strong_rand_bytes(24)))
     |> Repo.insert!()
   end
 

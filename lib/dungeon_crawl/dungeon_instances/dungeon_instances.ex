@@ -394,6 +394,15 @@ defmodule DungeonCrawl.DungeonInstances do
              limit: 1)
   end
 
+  def get_tile(level_instance_id, row, col, z_index) do
+    Repo.one(from t in Tile,
+             where: t.level_instance_id == ^level_instance_id and
+                    t.row == ^row and
+                    t.col == ^col and
+                    t.z_index == ^z_index,
+             limit: 1)
+  end
+
   @doc """
   Returns a single tile_instance based on the given id.
   """
@@ -409,10 +418,10 @@ defmodule DungeonCrawl.DungeonInstances do
 
   ## Examples
 
-      iex> create_tile(%{field: value})
+      iex> new_tile(%{field: value})
       {:ok, %Tile{}}
 
-      iex> create_tile(%{field: bad_value})
+      iex> new_tile(%{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
   """

@@ -1,6 +1,10 @@
 defmodule DungeonCrawl.GamesTest do
   use DungeonCrawl.DataCase
 
+  alias DungeonCrawl.Dungeons
+  alias DungeonCrawl.Dungeons.Tile
+  alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonInstances.Tile, as: TileInstance
   alias DungeonCrawl.Games
   alias DungeonCrawl.Player
   alias DungeonCrawl.Player.Location
@@ -167,6 +171,182 @@ defmodule DungeonCrawl.GamesTest do
 
       # won't load a game when already crawling
       assert {:error, "Player already in a game"} = Games.load_save(save.id, user.user_id_hash)
+    end
+
+    test "convert_save/1 when its dungeon is still active" do
+      save = save_fixture()
+      refute Games.convert_save(save)
+    end
+
+    test "convert_save/1" do
+      # Setup
+      old_dungeon = insert_stubbed_dungeon(%{active: true}, %{},
+      [
+        [
+          %Tile{character: "?", row: 1, col: 3, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+          %Tile{character: ".", row: 2, col: 3, name: "dot", script: "/s"},
+          %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+        ],
+        [
+          %Tile{character: "+", row: 1, col: 1, name: "Door", state: "blocking: true"},
+          %Tile{character: ".", row: 2, col: 1, name: "Floor"},
+          %Tile{character: "#", row: 3, col: 1, name: "Wall", state: "blocking: true"},
+        ]
+      ])
+      [_level_1, level_2_solo] = Repo.preload(old_dungeon, :levels).levels
+      {:ok, _level_2_solo} = DungeonCrawl.Dungeons.update_level(level_2_solo, %{state: "solo: true"})
+
+      insert_user(%{user_id_hash: "one", name: "Player One"})
+      insert_user(%{user_id_hash: "two", name: "Player Two"})
+
+      player_1 = insert_player_location(%{user_id_hash: "one", tile_instance_id: nil})
+      player_2 = insert_player_location(%{user_id_hash: "two", tile_instance_id: nil})
+
+      {:ok, %{dungeon: old_di}} = DungeonCrawl.DungeonInstances.create_dungeon(old_dungeon, "test", false, true)
+      [old_header_1, old_header_2] = Repo.preload(old_di, :level_headers).level_headers
+      level_instance_1 = DungeonCrawl.DungeonInstances.find_or_create_level(old_header_1, player_1.id)
+      level_instance_2a = DungeonCrawl.DungeonInstances.find_or_create_level(old_header_2, player_1.id)
+      level_instance_2b = DungeonCrawl.DungeonInstances.find_or_create_level(old_header_2, player_2.id)
+
+      tile_1_a = DungeonInstances.get_tile(level_instance_1.id, 1, 3)
+      _tile_1_b = DungeonInstances.get_tile(level_instance_1.id, 2, 3)
+      tile_1_c = DungeonInstances.get_tile(level_instance_1.id, 3, 3)
+
+      tile_2a_a = DungeonInstances.get_tile(level_instance_2a.id, 1, 1)
+      tile_2a_b = DungeonInstances.get_tile(level_instance_2a.id, 2, 1)
+      _tile_2a_c = DungeonInstances.get_tile(level_instance_2a.id, 3, 1)
+
+      _tile_2b_a = DungeonInstances.get_tile(level_instance_2b.id, 1, 1)
+      _tile_2b_b = DungeonInstances.get_tile(level_instance_2b.id, 2, 1)
+      _tile_2b_c = DungeonInstances.get_tile(level_instance_2b.id, 3, 1)
+
+      tile_1_a_moved = Repo.update!(TileInstance.changeset(tile_1_a, %{col: 1}))
+      tile_2a_a_changed = Repo.update!(TileInstance.changeset(tile_2a_a, %{character: "'", state: "blocking: false"}))
+      tile_2b_d_created = Repo.insert!(TileInstance.changeset(%TileInstance{}, %{level_instance_id: level_instance_2b.id, character: "N", row: 6, col: 3}))
+
+      {:ok, save_1} =
+        %{user_id_hash: player_1.user_id_hash,
+          player_location_id: player_1.id,
+          host_name: old_di.host_name,
+          level_name: "Level 1"}
+        |> Map.merge(%{level_instance_id: level_instance_1.id, row: 2, col: 3, z_index: 3, state: "player: true"})
+        |> Games.create_save()
+
+      {:ok, save_2} =
+        %{user_id_hash: player_2.user_id_hash,
+          player_location_id: player_2.id,
+          host_name: old_di.host_name,
+          level_name: "Level 2"}
+        |> Map.merge(%{level_instance_id: level_instance_2b.id, row: 2, col: 3, z_index: 3, state: "player: true"})
+        |> Games.create_save()
+
+      # New dungeon version
+      {:ok, new_dungeon} = Dungeons.create_new_dungeon_version(old_dungeon)
+
+      [new_level_1, new_level_2_solo] = Repo.preload(new_dungeon, :levels).levels
+
+      _new_tile_1_a = Dungeons.get_tile(new_level_1.id, 1, 3)
+      new_tile_1_b = Dungeons.get_tile(new_level_1.id, 2, 3)
+      _new_tile_1_c = Dungeons.get_tile(new_level_1.id, 3, 3)
+
+      new_tile_2_c = Dungeons.get_tile(new_level_2_solo.id, 3, 1)
+
+      # Base dungeon updates for the new version
+      new_tile_1_a_created = Repo.insert!(Tile.changeset(%Tile{}, %{level_id: new_level_1.id, character: "1", row: 3, col: 3, z_index: 2}))
+      new_tile_1_b_changed = Repo.update!(Tile.changeset(new_tile_1_b, %{character: ",", state: "flag: true"}))
+      _new_tile_2_c_deleted = Repo.delete!(new_tile_2_c)
+      new_tile_2_d_created = Repo.insert!(Tile.changeset(%Tile{}, %{level_id: new_level_2_solo.id, character: "$", row: 2, col: 1, z_index: 2}))
+
+      {:ok, new_dungeon} = Dungeons.update_dungeon(new_dungeon, %{state: "testing: 123"})
+      {:ok, _new_level_2_solo} = Dungeons.update_level(new_level_2_solo, %{state: "solo: true, waffle: blue-berry"})
+
+      {:ok, _new_dungeon} = Dungeons.activate_dungeon(new_dungeon)
+
+      # --------------------------------------------------------------------------------------------
+      # Test when converting it as a personal instance
+      converted_save_1 = Games.convert_save(save_1)
+                         |> Repo.preload([:dungeon, :dungeon_instance])
+      converted_save_2 = Games.convert_save(save_2)
+                         |> Repo.preload([:dungeon, :dungeon_instance])
+
+      assert Map.drop(converted_save_1, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon]) ==
+               Map.drop(save_1, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon])
+      assert Map.drop(converted_save_2, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon]) ==
+               Map.drop(save_2, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon])
+
+      refute converted_save_1.dungeon_instance.id == converted_save_2.dungeon_instance.id
+      assert converted_save_1.dungeon.id == converted_save_2.dungeon.id
+
+      new_di_1 = converted_save_1.dungeon_instance
+      new_di_2 = converted_save_2.dungeon_instance
+
+      new_level_instance_1a = DungeonCrawl.DungeonInstances.get_level(new_di_1.id, 1)
+                             |> Repo.preload(:tiles)
+      new_level_instance_1b = DungeonCrawl.DungeonInstances.get_level(new_di_2.id, 1)
+                             |> Repo.preload(:tiles)
+      new_level_instance_2a = DungeonCrawl.DungeonInstances.get_level(new_di_1.id, 2, player_1.id)
+                              |> Repo.preload(:tiles)
+      new_level_instance_2b = DungeonCrawl.DungeonInstances.get_level(new_di_2.id, 2, player_2.id)
+                              |> Repo.preload(:tiles)
+
+      assert normalized_tiles([new_tile_1_a_created, tile_1_a_moved, new_tile_1_b_changed, tile_1_c]) ==
+               normalized_tiles(new_level_instance_1a.tiles)
+      assert normalized_tiles([tile_2a_a_changed, tile_2a_b, new_tile_2_d_created]) ==
+               normalized_tiles(new_level_instance_2a.tiles)
+
+      assert normalized_tiles([new_tile_1_a_created, tile_1_a_moved, new_tile_1_b_changed, tile_1_c]) ==
+               normalized_tiles(new_level_instance_1b.tiles)
+      assert normalized_tiles([tile_2a_a, tile_2a_b, new_tile_2_d_created, tile_2b_d_created]) ==
+               normalized_tiles(new_level_instance_2b.tiles)
+
+      # Cleanup
+      Games.update_save(converted_save_1, %{level_instance_id: level_instance_1.id})
+      Games.update_save(converted_save_2, %{level_instance_id: level_instance_2b.id})
+
+      DungeonInstances.delete_dungeon(converted_save_1.dungeon_instance)
+      DungeonInstances.delete_dungeon(converted_save_2.dungeon_instance)
+
+      refute DungeonInstances.get_dungeon(converted_save_1.dungeon_instance.id)
+      refute DungeonInstances.get_dungeon(converted_save_2.dungeon_instance.id)
+
+      # --------------------------------------------------------------------------------------------
+      # Test when converting it as a public instance, such as when a dungeon creator
+      # creates a new version and wants to move all saves to it.
+      converted_save_1 = Games.convert_save(save_1, false)
+                         |> Repo.preload([:dungeon, :dungeon_instance])
+      converted_save_2 = Games.convert_save(save_2, false)
+                         |> Repo.preload([:dungeon, :dungeon_instance])
+
+      assert Map.drop(converted_save_1, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon]) ==
+               Map.drop(save_1, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon])
+      assert Map.drop(converted_save_2, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon]) ==
+               Map.drop(save_2, [:level_instance_id, :updated_at, :level_instance, :dungeon_instance, :dungeon])
+
+      new_di_id = converted_save_1.dungeon_instance.id
+
+      assert new_di_id == converted_save_2.dungeon_instance.id
+      assert converted_save_1.dungeon.id == converted_save_2.dungeon.id
+
+      new_level_instance_1 = DungeonCrawl.DungeonInstances.get_level(new_di_id, 1)
+                              |> Repo.preload(:tiles)
+      new_level_instance_2a = DungeonCrawl.DungeonInstances.get_level(new_di_id, 2, player_1.id)
+                              |> Repo.preload(:tiles)
+      new_level_instance_2b = DungeonCrawl.DungeonInstances.get_level(new_di_id, 2, player_2.id)
+                              |> Repo.preload(:tiles)
+
+      assert normalized_tiles([new_tile_1_a_created, tile_1_a_moved, new_tile_1_b_changed, tile_1_c]) ==
+               normalized_tiles(new_level_instance_1.tiles)
+      assert normalized_tiles([tile_2a_a_changed, tile_2a_b, new_tile_2_d_created]) ==
+               normalized_tiles(new_level_instance_2a.tiles)
+      assert normalized_tiles([tile_2a_a, tile_2a_b, new_tile_2_d_created, tile_2b_d_created]) ==
+               normalized_tiles(new_level_instance_2b.tiles)
+    end
+
+    defp normalized_tiles(tiles) do
+      Enum.map(tiles, fn tile -> Dungeons.copy_tile_fields(tile) |> Map.delete(:tile_template_id) end)
+      |> Enum.sort(fn tile_a, tile_b ->
+        {tile_a.row, tile_a.col, tile_a.z_index} < {tile_b.row, tile_b.col, tile_b.z_index}
+      end)
     end
 
     test "delete_save/1 deletes the save" do

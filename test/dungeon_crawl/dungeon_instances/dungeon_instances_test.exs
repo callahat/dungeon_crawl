@@ -345,6 +345,11 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert ^tile = DungeonInstances.get_tile(tile.level_instance_id, tile.row, tile.col)
     end
 
+    test "get_tile/4 populated Tile struct" do
+      tile = Map.delete(tile_fixture(), :tile_template_id)
+      assert ^tile = DungeonInstances.get_tile(tile.level_instance_id, tile.row, tile.col, tile.z_index)
+    end
+
     test "get_tile_by_id/1" do
       tile = Map.delete(tile_fixture(), :tile_template_id)
       assert ^tile = DungeonInstances.get_tile_by_id(tile.id)
