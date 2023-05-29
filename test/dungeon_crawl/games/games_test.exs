@@ -349,6 +349,86 @@ defmodule DungeonCrawl.GamesTest do
       end)
     end
 
+    test "convert_saves/1 when invalid" do
+      inactive_dungeon = insert_stubbed_dungeon(%{active: false})
+      deleted_dungeon = insert_stubbed_dungeon(%{active: true, deleted_at: DateTime.utc_now()})
+
+      assert Games.convert_saves(inactive_dungeon) == :error
+      assert Games.convert_saves(deleted_dungeon) == :error
+    end
+
+    test "convert_saves/1" do
+      # Setup
+      dungeon_v1 = insert_stubbed_dungeon(%{active: true}, %{}, [[], []])
+
+      [_level_1, level_2_solo] = Repo.preload(dungeon_v1, :levels).levels
+      {:ok, _level_2_solo} = DungeonCrawl.Dungeons.update_level(level_2_solo, %{state: "solo: true"})
+
+      {:ok, dungeon_v2} = Dungeons.create_new_dungeon_version(dungeon_v1)
+      {:ok, dungeon_v2} = Dungeons.activate_dungeon(dungeon_v2)
+
+      {:ok, dungeon_v3} = Dungeons.create_new_dungeon_version(dungeon_v2)
+      {:ok, dungeon_v3} = Dungeons.activate_dungeon(dungeon_v3)
+
+      insert_user(%{user_id_hash: "one", name: "Player One"})
+      insert_user(%{user_id_hash: "two", name: "Player Two"})
+      insert_user(%{user_id_hash: "three", name: "Player Three"})
+
+      player_1 = insert_player_location(%{user_id_hash: "one", tile_instance_id: nil})
+      player_2 = insert_player_location(%{user_id_hash: "two", tile_instance_id: nil})
+      player_3 = insert_player_location(%{user_id_hash: "three", tile_instance_id: nil})
+
+      {:ok, %{dungeon: di_v1}} = DungeonCrawl.DungeonInstances.create_dungeon(dungeon_v1, "test", false, true)
+      [v1_old_header_1, _v1_old_header_2] = Repo.preload(di_v1, :level_headers).level_headers
+      v1_level_instance_1 = DungeonCrawl.DungeonInstances.find_or_create_level(v1_old_header_1, player_1.id)
+
+      {:ok, save_1} =
+        %{user_id_hash: player_1.user_id_hash,
+          player_location_id: player_1.id,
+          host_name: di_v1.host_name,
+          level_name: "Level 1"}
+        |> Map.merge(%{level_instance_id: v1_level_instance_1.id, row: 2, col: 3, z_index: 3, state: "player: true"})
+        |> Games.create_save()
+
+      {:ok, %{dungeon: di_v2}} = DungeonCrawl.DungeonInstances.create_dungeon(dungeon_v2, "test", false, true)
+      [v2_header_1, v2_header_2] = Repo.preload(di_v2, :level_headers).level_headers
+
+      v2_level_instance_1 = DungeonCrawl.DungeonInstances.find_or_create_level(v2_header_1, player_2.id)
+      v2_level_instance_2a = DungeonCrawl.DungeonInstances.find_or_create_level(v2_header_2, player_2.id)
+      _v2_level_instance_2b = DungeonCrawl.DungeonInstances.find_or_create_level(v2_header_2, player_3.id)
+
+      {:ok, save_2} =
+        %{user_id_hash: player_2.user_id_hash,
+          player_location_id: player_2.id,
+          host_name: di_v2.host_name,
+          level_name: "Level 2"}
+        |> Map.merge(%{level_instance_id: v2_level_instance_2a.id, row: 2, col: 3, z_index: 3, state: "player: true"})
+        |> Games.create_save()
+
+      {:ok, save_3} =
+        %{user_id_hash: player_3.user_id_hash,
+          player_location_id: player_3.id,
+          host_name: di_v2.host_name,
+          level_name: "Level 2"}
+        |> Map.merge(%{level_instance_id: v2_level_instance_1.id, row: 2, col: 3, z_index: 3, state: "player: true"})
+        |> Games.create_save()
+
+      # -------------------------------------------------------------------------------
+      # Testing
+      assert Games.convert_saves(dungeon_v3) == :ok
+
+      assert 3 == Repo.all(Games.Save) |> Enum.count()
+
+      [di_v3] = Repo.preload(dungeon_v3, :dungeon_instances).dungeon_instances
+
+      save_2_new_lid = DungeonCrawl.DungeonInstances.get_level(di_v3.id, 2, player_2.id).id
+      save_3_new_lid = DungeonCrawl.DungeonInstances.get_level(di_v3.id, 1).id
+
+      assert save_1 == Games.get_save(save_1.id)
+      assert %{save_2 | level_instance_id: save_2_new_lid} == Games.get_save(save_2.id)
+      assert %{save_3 | level_instance_id: save_3_new_lid} == Games.get_save(save_3.id)
+    end
+
     test "delete_save/1 deletes the save" do
       save = save_fixture()
       assert {:ok, %Save{}} = Games.delete_save(save)

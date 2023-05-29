@@ -205,6 +205,24 @@ defmodule DungeonCrawl.Games do
   end
 
   @doc """
+  Converts all saves associated with a dungeon to the latest version.
+  Only converts the saves from the version previous to the current active version.
+  """
+  def convert_saves(%Dungeons.Dungeon{active: true, deleted_at: nil, previous_version_id: pv_id}) do
+    previous_dungeon = Dungeons.get_dungeon(pv_id)
+                       |> Repo.preload(:saves)
+
+    previous_dungeon.saves
+    |> Enum.each(&convert_save(&1, false))
+
+    :ok
+  end
+
+  def convert_saves(_) do
+    :error
+  end
+
+  @doc """
   Converts a save from an older version of the dungeon to the current version.
   Does nothing should the save be for the current dungeon.
 
@@ -255,7 +273,7 @@ defmodule DungeonCrawl.Games do
 
       level_instance = DungeonInstances.get_level(dungeon_instance.id, save.level_instance.number, player_location_id)
 
-      update_save(save, %{level_instance_id: level_instance.id})
+      if level_instance, do: update_save(save, %{level_instance_id: level_instance.id})
 
       get_save(save.id)
 
