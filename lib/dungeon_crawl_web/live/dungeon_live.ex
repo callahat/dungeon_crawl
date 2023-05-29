@@ -61,21 +61,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
     _update_dungeon_field_and_reply(socket, line_identifier, :pinned, false)
   end
 
-  def handle_event("convert_save_" <> save_id, _params, socket) do
-    save = Games.get_save(save_id, socket.assigns.user_id_hash)
-    # TODO: hook into the save conversion stuff here
-    if save do
-#      Games.delete_save(save)
-      saves = socket.assigns.saves # |> Enum.reject(fn s -> s.id == save.id end)
-      line_identifier = socket.assigns.dungeon.line_identifier
-
-      assign(socket, :saves, saves)
-      |> _update_dungeon_field_and_reply(line_identifier, :saved, saves != [])
-    else
-      {:noreply, socket}
-    end
-  end
-
   def handle_event("delete_save_" <> save_id, _params, socket) do
     save = Games.get_save(save_id, socket.assigns.user_id_hash)
     if save do

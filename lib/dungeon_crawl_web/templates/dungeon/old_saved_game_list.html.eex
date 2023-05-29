@@ -6,7 +6,6 @@
     <span>Host: <%= save.host_name %>, </span>
     <span>On Level: <%= save.level_name %>, </span>
     <span>Played for: <%= formatted_saved_duration(save) %></span>
-    <%= link "Convert", to: "#", phx_click: "convert_save_#{save.id}", data: [confirm: "This will overwrite any current save you may have. Are you sure?"], class: "btn btn-primary btn-sm" %>
     <%= link "Delete", to: "#", phx_click: "delete_save_#{save.id}", data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
   </div>
   <% end %>
