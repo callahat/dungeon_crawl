@@ -4,6 +4,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   alias DungeonCrawl.Admin
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Dungeon
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Player
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.DockWorker
@@ -132,6 +133,8 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
     case Dungeons.activate_dungeon(dungeon) do
       {:ok, active_dungeon} ->
+        if active_dungeon.previous_version_id, do: Games.convert_saves(active_dungeon)
+
         conn
         |> put_flash(:info, "Dungeon activated.")
         |> redirect(to: Routes.edit_dungeon_path(conn, :show, active_dungeon))

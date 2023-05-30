@@ -524,7 +524,7 @@ defmodule DungeonCrawl.Dungeons do
   ## Examples
 
       iex> activate_dungeon(dungeon)
-      {:ok, %Level{}}
+      {:ok, %Dungeon{}}
 
       iex> activate_dungeon(dungeon)
       {:error, <error message>}

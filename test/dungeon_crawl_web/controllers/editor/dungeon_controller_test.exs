@@ -5,6 +5,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.{Dungeon, Tile}
   alias DungeonCrawl.Equipment
+  alias DungeonCrawl.Games
   alias DungeonCrawl.Player
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
@@ -338,6 +339,36 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       assert redirected_to(conn) == edit_dungeon_path(conn, :show, new_dungeon)
       assert Repo.get!(Dungeon, dungeon.id).deleted_at
       assert Repo.get!(Dungeon, new_dungeon.id).active
+    end
+
+    test "converts saves", %{conn: conn, dungeon: dungeon} do
+      insert_stubbed_level(%{dungeon_id: dungeon.id})
+      {:ok, dungeon} = Dungeons.activate_dungeon(dungeon)
+
+      player = insert_player_location(%{user_id_hash: "one", tile_instance_id: nil})
+
+      {:ok, %{dungeon: di}} = DungeonCrawl.DungeonInstances.create_dungeon(dungeon, "test", false, true)
+      [header] = Repo.preload(di, :level_headers).level_headers
+      level_instance = DungeonCrawl.DungeonInstances.find_or_create_level(header, player.id)
+
+      {:ok, save} =
+        %{user_id_hash: player.user_id_hash,
+          player_location_id: player.id,
+          host_name: di.host_name,
+          level_name: "Level 1"}
+        |> Map.merge(%{level_instance_id: level_instance.id, row: 2, col: 3, z_index: 3, state: "player: true"})
+        |> Games.create_save()
+
+      {:ok, new_dungeon} = Dungeons.create_new_dungeon_version(dungeon)
+
+      conn = put conn, edit_dungeon_activate_path(conn, :activate, new_dungeon)
+      assert redirected_to(conn) == edit_dungeon_path(conn, :show, new_dungeon)
+      assert Repo.get!(Dungeon, dungeon.id).deleted_at
+      assert Repo.get!(Dungeon, new_dungeon.id).active
+
+      # it'll be a newer record which means the record id will be higher than the
+      # level instance on the original save record
+      assert Games.get_save(save.id).level_instance_id > save.level_instance_id
     end
   end
 
