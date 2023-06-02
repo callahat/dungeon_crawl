@@ -124,7 +124,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
     author_name = if dungeon.user_id, do: dungeon.user.name, else: "<None>"
     saves = Repo.preload(dungeon, :saves).saves
             |> Enum.filter(fn(save) -> save.user_id_hash == socket.assigns.user_id_hash end)
-    old_saves = Games.list_saved_games_on_old_versions(%{dungeon_id: dungeon.id, user_id_hash: socket.assigns.user_id_hash})
 
     scores = Scores.list_new_scores(dungeon.id, 10)
 
@@ -132,7 +131,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
     |> assign(:author_name, author_name)
     |> assign(:dungeon, dungeon)
     |> assign(:saves, saves)
-    |> assign(:old_saves, old_saves)
   end
 
   defp _assign_changeset(socket) do

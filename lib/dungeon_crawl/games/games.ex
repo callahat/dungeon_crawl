@@ -46,37 +46,6 @@ defmodule DungeonCrawl.Games do
          where: di.dungeon_id == ^dungeon_id
   end
 
-  @doc """
-  Returns list of saved games for older versions of the given dungeon.
-
-  ## Examples
-
-      iex> list_saved_games_on_old_versions(%{user_id_hash: "asdf", dungeon_id: 1})
-      [%Save{}, ...]
-
-  """
-  def list_saved_games_on_old_versions(%{user_id_hash: user_id_hash, dungeon_id: dungeon_id}) do
-    Repo.all(from s in _old_dungeon_saves(dungeon_id),
-             where: s.user_id_hash == ^user_id_hash)
-  end
-  def list_saved_games_on_old_versions(%{dungeon_id: dungeon_id}) do
-    Repo.all(from s in _old_dungeon_saves(dungeon_id))
-  end
-  defp _old_dungeon_saves(dungeon_id) do
-    from s in Save,
-         distinct: s,
-         left_join: l in DungeonInstances.Level,
-         on: l.id == s.level_instance_id,
-         left_join: di in DungeonInstances.Dungeon,
-         on: di.id == l.dungeon_instance_id,
-         left_join: d in Dungeons.Dungeon,
-         on: d.id == di.dungeon_id,
-         left_join: d2 in Dungeons.Dungeon,
-         on: d2.line_identifier == d.line_identifier,
-         where: d2.id == ^dungeon_id and
-                not is_nil(d.deleted_at)
-  end
-
   # TODO: should these live in the DungeonInstances module?
   @doc """
   Returns true if there are saves for this dungeon instance
