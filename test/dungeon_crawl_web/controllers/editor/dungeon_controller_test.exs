@@ -341,7 +341,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       assert Repo.get!(Dungeon, new_dungeon.id).active
     end
 
-    test "converts saves", %{conn: conn, dungeon: dungeon} do
+    test "converts saves when new version is activated", %{conn: conn, dungeon: dungeon} do
       insert_stubbed_level(%{dungeon_id: dungeon.id})
       {:ok, dungeon} = Dungeons.activate_dungeon(dungeon)
 
