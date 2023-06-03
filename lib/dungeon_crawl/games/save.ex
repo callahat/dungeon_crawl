@@ -12,6 +12,8 @@ defmodule DungeonCrawl.Games.Save do
     belongs_to :level_instance, DungeonCrawl.DungeonInstances.Level
     belongs_to :player_location, DungeonCrawl.Player.Location
     has_one :dungeon_instance, through: [:level_instance, :dungeon]
+    has_one :dungeon, through: [:level_instance, :dungeon, :dungeon]
+    has_one :level_header, through: [:level_instance, :level_header]
 
     timestamps()
   end

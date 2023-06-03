@@ -120,7 +120,7 @@ defmodule DungeonCrawlWeb.Crawler do
         |> Enum.each(&Games.delete_save/1)
       end
 
-      seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, location.inserted_at)
+      seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, location.updated_at)
       player_tile = Levels.get_tile_by_id(instance_state, tile)
       duration = (player_tile.parsed_state[:duration] || 0) + seconds
       {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{duration: duration})

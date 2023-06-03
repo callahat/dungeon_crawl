@@ -7,16 +7,18 @@ defmodule DungeonCrawl.Games do
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Account
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Player
+  alias DungeonCrawl.StateValue
 
   @doc """
   Returns the list of saved_games.
 
   ## Examples
 
-      iex> list_saved_games()
+      iex> list_saved_games(%{user_id_hash: "asdf"})
       [%Save{}, ...]
 
   """
@@ -169,6 +171,140 @@ defmodule DungeonCrawl.Games do
             {:error, "Player already in a game"}
         end
     end
+  end
+
+  @doc """
+  Converts all saves associated with a dungeon to the latest version.
+  Only converts the saves from the version previous to the current active version.
+  """
+  def convert_saves(%Dungeons.Dungeon{active: true, deleted_at: nil, previous_version_id: pv_id}) do
+    previous_dungeon = Dungeons.get_dungeon(pv_id)
+                       |> Repo.preload(:saves)
+
+    previous_dungeon.saves
+    |> Enum.each(&convert_save(&1, false))
+
+    :ok
+  end
+
+  def convert_saves(_) do
+    :error
+  end
+
+  @doc """
+  Converts a save from an older version of the dungeon to the current version.
+  Does nothing should the save be for the current dungeon.
+
+    ALLOW THE DUNGEON OWNER - IE THE ONE WHO CREATED THE NEW VERSION - TO UPDATE ALL THE SAVES
+    AUTOMATICALLY, STARTING WITH THE OLDEST AND GOING TO NEWEST TO ENSURE AN OLD SAVE DOES
+    NOT OVERWRITE NEWER UPDATED STUFF
+
+    ALLOW A NORMAL USER TO UPDATE THEIR OLD VERSION, BUT THEY WILL BE THE HOST SO THAT
+    THEIR CONVERSION WILL NOT MESS UP OTHER CURRENT INSTANCES
+  """
+  def convert_save(%Save{} = save, personal_instance \\ true) do
+    save = Repo.preload(save, [:player_location, :dungeon, :level_header, [dungeon_instance: [level_headers: :levels]]])
+
+    with false <- is_nil(save.dungeon.deleted_at),
+         current_dungeon = Dungeons.get_current_dungeon(save.dungeon.line_identifier) do
+      # IF one is found, will it only be safe to copy forward player
+      # specific level differences? Maybe only allow the admin to merge into existing
+      # dungeon instance?
+      host_name = if personal_instance,
+                     do: Account.get_name(save.user_id_hash),
+                     else: save.dungeon_instance.host_name
+
+      dungeon_instance = _find_or_create_dungeon_instance(
+        current_dungeon,
+        host_name,
+        save.dungeon_instance.is_private)
+
+
+      # update the dungeon instance state with the state values for the saved DI state
+      combined_dungeon_state = StateValue.Parser.parse!(dungeon_instance.state)
+                               |> Map.merge(StateValue.Parser.parse!(save.dungeon_instance.state))
+                               |> StateValue.Parser.stringify()
+      DungeonInstances.update_dungeon(dungeon_instance, %{state: combined_dungeon_state})
+
+      # at this point, we will at least have all the level headers
+      save.dungeon_instance.level_headers
+      |> Enum.each(fn level_header ->
+        current_v_level_header = DungeonInstances.get_level_header(dungeon_instance.id, level_header.number)
+                                 |> Repo.preload(:levels)
+
+        if current_v_level_header.type == level_header.type do
+          _handle_level_instance(level_header, current_v_level_header, save.player_location_id)
+        end
+      end)
+
+      # set level_instance_id to the new one that correlated one
+      player_location_id = if save.level_header.type == :solo, do: save.player_location_id, else: nil
+
+      level_instance = DungeonInstances.get_level(dungeon_instance.id, save.level_instance.number, player_location_id)
+
+      if level_instance, do: update_save(save, %{level_instance_id: level_instance.id})
+
+      get_save(save.id)
+
+    else
+      _ -> nil
+    end
+  end
+
+  defp _find_or_create_dungeon_instance(current_dungeon, host_name, is_private) do
+    case Repo.get_by(DungeonInstances.Dungeon, %{ dungeon_id: current_dungeon.id, host_name: host_name }) do
+      nil ->
+        {:ok, %{dungeon: dungeon_instance}} = DungeonInstances.create_dungeon(current_dungeon, host_name, is_private, true)
+        dungeon_instance
+
+      dungeon_instance ->
+        dungeon_instance
+    end
+  end
+
+  defp _handle_level_instance(save_level_header, current_level_header, player_location_id) do
+    save_level_header.levels
+    |> Enum.filter(fn level -> is_nil(level.player_location_id) || level.player_location_id == player_location_id end)
+    |> Enum.each(fn level ->
+      current_level = DungeonInstances.find_or_create_level(current_level_header, player_location_id)
+
+      # update the current level state
+      combined_state = StateValue.Parser.parse!(level.state)
+                       |> Map.merge(StateValue.Parser.parse!(current_level.state))
+                       |> StateValue.Parser.stringify()
+      DungeonInstances.update_level(current_level, %{state: combined_state})
+
+      [new_tiles, deleted_tiles] = DungeonInstances.tile_difference_from_base(level)
+
+      _handle_saves_deleted_tiles(current_level.id, deleted_tiles)
+
+      _handle_saves_new_tiles(current_level.id, new_tiles)
+    end)
+  end
+
+  defp _handle_saves_deleted_tiles(level_id, deleted_tiles) do
+    deleted_tiles
+    |> Enum.map(fn t ->
+      tile = DungeonInstances.get_tile(level_id, t.row, t.col, t.z_index)
+      tile && t.name == tile.name && t.script == tile.script && t.state == tile.state && tile.id
+    end)
+    |> Enum.filter(&(&1))
+    |> Enum.uniq()
+    |> DungeonInstances.delete_tiles()
+  end
+
+  defp _handle_saves_new_tiles(level_id, new_tiles) do
+    new_tiles
+    |> Enum.each(fn t ->
+      case DungeonInstances.get_tile(level_id, t.row, t.col, t.z_index) do
+        nil ->
+          Map.merge(Dungeons.copy_tile_fields(t), %{level_instance_id: level_id})
+          |> DungeonInstances.create_tile!()
+        tile ->
+          [DungeonInstances.Tile.changeset(tile, Dungeons.copy_tile_fields(t))]
+          |> DungeonInstances.update_tiles()
+      end
+    end)
   end
 
   @doc """

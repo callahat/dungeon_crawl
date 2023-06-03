@@ -311,6 +311,69 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   @doc """
+  Gets the tile differences for the given instance and the base level
+  """
+  def tile_difference_from_base(%Level{} = level) do
+    base_level = Repo.preload(level, :level).level
+    tile_difference(level, base_level)
+  end
+
+  @doc """
+  Gets the tile differences between the two levels returning a list with two lists.
+  First list being tiles in the first level not in the second one (ie, new tiles),
+  second list being the tiles in the second level but not the first one (ie, deleted tiles).
+  """
+  def tile_difference(%Level{id: level_id}, %Dungeons.Level{id: base_level_id}) do
+    _tile_difference(
+      _instance_tiles(level_id),
+      _base_level_tiles(base_level_id))
+  end
+
+  def tile_difference(%Level{id: level_id}, %Level{id: base_level_id}) do
+    _tile_difference(
+      _instance_tiles(level_id),
+      _base_level_instance_tiles(base_level_id))
+  end
+
+  def _tile_difference(current_tiles_query, base_tiles_query) do
+    new_tiles = Repo.all(from ti in current_tiles_query,
+                         except: ^_unchanged_instance_tiles(current_tiles_query, base_tiles_query))
+    deleted_tiles = Repo.all(from t in base_tiles_query,
+                             except: ^_unchanged_base_tiles(current_tiles_query, base_tiles_query))
+    [new_tiles, deleted_tiles]
+  end
+
+  defp _unchanged_instance_tiles(current_tiles_query, base_tiles_query) do
+    from ti in current_tiles_query,
+         right_join: bt in subquery(base_tiles_query),
+         on: bt.row == ti.row and bt.col == ti.col and bt.z_index == ti.z_index,
+         where: coalesce(ti.name, "") == coalesce(bt.name, "") and
+                coalesce(ti.state, "") == coalesce(bt.state, "") and
+                coalesce(ti.script, "") == coalesce(bt.script, "")
+  end
+
+  defp _unchanged_base_tiles(current_tiles_query, base_tiles_query) do
+    from bt in base_tiles_query,
+    left_join: ti in subquery(current_tiles_query),
+    on: bt.row == ti.row and bt.col == ti.col and bt.z_index == ti.z_index,
+    where: coalesce(ti.name, "") == coalesce(bt.name, "") and
+           coalesce(ti.state, "") == coalesce(bt.state, "") and
+           coalesce(ti.script, "") == coalesce(bt.script, "")
+  end
+
+  defp _instance_tiles(level_instance_id) do
+    from ti in Tile, where: ti.level_instance_id == ^level_instance_id
+  end
+
+  defp _base_level_tiles(base_level_id) do
+    from t in Dungeons.Tile, where: t.level_id == ^base_level_id
+  end
+
+  defp _base_level_instance_tiles(base_level_id) do
+    from t in Tile, where: t.level_instance_id == ^base_level_id
+  end
+
+  @doc """
   Gets a single tile_instance, with the highest z_index for given coordinates
 
   Returns `nil` if the Map tile does not exist.
@@ -331,6 +394,15 @@ defmodule DungeonCrawl.DungeonInstances do
              limit: 1)
   end
 
+  def get_tile(level_instance_id, row, col, z_index) do
+    Repo.one(from t in Tile,
+             where: t.level_instance_id == ^level_instance_id and
+                    t.row == ^row and
+                    t.col == ^col and
+                    t.z_index == ^z_index,
+             limit: 1)
+  end
+
   @doc """
   Returns a single tile_instance based on the given id.
   """
@@ -346,10 +418,10 @@ defmodule DungeonCrawl.DungeonInstances do
 
   ## Examples
 
-      iex> create_tile(%{field: value})
+      iex> new_tile(%{field: value})
       {:ok, %Tile{}}
 
-      iex> create_tile(%{field: bad_value})
+      iex> new_tile(%{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
   """

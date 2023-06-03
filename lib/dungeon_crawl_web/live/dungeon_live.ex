@@ -75,7 +75,6 @@ defmodule DungeonCrawlWeb.DungeonLive do
     end
   end
 
-
   defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) when is_binary(line_identifier),
        do: _update_dungeon_field_and_reply(socket, String.to_integer(line_identifier), field, value)
   defp _update_dungeon_field_and_reply(socket, line_identifier, field, value) do

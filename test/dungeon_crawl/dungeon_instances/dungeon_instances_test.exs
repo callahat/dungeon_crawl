@@ -249,6 +249,71 @@ defmodule DungeonCrawl.DungeonInstancesTest do
       assert %Level{} = DungeonInstances.delete_level!(instance)
       assert_raise Ecto.NoResultsError, fn -> DungeonInstances.get_level!(instance.id) end
     end
+
+    test "tile_difference_from_base/1" do
+      level_instance = insert_stubbed_level_instance(%{}, [
+        %Tile{character: "?", row: 1, col: 3, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+        %Tile{character: ".", row: 2, col: 3, name: "dot", script: "/s"},
+        %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+        %Tile{character: "x", row: 4, col: 3},
+        %Tile{character: "y", row: 5, col: 3, name: "Wall"}
+      ])
+
+      tile_a = DungeonInstances.get_tile(level_instance.id, 1, 3)
+      _tile_b = DungeonInstances.get_tile(level_instance.id, 2, 3)
+      tile_c = DungeonInstances.get_tile(level_instance.id, 3, 3)
+      _tile_d = DungeonInstances.get_tile(level_instance.id, 4, 3)
+      _tile_e = DungeonInstances.get_tile(level_instance.id, 5, 3)
+
+      tile_a_moved = Repo.update!(Tile.changeset(tile_a, %{col: 1}))
+      tile_c_changed = Repo.update!(Tile.changeset(tile_c, %{state: "blocking: false"}))
+      tile_f_created = Repo.insert!(Tile.changeset(%Tile{}, %{level_instance_id: level_instance.id, character: "N", row: 6, col: 3}))
+
+      base_tile_a = Map.take(tile_a, [:row, :col, :z_index])
+                    |> Map.put(:level_id, level_instance.level_id)
+                    |> DungeonCrawl.Dungeons.get_tile!()
+      base_tile_c = Map.take(tile_c, [:row, :col, :z_index])
+                    |> Map.put(:level_id, level_instance.level_id)
+                    |> DungeonCrawl.Dungeons.get_tile!()
+
+      assert [new_tiles, deleted_tiles] = DungeonInstances.tile_difference_from_base(level_instance)
+      assert [tile_a_moved, tile_c_changed, tile_f_created] == Enum.sort(new_tiles, fn a,b -> a.id < b.id end)
+      assert [base_tile_a, base_tile_c] ==
+               Enum.sort(deleted_tiles, fn a,b -> a.id < b.id end)
+    end
+
+    test "tile_difference/2" do
+      level_instance_base = insert_stubbed_level_instance(%{}, [
+        %Tile{character: "?", row: 1, col: 3, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+        %Tile{character: ".", row: 2, col: 3, name: "dot", script: "/s"},
+        %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+      ]) |> Repo.preload(:level)
+
+      tile_a_base = DungeonInstances.get_tile(level_instance_base.id, 1, 3)
+
+      level_instance_updated = insert_stubbed_level_instance(%{}, [
+        %Tile{character: "?", row: 1, col: 1, name: "Wall", state: "blocking: true", script: "#end\n:touch\nHi"},
+        %Tile{character: "!", row: 2, col: 3, name: "dot", script: "/s"},
+        %Tile{character: "-", row: 3, col: 3, name: "dash", state: "blocking: true"},
+        %Tile{character: "x", row: 4, col: 3},
+      ])
+
+      tile_a_updated = DungeonInstances.get_tile(level_instance_updated.id, 1, 1)
+      tile_d_updated = DungeonInstances.get_tile(level_instance_updated.id, 4, 3)
+
+      assert [new_tiles, deleted_tiles] = DungeonInstances.tile_difference(level_instance_updated, level_instance_base)
+      assert [tile_a_updated, tile_d_updated] == Enum.sort(new_tiles, fn a,b -> a.id < b.id end)
+      assert [tile_a_base] == deleted_tiles
+
+
+      tile_a_base_level = Map.take(tile_a_base, [:row, :col, :z_index])
+                    |> Map.put(:level_id, level_instance_base.level_id)
+                    |> DungeonCrawl.Dungeons.get_tile!()
+
+      assert [new_tiles, deleted_tiles] = DungeonInstances.tile_difference(level_instance_updated, level_instance_base.level)
+      assert [tile_a_updated, tile_d_updated] == Enum.sort(new_tiles, fn a,b -> a.id < b.id end)
+      assert [tile_a_base_level] == deleted_tiles
+    end
   end
 
   describe "tile_instances" do
@@ -278,6 +343,11 @@ defmodule DungeonCrawl.DungeonInstancesTest do
     test "get_tile/3 populated Tile struct" do
       tile = Map.delete(tile_fixture(), :tile_template_id)
       assert ^tile = DungeonInstances.get_tile(tile.level_instance_id, tile.row, tile.col)
+    end
+
+    test "get_tile/4 populated Tile struct" do
+      tile = Map.delete(tile_fixture(), :tile_template_id)
+      assert ^tile = DungeonInstances.get_tile(tile.level_instance_id, tile.row, tile.col, tile.z_index)
     end
 
     test "get_tile_by_id/1" do

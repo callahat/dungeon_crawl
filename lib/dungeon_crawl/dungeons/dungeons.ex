@@ -297,6 +297,18 @@ defmodule DungeonCrawl.Dungeons do
   def get_dungeon!(id), do: Repo.get!(Dungeon, id)
 
   @doc """
+  Gets the current active dungeon for the given line identifier
+  """
+  def get_current_dungeon(line_identifier) do
+    Repo.one(from d in Dungeon,
+             left_join: s in Score, on: s.dungeon_id == d.id,
+             where: d.line_identifier == ^line_identifier and
+                    is_nil(d.deleted_at) and
+                    d.active == ^true,
+             limit: 1)
+  end
+
+  @doc """
   Gets the other dungeon versions associated with this dungeon, includes the score count.
   """
   def get_dungeons(line_identifier) do
@@ -512,7 +524,7 @@ defmodule DungeonCrawl.Dungeons do
   ## Examples
 
       iex> activate_dungeon(dungeon)
-      {:ok, %Level{}}
+      {:ok, %Dungeon{}}
 
       iex> activate_dungeon(dungeon)
       {:error, <error message>}

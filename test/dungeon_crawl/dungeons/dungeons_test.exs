@@ -156,6 +156,19 @@ defmodule DungeonCrawl.DungeonsTest do
       assert dungeon == Dungeons.get_dungeon(dungeon.id)
     end
 
+    test "get_current_dungeon/1" do
+      dungeon = dungeon_fixture(%{deleted_at: NaiveDateTime.utc_now, active: true})
+      dungeon2 = dungeon_fixture(%{active: true, version: 2, line_identifier: dungeon.line_identifier})
+      _dungeon3 = dungeon_fixture(%{active: false, version: 3, line_identifier: dungeon.line_identifier})
+      other_dungeon = dungeon_fixture()
+      yet_another_dungeon = dungeon_fixture(%{active: true})
+
+      assert dungeon2 == Dungeons.get_current_dungeon(dungeon.line_identifier)
+      assert dungeon2 == Dungeons.get_current_dungeon(dungeon2.line_identifier)
+      refute Dungeons.get_current_dungeon(other_dungeon.line_identifier)
+      assert yet_another_dungeon == Dungeons.get_current_dungeon(yet_another_dungeon.line_identifier)
+    end
+
     test "get_dungeons/1 returns the different versions of the dungeon's line identifier" do
       dungeon = dungeon_fixture()
       dungeon2 = dungeon_fixture(%{version: 2, line_identifier: dungeon.line_identifier})
