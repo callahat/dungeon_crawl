@@ -126,7 +126,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   Send an event to a tile/program.
   Returns the updated state.
   """
-  def send_event(%Levels{program_contexts: program_contexts} = state, %{id: tile_id}, event, %DungeonCrawl.Player.Location{} = sender) do
+  def send_event(%Levels{program_contexts: program_contexts} = state, %{id: tile_id}, event, %DungeonCrawl.Player.Location{} = sender, _) do
     case program_contexts do
       %{^tile_id => %{program: program, object_id: object_id}} ->
         sender = Map.drop(sender, [:tile, :inserted_at, :updated_at, :__meta__]) # the struct is still used elsewhere
@@ -147,8 +147,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         state
     end
   end
-  def send_event(%Levels{program_messages: program_messages} = state, tile_id, event, %{} = sender) do
-    %{ state | program_messages: [ {tile_id, event, sender} | program_messages] }
+  def send_event(%Levels{program_messages: program_messages} = state, tile_id, event, %{} = sender, delay) do
+    %{ state | program_messages: [ {tile_id, event, sender, delay} | program_messages] }
   end
 
   @doc """

@@ -66,7 +66,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #RESTORE THUD
     #SEND touch
     #SEND thud, all
-    #SEND hi, all, toomany
+    #SEND hi, all, 10, toomany
     #SEND touch, @facing
     #SHOOT @facing
     #SHOOT west
@@ -130,6 +130,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SOUND 123
     #SOUND bloop, yall
     #SOUND bloop, all, extra
+    #SEND touch, self, 30
     """
   end
 

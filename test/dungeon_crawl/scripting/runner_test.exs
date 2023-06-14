@@ -61,6 +61,26 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       assert run_program.responses == [{"message", %{message: "Last text"}}, {"message", %{message: "Last text"}}, {"message", %{message: "After label"}}]
     end
 
+    test "when there are timed messages that trigger" do
+      script = """
+      B4 label
+      :HERE
+      After label
+      #END
+      :THERE
+      Last text
+      """
+      {:ok, program} = Parser.parse(script)
+      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
+
+      future = Time.add(Time.utc_now, 100)
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | timed_messages: [{future, "there", nil}, {Time.utc_now, "here", nil}], status: :idle}, object_id: 1, state: stubbed_state})
+      assert run_program.messages == [{"here", nil}]
+      assert run_program.timed_messages == [{future, "there", nil}]
+      assert run_program.responses == [] # the message would not have run yet
+    end
+
     test "when given a label but the label is inactive it does not executes from that" do
       script = """
                B4 label

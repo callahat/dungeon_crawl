@@ -160,7 +160,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     refute LevelProcess.responds_to_event?(instance_process, tile_id-1, "ANYTHING")
   end
 
-  test "send_event/3", %{instance_process: instance_process, tile_id: tile_id} do
+  test "send_event/4", %{instance_process: instance_process, tile_id: tile_id} do
     scripted_tile_1 = %Tile{id: 236, character: "O", row: 1, col: 2, z_index: 0, script: "#end\n:alert\n#become color: red"}
     scripted_tile_2 = %Tile{id: 237, character: "O", row: 1, col: 3, z_index: 0, script: "#end\n:alert\n#become color: yellow"}
     inert_tile = %Tile{id: 238, character: "O", row: 1, col: 3, z_index: 0, script: "#end\n:alert\n#become color: yellow"}
@@ -172,17 +172,27 @@ defmodule DungeonCrawl.LevelProcessTest do
     %Levels{ program_contexts: program_contexts } = LevelProcess.get_state(instance_process)
 
     # sends the message to all running programs
-    LevelProcess.send_event(instance_process, "TOUCH", sender)
+    LevelProcess.send_event(instance_process, "TOUCH", sender, 0)
     %Levels{ program_contexts: ^program_contexts,
              program_messages: program_messages } = LevelProcess.get_state(instance_process)
 
-    assert Enum.member?(program_messages, {tile_id, "TOUCH", sender})
-    assert Enum.member?(program_messages, {scripted_tile_1.id, "TOUCH", sender})
-    assert Enum.member?(program_messages, {scripted_tile_2.id, "TOUCH", sender})
-    refute Enum.member?(program_messages, {inert_tile.id, "TOUCH", sender})
+    assert Enum.member?(program_messages, {tile_id, "TOUCH", sender, 0})
+    assert Enum.member?(program_messages, {scripted_tile_1.id, "TOUCH", sender, 0})
+    assert Enum.member?(program_messages, {scripted_tile_2.id, "TOUCH", sender, 0})
+    refute Enum.member?(program_messages, {inert_tile.id, "TOUCH", sender, 0})
+
+    # sends the message to all running programs
+    LevelProcess.send_event(instance_process, "TOUCH", sender, 10)
+    %Levels{ program_contexts: ^program_contexts,
+      program_messages: program_messages } = LevelProcess.get_state(instance_process)
+
+    assert Enum.member?(program_messages, {tile_id, "TOUCH", sender, 10})
+    assert Enum.member?(program_messages, {scripted_tile_1.id, "TOUCH", sender, 10})
+    assert Enum.member?(program_messages, {scripted_tile_2.id, "TOUCH", sender, 10})
+    refute Enum.member?(program_messages, {inert_tile.id, "TOUCH", sender, 10})
   end
 
-  test "send_event/4", %{instance_process: instance_process, tile_id: tile_id} do
+  test "send_event/5", %{instance_process: instance_process, tile_id: tile_id} do
     player_location = %Location{id: 555}
 
     player_channel = "players:#{player_location.id}"
@@ -193,14 +203,14 @@ defmodule DungeonCrawl.LevelProcessTest do
              map_by_coords: _ } = LevelProcess.get_state(instance_process)
 
     # noop if it tile doesnt have a program
-    LevelProcess.send_event(instance_process, 111, "TOUCH", player_location)
+    LevelProcess.send_event(instance_process, 111, "TOUCH", player_location, 0)
     %Levels{ program_contexts: %{^tile_id => %{program: same_program} },
              map_by_ids: _,
              map_by_coords: _ } = LevelProcess.get_state(instance_process)
     assert program == same_program
 
     # it does something
-    LevelProcess.send_event(instance_process, tile_id, "TOUCH", player_location)
+    LevelProcess.send_event(instance_process, tile_id, "TOUCH", player_location, 0)
     %Levels{ program_contexts: %{^tile_id => %{program: updated_program} },
              map_by_ids: _,
              map_by_coords: _ } = LevelProcess.get_state(instance_process)
@@ -210,8 +220,17 @@ defmodule DungeonCrawl.LevelProcessTest do
             event: "message",
             payload: %{message: "Hey"}}
 
+    # Sending an event with a delayed does the thing
+    LevelProcess.send_event(instance_process, "TOUCH", %{id: tile_id}, 30)
+    %Levels{ program_contexts: %{^tile_id => %{program: updated_program} },
+      map_by_ids: _,
+      map_by_coords: _,
+      program_messages: program_messages } = LevelProcess.get_state(instance_process)
+    assert [{tile_id, "TOUCH", %{id: tile_id}, 30}] == program_messages
+    refute program == updated_program
+
     # prunes the program if died during the run of the label
-    LevelProcess.send_event(instance_process, tile_id, "TERMINATE", player_location)
+    LevelProcess.send_event(instance_process, tile_id, "TERMINATE", player_location, 0)
     %Levels{ program_contexts: %{} ,
              map_by_ids: _,
              map_by_coords: _ } = LevelProcess.get_state(instance_process)

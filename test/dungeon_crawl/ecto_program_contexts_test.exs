@@ -17,7 +17,8 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         pc: 0,
         responses: [],
         status: :idle,
-        wait_cycles: 0
+        wait_cycles: 0,
+        timed_messages: []
       }
     },
     3571817 => %{
@@ -101,7 +102,8 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         pc: 0,
         responses: [],
         status: :active,
-        wait_cycles: 0
+        wait_cycles: 0,
+        timed_messages: []
       }
     }
   }
@@ -125,7 +127,8 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         "pc" => 0,
         "responses" => [],
         "status" => ["__ATOM__", "idle"],
-        "wait_cycles" => 0
+        "wait_cycles" => 0,
+        "timed_messages" => []
       }
     },
     "3571817" => %{
@@ -209,7 +212,8 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         "pc" => 0,
         "responses" => [],
         "status" => ["__ATOM__", "active"],
-        "wait_cycles" => 0
+        "wait_cycles" => 0,
+        "timed_messages" => []
       }
     }
   }

@@ -2,7 +2,17 @@ defmodule DungeonCrawl.Scripting.Program do
   @doc """
   A struct containing the representation of a program and its state.
   """
-  defstruct status: :dead, pc: 1, lc: 0, instructions: %{}, labels: %{}, locked: false, broadcasts: [], responses: [], wait_cycles: 0, messages: []
+  defstruct status: :dead,
+            pc: 1,
+            lc: 0,
+            instructions: %{},
+            labels: %{},
+            locked: false,
+            broadcasts: [],
+            responses: [],
+            wait_cycles: 0,
+            messages: [],
+            timed_messages: []
 
   @doc """
   Returns the line number for the given active label for the program.
@@ -27,12 +37,15 @@ defmodule DungeonCrawl.Scripting.Program do
   end
 
   @doc """
-  Adds a message to the program. The program can only accept one message. If the message
-  field is already taken, no change is made.
+  Adds a message to the program.
   """
-  def send_message(program, label, sender \\ nil) do
+  def send_message(program, label, sender, 0) do
     # TODO: Probably want to have the programs be their own separate processes eventually.
     messages = Enum.reverse([{label, sender} | Enum.reverse(program.messages) ])
     %{ program | messages: messages }
+  end
+  def send_message(program, label, sender, delay) do
+    trigger_time = Time.utc_now |> Time.add(delay, :second)
+    %{ program | timed_messages: [{trigger_time, label, sender} | program.timed_messages] }
   end
 end
