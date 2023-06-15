@@ -1302,6 +1302,8 @@ defmodule DungeonCrawl.Scripting.Command do
   Sends a message. A message can be sent to the current running program, or to another program.
   The first parameter is the message to send, and the second (optional) param is the target.
   Both the label and the name are case insensitive.
+  The third (optional) param is the delay in seconds from when the command runs to actually
+  trigger the event.
 
   Valid targets are:
 
