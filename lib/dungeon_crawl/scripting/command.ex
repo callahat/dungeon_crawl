@@ -1417,11 +1417,14 @@ defmodule DungeonCrawl.Scripting.Command do
     )
   end
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, delay, [po_id | program_object_ids]) do
-    # TODO: IMplement this
     object = Levels.get_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{tile_id: object_id, parsed_state: object.parsed_state, name: object.name}, delay} |
-                                                              state.program_messages] } },
+      %{ runner_state | state: %{ state |
+        program_messages: Enum.reverse([
+          {po_id, label, %{tile_id: object_id, parsed_state: object.parsed_state, name: object.name}, delay}
+          | Enum.reverse(state.program_messages)
+        ])}
+      },
       label,
       delay,
       program_object_ids

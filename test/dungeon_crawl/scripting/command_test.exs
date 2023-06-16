@@ -1627,8 +1627,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # when sent as a timed message
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["tap", "others", 45])
-    assert state.program_messages == [{9001, "tap", stubbed_sender, 45}, {55, "tap", stubbed_sender, 45}, {1, "tap", stubbed_sender, 45},
-             {9001, "tap", stubbed_sender}, {55, "tap", stubbed_sender}, {1, "tap", stubbed_sender}]
+    assert state.program_messages == [{9001, "tap", stubbed_sender}, {55, "tap", stubbed_sender}, {1, "tap", stubbed_sender},
+             {1, "tap", stubbed_sender, 45}, {55, "tap", stubbed_sender, 45}, {9001, "tap", stubbed_sender, 45}]
   end
 
   test "SEND message to all" do
