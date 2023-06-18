@@ -1322,7 +1322,7 @@ defmodule DungeonCrawl.Scripting.Command do
   If there is no matching attribute, or the attribute is invalid, no message will be sent.
   ie, "@facing" will use whatever is stored as the program object's facing.
 
-  The specail varialble `?sender` can be used to send the message to the program
+  The special varialble `?sender` can be used to send the message to the program
   that sent the event.
   """
   def send_message(%Runner{} = runner_state, [label]), do: send_message(runner_state, [label, "self", 0])
@@ -1362,9 +1362,11 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message(%Runner{state: state, program: program, object_id: object_id} = runner_state, [label, "self", delay]) do
     trigger_time = Time.utc_now |> Time.add(delay, :second)
     object = Levels.get_tile_by_id(state, %{id: object_id})
-    %{ runner_state | program:
-      %{ program | timed_messages: [{trigger_time, label, %{tile_id: object.id, parsed_state: object.parsed_state}} | program.timed_messages] }
-    }
+    timed_messages = Enum.reverse([
+        {trigger_time, label, %{tile_id: object.id, parsed_state: object.parsed_state}}
+        | Enum.reverse(program.timed_messages)
+      ])
+    %{ runner_state | program: %{ program | timed_messages: timed_messages } }
   end
   defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "others", delay]) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
@@ -1419,12 +1421,8 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, delay, [po_id | program_object_ids]) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
-      %{ runner_state | state: %{ state |
-        program_messages: Enum.reverse([
-          {po_id, label, %{tile_id: object_id, parsed_state: object.parsed_state, name: object.name}, delay}
-          | Enum.reverse(state.program_messages)
-        ])}
-      },
+      %{ runner_state | state: %{ state | program_messages: [{po_id, label, %{tile_id: object_id, parsed_state: object.parsed_state, name: object.name}, delay} |
+                                                             state.program_messages] } },
       label,
       delay,
       program_object_ids

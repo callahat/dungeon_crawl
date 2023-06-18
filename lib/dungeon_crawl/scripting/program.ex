@@ -37,7 +37,7 @@ defmodule DungeonCrawl.Scripting.Program do
   end
 
   @doc """
-  Adds a message to the program.
+  Adds a message to the program. Messages are added at the end of the list.
   """
   def send_message(program, label, sender, 0) do
     # TODO: Probably want to have the programs be their own separate processes eventually.

@@ -1585,13 +1585,40 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     state = %Levels{map_by_ids: %{1337 => stubbed_object}}
     stubbed_id = %{tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state}
 
-    %Runner{state: state, program: program} = Command.send_message(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["tap", "self", 15])
+    runner_state = Command.send_message(%Runner{program: program, object_id: stubbed_object.id, state: state}, ["tap", "self", 15])
+    %Runner{state: state, program: program} = Command.send_message(runner_state, ["second_message", "self", 45])
     assert state.program_messages == []
-    assert [{trigger_time, "tap", ^stubbed_id}] = program.timed_messages
-    assert_in_delta Time.diff(trigger_time, Time.utc_now), 15, 1
+    assert [{trigger_time_1, "tap", ^stubbed_id}, {trigger_time_2, "second_message", ^stubbed_id}] = program.timed_messages
+    assert_in_delta Time.diff(trigger_time_1, Time.utc_now), 15, 1
+    assert_in_delta Time.diff(trigger_time_2, Time.utc_now), 45, 1
   end
 
   test "SEND message to event sender" do
+    sender = %{tile_id: 9001}
+    stubbed_object = Map.put(%Tile{id: 1337, name: "test"}, :parsed_state, %{})
+    state = %Levels{map_by_ids: %{1337 => stubbed_object}}
+    stubbed_sender = %{tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: "test"}
+
+    %Runner{state: state} = Command.send_message(%Runner{object_id: stubbed_object.id, event_sender: sender, state: state}, ["touch", [:event_sender]])
+    assert state.program_messages == [{9001, "touch", stubbed_sender}]
+
+    # program_messages has more recent messages at the front of the list
+    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: sender}, ["tap", [:event_sender]])
+    assert state.program_messages == [{9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
+
+    # also works when sender was a player
+    player = %Location{tile_instance_id: 12345}
+    stubbed_player_sender = %{tile_id: stubbed_object.id, parsed_state: stubbed_object.parsed_state, name: stubbed_object.name}
+    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: player}, ["tap", [:event_sender]])
+    assert state.program_messages == [{12345, "tap", stubbed_player_sender}, {9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
+
+    # doesnt break when event sender is junk
+    state = %Levels{map_by_ids: %{1337 => stubbed_object}}
+    %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: nil}, ["tap", [:event_sender]])
+    assert state.program_messages == []
+  end
+
+  test "SEND message to event sender with delay" do
     sender = %{tile_id: 9001}
     stubbed_object = Map.put(%Tile{id: 1337, name: "test"}, :parsed_state, %{})
     state = %Levels{map_by_ids: %{1337 => stubbed_object}}
@@ -1627,8 +1654,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     # when sent as a timed message
     %Runner{state: state} = Command.send_message(%Runner{state: state, program: program, object_id: stubbed_object.id}, ["tap", "others", 45])
-    assert state.program_messages == [{9001, "tap", stubbed_sender}, {55, "tap", stubbed_sender}, {1, "tap", stubbed_sender},
-             {1, "tap", stubbed_sender, 45}, {55, "tap", stubbed_sender, 45}, {9001, "tap", stubbed_sender, 45}]
+    assert state.program_messages == [{9001, "tap", stubbed_sender, 45}, {55, "tap", stubbed_sender, 45}, {1, "tap", stubbed_sender, 45},
+             {9001, "tap", stubbed_sender}, {55, "tap", stubbed_sender}, {1, "tap", stubbed_sender}]
   end
 
   test "SEND message to all" do

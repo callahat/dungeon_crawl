@@ -610,6 +610,9 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
         _standard_behaviors(messages, state)
     end
   end
+  defp _standard_behaviors([ _delayed_message | messages ], state) do
+    _standard_behaviors(messages, state)
+  end
 
   defp _destroyable_behavior([ {tile_id, _label, sender} | messages ], state) do
     object = Levels.get_tile_by_id(state, %{id: tile_id})

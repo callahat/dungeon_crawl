@@ -81,6 +81,8 @@ Logger.info inspect runner_state.event_sender
 Logger.info "instance state:"
 Logger.info inspect state.state_values
 Logger.info "msg_count: " <> inspect(runner_state.msg_count)
+Logger.info inspect program.timed_messages
+Logger.info inspect program.messages
 # coveralls-ignore-stop
 end
 
