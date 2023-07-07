@@ -19,6 +19,9 @@ defmodule DungeonCrawl.Scripting.ProgramTest do
 
       {:ok, program} = Parser.parse("")
       refute Program.line_for(program, "touch")
+
+      # returns nil for a non binary "label" or parsed value
+      refute Program.line_for(program, 4)
   end
 
   test "send_message/4 no delay" do
