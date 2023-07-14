@@ -136,7 +136,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
            true <- Levels.valid_message_action?(instance_state, player_tile.id, label),
            event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
         instance_state = Levels.remove_message_actions(instance_state, player_tile.id)
-                         |> Levels.send_event(target_tile, label, event_sender)
+                         |> Levels.send_event(target_tile, label, event_sender, 0)
         {:ok, instance_state}
       else
         _ -> {:ok, instance_state}
@@ -295,7 +295,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
         toucher = Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state]))
         instance_state = target_tiles
                          |> Enum.reduce(instance_state, fn(target_tile, instance_state) ->
-                               Levels.send_event(instance_state, target_tile, "TOUCH", toucher)
+                               Levels.send_event(instance_state, target_tile, "TOUCH", toucher, 0)
                              end)
         toucher_after_event = Levels.get_tile_by_id(instance_state, player_tile)
         if toucher_after_event && Map.take(toucher_after_event, [:row, :col]) == Map.take(player_tile, [:row, :col]) do
@@ -322,7 +322,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
         if !Levels.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
         end
-        instance_state = Levels.send_event(instance_state, target_tile, action, Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state])))
+        instance_state = Levels.send_event(instance_state, target_tile, action, Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state])), 0)
 
         {:ok, instance_state}
       else

@@ -142,12 +142,12 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   Send an event to a tile/program, or all running programs when no tile_id is given.
   If a tile_id is given, the sender must be a player.
   """
-  def send_event(instance, event, sender) do
-    GenServer.cast(instance, {:send_event, {event, sender}})
+  def send_event(instance, event, sender, delay) do
+    GenServer.cast(instance, {:send_event, {event, sender, delay}})
   end
 
-  def send_event(instance, tile_id, event, sender) do
-    GenServer.cast(instance, {:send_event, {tile_id, event, sender}})
+  def send_event(instance, tile_id, event, sender, delay) do
+    GenServer.cast(instance, {:send_event, {tile_id, event, sender, delay}})
   end
 
   @doc """
@@ -334,15 +334,15 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @impl true
-  def handle_cast({:send_event, {event, sender}}, %Levels{} = state) do
+  def handle_cast({:send_event, {event, sender, delay}}, %Levels{} = state) do
     state = state.program_contexts
-            |> Enum.reduce(state, fn({po_id, _}, state) -> Levels.send_event(state, po_id, event, sender) end)
+            |> Enum.reduce(state, fn({po_id, _}, state) -> Levels.send_event(state, po_id, event, sender, delay) end)
     {:noreply, state}
   end
 
   @impl true
-  def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender}}, %Levels{} = state) do
-    state = Levels.send_event(state, %{id: tile_id}, event, sender)
+  def handle_cast({:send_event, {tile_id, event, %DungeonCrawl.Player.Location{} = sender, delay}}, %Levels{} = state) do
+    state = Levels.send_event(state, %{id: tile_id}, event, sender, delay)
     {:noreply, state}
   end
 
@@ -568,13 +568,18 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
                        |> _message_programs(state.program_contexts)
     %{state | program_contexts: program_contexts, program_messages: []}
   end
-  defp _message_programs([], program_contexts), do: program_contexts
-  defp _message_programs([ {po_id, label, sender} | messages], program_contexts) do
+  defp _message_programs([], program_contexts),
+       do: program_contexts
+  defp _message_programs([ {po_id, label, sender} | messages], program_contexts),
+       do: _message_programs(po_id, label, sender, 0, messages, program_contexts)
+  defp _message_programs([ {po_id, label, sender, delay} | messages], program_contexts),
+       do: _message_programs(po_id, label, sender, delay, messages, program_contexts)
+  defp _message_programs(po_id, label, sender, delay, messages, program_contexts) do
     program_context = program_contexts[po_id]
     if program_context do
       program = program_context.program
-      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender),
-                                                                    event_sender: sender}})
+      _message_programs(messages, %{ program_contexts | po_id => %{ program_context | program: Program.send_message(program, label, sender, delay),
+        event_sender: sender}})
     else
       _message_programs(messages, program_contexts)
     end
@@ -604,6 +609,9 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
       _ ->
         _standard_behaviors(messages, state)
     end
+  end
+  defp _standard_behaviors([ _delayed_message | messages ], state) do
+    _standard_behaviors(messages, state)
   end
 
   defp _destroyable_behavior([ {tile_id, _label, sender} | messages ], state) do

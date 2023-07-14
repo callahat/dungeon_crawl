@@ -28,6 +28,17 @@ require Logger
   end
 
   def run(%Runner{program: program, object_id: object_id, state: state, msg_count: msg_count} = runner_state) do
+    runner_state =
+      if program.timed_messages != [] do
+        {triggered, timed_messages} = Enum.split_with(program.timed_messages, fn {trigger_time, _label, _} ->
+          Time.compare(Time.utc_now, trigger_time) != :lt
+        end)
+        triggered = Enum.map(triggered, fn {_, message, sender} -> {message, sender} end)
+        %{ runner_state | program: %{ program | messages: program.messages ++ triggered, timed_messages: timed_messages}}
+      else
+        runner_state
+      end
+
     cond do
       program.messages == [] || program.status == :alive || program.status == :dead ->
         # todo: maybe have the check for active tile live elsewhere
@@ -70,6 +81,8 @@ Logger.info inspect runner_state.event_sender
 Logger.info "instance state:"
 Logger.info inspect state.state_values
 Logger.info "msg_count: " <> inspect(runner_state.msg_count)
+Logger.info inspect program.timed_messages
+Logger.info inspect program.messages
 # coveralls-ignore-stop
 end
 

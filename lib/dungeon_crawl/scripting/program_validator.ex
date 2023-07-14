@@ -254,6 +254,9 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   defp _validate(program, [ {_line_no, [:send_message, [_label, _target] ]} | instructions], errors, user) do
     _validate(program, instructions, errors, user)
   end
+  defp _validate(program, [ {_line_no, [:send_message, [_label, _target, _delay] ]} | instructions], errors, user) do
+    _validate(program, instructions, errors, user)
+  end
   defp _validate(program, [ {line_no, [:send_message, _ ]} | instructions], errors, user) do
     _validate(program, instructions, ["Line #{line_no}: SEND command has an invalid number of parameters" | errors], user)
   end

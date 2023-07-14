@@ -100,15 +100,15 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     refute Levels.responds_to_event?(state, %{id: 222}, "ANYTHING")
   end
 
-  test "send_event/4 but its not a player sending it", %{state: state} do
+  test "send_event/5 but its not a player sending it", %{state: state} do
     # doesn't run anything, just adds it to the program messages list
     sender = %{tile_id: nil, parsed_state: %{}, name: "global"}
-    updated_state = Levels.send_event(state, 1337, "message", sender)
-    assert updated_state.program_messages == [ {1337, "message", sender} ]
+    updated_state = Levels.send_event(state, 1337, "message", sender, 0)
+    assert updated_state.program_messages == [ {1337, "message", sender, 0} ]
     assert Map.delete(updated_state, :program_messages) == Map.delete(state, :program_messages)
   end
 
-  test "send_event/4", %{state: state} do
+  test "send_event/5", %{state: state} do
     SoundSeeder.ouch
     harp_down = SoundSeeder.harp_down
     {:ok, cache} = Cache.start_link([])
@@ -125,13 +125,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
                 map_by_coords: _ } = state
 
     # noop if it tile doesnt have a program
-    updated_state = Levels.send_event(state, %{id: 111}, "TOUCH", player_location)
+    updated_state = Levels.send_event(state, %{id: 111}, "TOUCH", player_location, 0)
     %Levels{ program_contexts: %{999 => %{program: ^program} },
                 map_by_ids: _,
                 map_by_coords: _ } = updated_state
 
     # it does something
-    updated_state_2 = Levels.send_event(updated_state, %{id: 999}, "TOUCH", player_location)
+    updated_state_2 = Levels.send_event(updated_state, %{id: 999}, "TOUCH", player_location, 0)
     %Levels{ program_contexts: %{999 => %{program: updated_program} },
                 map_by_ids: _,
                 map_by_coords: _ } = updated_state_2
@@ -141,8 +141,28 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
             event: "message",
             payload: %{message: "Hey"}}
 
+    # player sender causes the event to trigger immediately, delay is ignored
+    updated_state_2 = Levels.send_event(updated_state, %{id: 999}, "TOUCH", player_location, 100)
+    %Levels{ program_contexts: %{999 => %{program: updated_program} },
+      map_by_ids: _,
+      map_by_coords: _ } = updated_state_2
+    refute program == updated_program
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "message",
+      payload: %{message: "Hey"}}
+
+    # Sending an event with a delayed does the thing
+    updated_state_2 = Levels.send_event(updated_state, %{id: 999}, "TOUCH", %{id: 999}, 60)
+    %Levels{ program_contexts: %{999 => %{program: ^program} },
+      map_by_ids: _,
+      map_by_coords: _,
+      program_messages: program_messages } = updated_state_2
+    assert [{%{id: 999}, "TOUCH", %{id: 999}, 60}] == program_messages
+    refute program == updated_program
+
     # prunes the program if died during the run of the label
-    updated_state_3 = Levels.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location)
+    updated_state_3 = Levels.send_event(updated_state_2, %{id: 999}, "TERMINATE", player_location, 0)
     assert [new_tile_id] = Map.keys(updated_state_3.map_by_ids) -- Map.keys(updated_state_2.map_by_ids)
 
     %Levels{

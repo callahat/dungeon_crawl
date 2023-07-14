@@ -968,9 +968,16 @@
           </tr>
           <tr id="send">
             <td>SEND</td>
-            <td>list - 1 or two</td>
+            <td>list - 1 to 3</td>
             <td>Sends a message. A message can be sent to the current running program, or to another program.
                 The first parameter is the message to send, and the second (optional) param is the target.
+                The third (optional) param is the delay for the message. Default is zero (which sends the
+                message immediately). A positive integer is the number of seconds to wait before triggering
+                the message after the command is run. This is useful for when a player will not be hanging out
+                in the level, and there are events that still need to happen after a period of time.
+                Using the idle, ?i, movement could be used for a similar delay, however those idle commands
+                will not run when the instance is idle and so it would make that even take longer to occur
+                (provided the level is active at all).
                 Both the label and the name are case insensitive. Valid targets include: self (this is used
                 when no target explicitly given), all (all running scripts will be sent this message, including
                 this one), others (all other running scripts will be sent this message), a direction, the name of
@@ -983,7 +990,8 @@
             <td colspan="3" class="examples">
                 <pre class="script">#SEND touch, ?sender</pre>
                 <pre class="script">#SEND close, all</pre>
-                <pre class="script">#SEND done</pre></td>
+                <pre class="script">#SEND done</pre>
+                <pre class="script">#SEND grow, self, 60</pre></td>
           </tr>
           <tr id="sequence">
             <td>SEQUENCE</td>

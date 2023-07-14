@@ -833,7 +833,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                   else: %{tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
-             program: Program.send_message(program, "THUD", sender) }
+             program: Program.send_message(program, "THUD", sender, 0) }
 
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
@@ -851,7 +851,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                   else: %{tile_id: nil, parsed_state: %{}}
         program = %{program | status: :wait, wait_cycles: wait_cycles}
         %{ runner_state |
-             program: Program.send_message(program, "THUD", sender) }
+             program: Program.send_message(program, "THUD", sender, 0) }
 
       retryable ->
           %{ runner_state | program: %{program | pc: program.pc - 1, status: :wait, wait_cycles: wait_cycles} }
@@ -1302,6 +1302,8 @@ defmodule DungeonCrawl.Scripting.Command do
   Sends a message. A message can be sent to the current running program, or to another program.
   The first parameter is the message to send, and the second (optional) param is the target.
   Both the label and the name are case insensitive.
+  The third (optional) param is the delay in seconds from when the command runs to actually
+  trigger the event.
 
   Valid targets are:
 
@@ -1320,87 +1322,109 @@ defmodule DungeonCrawl.Scripting.Command do
   If there is no matching attribute, or the attribute is invalid, no message will be sent.
   ie, "@facing" will use whatever is stored as the program object's facing.
 
-  The specail varialble `?sender` can be used to send the message to the program
+  The special varialble `?sender` can be used to send the message to the program
   that sent the event.
   """
-  def send_message(%Runner{} = runner_state, [label]), do: _send_message(runner_state, [label, "self"])
-  def send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, {:state_variable, var}]) do
+  def send_message(%Runner{} = runner_state, [label]), do: send_message(runner_state, [label, "self", 0])
+  def send_message(%Runner{} = runner_state, [label, target]), do: send_message(runner_state, [label, target, 0])
+  def send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, {:state_variable, var}, delay]) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
-    _send_message(runner_state, [label, object.parsed_state[var]])
+    _send_message(runner_state, [label, object.parsed_state[var], delay])
   end
-  def send_message(%Runner{event_sender: event_sender} = runner_state, [label, [:event_sender]]) do
+  def send_message(%Runner{event_sender: event_sender} = runner_state, [label, [:event_sender], delay]) do
     case event_sender do
-      %{tile_id: id} -> _send_message_via_ids(runner_state, label, [id]) # basic tile
-      %{tile_instance_id: id} -> _send_message_via_ids(runner_state, label, [id]) # player tile
+      %{tile_id: id} -> _send_message_via_ids(runner_state, label, delay, [id]) # basic tile
+      %{tile_instance_id: id} -> _send_message_via_ids(runner_state, label, delay, [id]) # player tile
       # Right now, if the actor was a player, this does nothing. Might change later.
       _                  -> runner_state
     end
   end
-  def send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, "global"]) do
+  def send_message(%Runner{} = runner_state, [label, target, delay]) do
+    target = if is_binary(target), do: String.downcase(target), else: target
+    _send_message(runner_state, [label, target, delay])
+  end
+
+  defp _send_message(%Runner{object_id: object_id, state: state} = runner_state, [label, "global", delay]) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
     sender = %{tile_id: nil, parsed_state: Map.put(object.parsed_state, :global_sender, true), name: object.name}
 
     {:ok, dungeon_instance_registry} = Registrar.instance_registry(state.dungeon_instance_id)
     LevelRegistry.flat_list(dungeon_instance_registry)
-    |> Enum.each(fn {_, pid} -> Logger.info("Pew" <> inspect(pid)) && LevelProcess.send_event(pid, label, sender) end)
+    |> Enum.each(fn {_, pid} -> LevelProcess.send_event(pid, label, sender, delay) end)
 
     runner_state
   end
-  def send_message(%Runner{} = runner_state, [label, target]) do
-    target = if is_binary(target), do: String.downcase(target), else: target
-    _send_message(runner_state, [label, target])
-  end
-  defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self"]) do
+  defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "self", 0]) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
     %{ runner_state | state: %{ state | program_messages: [ {object.id, label, %{tile_id: object.id, parsed_state: object.parsed_state}} |
                                                             state.program_messages] } }
   end
-  defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "others"]) do
+  defp _send_message(%Runner{state: state, program: program, object_id: object_id} = runner_state, [label, "self", delay]) do
+    trigger_time = Time.utc_now |> Time.add(delay, :second)
     object = Levels.get_tile_by_id(state, %{id: object_id})
-    _send_message_id_filter(runner_state, label, fn object_id -> object_id != object.id end)
+    timed_messages = Enum.reverse([
+        {trigger_time, label, %{tile_id: object.id, parsed_state: object.parsed_state}}
+        | Enum.reverse(program.timed_messages)
+      ])
+    %{ runner_state | program: %{ program | timed_messages: timed_messages } }
   end
-  defp _send_message(%Runner{} = runner_state, [label, "all"]) do
-    _send_message_id_filter(runner_state, label, fn _object_id -> true end)
+  defp _send_message(%Runner{state: state, object_id: object_id} = runner_state, [label, "others", delay]) do
+    object = Levels.get_tile_by_id(state, %{id: object_id})
+    _send_message_id_filter(runner_state, label, delay, fn object_id -> object_id != object.id end)
   end
-  defp _send_message(%Runner{} = runner_state, [label, target]) when target == "here" do
-    _send_message_in_direction(runner_state, label, target)
+  defp _send_message(%Runner{} = runner_state, [label, "all", delay]) do
+    _send_message_id_filter(runner_state, label, delay, fn _object_id -> true end)
   end
-  defp _send_message(%Runner{} = runner_state, [label, target]) when is_valid_orthogonal(target) do
-    _send_message_in_direction(runner_state, label, target)
+  defp _send_message(%Runner{} = runner_state, [label, target, delay]) when target == "here" do
+    _send_message_in_direction(runner_state, label, target, delay)
   end
-  defp _send_message(%Runner{state: state} = runner_state, [label, target]) do
+  defp _send_message(%Runner{} = runner_state, [label, target, delay]) when is_valid_orthogonal(target) do
+    _send_message_in_direction(runner_state, label, target, delay)
+  end
+  defp _send_message(%Runner{state: state} = runner_state, [label, target, delay]) do
     if is_integer(target) || is_binary(target) && String.starts_with?(target, "new") do
-      _send_message_via_ids(runner_state, label, [target])
+      _send_message_via_ids(runner_state, label, delay, [target])
     else
       tile_ids = state.map_by_ids
                  |> Map.to_list
                  |> Enum.filter(fn {_id, tile} -> String.downcase(tile.name || "") == target end)
                  |> Enum.map(fn {id, _tile} -> id end)
-      _send_message_via_ids(runner_state, label, tile_ids)
+      _send_message_via_ids(runner_state, label, delay, tile_ids)
     end
   end
 
-  defp _send_message_in_direction(%Runner{state: state, object_id: object_id} = runner_state, label, direction) do
+  defp _send_message_in_direction(%Runner{state: state, object_id: object_id} = runner_state, label, direction, delay) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
     tile_ids = Levels.get_tiles(state, object, direction)
                |> Enum.map(&(&1.id))
-    _send_message_via_ids(runner_state, label, tile_ids)
+    _send_message_via_ids(runner_state, label, delay, tile_ids)
   end
 
-  defp _send_message_id_filter(%Runner{state: state} = runner_state, label, filter) do
+  defp _send_message_id_filter(%Runner{state: state} = runner_state, label, delay, filter) do
     program_object_ids = state.program_contexts
                          |> Map.keys()
                          |> Enum.filter(&filter.(&1))
-    _send_message_via_ids(runner_state, label, program_object_ids)
+    _send_message_via_ids(runner_state, label, delay, program_object_ids)
   end
 
-  defp _send_message_via_ids(runner_state, _label, []), do: runner_state
-  defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, [po_id | program_object_ids]) do
+  defp _send_message_via_ids(runner_state, _label, _, []), do: runner_state
+  defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, 0, [po_id | program_object_ids]) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
     _send_message_via_ids(
       %{ runner_state | state: %{ state | program_messages: [ {po_id, label, %{tile_id: object_id, parsed_state: object.parsed_state, name: object.name}} |
                                                               state.program_messages] } },
       label,
+      0,
+      program_object_ids
+    )
+  end
+  defp _send_message_via_ids(%Runner{state: state, object_id: object_id} = runner_state, label, delay, [po_id | program_object_ids]) do
+    object = Levels.get_tile_by_id(state, %{id: object_id})
+    _send_message_via_ids(
+      %{ runner_state | state: %{ state | program_messages: [{po_id, label, %{tile_id: object_id, parsed_state: object.parsed_state, name: object.name}, delay} |
+                                                             state.program_messages] } },
+      label,
+      delay,
       program_object_ids
     )
   end
