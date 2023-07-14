@@ -451,7 +451,8 @@ defmodule DungeonCrawl.LevelProcessTest do
         %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
         %{character: "O", row: 1, col: 9, z_index: 0, state: "destroyable: true, points: 5", name: "another nonprog"},
         %{character: "O", row: 1, col: 5, z_index: 0, script: "#SEND shot, worthless nonprog", state: "destroyable: true, owner: 23423, points: 3", name: "worthless nonprog"},
-        %{character: "@", row: 1, col: 3, z_index: 0, script: "#SEND shot, a nonprog", state: "damage: 10", name: "player"}
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "#SEND shot, a nonprog", state: "damage: 10", name: "player"},
+        %{character: "O", row: 9, col: 9, z_index: 0, script: "#SEND shot, delayed nonprog, 1", state: "destroyable: true, owner: 23423, points: 3", name: "delayed nonprog"},
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
@@ -461,6 +462,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     destroyable_tile = Enum.at(tiles, 2)
     worthless_tile = Enum.at(tiles, 3)
     player_tile = Enum.at(tiles, 4)
+    delayed_nonprog = Enum.at(tiles, 5)
 
     player_location = %Location{id: 555, tile_instance_id: player_tile.id}
     player_channel = "players:#{player_location.id}"
@@ -482,6 +484,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     refute map_by_ids[worthless_tile.id]
     refute map_by_ids[damager_tile.id].parsed_state[:score]
     assert map_by_ids[player_tile.id].parsed_state[:score] == 14
+    assert map_by_ids[delayed_nonprog.id] # the delayed message does not fire right away
 
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
