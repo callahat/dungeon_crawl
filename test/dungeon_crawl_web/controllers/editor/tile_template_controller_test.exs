@@ -339,20 +339,6 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
     end
   end
 
-
-  
-#  defp create_tile_template(opts) do
-#    tile_template = insert_tile_template(%{user_id: opts.conn.assigns[:current_user].id})
-#    {:ok, conn: opts.conn, tile_template: tile_template}
-#  end
-
-#  defp create_admin_user(_) do
-#    user = insert_user(%{username: "CSwaggins", is_admin: true})
-#    conn = assign(build_conn(), :current_user, user)
-#    {:ok, conn: conn, user: user}
-#  end
-
-
   defp normal_user(_) do
     user = insert_user(%{username: "Threepwood", is_admin: false})
     conn = assign(build_conn(), :current_user, user)

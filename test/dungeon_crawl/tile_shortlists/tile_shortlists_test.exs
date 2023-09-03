@@ -79,7 +79,7 @@ defmodule DungeonCrawl.TileShortlistsTest do
       assert {:error, changeset} = TileShortlists.add_to_shortlist(config.user1, bad_params)
       assert %{
                script: ["Unknown command: `DERP` - near line 1"],
-               state: ["Error parsing around: bad"],
+               state: ["is invalid"],
                name: ["should be at most 32 character(s)"]
              } = errors_on(changeset)
     end

@@ -6,7 +6,6 @@ defmodule DungeonCrawlWeb.DungeonView do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawlWeb.SharedView
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.StateValue.Parser
 
   import DungeonCrawlWeb.ScoreView, only: [format_duration: 1]
 
@@ -81,7 +80,7 @@ defmodule DungeonCrawlWeb.DungeonView do
   end
 
   def formatted_saved_duration(save) do
-    Parser.parse!(save.state)[:duration]
+    save.state[:duration]
     |> format_duration()
   end
 end

@@ -22,7 +22,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     field :slug, :string
     field :public, :boolean, default: false
     field :script, :string, default: ""
-    field :state, :string
+    field :state, DungeonCrawl.EctoStateValueMap, default: %{}
     field :unlisted, :boolean, default: false
     field :version, :integer, default: 1
     field :animate_random, :boolean
@@ -136,6 +136,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
               |> Enum.reject(fn {a,b} -> is_nil(a) || is_nil(b) || String.trim(a) == "" end)
               |> Enum.into(%{})
               |> StateValue.Parser.stringify()
+              |> StateValue.Parser.parse!()
 
       delete_change(changeset, :state_variables)
       |> delete_change(:state_values)
@@ -149,12 +150,6 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   end
   def validate_state_values(%{changes: %{state_values: _}} = changeset) do
     add_error(changeset, :state_variables, "must be present and have same number of elements as state_values")
-  end
-  def validate_state_values(%{changes: %{state: state}} = changeset) do
-    case StateValue.Parser.parse(state) do
-      {:error, message} -> add_error(changeset, :state, message)
-      {:ok, _}          -> changeset
-    end
   end
   def validate_state_values(changeset), do: changeset
 end

@@ -36,7 +36,7 @@ defmodule DungeonCrawl.Dungeons.DungeonTest do
     good_item = insert_item(%{user_id: user.id, name: "ok item"})
     bad_item = insert_item(%{user_id: other_user.id, name: "bad item"})
 
-    starting_equipment = "starting_equipment: not_real #{good_item.slug} #{bad_item.slug}"
+    starting_equipment = %{starting_equipment: ["not_real", good_item.slug,  bad_item.slug]}
 
     changeset = Dungeon.changeset(%Dungeon{}, Elixir.Map.merge(@valid_attrs, %{user_id: user.id, state: starting_equipment}))
 

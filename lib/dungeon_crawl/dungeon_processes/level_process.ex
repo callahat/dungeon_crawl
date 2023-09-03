@@ -424,7 +424,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     |> Map.keys # get player map tile ids
     |> Enum.reduce(state, fn player_tile_id, state ->
       player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
-      torch_light = (player_tile && player_tile.parsed_state[:torch_light]) || 0
+      torch_light = (player_tile && player_tile.state[:torch_light]) || 0
 
       cond do
         torch_light == 2 ->
@@ -649,15 +649,15 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
 
   defp _award_points(object, sender, state) do
     awardee = case sender do
-                %{parsed_state: %{owner: owner_id}} -> Levels.get_tile_by_id(state, %{id: owner_id})
+                %{state: %{owner: owner_id}} -> Levels.get_tile_by_id(state, %{id: owner_id})
                 %{tile_id: id} -> Levels.get_tile_by_id(state, %{id: id})
                 _ -> nil
               end
 
-    points = object.parsed_state[:points]
+    points = object.state[:points]
 
     if is_number(points) && awardee do
-      current_points = awardee.parsed_state[:score] || 0
+      current_points = awardee.state[:score] || 0
       {_awardee, state} = Levels.update_tile_state(state, awardee, %{score: current_points + points})
 
       state

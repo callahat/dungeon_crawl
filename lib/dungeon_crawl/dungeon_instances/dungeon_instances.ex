@@ -176,7 +176,7 @@ defmodule DungeonCrawl.DungeonInstances do
   end
 
   defp _level_header_type(level) do
-    if level.state && level.state =~ ~r/solo:\s+true/, do: :solo, else: :universal
+    if level.state && level.state[:solo], do: :solo, else: :universal
   end
 
   @doc """

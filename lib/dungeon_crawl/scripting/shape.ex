@@ -60,10 +60,10 @@ defmodule DungeonCrawl.Scripting.Shape do
     cond do
       is_nil(next_tile) ->
         coords
-      !next_tile.parsed_state[:blocking] ||
-          (next_tile.parsed_state[:soft] && bypass_blocking == "soft") ||
-          (next_tile.parsed_state[:low] && (bypass_blocking == "once" || bypass_blocking == "visible")) ||
-          (next_tile.parsed_state[:blocking_light] == false && bypass_blocking == "visible") ->
+      !next_tile.state[:blocking] ||
+          (next_tile.state[:soft] && bypass_blocking == "soft") ||
+          (next_tile.state[:low] && (bypass_blocking == "once" || bypass_blocking == "visible")) ||
+          (next_tile.state[:blocking_light] == false && bypass_blocking == "visible") ->
         _coords_between(state, origin, delta, step + 1, steps, bypass_blocking, [coord | coords], est)
       bypass_blocking == "once" || bypass_blocking == "visible"->
         [coord | coords]
@@ -176,8 +176,8 @@ defmodule DungeonCrawl.Scripting.Shape do
                       candidate_tile &&
                         (bypass_blocking == true ||
                            bypass_blocking == "once" ||
-                           !candidate_tile.parsed_state[:blocking] ||
-                           (candidate_tile.parsed_state[:soft] && bypass_blocking == "soft"))
+                           !candidate_tile.state[:blocking] ||
+                           (candidate_tile.state[:soft] && bypass_blocking == "soft"))
                     end)
                  |> Enum.uniq
     new_frontier = new_coords
@@ -185,9 +185,9 @@ defmodule DungeonCrawl.Scripting.Shape do
                         # not eligible for fronier if it was a bypass once and this tile is not low but blocking
                         candidate_tile = Levels.get_tile(state, %{row: row, col: col})
                         is_nil(candidate_tile) ||
-                          (candidate_tile.parsed_state[:blocking] &&
+                          (candidate_tile.state[:blocking] &&
                            bypass_blocking == "once" &&
-                           !candidate_tile.parsed_state[:low])
+                           !candidate_tile.state[:low])
                       end)
                    |> Enum.flat_map(fn({row, col}) ->
                         [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}]
@@ -225,8 +225,8 @@ defmodule DungeonCrawl.Scripting.Shape do
                                   candidate_tile &&
                                     (bypass_blocking == true ||
                                        bypass_blocking == "once" ||
-                                       !candidate_tile.parsed_state[:blocking] ||
-                                       (candidate_tile.parsed_state[:soft] && bypass_blocking == "soft"))
+                                       !candidate_tile.state[:blocking] ||
+                                       (candidate_tile.state[:soft] && bypass_blocking == "soft"))
                                 end)
                  |> Enum.uniq
                  |> Enum.map(fn({row, col}) -> {row, col, range - 1} end)
@@ -235,9 +235,9 @@ defmodule DungeonCrawl.Scripting.Shape do
                               # not eligible for fronier if it was a bypass once and this tile is not low but blocking
                               candidate_tile = Levels.get_tile(state, %{row: row, col: col})
                               is_nil(candidate_tile) ||
-                                (candidate_tile.parsed_state[:blocking] &&
+                                (candidate_tile.state[:blocking] &&
                                    bypass_blocking == "once" &&
-                                   !candidate_tile.parsed_state[:low])
+                                   !candidate_tile.state[:low])
                             end)
                    |> Enum.flat_map(fn({row, col, _range}) ->
                                       [{row + 1, col}, {row - 1, col}, {row, col + 1}, {row, col - 1}]

@@ -51,7 +51,19 @@ defmodule DungeonCrawl.LevelChannelTest do
     level_instance = Enum.sort(Repo.preload(dungeon_instance, :levels).levels, fn(a, b) -> a.number < b.number end)
                      |> Enum.at(0)
 
-    player_location = insert_player_location(%{level_instance_id: level_instance.id, row: @player_row, col: @player_col, state: "ammo: #{config[:ammo] || 10}, health: #{config[:health] || 100}, deaths: 1, gameover: #{config[:gameover] || false}, player: true, torches: #{config[:torches] || 0}, equipped: gun"})
+    player_location = insert_player_location(%{
+                        level_instance_id: level_instance.id,
+                        row: @player_row,
+                        col: @player_col,
+                        state: %{
+                          ammo: config[:ammo] || 10,
+                          health: config[:health] || 100,
+                          deaths: 1,
+                          gameover: config[:gameover] || false,
+                          player: true,
+                          torches: config[:torches] || 0,
+                          equipped: "gun"
+                      }})
                       |> Repo.preload(:tile)
 
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, dungeon_instance.id)
@@ -134,8 +146,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.parsed_state[:torches] == 1
-      assert player_tile.parsed_state[:torch_light] == nil
+      assert player_tile.state[:torches] == 1
+      assert player_tile.state[:torch_light] == nil
       {:ok, %{ instance_state | state_values: Map.put(instance_state.state_values, :visibility, "dark")}}
     end)
 
@@ -146,8 +158,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.parsed_state[:torches] == 0
-      assert player_tile.parsed_state[:torch_light] == 6
+      assert player_tile.state[:torches] == 0
+      assert player_tile.state[:torch_light] == 6
       {:ok, instance_state}
     end)
 
@@ -397,8 +409,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.parsed_state[:equipped] == "gun"
-      assert player_tile.parsed_state[:equipment] == ["gun"]
+      assert player_tile.state[:equipped] == "gun"
+      assert player_tile.state[:equipment] == ["gun"]
       {:ok, instance_state}
     end)
   end
@@ -422,8 +434,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.parsed_state[:equipped] == nil
-      assert player_tile.parsed_state[:equipment] == []
+      assert player_tile.state[:equipped] == nil
+      assert player_tile.state[:equipment] == []
       {:ok, instance_state}
     end)
   end
@@ -449,8 +461,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.parsed_state[:equipped] == item.slug
-      assert player_tile.parsed_state[:equipment] == [other_item.slug, item.slug]
+      assert player_tile.state[:equipped] == item.slug
+      assert player_tile.state[:equipment] == [other_item.slug, item.slug]
       {:ok, instance_state}
     end)
   end
@@ -616,7 +628,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     # does not go through walls
     LevelProcess.run_with(instance, fn (instance_state) ->
       wall_tile = %DungeonInstances.Tile{id: "new_1",
-                                         state: "blocking: true",
+                                         state: %{blocking: true},
                                          character: "#",
                                          level_instance_id: instance_state.instance_id,
                                          row: @player_row-1,

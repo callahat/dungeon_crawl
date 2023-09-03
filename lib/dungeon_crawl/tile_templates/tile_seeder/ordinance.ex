@@ -7,7 +7,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       %{character: "♂",
         name: "Bomb",
         description: "A bomb. Better not touch it, looks dangerous.",
-        state: "blocking: true, bomb_damage: 20, counter: 9, pushable: true, soft: true, blocking_light: false",
+        state: %{blocking: true, bomb_damage: 20, counter: 9, pushable: true, soft: true, blocking_light: false},
         color: "black",
         public: true,
         active: true,
@@ -49,7 +49,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       %{character: "◦",
         name: "Fireball",
         description: "Its a bullet.",
-        state: "blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2",
+        state: %{blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2},
         color: "orange",
         public: true,
         active: true,
@@ -71,7 +71,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       %{character: "▒",
         name: "Explosion",
         description: "Caught up in the explosion",
-        state: "count: 3, damage: 10, light_source: true, light_range: 1",
+        state: %{count: 3, damage: 10, light_source: true, light_range: 1},
         color: "crimson",
         public: true,
         active: true,
@@ -96,7 +96,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
       %{character: "▒",
         name: "Smoke",
         description: "Fine particles of various dust and gas",
-        state: "blocking: false, duration: 20, smoke: true",
+        state: %{blocking: false, duration: 20, smoke: true},
         color: "gray",
         public: true,
         active: true,
@@ -135,7 +135,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         animate_period: 1,
         animate_characters: "|, \\, -, /",
         animate_colors: "red, green, darkorange, blue, purple",
-        state: "range: 50, damage: 10, facing: north, wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 1, blocking_light: false",
+        state: %{range: 50, damage: 10, facing: "north", wait_cycles: 4, blocking: true, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 1, blocking_light: false},
         script: """
                 #target_player random
                 :top
@@ -174,7 +174,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
         public: true,
         active: true,
         group_name: "misc",
-        state: "star_range: 50, star_damage: 10, wait_cycles: 100, blocking: true",
+        state: %{star_range: 50, star_damage: 10, wait_cycles: 100, blocking: true},
         script: """
                 :top
                 #sound star_fire, all

@@ -31,9 +31,7 @@ defmodule DungeonCrawl.EctoStateValueMapTest do
     test "doesnt load corrupt data" do
       assert EctoStateValueMap.load(12345) == :error
       # should never have invalid data in the DB
-      assert_raise RuntimeError, ~r"Error parsing around: someone edited this...", fn ->
-        EctoStateValueMap.load("someone edited this...")
-      end
+      assert EctoStateValueMap.load("someone edited this...") == :error
     end
   end
 
@@ -44,8 +42,8 @@ defmodule DungeonCrawl.EctoStateValueMapTest do
     end
 
     test "lets the good data in" do
-      assert EctoStateValueMap.dump(nil) == {:ok, nil}
-      assert EctoStateValueMap.dump(%{}) == {:ok, nil}
+      assert EctoStateValueMap.dump(nil) == {:ok, ""}
+      assert EctoStateValueMap.dump(%{}) == {:ok, ""}
       assert EctoStateValueMap.dump("one: two, three: five, equipment: 1 2 3") ==
                {:ok, "one: two, three: five, equipment: 1 2 3"}
       assert EctoStateValueMap.dump(%{one: "two", three: "five", equipment: ["1", "2", "3"]}) ==

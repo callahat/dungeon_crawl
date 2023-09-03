@@ -17,7 +17,7 @@ defmodule DungeonCrawl.Dungeons.Tile do
     field :character, :string
     field :color, :string
 
-    field :state, :string
+    field :state, DungeonCrawl.EctoStateValueMap, default: %{}
     field :script, :string, default: ""
 
     field :animate_random, :boolean

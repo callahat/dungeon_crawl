@@ -9,7 +9,7 @@
       </tr>
     </thead>
     <tbody id="<%= @form.name %>_state_variables" data-field-name-prefix="<%= @form.name %>">
-      <%= for {variable, value} <- (Map.to_list(StateValue.Parser.parse!(@state)) ++ [{"", ""}]) do %>
+      <%= for {variable, value} <- (Map.to_list(@state) ++ [{"", ""}]) do %>
       <tr class="<%= @form.name %>_state_data_row">
         <td><input class="form-control" name="<%= @form.name %>[state_variables][]" type="text" value="<%= variable %>"></td>
         <td><input class="form-control" name="<%= @form.name %>[state_values][]" type="text" value="<%= value %>"></td>

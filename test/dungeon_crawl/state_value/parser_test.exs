@@ -27,6 +27,10 @@ defmodule DungeonCrawl.StateValue.ParserTest do
     test "state item that is equipment" do
       assert {:ok, %{equipment: ["hand", "saw", "pickaxe"]}} == Parser.parse("equipment: hand saw pickaxe")
     end
+
+    test "state item that is starting_equipment" do
+      assert {:ok, %{starting_equipment: ["a", "c", "b"]}} == Parser.parse("starting_equipment: a c b")
+    end
   end
 
   describe "parse!" do
@@ -54,6 +58,10 @@ defmodule DungeonCrawl.StateValue.ParserTest do
 
     test "map with equipment" do
       assert "equipment: file cabinet" == Parser.stringify(%{equipment: ["file", "cabinet"]})
+    end
+
+    test "map with starting_equipment" do
+      assert "starting_equipment: file cabinet" == Parser.stringify(%{starting_equipment: ["file", "cabinet"]})
     end
   end
 end

@@ -12,7 +12,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
   @custom_tt %TileTemplate{
                name: "",
                character: "x",
-               state: "blocking: true",
+               state: %{blocking: true},
                script: "#end\n:touch\n#sound alarm\n#equip stone, ?sender\n#become slug: wall\n#unequip gun, ?sender\n/i\n#sound alarm"
              }
 
@@ -65,7 +65,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
       name: "Exporter",
       description: "testing",
       user_id: user.id,
-      state: "test: true, starting_equipment: gun fireball_wand",
+      state: %{test: true, starting_equipment: ["gun", "fireball_wand"]},
       default_map_width: 20,
       default_map_height: 20,
       line_identifier: 1,
@@ -86,7 +86,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     level_3_tiles = [
       Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0, tile_template_id: floor.id}),
       Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 2, z_index: 0, tile_template_id: floor.id}),
-      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 1, z_index: 0, tile_template_id: floor.id, state: "light_source: true", name: "Floor 2"}),
+      Map.merge(Dungeons.copy_tile_fields(floor), %{row: 1, col: 1, z_index: 0, tile_template_id: floor.id, state: %{light_source: true}, name: "Floor 2"}),
       Map.merge(Dungeons.copy_tile_fields(floor), %{row: 0, col: 1, z_index: 0, tile_template_id: floor.id}),
       Map.merge(@custom_tt, %{row: 1, col: 2, z_index: 1})
     ]
@@ -104,7 +104,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
       %{
         dungeon_id: dungeon.id,
         number: 3,
-        state: "visibility: fog"},
+        state: %{visibility: "fog"}},
       level_3_tiles)
 
     Dungeons.add_spawn_locations(level_2.id, [{0,1}, {0,3}])
@@ -282,7 +282,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert Dungeons.copy_tile_fields(export.basic_tiles.closed_door)
            |> Map.put(:script, "#END\n:OPEN\n#SOUND #{tmp_door_id}\n#BECOME slug: #{tmp_o_door_tt_id}" )
            == Map.delete(c_door, :tile_template_id)
-    assert Map.merge(Dungeons.copy_tile_fields(export.basic_tiles.floor), %{state: "light_source: true", name: "Floor 2"}) == Map.delete(floor2, :tile_template_id)
+    assert Map.merge(Dungeons.copy_tile_fields(export.basic_tiles.floor), %{state: %{light_source: true}, name: "Floor 2"}) == Map.delete(floor2, :tile_template_id)
     assert Dungeons.copy_tile_fields(@custom_tt)
            |> Map.put(:script, "#end\n:touch\n#sound #{tmp_alarm_id}\n#equip #{tmp_stone_id}, ?sender\n#become slug: #{tmp_wall_tt_id}\n#unequip #{tmp_gun_id}, ?sender\n/i\n#sound #{tmp_alarm_id}")
            == Map.delete(custom_tile, :tile_template_id)
@@ -330,7 +330,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              width: 20,
              name: "Stubbed",
              number: 3,
-             state: "visibility: fog",
+             state: %{visibility: "fog"},
              tile_data: level_3_tile_data} = level_3
     assert [
              [floor_hash, 0, 1, 0],
@@ -344,7 +344,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
 
     # Dungeon
     assert Map.drop(dungeon, [:state, :user_name]) == Map.drop(Dungeons.copy_dungeon_fields(export.dungeon), [:state, :user_id])
-    assert String.contains?(dungeon.state, "starting_equipment: #{gun.temp_item_id} #{wand.temp_item_id}")
+    assert dungeon.state.starting_equipment == [gun.temp_item_id, wand.temp_item_id]
 
     # verify the whole export
     # the temp ids may be different, depending on how stuff gets sorted / encountered when sto'ing assets
@@ -352,7 +352,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
   end
 
   test "run/1 dungeon without starting_equipment", export do
-    {:ok, updated_dungeon} = Dungeons.update_dungeon(export.dungeon, %{state: "foo: bar"})
+    {:ok, updated_dungeon} = Dungeons.update_dungeon(export.dungeon, %{state: %{foo: "bar"}})
     Dungeons.delete_level!(export.level_2)
     Dungeons.delete_level!(export.level_3)
 

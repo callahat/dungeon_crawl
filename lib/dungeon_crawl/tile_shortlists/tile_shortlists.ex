@@ -7,6 +7,7 @@ defmodule DungeonCrawl.TileShortlists do
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Account.User
+  alias DungeonCrawl.StateValue.Parser
   alias DungeonCrawl.TileShortlists.TileShortlist
   alias DungeonCrawl.TileTemplates.TileSeeder
 
@@ -163,7 +164,12 @@ defmodule DungeonCrawl.TileShortlists do
   defp characteristic_string(attrs) do
     Map.take(attrs, TileShortlist.key_attributes())
     |> Enum.sort()
-    |> Keyword.values
+    |> Enum.map(&_stringified_values/1)
     |> Enum.join("")
   end
+
+  defp _stringified_values({:state, value}) do
+    Parser.stringify(value)
+  end
+  defp _stringified_values({_, value}), do: value
 end

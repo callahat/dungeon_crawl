@@ -31,7 +31,7 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
 
     field :slug, :string
     field :script, :string, default: ""
-    field :state, :string
+    field :state, DungeonCrawl.EctoStateValueMap, default: %{}
 
     field :animate_random, :boolean
     field :animate_colors, :string

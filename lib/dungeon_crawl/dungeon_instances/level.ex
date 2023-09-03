@@ -15,7 +15,7 @@ defmodule DungeonCrawl.DungeonInstances.Level do
     field :number, :integer, default: 1
     field :entrance, :boolean
     field :width, :integer
-    field :state, :string
+    field :state, DungeonCrawl.EctoStateValueMap, default: %{}
 
     field :number_north, :integer
     field :number_south, :integer

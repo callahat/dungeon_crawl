@@ -52,25 +52,25 @@ defmodule DungeonCrawl.DungeonInstancesTest do
     end
 
     test "update_dungeon/2 when given the dungeon" do
-      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "flag: false"})
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: %{flag: false}})
 
       assert {:ok, updated_instance} =
                DungeonInstances.update_dungeon(
                  dungeon_instance,
-                 %{state: "flag: true, a: b"})
-      assert updated_instance.state == "flag: true, a: b"
+                 %{state: %{flag: true, a: "b"}})
+      assert updated_instance.state == %{flag: true, a: "b"}
       assert Map.delete(updated_instance, :state) ==
                Map.delete(dungeon_instance, :state)
     end
 
     test "update_dungeon/2 when given the level instance id" do
-      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "flag: false"})
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: %{flag: false}})
 
       assert {:ok, updated_instance} =
                DungeonInstances.update_dungeon(
                  dungeon_instance.id,
-                 %{state: "flag: true, a: b"})
-      assert updated_instance.state == "flag: true, a: b"
+                 %{state: %{flag: true, a: "b"}})
+      assert updated_instance.state == %{flag: true, a: "b"}
       assert Map.delete(updated_instance, :state) ==
                Map.delete(dungeon_instance, :state)
     end

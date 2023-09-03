@@ -2,7 +2,7 @@
   <b>State:</b>
   <br/>
   <span>
-    <%= for {variable, value} <- StateValue.Parser.parse!(@state)
+    <%= for {variable, value} <- @state
                                  |> Map.to_list()
                                  |> Enum.sort() do %>
       <pre class="script" style="display: inline"><%= variable %>: <%= value %></pre>

@@ -208,7 +208,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def create_tile(%Levels{} = state, tile, skip_program) do
-    tile = _with_parsed_state(tile)
+#    tile = _with_parsed_state(tile)
     {tile, state} = _register_tile(state, tile)
     {_, tile, state} = unless skip_program,
                               do: _parse_and_start_program(state, tile),
@@ -217,19 +217,19 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     {tile, %{ state | rerender_coords: rerender_coords} }
   end
 
-  defp _with_parsed_state(tile) do
-    case StateValue.Parser.parse(tile.state) do
-      {:ok, state} -> Map.put(tile, :parsed_state, state)
-      _            -> tile
-    end
-  end
+#  defp _with_parsed_state(tile) do
+#    case StateValue.Parser.parse(tile.state) do
+#      {:ok, state} -> Map.put(tile, :parsed_state, state)
+#      _            -> tile
+#    end
+#  end
 
   defp _register_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, tile) do
      if Map.has_key?(by_id, tile.id) do
       # Tile already registered
       {by_id[tile.id], state}
     else
-      state = if tile.parsed_state[:light_source] == true,
+      state = if tile.state[:light_source] == true,
                 do: %{ state | light_sources: Map.put(state.light_sources, tile.id, true), players_visible_coords: %{} },
                 else: state
 
@@ -327,7 +327,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   @ignorable_state_attrs [:entry_row, :entry_col, :steps, :already_touched]
   def update_tile_state(%Levels{map_by_ids: by_id} = state, %{id: tile_id}, state_attributes) do
     tile = by_id[tile_id]
-    state_str = StateValue.Parser.stringify(Map.merge(tile.parsed_state, state_attributes))
+    tile_state = Map.merge(tile.state || %{}, state_attributes)
 
     # handle change to light sources
     state = cond do
@@ -344,9 +344,9 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     if state.player_locations[tile_id] &&
        not Enum.any?(Map.keys(state_attributes), fn key -> Enum.member?(@ignorable_state_attrs, key) end) do
       dirty_stats = [ tile_id | state.dirty_player_tile_stats ]
-      update_tile(%{ state | dirty_player_tile_stats: dirty_stats }, tile, %{state: state_str})
+      update_tile(%{ state | dirty_player_tile_stats: dirty_stats }, tile, %{state: tile_state})
     else
-      update_tile(state, tile, %{state: state_str})
+      update_tile(state, tile, %{state: tile_state})
     end
   end
 
@@ -363,7 +363,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     script_changed = !!new_attributes[:script]
 
     updated_tile = by_id[tile_id] |> Map.merge(new_attributes)
-    updated_tile = _with_parsed_state(updated_tile)
+#    updated_tile = _with_parsed_state(updated_tile)
 
     old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
@@ -380,7 +380,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
         {nil, state}
       else
-        players_los_coords = if Map.has_key?(updated_tile.parsed_state, :light_source),
+        players_los_coords = if Map.has_key?(updated_tile.state, :light_source),
                                do: %{},
                                else: state.players_los_coords
 
@@ -448,7 +448,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       by_id = Map.delete(by_id, tile_id)
       player_locations = Map.delete(player_locations, tile_id)
       players_visible_coords = Map.delete(players_visible_coords, tile_id)
-      players_los_coords = if tile.parsed_state[:light_source] == true,
+      players_los_coords = if tile.state[:light_source] == true,
                              do: %{},
                              else: Map.delete(players_los_coords, tile_id)
 
@@ -573,7 +573,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def _subtract(%Levels{} = state, :health, amount, loser, nil) do
-    current_amount = loser.parsed_state[:health]
+    current_amount = loser.state[:health]
 
     if is_nil(current_amount) && not StateValue.get_bool(loser, :destroyable) do
       {:noop, state}
@@ -591,7 +591,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def _subtract(%Levels{} = state, what, amount, loser, nil) do
-    new_amount = (loser.parsed_state[what] || 0) - amount
+    new_amount = (loser.state[what] || 0) - amount
 
     if new_amount < 0 do
       {:not_enough, state}
@@ -602,14 +602,14 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def _subtract(%Levels{} = state, :health, amount, loser, player_location) do
-    new_amount = (loser.parsed_state[:health] || 0) - amount
+    new_amount = (loser.state[:health] || 0) - amount
 
     cond do
       StateValue.get_bool(loser, :buried) || StateValue.get_bool(loser, :gameover) ->
         {:noop, state}
 
       new_amount <= 0 ->
-        lives = if loser.parsed_state[:lives] > 0, do: loser.parsed_state[:lives] - 1, else: -1
+        lives = if loser.state[:lives] > 0, do: loser.state[:lives] - 1, else: -1
         {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount, lives: lives})
         {_grave, state} = Player.bury(state, loser)
 
@@ -638,7 +638,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def _subtract(%Levels{} = state, what, amount, loser, _player_location) do
-    new_amount = (loser.parsed_state[what] || 0) - amount
+    new_amount = (loser.state[what] || 0) - amount
 
     if new_amount < 0 do
       {:not_enough, state}
@@ -723,10 +723,10 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
                                              %{}
           state
 
-        tile.parsed_state[:gameover] ->
+        tile.state[:gameover] ->
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
-                                             Map.take(tile.parsed_state, [:score_id, :dungeon_id])
+                                             Map.take(tile.state, [:score_id, :dungeon_id])
           state
 
         !autogenerated && Enum.member?(["Idled Out", "Gave Up"], result) ->
@@ -734,15 +734,15 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
 
         true ->
           seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, player_location.inserted_at) +
-            (tile.parsed_state[:duration] || 0)
+            (tile.state[:duration] || 0)
 
           {result, dungeon_id} = if autogenerated, do: {"#{result}, Level: #{state.number}", nil}, else: {result, dungeon.id}
 
           attrs = %{duration: seconds,
                     result: result,
-                    score: tile.parsed_state[:score],
-                    steps: tile.parsed_state[:steps],
-                    deaths: tile.parsed_state[:deaths] || 0,
+                    score: tile.state[:score],
+                    steps: tile.state[:steps],
+                    deaths: tile.state[:deaths] || 0,
                     victory: victory,
                     user_id_hash: player_location.user_id_hash,
                     dungeon_id: dungeon_id}

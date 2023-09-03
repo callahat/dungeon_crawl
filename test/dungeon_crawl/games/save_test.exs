@@ -7,7 +7,7 @@ defmodule DungeonCrawl.Dungeons.SaveTest do
     user_id_hash: "asdf",
     row: 1,
     col: 1,
-    state: "player: true",
+    state: %{player: true},
     level_name: "meh",
     host_name: "someguy"}
   @invalid_attrs %{}

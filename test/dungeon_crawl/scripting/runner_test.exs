@@ -13,7 +13,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                Line Two
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       state = %Levels{map_by_ids: %{1 => stubbed_object}}
 
       %Runner{program: run_program} = Runner.run(%Runner{state: state, program: program, object_id: stubbed_object.id})
@@ -30,7 +30,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       state = %Levels{map_by_ids: %{1 => stubbed_object}}
 
       %Runner{program: run_program} = Runner.run(%Runner{state: state, program: %{program | status: :idle}, object_id: stubbed_object.id}, "Here")
@@ -47,7 +47,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                Last text
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | messages: [{"there", nil}], status: :idle}, object_id: 1, state: stubbed_state})
@@ -71,7 +71,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       Last text
       """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
       future = Time.add(Time.utc_now, 100)
@@ -90,7 +90,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After Active label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | labels: %{"here" => [[2,false], [4,true]]}, status: :idle},
@@ -108,7 +108,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "locked: true", parsed_state: %{locked: true}}
+      stubbed_object = %{id: 1, state: %{locked: true}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object_id: 1, state: stubbed_state}, "Here")
@@ -119,7 +119,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
     test "when given a label but no label matches" do
       script = "No label"
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
       assert %Runner{state: stubbed_state, program: %{program | status: :idle}, object_id: 1} ==
@@ -128,7 +128,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
 
     test "when program is idle it runs nothing and just returns the program and object" do
       program = %Program{status: :idle, pc: 2}
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
       %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert program == run_program
@@ -137,7 +137,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
 
     test "when program is dead runs nothing and just returns the program and object" do
       program = %Program{status: :dead, pc: 2}
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
       %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert program == run_program
@@ -146,7 +146,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
 
     test "when program is wait the wait_cycles are decremented" do
       program = %Program{status: :wait, pc: 2, wait_cycles: 3}
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
       %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert run_program.wait_cycles == 2
@@ -156,7 +156,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
 
     test "when program is wait and wait_cycles become zero, program becomes alive" do
       program = %Program{status: :wait, pc: 2, wait_cycles: 1}
-      stubbed_object = %{id: 1, state: "", parsed_state: %{}}
+      stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
       %Runner{state: state, program: run_program} = Runner.run(%Runner{program: program, object_id: 1, state: stubbed_state})
       assert run_program.wait_cycles == 0

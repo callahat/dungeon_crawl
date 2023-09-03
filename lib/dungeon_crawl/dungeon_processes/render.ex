@@ -128,7 +128,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
 
     if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
-      range = if player_tile.parsed_state[:buried] == true, do: 0, else: state.state_values[:fog_range] || 6 # get this from the player?
+      range = if player_tile.state[:buried] == true, do: 0, else: state.state_values[:fog_range] || 6 # get this from the player?
       current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "visible", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
 
@@ -218,7 +218,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
   defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
-    range = light_tile.parsed_state[:light_range] || 6
+    range = light_tile.state[:light_range] || 6
     illumination_map = Map.put(illumination_map, {light_tile.row, light_tile.col}, true)
 
     Shape.circle(%{state: state, origin: light_tile}, range, true, "visible", 0.33)
@@ -229,9 +229,9 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
              cond do
                is_nil(tile) ->
                  acc
-               tile.parsed_state[:blocking] != true ||
-                    tile.parsed_state[:low] == true ||
-                    tile.parsed_state[:blocking_light] == false ->
+               tile.state[:blocking] != true ||
+                    tile.state[:low] == true ||
+                    tile.state[:blocking_light] == false ->
                  Map.put(acc, coords, true)
                true ->
                  facing = Direction.orthogonal_direction(%{row: row, col: col}, %{row: light_tile.row, col: light_tile.col})
@@ -249,10 +249,10 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     |> Enum.reject(fn facing ->
                      tile = Levels.get_tile(state, lit_tile, facing)
                      is_nil(tile) ||
-                       tile.parsed_state[:blocking] == true &&
-                       tile.parsed_state[:low] != true &&
-                       tile.parsed_state[:blocking_light] != false &&
-                       tile.parsed_state[:light_source] != true
+                       tile.state[:blocking] == true &&
+                       tile.state[:low] != true &&
+                       tile.state[:blocking_light] != false &&
+                       tile.state[:light_source] != true
                    end)
   end
 

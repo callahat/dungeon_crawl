@@ -26,7 +26,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
       name: "Floor",
       description: "A dusty floor",
       character: ".",
-      state: "blocking: false",
+      state: %{blocking: false},
       script: ""
     }, attrs)
 
@@ -144,7 +144,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
                            character: t.character,
                            color: Map.get(t, :color),
                            background_color: Map.get(t, :background_color),
-                           state: Map.get(t, :state),
+                           state: Map.get(t, :state) || %{},
                            script: Map.get(t, :script),
                            name: Map.get(t, :name),
                            animate_random: Map.get(t, :animate_random),

@@ -79,7 +79,7 @@
               <%= hidden_input :tile_template, :state, class: "form-control" %>
 
               <%= render SharedView, "state_fields.html",
-                         state: "",
+                         state: %{},
                          form: %{name: "tile_template"},
                          standard_variables: StandardVariables.tile %>
               <pre id="tile_template_state_error_messages"></pre>

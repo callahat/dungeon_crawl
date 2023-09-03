@@ -208,8 +208,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     if Map.has_key?(instance_ids, level_instance.player_location_id) do
       {:reply, :ok, level_registry}
     else
-      {:ok, state_values} = StateValue.Parser.parse(level_instance.state)
-      state_values = Map.merge(state_values, %{rows: level_instance.height, cols: level_instance.width})
+      state_values = Map.merge(level_instance.state, %{rows: level_instance.height, cols: level_instance.width})
       diid = level_instance.dungeon_instance_id
       tiles = Repo.preload(level_instance, :tiles).tiles
       spawn_locations = Repo.preload(level_instance, :spawn_locations).spawn_locations
@@ -272,7 +271,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   def handle_info(_msg, level_registry) do
     {:noreply, level_registry}
   end
-
+#  TODO: can state_values here also be removed and be taken from the level_instance.state instead
   defp _create_instance(level_instance, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry) do
     %{supervisor: supervisor, refs: refs, level_numbers: level_numbers, cache: cache} = level_registry
     {:ok, instance_process} = DynamicSupervisor.start_child(supervisor, LevelProcess)

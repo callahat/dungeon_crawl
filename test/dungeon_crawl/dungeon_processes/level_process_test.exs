@@ -167,7 +167,7 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     assert :ok = LevelProcess.load_level(instance_process, [scripted_tile_1, scripted_tile_2, inert_tile])
 
-    sender = %{tile_id: nil, parsed_state: %{}, name: "global"}
+    sender = %{tile_id: nil, state: %{}, name: "global"}
 
     %Levels{ program_contexts: program_contexts } = LevelProcess.get_state(instance_process)
 
@@ -307,9 +307,9 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert [] == program_messages # should be cleared after punting the messages to the actual progams
 
     # The last tile in this setup has no active program
-    expected = %{ tile_id => [{"touch", %{tile_id: Enum.at(tiles,1).id, parsed_state: %{}, name: "b"}}],
-                  Enum.at(tiles,0).id => [{"touch", %{tile_id: Enum.at(tiles,1).id, parsed_state: %{}, name: "b"}}],
-                  Enum.at(tiles,1).id => [{"touch", %{tile_id: Enum.at(tiles,1).id, parsed_state: %{}, name: "b"}}] }
+    expected = %{ tile_id => [{"touch", %{tile_id: Enum.at(tiles,1).id, state: %{}, name: "b"}}],
+                  Enum.at(tiles,0).id => [{"touch", %{tile_id: Enum.at(tiles,1).id, state: %{}, name: "b"}}],
+                  Enum.at(tiles,1).id => [{"touch", %{tile_id: Enum.at(tiles,1).id, state: %{}, name: "b"}}] }
 
     actual = program_contexts
              |> Map.to_list
@@ -325,9 +325,9 @@ defmodule DungeonCrawl.LevelProcessTest do
     DungeonCrawlWeb.Endpoint.subscribe(level_channel)
 
     tiles = [
-        %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND bombed, player", state: "damage: 5"},
-        %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "health: 10", name: "a nonprog"},
-        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: "health: 10, lives: 2", name: "player"}
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#SEND shot, a nonprog\n#SEND bombed, player", state: %{damage: 5}},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: %{health: 10}, name: "a nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "", state: %{health: 10, lives: 2}, name: "player"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
@@ -356,8 +356,8 @@ defmodule DungeonCrawl.LevelProcessTest do
             event: "stat_update",
             payload: %{stats: %{health: 5}}}
 
-    assert map_by_ids[non_prog_tile.id].parsed_state[:health] == 5
-    assert map_by_ids[player_tile.id].parsed_state[:health] == 5
+    assert map_by_ids[non_prog_tile.id].state[:health] == 5
+    assert map_by_ids[player_tile.id].state[:health] == 5
 
     shooter2 = DungeonInstances.create_tile!(%{
       character: "O",
@@ -365,7 +365,7 @@ defmodule DungeonCrawl.LevelProcessTest do
       col: 2,
       z_index: 1,
       script: "#SEND shot, a nonprog\n#SEND shot, player",
-      state: "damage: 5",
+      state: %{damage: 5},
       level_instance_id: level_instance.id})
 
     assert :ok = LevelProcess.load_level(instance_process, [shooter2])
@@ -396,8 +396,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert Enum.member? updated_tiles, %{row: 1, col: 3, rendering: "<div>✝</div>"}
 
     refute map_by_ids[non_prog_tile.id]
-    assert map_by_ids[player_tile.id].parsed_state[:health] == 0
-    assert map_by_ids[player_tile.id].parsed_state[:buried]
+    assert map_by_ids[player_tile.id].state[:health] == 0
+    assert map_by_ids[player_tile.id].state[:buried]
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
     non_prog_tile_id = non_prog_tile.id
@@ -415,8 +415,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     tt = insert_tile_template()
 
     tiles = [
-        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SEND shot, others\n#SEND shot, a nonprog", state: "destroyable: true"},
-        %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: "destroyable: true", name: "a nonprog"}
+        %{character: "O", row: 1, col: 2, z_index: 0, script: "#BECOME color: red\n#SEND shot, others\n#SEND shot, a nonprog", state: %{destroyable: true}},
+        %{character: "O", row: 1, col: 4, z_index: 0, script: "", state: %{destroyable: true}, name: "a nonprog"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{tile_template_id: tt.id, level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
@@ -424,7 +424,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     shooter_tile_id = Enum.at(tiles, 0).id
     non_prog_tile_id = Enum.at(tiles, 1).id
 
-    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{state: "destroyable: true"})
+    assert :ok = LevelProcess.update_tile(instance_process, tile_id, %{state: %{destroyable: true}})
     assert :ok = LevelProcess.load_level(instance_process, tiles)
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
@@ -447,12 +447,12 @@ defmodule DungeonCrawl.LevelProcessTest do
   test "perform_actions standard_behavior point awarding", %{instance_process: instance_process,
                                                              level_instance: level_instance} do
     tiles = [
-        %{character: "B", row: 1, col: 2, z_index: 0, script: "#SEND shot, another nonprog", state: "damage: 5", name: "damager"},
-        %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
-        %{character: "O", row: 1, col: 9, z_index: 0, state: "destroyable: true, points: 5", name: "another nonprog"},
-        %{character: "O", row: 1, col: 5, z_index: 0, script: "#SEND shot, worthless nonprog", state: "destroyable: true, owner: 23423, points: 3", name: "worthless nonprog"},
-        %{character: "@", row: 1, col: 3, z_index: 0, script: "#SEND shot, a nonprog", state: "damage: 10", name: "player"},
-        %{character: "O", row: 9, col: 9, z_index: 0, script: "#SEND shot, delayed nonprog, 1", state: "destroyable: true, owner: 23423, points: 3", name: "delayed nonprog"},
+        %{character: "B", row: 1, col: 2, z_index: 0, script: "#SEND shot, another nonprog", state: %{damage: 5}, name: "damager"},
+        %{character: "O", row: 1, col: 4, z_index: 0, state: %{health: 10, points: 9}, name: "a nonprog"},
+        %{character: "O", row: 1, col: 9, z_index: 0, state: %{destroyable: true, points: 5}, name: "another nonprog"},
+        %{character: "O", row: 1, col: 5, z_index: 0, script: "#SEND shot, worthless nonprog", state: %{destroyable: true, owner: 23423, points: 3}, name: "worthless nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, script: "#SEND shot, a nonprog", state: %{damage: 10}, name: "player"},
+        %{character: "O", row: 9, col: 9, z_index: 0, script: "#SEND shot, delayed nonprog, 1", state: %{destroyable: true, owner: 23423, points: 3}, name: "delayed nonprog"},
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
@@ -473,7 +473,7 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     assert :ok = LevelProcess.load_level(instance_process, tiles)
 
-    assert :ok = LevelProcess.update_tile(instance_process, damager_tile.id, %{state: "damage: 15, owner: #{ player_tile.id }"})
+    assert :ok = LevelProcess.update_tile(instance_process, damager_tile.id, %{state: %{damage: 15, owner: player_tile.id}})
 
     assert :ok = Process.send(instance_process, :perform_actions, [])
 
@@ -482,8 +482,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     refute map_by_ids[healty_tile.id]
     refute map_by_ids[destroyable_tile.id]
     refute map_by_ids[worthless_tile.id]
-    refute map_by_ids[damager_tile.id].parsed_state[:score]
-    assert map_by_ids[player_tile.id].parsed_state[:score] == 14
+    refute map_by_ids[damager_tile.id].state[:score]
+    assert map_by_ids[player_tile.id].state[:score] == 14
     assert map_by_ids[delayed_nonprog.id] # the delayed message does not fire right away
 
     assert_receive %Phoenix.Socket.Broadcast{
@@ -627,7 +627,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert_receive {:DOWN, ^ref, :process, ^instance_process, :normal}
     assert record = DungeonCrawl.Repo.get(Level, level_instance.id)
     assert %{
-      state: "something: else",
+      state: %{something: "else"},
       passage_exits: [{123, "cornflower blue"}],
       program_contexts: %{
         7 => %{
@@ -644,7 +644,7 @@ defmodule DungeonCrawl.LevelProcessTest do
                       col: 3,
                       z_index: 0,
                       script: "",
-                      state: "health: 10",
+                      state: %{health: 10},
                       name: "player",
                       level_instance_id: level_instance.id})
     other_player_tile = DungeonInstances.create_tile!(
@@ -692,26 +692,26 @@ defmodule DungeonCrawl.LevelProcessTest do
         row: 1,
         col: 3,
         z_index: 1,
-        state: "health: 10, torch_light: 6, light_range: 6, light_source: true",
+        state: %{health: 10, torch_light: 6, light_range: 6, light_source: true},
         name: "player",
         level_instance_id: level_instance.id})
     other_player_tile = DungeonInstances.create_tile!(
       %{row: 1,
         col: 4,
         z_index: 1,
-        state: "health: 10",
+        state: %{health: 10},
         level_instance_id: level_instance.id})
     dimmed_player_tile = DungeonInstances.create_tile!(
       %{row: 1,
         col: 5,
         z_index: 1,
-        state: "health: 10, torch_light: 2, light_range: 6, light_source: true",
+        state: %{health: 10, torch_light: 2, light_range: 6, light_source: true},
         level_instance_id: level_instance.id})
     out_player_tile = DungeonInstances.create_tile!(
       %{row: 1,
         col: 6,
         z_index: 1,
-        state: "health: 10, torch_light: 1, light_range: 1, light_source: true",
+        state: %{health: 10, torch_light: 1, light_range: 1, light_source: true},
         level_instance_id: level_instance.id})
 
     player_location = %Location{id: player_tile.id, tile_instance_id: player_tile.id, user_id_hash: "goodhash"}
@@ -731,12 +731,12 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     LevelProcess.run_with(instance_process, fn(state) ->
       assert %{light_source: true, light_range: 6, torch_light: 5} =
-               Levels.get_tile_by_id(state, player_tile).parsed_state
-      refute Levels.get_tile_by_id(state, other_player_location).parsed_state[:torch_light]
+               Levels.get_tile_by_id(state, player_tile).state
+      refute Levels.get_tile_by_id(state, other_player_location).state[:torch_light]
       assert %{light_source: true, light_range: 2, torch_light: 1} =
-               Levels.get_tile_by_id(state, dimmed_player_location).parsed_state
+               Levels.get_tile_by_id(state, dimmed_player_location).state
       assert %{light_source: false, light_range: nil, torch_light: 0} =
-               Levels.get_tile_by_id(state, out_player_tile).parsed_state
+               Levels.get_tile_by_id(state, out_player_tile).state
 
       {:ok, state}
     end)
@@ -883,9 +883,9 @@ defmodule DungeonCrawl.LevelProcessTest do
     {:module, levels_mock_mod, _, _} = LevelsMockFactory.generate(self(), DungeonCrawl.Gameover3.InstanceMock)
 
     tiles = [
-        %{character: "B", row: 1, col: 2, z_index: 0, state: "damage: 5", name: "damager"},
-        %{character: "O", row: 1, col: 4, z_index: 0, state: "health: 10, points: 9", name: "a nonprog"},
-        %{character: "@", row: 1, col: 3, z_index: 0, state: "damage: 10", name: "player"}
+        %{character: "B", row: 1, col: 2, z_index: 0, state: %{damage: 5}, name: "damager"},
+        %{character: "O", row: 1, col: 4, z_index: 0, state: %{health: 10, points: 9}, name: "a nonprog"},
+        %{character: "@", row: 1, col: 3, z_index: 0, state: %{damage: 10}, name: "player"}
       ]
       |> Enum.map(fn(mt) -> Map.merge(mt, %{level_instance_id: level_instance.id}) end)
       |> Enum.map(fn(mt) -> DungeonInstances.create_tile!(mt) end)
@@ -917,7 +917,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     return_value = LevelProcess.run_with(instance_process, fn (state) ->
                      Levels.create_tile(state, new_tile)
                    end)
-    assert return_value == Map.put(new_tile, :parsed_state, %{})
+    assert return_value == Map.put(new_tile, :state, %{})
     %Levels{ program_contexts: _programs,
              map_by_ids: _by_id,
              map_by_coords: by_coord } = LevelProcess.get_state(instance_process)

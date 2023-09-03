@@ -29,7 +29,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "returns coordinates in a line until blocked if bypass_blocking is true", %{state: state} do
-      wall = %Tile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      wall = %Tile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_wall, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 2, state: state}
 
@@ -41,8 +41,8 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
-      breakable_wall = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      breakable_wall = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, breakable_wall)
       {_, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 2, state: state}
@@ -52,8 +52,8 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'once' and does not count a low blocking tile against that once", %{state: state} do
-      water = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "w", state: "blocking: true, low: true"}
-      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      water = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "w", state: %{blocking: true, low: true}}
+      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, water)
       {_, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 2, state: state}
@@ -62,9 +62,9 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'visible' which only bypasses blocking that do not block vision and the first blocking", %{state: state} do
-      thing = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "-", state: "blocking: true, blocking_light: false"}
-      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      past_wall = %Tile{id: 803, row: 4, col: 2, z_index: 1, character: ".", state: ""}
+      thing = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "-", state: %{blocking: true, blocking_light: false}}
+      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      past_wall = %Tile{id: 803, row: 4, col: 2, z_index: 1, character: ".", state: %{}}
       {_, state} = Levels.create_tile(state, thing)
       {_, state} = Levels.create_tile(state, wall)
       {_, state} = Levels.create_tile(state, past_wall)
@@ -88,7 +88,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "returns coordinates in a cone where rays may be blocked if bypass_blocking is false", %{state: state} do
-      wall = %Tile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      wall = %Tile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_wall, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 102, state: state}
 
@@ -99,8 +99,8 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
-      breakable_wall = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      breakable_wall = %Tile{id: 801, row: 2, col: 2, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, breakable_wall)
       {_, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 102, state: state}
@@ -122,7 +122,7 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "returns coordinates in a cone where rays may be blocked if bypass_blocking is false", %{state: state} do
-      wall = %Tile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      wall = %Tile{id: 999, row: 2, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_wall, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 202, state: state}
 
@@ -147,8 +147,8 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
-      breakable_wall = %Tile{id: 801, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: "blocking: true"}
+      breakable_wall = %Tile{id: 801, row: 3, col: 2, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall = %Tile{id: 802, row: 3, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, breakable_wall)
       {_, state} = Levels.create_tile(state, wall)
       runner_state = %Runner{object_id: 202, state: state}
@@ -172,11 +172,11 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "returns coordinates in a cone where rays may be blocked if bypass_blocking is false", %{state: state} do
-      wall1 = %Tile{id: 990, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
-      wall2 = %Tile{id: 991, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
-      wall3 = %Tile{id: 992, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall4 = %Tile{id: 993, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall5 = %Tile{id: 994, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall1 = %Tile{id: 990, row: 1, col: 0, z_index: 1, character: "#", state: %{blocking: true}}
+      wall2 = %Tile{id: 991, row: 1, col: 1, z_index: 1, character: "#", state: %{blocking: true}}
+      wall3 = %Tile{id: 992, row: 0, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall4 = %Tile{id: 993, row: 1, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall5 = %Tile{id: 994, row: 2, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, wall1)
       {_, state} = Levels.create_tile(state, wall2)
       {_, state} = Levels.create_tile(state, wall3)
@@ -191,12 +191,12 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
-      breakable_wall = %Tile{id: 80001, row: 0, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall1 = %Tile{id: 90090, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
-      wall2 = %Tile{id: 90091, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
-      wall3 = %Tile{id: 90092, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall4 = %Tile{id: 90093, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall5 = %Tile{id: 90094, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      breakable_wall = %Tile{id: 80001, row: 0, col: 2, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall1 = %Tile{id: 90090, row: 1, col: 0, z_index: 1, character: "#", state: %{blocking: true}}
+      wall2 = %Tile{id: 90091, row: 1, col: 1, z_index: 1, character: "#", state: %{blocking: true}}
+      wall3 = %Tile{id: 90092, row: 0, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall4 = %Tile{id: 90093, row: 1, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall5 = %Tile{id: 90094, row: 2, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, breakable_wall)
       {_, state} = Levels.create_tile(state, wall1)
       {_, state} = Levels.create_tile(state, wall2)
@@ -212,12 +212,12 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'once' and does not count a low blocking tile against that once", %{state: state} do
-      water1 = %Tile{id: 80001, row: 0, col: 1, z_index: 1, character: "w", state: "blocking: true, low: true"}
-      water2 = %Tile{id: 90090, row: 0, col: 2, z_index: 1, character: "w", state: "blocking: true, low: true"}
-      wall1 = %Tile{id: 90091, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall2 = %Tile{id: 90092, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
-      wall3 = %Tile{id: 90093, row: 1, col: 2, z_index: 1, character: "#", state: "blocking: true"}
-      wall4 = %Tile{id: 90094, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      water1 = %Tile{id: 80001, row: 0, col: 1, z_index: 1, character: "w", state: %{blocking: true, low: true}}
+      water2 = %Tile{id: 90090, row: 0, col: 2, z_index: 1, character: "w", state: %{blocking: true, low: true}}
+      wall1 = %Tile{id: 90091, row: 1, col: 0, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall2 = %Tile{id: 90092, row: 1, col: 1, z_index: 1, character: "#", state: %{blocking: true}}
+      wall3 = %Tile{id: 90093, row: 1, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
+      wall4 = %Tile{id: 90094, row: 0, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, water1)
       {_, state} = Levels.create_tile(state, water2)
       {_, state} = Levels.create_tile(state, wall1)
@@ -243,11 +243,11 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "returns coordinates in a blob where it may be blocked if bypass_blocking is false", %{state: state} do
-      wall1 = %Tile{id: 990, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
-      wall2 = %Tile{id: 991, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
-      wall3 = %Tile{id: 992, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall4 = %Tile{id: 993, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall5 = %Tile{id: 994, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      wall1 = %Tile{id: 990, row: 1, col: 0, z_index: 1, character: "#", state: %{blocking: true}}
+      wall2 = %Tile{id: 991, row: 1, col: 1, z_index: 1, character: "#", state: %{blocking: true}}
+      wall3 = %Tile{id: 992, row: 0, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall4 = %Tile{id: 993, row: 1, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall5 = %Tile{id: 994, row: 2, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, wall1)
       {_, state} = Levels.create_tile(state, wall2)
       {_, state} = Levels.create_tile(state, wall3)
@@ -262,12 +262,12 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'soft' which only bypasses blocking that is also soft", %{state: state} do
-      breakable_wall = %Tile{id: 80001, row: 0, col: 2, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall1 = %Tile{id: 90090, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true"}
-      wall2 = %Tile{id: 90091, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
-      wall3 = %Tile{id: 90092, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall4 = %Tile{id: 90093, row: 1, col: 3, z_index: 1, character: "#", state: "blocking: true"}
-      wall5 = %Tile{id: 90094, row: 2, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      breakable_wall = %Tile{id: 80001, row: 0, col: 2, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall1 = %Tile{id: 90090, row: 1, col: 0, z_index: 1, character: "#", state: %{blocking: true}}
+      wall2 = %Tile{id: 90091, row: 1, col: 1, z_index: 1, character: "#", state: %{blocking: true}}
+      wall3 = %Tile{id: 90092, row: 0, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall4 = %Tile{id: 90093, row: 1, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
+      wall5 = %Tile{id: 90094, row: 2, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, breakable_wall)
       {_, state} = Levels.create_tile(state, wall1)
       {_, state} = Levels.create_tile(state, wall2)
@@ -288,12 +288,12 @@ defmodule DungeonCrawl.Scripting.ShapeTest do
     end
 
     test "bypass_blocking value can be 'once' and does not count a low blocking tile against that once", %{state: state} do
-      water1 = %Tile{id: 80001, row: 0, col: 1, z_index: 1, character: "w", state: "blocking: true, low: true"}
-      water2 = %Tile{id: 90090, row: 0, col: 2, z_index: 1, character: "w", state: "blocking: true, low: true"}
-      wall1 = %Tile{id: 90091, row: 1, col: 0, z_index: 1, character: "#", state: "blocking: true, soft: true"}
-      wall2 = %Tile{id: 90092, row: 1, col: 1, z_index: 1, character: "#", state: "blocking: true"}
-      wall3 = %Tile{id: 90093, row: 1, col: 2, z_index: 1, character: "#", state: "blocking: true"}
-      wall4 = %Tile{id: 90094, row: 0, col: 3, z_index: 1, character: "#", state: "blocking: true"}
+      water1 = %Tile{id: 80001, row: 0, col: 1, z_index: 1, character: "w", state: %{blocking: true, low: true}}
+      water2 = %Tile{id: 90090, row: 0, col: 2, z_index: 1, character: "w", state: %{blocking: true, low: true}}
+      wall1 = %Tile{id: 90091, row: 1, col: 0, z_index: 1, character: "#", state: %{blocking: true, soft: true}}
+      wall2 = %Tile{id: 90092, row: 1, col: 1, z_index: 1, character: "#", state: %{blocking: true}}
+      wall3 = %Tile{id: 90093, row: 1, col: 2, z_index: 1, character: "#", state: %{blocking: true}}
+      wall4 = %Tile{id: 90094, row: 0, col: 3, z_index: 1, character: "#", state: %{blocking: true}}
       {_, state} = Levels.create_tile(state, water1)
       {_, state} = Levels.create_tile(state, water2)
       {_, state} = Levels.create_tile(state, wall1)
