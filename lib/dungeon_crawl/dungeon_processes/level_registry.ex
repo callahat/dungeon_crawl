@@ -7,7 +7,6 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Player
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.StateValue
 
   defstruct level_numbers: %{},
             refs: %{},

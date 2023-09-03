@@ -208,7 +208,6 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   end
 
   def create_tile(%Levels{} = state, tile, skip_program) do
-#    tile = _with_parsed_state(tile)
     {tile, state} = _register_tile(state, tile)
     {_, tile, state} = unless skip_program,
                               do: _parse_and_start_program(state, tile),
@@ -216,13 +215,6 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     rerender_coords = Map.put_new(state.rerender_coords, Map.take(tile, [:row, :col]), true)
     {tile, %{ state | rerender_coords: rerender_coords} }
   end
-
-#  defp _with_parsed_state(tile) do
-#    case StateValue.Parser.parse(tile.state) do
-#      {:ok, state} -> Map.put(tile, :parsed_state, state)
-#      _            -> tile
-#    end
-#  end
 
   defp _register_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, tile) do
      if Map.has_key?(by_id, tile.id) do
@@ -363,7 +355,6 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     script_changed = !!new_attributes[:script]
 
     updated_tile = by_id[tile_id] |> Map.merge(new_attributes)
-#    updated_tile = _with_parsed_state(updated_tile)
 
     old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])

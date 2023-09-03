@@ -16,7 +16,6 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Sound
-  alias DungeonCrawl.StateValue.Parser
 
   use DungeonCrawl.Shipping.SlugMatching
 

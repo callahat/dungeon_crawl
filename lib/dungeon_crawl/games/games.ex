@@ -11,7 +11,6 @@ defmodule DungeonCrawl.Games do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Player
-  alias DungeonCrawl.StateValue
 
   @doc """
   Returns the list of saved_games.

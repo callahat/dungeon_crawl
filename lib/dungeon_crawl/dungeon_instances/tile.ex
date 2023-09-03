@@ -18,7 +18,6 @@ defmodule DungeonCrawl.DungeonInstances.Tile do
 
     field :state, DungeonCrawl.EctoStateValueMap, default: %{}
     field :script, :string, default: ""
-#    field :parsed_state, :map, virtual: true
 
     field :animate_random, :boolean
     field :animate_colors, :string

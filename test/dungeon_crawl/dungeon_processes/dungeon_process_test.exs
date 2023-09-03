@@ -186,7 +186,7 @@ defmodule DungeonCrawl.DungeonProcessTest do
       :timer.sleep 50
       assert Dungeons.get_dungeon(dungeon.id)
       assert dungeon_instance = DungeonInstances.get_dungeon(dungeon_instance.id)
-      assert dungeon_instance.state == "counter: 4, flag: true"
+      assert dungeon_instance.state == %{counter: 4, flag: true}
       refute Process.alive?(dungeon_process)
     end
 

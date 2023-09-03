@@ -7,7 +7,6 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
   alias DungeonCrawl.DungeonProcesses.{DungeonProcess}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.StateValue
 
   ## Client API
 
