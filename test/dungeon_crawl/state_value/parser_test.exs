@@ -36,6 +36,7 @@ defmodule DungeonCrawl.StateValue.ParserTest do
   describe "parse!" do
     test "returns the valid parsed state" do
       assert %{blocking: true} == Parser.parse!("blocking: true")
+      assert %{} == Parser.parse!(nil)
     end
 
     test "raises exception when state is invalid" do
@@ -46,6 +47,10 @@ defmodule DungeonCrawl.StateValue.ParserTest do
   describe "stringify" do
     test "empty map" do
       assert "" == Parser.stringify(%{})
+    end
+
+    test "empty nil" do
+      assert "" == Parser.stringify(nil)
     end
 
     test "map with one item" do

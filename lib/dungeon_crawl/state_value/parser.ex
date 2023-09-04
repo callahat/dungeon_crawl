@@ -17,6 +17,7 @@ defmodule DungeonCrawl.StateValue.Parser do
       iex> Parser.parse("jibberish")
       {:error, "Error parsing around: jibberish"}
   """
+  def parse!(nil), do: %{}
   def parse!(state_string) do
     case parse(state_string) do
       {:ok, state} -> state
@@ -84,6 +85,7 @@ defmodule DungeonCrawl.StateValue.Parser do
       iex> Parser.stringify(%{blocking: true, open: false, name: "Wall"})
       "blocking: true, name: Wall, open: false"
   """
+  def stringify(nil), do: ""
   def stringify(state_map) do
     state_map
     |> Map.to_list
