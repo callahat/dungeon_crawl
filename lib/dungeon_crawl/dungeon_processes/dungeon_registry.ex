@@ -122,7 +122,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     DungeonProcess.set_author(map_set_process, author)
     DungeonProcess.set_dungeon(map_set_process, dungeon)
     DungeonProcess.set_dungeon_instance(map_set_process, dungeon_instance)
-    DungeonProcess.set_state_values(map_set_process, dungeon_instance.state) # todo: can state just be referenced from dungeon_instance now?
+    DungeonProcess.set_state_values(map_set_process, dungeon_instance.state)
     DungeonProcess.start_scheduler(map_set_process)
 
     Repo.preload(dungeon_instance, :levels).levels

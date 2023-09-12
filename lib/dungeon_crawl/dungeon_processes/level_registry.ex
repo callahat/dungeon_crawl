@@ -270,7 +270,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   def handle_info(_msg, level_registry) do
     {:noreply, level_registry}
   end
-#  TODO: can state_values here also be removed and be taken from the level_instance.state instead
+
   defp _create_instance(level_instance, tiles, spawn_coordinates, state_values, diid, adjacent, author, level_registry) do
     %{supervisor: supervisor, refs: refs, level_numbers: level_numbers, cache: cache} = level_registry
     {:ok, instance_process} = DynamicSupervisor.start_child(supervisor, LevelProcess)
