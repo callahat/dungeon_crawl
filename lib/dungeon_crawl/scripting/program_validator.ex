@@ -123,7 +123,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
   defp _validate(program, [ {line_no, [:give, [_what, amount, who, max, label] ]} | instructions], errors, user) do
     errors = unless is_number(amount) and amount > 0 || is_tuple(amount),
-               do: ["Line #{line_no}: GIVE command has invalid amount `#{amount}`" | errors],
+               do: ["Line #{line_no}: GIVE command has invalid amount `#{as_binary amount}`" | errors],
                else: errors
     errors = unless Enum.member?([[:event_sender], [:self]], who) or Enum.member?(@valid_directions -- ["idle"], who) or is_tuple(who),
                do: ["Line #{line_no}: GIVE command references invalid direction `#{as_binary who}`" | errors],
