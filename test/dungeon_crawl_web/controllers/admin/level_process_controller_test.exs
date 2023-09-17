@@ -1,5 +1,6 @@
 defmodule DungeonCrawlWeb.Admin.LevelProcessControllerTest do
   use DungeonCrawlWeb.ConnCase
+  use AssertEventually, timeout: 50, interval: 5
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
@@ -57,7 +58,7 @@ defmodule DungeonCrawlWeb.Admin.LevelProcessControllerTest do
     test "redirects with a message when instance is nonexistent", %{conn: conn} do
       instance = setup_level_instance()
       conn = get conn, admin_level_process_path(conn, :show, instance.dungeon_instance_id, -1, instance.player_location_id || "none")
-      assert redirected_to(conn) == admin_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
+      eventually assert redirected_to(conn) == admin_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
       assert get_flash(conn, :info) ==
                "Level instance process not found: dungeon instance `#{instance.dungeon_instance_id}`, level number `-1`, owner id ``"
     end
@@ -67,8 +68,8 @@ defmodule DungeonCrawlWeb.Admin.LevelProcessControllerTest do
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
       conn = delete conn, admin_level_process_path(conn, :delete, instance.dungeon_instance_id, instance.number, instance.player_location_id || "none")
       assert redirected_to(conn) == admin_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
-      :timer.sleep 5
-      assert DungeonInstances.get_level(instance.dungeon_instance_id, instance.number)
+
+      eventually assert DungeonInstances.get_level(instance.dungeon_instance_id, instance.number)
       assert :error = LevelRegistry.lookup(instance_registry, instance.number, instance.player_location_id)
     end
 
@@ -77,9 +78,9 @@ defmodule DungeonCrawlWeb.Admin.LevelProcessControllerTest do
       {:ok, instance_registry} = Registrar.instance_registry(instance.dungeon_instance_id)
       conn = delete conn, admin_level_process_path(conn, :delete, instance.dungeon_instance_id, instance.number, instance.player_location_id)
       assert redirected_to(conn) == admin_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
-      :timer.sleep 5
-      assert DungeonInstances.get_level(instance.dungeon_instance_id, instance.number, instance.player_location_id)
-      assert :error = LevelRegistry.lookup(instance_registry, instance.number, instance.player_location_id)
+
+      eventually assert DungeonInstances.get_level(instance.dungeon_instance_id, instance.number, instance.player_location_id)
+      eventually assert :error = LevelRegistry.lookup(instance_registry, instance.number, instance.player_location_id)
     end
   end
 

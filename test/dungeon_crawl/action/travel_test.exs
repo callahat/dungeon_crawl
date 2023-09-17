@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.Action.TravelTest do
   use DungeonCrawl.DataCase
+  use AssertEventually, timeout: 50, interval: 5
 
   alias DungeonCrawl.Action.Travel
   alias DungeonCrawl.Dungeons
@@ -63,9 +64,9 @@ defmodule DungeonCrawl.Action.TravelTest do
     level_2_number = level_2.number
     level_2_owner_id = level_2.player_location_id
     {:ok, {_, instance_2}} = LevelRegistry.lookup_or_create(instance_registry, level_2.number, level_2_owner_id)
-    :timer.sleep 1 # try to prevent a race condition where instance_2 hasn't created the tile yet
+
     LevelProcess.run_with(instance_2, fn (state) ->
-      assert %{row: 1, col: 5, level_instance_id: ^level_2_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+      eventually assert %{row: 1, col: 5, level_instance_id: ^level_2_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
       {:ok, state}
     end)
 
@@ -87,7 +88,7 @@ defmodule DungeonCrawl.Action.TravelTest do
       {:ok, state}
     end)
     LevelProcess.run_with(instance_1, fn (state) ->
-      assert %{row: 6, col: 9, level_instance_id: ^level_1_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
+      eventually assert %{row: 6, col: 9, level_instance_id: ^level_1_id} = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
       {:ok, state}
     end)
 

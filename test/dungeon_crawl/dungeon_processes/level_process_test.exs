@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.LevelProcessTest do
   use DungeonCrawl.DataCase
+  use AssertEventually, timeout: 50, interval: 5
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.Level
@@ -781,9 +782,9 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     # Trigger the message handling under test
     assert :ok = Process.send(instance_process, :write_db, [])
-    :timer.sleep 10 # let the process do its thing
     refute_receive _
-    assert "Y" == Repo.get(Tile, tile_id_1).character
+    # let the process do its thing
+    eventually assert "Y" == Repo.get(Tile, tile_id_1).character
     refute Repo.get(Tile, tile_id_2)
     assert "O" == Repo.get(Tile, tile_id_3).character
 

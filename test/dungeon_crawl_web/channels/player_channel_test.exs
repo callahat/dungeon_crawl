@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.PlayerChannelTest do
   use DungeonCrawlWeb.ChannelCase
+  use AssertEventually, timeout: 50, interval: 5
 
   alias DungeonCrawlWeb.PlayerChannel
   alias DungeonCrawl.DungeonProcesses.{LevelProcess, Registrar, DungeonRegistry}
@@ -71,9 +72,10 @@ defmodule DungeonCrawl.PlayerChannelTest do
     end)
 
     push socket, "update_visible", %{}
-    :timer.sleep 5
-    assert %{players_visible_coords: pvcs} = LevelProcess.get_state(instance_process)
-    refute Map.has_key?(pvcs, location.tile_instance_id)
+
+    eventually refute Map.has_key?(
+                        LevelProcess.get_state(instance_process).players_visible_coords,
+                        location.tile_instance_id)
   end
 
   test "ping replies with status ok", %{socket: socket} do

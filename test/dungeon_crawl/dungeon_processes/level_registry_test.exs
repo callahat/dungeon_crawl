@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.LevelRegistryTest do
   use DungeonCrawl.DataCase
+  use AssertEventually, timeout: 10, interval: 1
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances.{Level, Tile}
@@ -246,8 +247,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
     # seems to take a quick micro second for the cast to be done
     LevelRegistry.remove(instance_registry, instance.number, nil)
-    :timer.sleep 1
-    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
+
+    eventually assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
   end
 
   test "removes instances on exit", %{instance_registry: instance_registry} do
@@ -339,9 +340,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
       assert level_2.id == instance_id_2
 
       GenServer.stop(instance_registry, :shutdown)
-      :timer.sleep 50
 
-      refute Process.alive?(instance_registry)
+      eventually refute Process.alive?(instance_registry)
       refute Process.alive?(instance_process_1)
       refute Process.alive?(instance_process_2)
   end
