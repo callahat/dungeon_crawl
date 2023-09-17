@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp}
+  alias DungeonCrawl.StateValue.Parser
 
   plug :authenticate_user
   plug :validate_edit_dungeon_available
@@ -187,8 +188,11 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
                      |> TileTemplates.TileTemplate.validate_script(conn.assigns.current_user.id)
                      |> TileTemplates.TileTemplate.validate_state_values
 
-    render(conn, "tile_errors.json", tile: tile_changeset.changes, tile_errors: tile_changeset.errors)
+    render(conn, "tile_errors.json", tile: _stringify_state(tile_changeset.changes), tile_errors: tile_changeset.errors)
   end
+
+  defp _stringify_state(%{state: state} = changes), do: %{ changes | state: Parser.stringify(state) }
+  defp _stringify_state(changes), do: changes
 
   def delete(conn, %{"id" => _id}) do
     level = conn.assigns.level

@@ -62,33 +62,33 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     torch_light = _torch_light(tile)
 
     %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0, lives: -1, torches: 0}
-    |> Map.merge(Map.take(tile.parsed_state, @stats))
+    |> Map.merge(Map.take(tile.state, @stats))
     |> Map.put(:keys, keys)
     |> Map.put(:torch_light, torch_light)
   end
 
-  defp _door_keys(%{parsed_state: parsed_state} = _tile), do: _door_keys(parsed_state)
-  defp _door_keys(parsed_state) do
-    parsed_state
+  defp _door_keys(%{state: state} = _tile), do: _door_keys(state)
+  defp _door_keys(state) do
+    state
     |> Map.to_list
     |> Enum.filter(fn {k,v} -> Regex.match?(~r/_key$/, to_string(k)) && v && v > 0 end)
   end
 
-  defp _torch_light(%{parsed_state: parsed_state} = _tile), do: _torch_light(parsed_state)
-  defp _torch_light(parsed_state) do
-    if is_nil(parsed_state[:torch_light]) || parsed_state[:torch_light] == 0 do
+  defp _torch_light(%{state: state} = _tile), do: _torch_light(state)
+  defp _torch_light(state) do
+    if is_nil(state[:torch_light]) || state[:torch_light] == 0 do
       ""
     else
-      meter_length = min(parsed_state[:torch_light], 6)
+      meter_length = min(state[:torch_light], 6)
       chars = String.duplicate("█", meter_length) <> String.duplicate("░", 6 - meter_length)
       "<pre class='tile_template_preview'><span class='torch-bar'>#{chars}</span></pre>"
     end
   end
 
   defp _with_equipped_and_equipment(stats, player_tile, state) do
-    {equipped, _, _} = Levels.get_item(player_tile.parsed_state[:equipped], state)
+    {equipped, _, _} = Levels.get_item(player_tile.state[:equipped], state)
     equipped_name = equipped && equipped.name
-    equipment = (player_tile.parsed_state[:equipment] || [])
+    equipment = (player_tile.state[:equipment] || [])
                 |> Enum.map(fn item_slug ->
                      {item, _, _} = Levels.get_item(item_slug, state)
                      item
@@ -139,7 +139,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _with_equipped(stats, player_tile) do
-    equipped = Equipment.get_item(player_tile.parsed_state[:equipped])
+    equipped = Equipment.get_item(player_tile.state[:equipped])
     Map.put(stats, :equipped, equipped && equipped.name)
   end
 
@@ -163,18 +163,18 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   """
   def bury(%Levels{} = state, %{id: tile_id} = _player_tile) do
     player_tile = Levels.get_tile_by_id(state, %{id: tile_id})
-    original_player_tile_state = player_tile.parsed_state
+    original_player_tile_state = player_tile.state
 
     bottom_z_index = Enum.at(Levels.get_tiles(state, player_tile), -1).z_index
     last_player_z_index = player_tile.z_index
 
     {player_tile, state} = Levels.update_tile(state, player_tile, %{z_index: bottom_z_index - 1})
-    deaths = case player_tile.parsed_state[:deaths] do
+    deaths = case player_tile.state[:deaths] do
                nil    -> 1
                deaths -> deaths + 1
              end
 
-    starting_equipment = String.split(player_tile.parsed_state[:starting_equipment] || "")
+    starting_equipment = player_tile.state[:starting_equipment]
 
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
@@ -241,7 +241,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                             """
                 end
 
-    _spawn_loot_tile(state, :junk_pile, script_fn, player_tile.parsed_state, player_tile, z_index_plus_one)
+    _spawn_loot_tile(state, :junk_pile, script_fn, player_tile.state, player_tile, z_index_plus_one)
   end
 
   defp _spawn_loot_tile(%Levels{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
@@ -256,7 +256,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                       end)
 
     # add the equippable items
-    items_stolen = ((original_state[:equipment] || []) -- (player_tile.parsed_state[:equipment] || []))
+    items_stolen = ((original_state[:equipment] || []) -- (player_tile.state[:equipment] || []))
                    |> Enum.reduce(items_stolen, fn item_slug, [words, equips] ->
                            {item, _, _} = Levels.get_item(item_slug, state)
                            [ [ "Found a #{item.name}" | words],
@@ -308,7 +308,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     Levels.update_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
   end
 
-  defp _respawn_coordinates(state, %{parsed_state: player_state} = player_tile) do
+  defp _respawn_coordinates(state, %{state: player_state} = player_tile) do
     if state.state_values[:respawn_at_entry] != false && player_state[:entry_row] && player_state[:entry_col] do
       _relocated_coordinates_with_z(state, %{row: player_state.entry_row, col: player_state.entry_col})
     else

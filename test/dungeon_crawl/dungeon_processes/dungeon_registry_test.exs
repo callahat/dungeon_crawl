@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.DungeonRegistryTest do
   use DungeonCrawl.DataCase
+  use AssertEventually, timeout: 50, interval: 5
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon,Tile}
@@ -29,7 +30,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
   end
 
   test "create/2", %{map_set_registry: map_set_registry} do
-    di = insert_stubbed_dungeon_instance(%{state: "flag: off"}, %{}, [[%Tile{character: "O", row: 1, col: 1, z_index: 0}]])
+    di = insert_stubbed_dungeon_instance(%{state: %{flag: "off"}}, %{}, [[%Tile{character: "O", row: 1, col: 1, z_index: 0}]])
     d = Repo.preload(di, :dungeon).dungeon
 
     assert :ok = DungeonRegistry.create(map_set_registry, di.id)
@@ -63,8 +64,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
 
     # seems to take a quick micro second for the cast to be done
     DungeonRegistry.remove(map_set_registry, di.id)
-    :timer.sleep 1
-    assert :error = DungeonRegistry.lookup(map_set_registry, di.id)
+    eventually assert :error = DungeonRegistry.lookup(map_set_registry, di.id)
   end
 
   test "removes instances on exit", %{map_set_registry: map_set_registry} do

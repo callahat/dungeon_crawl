@@ -140,7 +140,6 @@ defmodule DungeonCrawl.Player do
   """
   def create_location_on_spawnable_space(%Dungeon{} = di, user_id_hash, user_avatar) do
     di = Repo.preload(di, [level_headers: :level])
-         |> Map.put(:parsed_state, DungeonCrawl.StateValue.Parser.parse!(di.state))
 
     {:ok, %{location: location}} =
     Multi.new()
@@ -204,23 +203,25 @@ defmodule DungeonCrawl.Player do
   end
 
   defp _set_player_lives(player_tile, di) do
-    starting_lives = "lives: #{ di.parsed_state[:starting_lives] || -1 }"
+    starting_lives = %{lives: di.state[:starting_lives] || -1}
 
-    Repo.update!(Tile.changeset(player_tile, %{state: player_tile.state <> ", " <> starting_lives }))
+    Tile.changeset(player_tile, %{state: Map.merge(player_tile.state, starting_lives)})
+    |> Repo.update!()
   end
 
   defp _set_player_equipment(player_tile, di) do
-    equipment = String.split("#{di.parsed_state[:starting_equipment]}")
+    equipment = di.state[:starting_equipment] || []
 
     equipment = if equipment == [], do: ["gun"],
                                     else: equipment
 
-    equipped = "equipped: #{Enum.at(equipment, 0)}"
-    equipment = "equipment: #{Enum.join(equipment, " ")}, starting_equipment: #{Enum.join(equipment, " ")}"
-
-    tile_state = Enum.join([player_tile.state, equipped, equipment], ", ")
-
-    Repo.update!(Tile.changeset(player_tile, %{state: tile_state }))
+    tile_state = player_tile.state
+                 |> Map.merge(
+                      %{equipped: Enum.at(equipment, 0),
+                        equipment: equipment,
+                        starting_equipment: equipment}
+                    )
+    Repo.update!(Tile.changeset(player_tile, %{state: tile_state}))
   end
 
   @doc """

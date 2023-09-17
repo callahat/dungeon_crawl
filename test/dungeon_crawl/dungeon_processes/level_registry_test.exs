@@ -1,5 +1,6 @@
 defmodule DungeonCrawl.LevelRegistryTest do
   use DungeonCrawl.DataCase
+  use AssertEventually, timeout: 10, interval: 1
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances.{Level, Tile}
@@ -34,7 +35,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   end
 
   test "lookup solo instance", %{instance_registry: instance_registry} do
-    instance = insert_stubbed_level_instance(%{state: "solo: true"})
+    instance = insert_stubbed_level_instance(%{state: %{solo: true}})
     location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "testhash"})
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
 
@@ -60,7 +61,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   end
 
   test "lookup_or_create solo instance", %{instance_registry: instance_registry} do
-    instance = insert_stubbed_level_instance(%{state: "solo: true"})
+    instance = insert_stubbed_level_instance(%{state: %{solo: true}})
     location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "testhash"})
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
     Dungeons.set_spawn_locations(instance.level_id, [{1,1}])
@@ -73,11 +74,11 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
   test "create/2", %{instance_registry: instance_registry} do
     user = insert_user()
-    button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
-    instance = insert_stubbed_level_instance(%{state: "flag: false"},
+    button_tile = insert_tile_template(%{state: %{blocking: true}, script: "#END\n:TOUCH\n*PimPom*"})
+    instance = insert_stubbed_level_instance(%{state: %{flag: false}},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
                  Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
-       %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: "", script: ""}])
+       %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: %{}, script: ""}])
     instance = Level.changeset(instance, %{number_north: instance.number}) |> Repo.update!
 
     location = insert_player_location(%{level_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
@@ -120,7 +121,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
                                     }
                        }
     assert player_locations == %{location.tile_instance_id => location}
-    assert map_by_ids[tile.id] == Map.put(tile, :parsed_state, %{blocking: true})
+    assert map_by_ids[tile.id] == Map.put(tile, :state, %{blocking: true})
     assert state_values == %{flag: false, cols: 20, rows: 20}
     assert spawn_coordinates == [{9, 10}]
     assert instance_id == instance.id
@@ -130,11 +131,11 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
   test "create/2 when program contexts exist in the DB", %{instance_registry: instance_registry} do
     user = insert_user()
-    button_tile = insert_tile_template(%{state: "blocking: true", script: "#END\n:TOUCH\n*PimPom*"})
-    instance = insert_stubbed_level_instance(%{state: "flag: false"},
+    button_tile = insert_tile_template(%{state: %{blocking: true}, script: "#END\n:TOUCH\n*PimPom*"})
+    instance = insert_stubbed_level_instance(%{state: %{flag: false}},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
         Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
-        %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: "", script: ""}])
+        %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: %{}, script: ""}])
     tile = Repo.get_by(Tile, %{level_instance_id: instance.id, row: 1, col: 2})
     {:ok, alt_program} = Parser.parse("#END\n:TOUCH\n*BZZZZ")
     instance = Level.changeset(instance,
@@ -177,7 +178,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   end
 
   test "create/2 when a solo instance", %{instance_registry: instance_registry} do
-    instance = insert_stubbed_level_instance(%{state: "solo: true"})
+    instance = insert_stubbed_level_instance(%{state: %{solo: true}})
     location = insert_player_location(%{level_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
     instance = %{instance | player_location_id: location.id}
 
@@ -193,7 +194,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   test "create/3..9", %{instance_registry: instance_registry} do
     level_number = 1
     author = %{is_admin: false, id: 12345}
-    tile = %Tile{id: 999, level_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: "", script: ""}
+    tile = %Tile{id: 999, level_instance_id: 12345, row: 1, col: 2, z_index: 0, character: "B", state: %{}, script: ""}
 
     tiles = [tile]
 
@@ -212,7 +213,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
                    map_by_coords: by_coords,
                    state_values: %{flag: false},
                    author: ^author} = LevelProcess.get_state(instance_process)
-    assert by_ids == %{tile.id => Map.put(tile, :parsed_state, %{})}
+    assert by_ids == %{tile.id => Map.put(tile, :state, %{})}
     assert by_coords ==  %{ {tile.row, tile.col} => %{tile.z_index => tile.id} }
     assert programs == %{}
 
@@ -225,7 +226,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
                    map_by_ids: by_ids,
                    map_by_coords: _by_coords,
                    state_values: %{}} = LevelProcess.get_state(instance_process2)
-    assert by_ids == %{tile.id => Map.merge(tile, %{level_instance_id: instance_id2, parsed_state: %{}})}
+    assert by_ids == %{tile.id => Map.merge(tile, %{level_instance_id: instance_id2, state: %{}})}
   end
 
   @tag capture_log: true
@@ -246,8 +247,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
     # seems to take a quick micro second for the cast to be done
     LevelRegistry.remove(instance_registry, instance.number, nil)
-    :timer.sleep 1
-    assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
+
+    eventually assert :error = LevelRegistry.lookup(instance_registry, instance.number, 1)
   end
 
   test "removes instances on exit", %{instance_registry: instance_registry} do
@@ -339,9 +340,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
       assert level_2.id == instance_id_2
 
       GenServer.stop(instance_registry, :shutdown)
-      :timer.sleep 50
 
-      refute Process.alive?(instance_registry)
+      eventually refute Process.alive?(instance_registry)
       refute Process.alive?(instance_process_1)
       refute Process.alive?(instance_process_2)
   end

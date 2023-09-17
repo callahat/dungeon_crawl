@@ -86,8 +86,8 @@ defmodule DungeonCrawlWeb.LevelChannel do
         instance_state.state_values[:visibility] != "dark" ->
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "Don't need a torch here"}
           {:ok, instance_state}
-        player_tile.parsed_state[:torches] > 0 ->
-          new_torch_count = player_tile.parsed_state[:torches] - 1
+        player_tile.state[:torches] > 0 ->
+          new_torch_count = player_tile.state[:torches] - 1
           {_player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{torches: new_torch_count, torch_light: 6, light_source: true, light_range: 6})
           {:ok, instance_state}
         true ->
@@ -110,7 +110,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
     LevelProcess.run_with(instance, fn (instance_state) ->
       with {player_location, player_tile} when not is_nil(player_location) <-
              _player_location_and_tile(instance_state, socket.assigns.user_id_hash),
-           true <- Enum.member?(player_tile.parsed_state[:equipment] || [], item_slug),
+           true <- Enum.member?(player_tile.state[:equipment] || [], item_slug),
            {item, instance_state, _} when not is_nil(item) <- Levels.get_item(item_slug, instance_state) do
         Levels.update_tile_state(instance_state, player_tile, %{equipped: item_slug})
       else
@@ -134,7 +134,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
              _player_location_and_tile(instance_state, socket.assigns.user_id_hash),
            label <- String.downcase(label),
            true <- Levels.valid_message_action?(instance_state, player_tile.id, label),
-           event_sender <- Map.merge(player_location, Map.take(player_tile, [:parsed_state])) do
+           event_sender <- Map.merge(player_location, Map.take(player_tile, [:state])) do
         instance_state = Levels.remove_message_actions(instance_state, player_tile.id)
                          |> Levels.send_event(target_tile, label, event_sender, 0)
         {:ok, instance_state}
@@ -157,7 +157,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
       if player_tile && not _player_alive(player_tile) && _game_active(player_tile, player_location) do
         {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
-        death_note = "You live again, after #{player_tile.parsed_state[:deaths]} death#{if player_tile.parsed_state[:deaths] > 1, do: "s"}"
+        death_note = "You live again, after #{player_tile.state[:deaths]} death#{if player_tile.state[:deaths] > 1, do: "s"}"
 
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(instance_state, player_tile)}
@@ -182,7 +182,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
         player_channel = "players:#{player_location.id}"
 
         {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{facing: direction})
-        slug = player_tile.parsed_state[:equipped]
+        slug = player_tile.state[:equipped]
 
         case Levels.get_item(slug, instance_state) do
           {nil, _, :nothing_equipped} ->
@@ -292,7 +292,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
            true <- _game_active(player_tile, player_location),
            target_tiles when target_tiles != [] <- Levels.get_tiles(instance_state, player_tile, direction) do
 
-        toucher = Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state]))
+        toucher = Map.merge(player_location, Map.take(player_tile, [:name, :state]))
         instance_state = target_tiles
                          |> Enum.reduce(instance_state, fn(target_tile, instance_state) ->
                                Levels.send_event(instance_state, target_tile, "TOUCH", toucher, 0)
@@ -322,7 +322,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
         if !Levels.responds_to_event?(instance_state, target_tile, action) && unhandled_event_message do
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: unhandled_event_message}
         end
-        instance_state = Levels.send_event(instance_state, target_tile, action, Map.merge(player_location, Map.take(player_tile, [:name, :parsed_state])), 0)
+        instance_state = Levels.send_event(instance_state, target_tile, action, Map.merge(player_location, Map.take(player_tile, [:name, :state])), 0)
 
         {:ok, instance_state}
       else
@@ -343,14 +343,14 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   defp _player_alive(nil), do: false
-  defp _player_alive(player_tile), do: player_tile.parsed_state[:health] > 0
+  defp _player_alive(player_tile), do: player_tile.state[:health] > 0
 
   defp _game_active(nil, _), do: false
   defp _game_active(player_tile, player_location) do
-    if player_tile.parsed_state[:gameover] == true do
+    if player_tile.state[:gameover] == true do
       DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                          "gameover",
-                                         Map.take(player_tile.parsed_state, [:score_id, :dungeon_id])
+                                         Map.take(player_tile.state, [:score_id, :dungeon_id])
       false
     else
       true
@@ -487,7 +487,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   defp _item_used_up(player_tile, item, state) do
-    equipment = player_tile.parsed_state[:equipment] -- [item.slug]
+    equipment = player_tile.state[:equipment] -- [item.slug]
     equipped = if Enum.member?(equipment, item.slug), do: item.slug, else: Enum.at(equipment, 0)
 
     Levels.update_tile_state(state, player_tile, %{equipment: equipment, equipped: equipped})

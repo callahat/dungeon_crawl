@@ -30,6 +30,7 @@ defmodule DungeonCrawl.Shipping.Json do
 
   def decode!(json) do
     Map.merge(%DungeonExports{}, Jason.decode!(json, keys: &_keys/1))
+    |> _atomize_state_keys()
   end
 
   defp _keys(key) do
@@ -39,4 +40,29 @@ defmodule DungeonCrawl.Shipping.Json do
       true -> key
     end
   end
+
+  # Turns the keys in the state maps into atoms, instead of strings.
+  # Longer term probably want to just use strings instead of atoms for
+  # state related stuff
+  defp _atomize_state_keys(json) when is_map(json) do
+    json
+    |> Map.to_list()
+    |> _atomize_state_keys()
+    |> Enum.into(%{})
+  end
+  defp _atomize_state_keys([]), do: []
+  defp _atomize_state_keys([{:state, values} | json]) do
+    atomized = Enum.map(values, fn {key, value} -> {String.to_atom(key), value} end)
+               |> Enum.into(%{})
+    [
+      {:state, atomized} | _atomize_state_keys(json)
+    ]
+  end
+  defp _atomize_state_keys([{key, value} | json]) do
+    recursed = _atomize_state_keys(value)
+    [
+      {key, recursed} | _atomize_state_keys(json)
+    ]
+  end
+  defp _atomize_state_keys(terminal_value), do: terminal_value
 end

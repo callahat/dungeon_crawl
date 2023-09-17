@@ -11,7 +11,6 @@ defmodule DungeonCrawlWeb.CrawlerController do
   alias DungeonCrawl.DungeonProcesses.Player, as: PlayerInstance
   alias DungeonCrawl.DungeonProcesses.{DungeonRegistry, DungeonProcess, Registrar, LevelProcess}
   alias DungeonCrawl.Games
-  alias DungeonCrawl.StateValue.Parser
 
   import DungeonCrawlWeb.Crawler, only: [
     join_and_broadcast: 4,
@@ -41,7 +40,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     scorable = _scorable_dungeon(dungeon)
 
     saveable = !!(dungeon.dungeon.active &&
-      Parser.parse!(dungeon.state)[:saveable] &&
+      dungeon.state[:saveable] &&
       conn.assigns.current_user)
 
     {:ok, instance_process} = Registrar.instance_process(player_location.tile.level)

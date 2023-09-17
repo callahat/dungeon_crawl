@@ -11,7 +11,6 @@ defmodule DungeonCrawl.Games do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Games.Save
   alias DungeonCrawl.Player
-  alias DungeonCrawl.StateValue
 
   @doc """
   Returns the list of saved_games.
@@ -221,9 +220,8 @@ defmodule DungeonCrawl.Games do
 
 
       # update the dungeon instance state with the state values for the saved DI state
-      combined_dungeon_state = StateValue.Parser.parse!(dungeon_instance.state)
-                               |> Map.merge(StateValue.Parser.parse!(save.dungeon_instance.state))
-                               |> StateValue.Parser.stringify()
+      combined_dungeon_state = dungeon_instance.state
+                               |> Map.merge(save.dungeon_instance.state)
       DungeonInstances.update_dungeon(dungeon_instance, %{state: combined_dungeon_state})
 
       # at this point, we will at least have all the level headers
@@ -269,9 +267,8 @@ defmodule DungeonCrawl.Games do
       current_level = DungeonInstances.find_or_create_level(current_level_header, player_location_id)
 
       # update the current level state
-      combined_state = StateValue.Parser.parse!(level.state)
-                       |> Map.merge(StateValue.Parser.parse!(current_level.state))
-                       |> StateValue.Parser.stringify()
+      combined_state = level.state
+                       |> Map.merge(current_level.state)
       DungeonInstances.update_level(current_level, %{state: combined_state})
 
       [new_tiles, deleted_tiles] = DungeonInstances.tile_difference_from_base(level)

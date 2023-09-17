@@ -5,7 +5,7 @@ defmodule DungeonCrawl.Games.Save do
   schema "saved_games" do
     field :col, :integer
     field :row, :integer
-    field :state, :string
+    field :state, DungeonCrawl.EctoStateValueMap, default: %{}
     field :user_id_hash, :string
     field :level_name, :string
     field :host_name, :string

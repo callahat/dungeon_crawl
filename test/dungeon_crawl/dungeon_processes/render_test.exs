@@ -19,13 +19,13 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     #2 . @       _
 
     tiles = [
-        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: "blocking: true"},
+        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: %{blocking: true}},
         %Tile{id: 109, character: ".", row: 2, col: 1, z_index: 0},
-        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: "light_range: 1"},
-        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: "light_range: 2"},
+        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: %{light_range: 1}},
+        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: %{light_range: 2}},
         %Tile{id: 108, character: ".", row: 1, col: 1, z_index: 0},
         %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
-        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0, state: "blocking: true, blocking_light: false"},
+        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0, state: %{blocking: true, blocking_light: false}},
         %Tile{id: 104, character: "O", row: 1, col: 10, z_index: 0},
         %Tile{id: 105, character: "O", row: 1, col: 4, z_index: 0}
       ]

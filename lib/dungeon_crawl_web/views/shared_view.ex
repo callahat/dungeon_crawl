@@ -167,7 +167,7 @@ defmodule DungeonCrawlWeb.SharedView do
     "data-background-color='#{mt.background_color}' " <>
     "data-tile-template-id='#{mt.tile_template_id}' " <>
     "data-character='#{Phoenix.HTML.Safe.to_iodata mt.character}' " <>
-    "data-state='#{Phoenix.HTML.Safe.to_iodata mt.state}' " <>
+    "data-state='#{Phoenix.HTML.Safe.to_iodata StateValue.Parser.stringify(mt.state)}' " <>
     "data-script='#{Phoenix.HTML.Safe.to_iodata mt.script}' " <>
     "data-name='#{Phoenix.HTML.Safe.to_iodata mt.name}' " <>
     animate_attributes(mt)

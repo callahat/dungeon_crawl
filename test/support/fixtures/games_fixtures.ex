@@ -21,7 +21,7 @@ defmodule DungeonCrawl.GamesFixtures do
       |> Enum.into(%{
         col: 42,
         row: 42,
-        state: "player: true",
+        state: %{player: true},
         user_id_hash: user_id_hash,
         level_instance_id: level_instance_id,
         host_name: "Rufus",

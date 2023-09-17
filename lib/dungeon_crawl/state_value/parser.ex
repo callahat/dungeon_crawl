@@ -17,6 +17,7 @@ defmodule DungeonCrawl.StateValue.Parser do
       iex> Parser.parse("jibberish")
       {:error, "Error parsing around: jibberish"}
   """
+  def parse!(nil), do: %{}
   def parse!(state_string) do
     case parse(state_string) do
       {:ok, state} -> state
@@ -56,6 +57,8 @@ defmodule DungeonCrawl.StateValue.Parser do
     do: _normalize_key_and_value(String.to_atom(key), value)
   defp _normalize_key_and_value(:equipment, value),
     do: {:equipment, String.split(value)}
+  defp _normalize_key_and_value(:starting_equipment, value),
+       do: {:starting_equipment, String.split(value)}
   defp _normalize_key_and_value(key, value),
     do: {key, _cast_param(value)}
 
@@ -82,6 +85,7 @@ defmodule DungeonCrawl.StateValue.Parser do
       iex> Parser.stringify(%{blocking: true, open: false, name: "Wall"})
       "blocking: true, name: Wall, open: false"
   """
+  def stringify(nil), do: ""
   def stringify(state_map) do
     state_map
     |> Map.to_list
@@ -89,8 +93,12 @@ defmodule DungeonCrawl.StateValue.Parser do
     |> Enum.join(", ")
   end
 
+  defp _stringify_key_value({key, value}) when is_binary(key),
+    do: _stringify_key_value({String.to_atom(key), value})
   defp _stringify_key_value({:equipment, value}),
     do: "equipment: #{Enum.join(value, " ")}"
+  defp _stringify_key_value({:starting_equipment, value}),
+       do: "starting_equipment: #{Enum.join(value, " ")}"
   defp _stringify_key_value({key, nil}),
     do: "#{key}: nil"
   defp _stringify_key_value({key, value}),

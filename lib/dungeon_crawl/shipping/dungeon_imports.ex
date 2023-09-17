@@ -193,16 +193,16 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   defp repoint_dungeon_starting_items(%{dungeon: dungeon} = export) do
-    case Regex.named_captures(@starting_equipment_slugs, export.dungeon.state || "") do
-      %{"eq" => equipment} ->
+    case export.dungeon.state do
+      %{starting_equipment: equipment} = dungeon_state ->
         starting_equipment =
-          String.split(equipment)
-          |> Enum.map(fn tmp_slug -> export.items[tmp_slug].slug end)
-          |> Enum.join(" ")
+          equipment
+          |> Enum.map(fn tmp_slug ->
+            export.items[tmp_slug].slug end)
 
-        dungeon = %{ dungeon | state: String.replace(dungeon.state, equipment, starting_equipment)}
+        dungeon = %{ dungeon | state: %{dungeon_state | starting_equipment: starting_equipment}}
         %{ export | dungeon: dungeon }
-      nil ->
+      _ ->
         export
     end
   end

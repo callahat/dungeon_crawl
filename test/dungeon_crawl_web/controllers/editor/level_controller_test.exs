@@ -12,7 +12,7 @@ defmodule DungeonCrawlWeb.Editor.LevelControllerTest do
                 "color" => "",
                 "row" => "8",
                 "script" => "",
-                "state" => "",
+                "state" => %{},
                 "tile_name" => "",
                 "z_index" => "2"}
 
@@ -77,9 +77,9 @@ defmodule DungeonCrawlWeb.Editor.LevelControllerTest do
     test "returns array of validation errors when there are problems", %{conn: conn, level: level} do
       conn = post conn,
                   edit_dungeon_level_path(conn, :validate_tile, level.dungeon_id, level),
-                  tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp", state_variables: ["foo"], state_values: ["bar"]})
-      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "should be at most 1 character(s)", "field" => "character"}],
-                                           "tile" => %{"character" => "toobig", "col" => 42, "row" => 8, "state" => "foo: bar", "z_index" => 2}}
+                  tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp", state_variables: ["foo", "baz", ""], state_values: ["bar", "qux", ""]})
+      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "should be at most 1 character(s)", "field" => "character"}, %{"detail" => "is invalid", "field" => "state"}],
+                                           "tile" => %{"character" => "toobig", "col" => 42, "row" => 8, "state" => "baz: qux, foo: bar", "z_index" => 2}}
     end
   end
 

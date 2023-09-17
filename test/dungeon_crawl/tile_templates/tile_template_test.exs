@@ -26,7 +26,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplateTest do
                end)
              end)
     assert errs[:script] == ["Unknown command: `NOCOMMAND` - near line 1"]
-    assert errs[:state] == ["Error parsing around: badstate"]
+    assert errs[:state] == ["is invalid"]
     assert errs[:character] == ["should be at most 1 character(s)"]
     assert errs[:color] == ["has invalid format"]
     assert errs[:background_color] == ["has invalid format"]

@@ -61,7 +61,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   end
   def resolve_variable(%Runner{state: state, object_id: object_id}, {:state_variable, var}) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
-    object.parsed_state[var]
+    object.state[var]
   end
   def resolve_variable(%Runner{object_id: object_id}, [:self]) do
     object_id
@@ -81,7 +81,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
     event_sender && event_sender.name
   end
   def resolve_variable(%Runner{event_sender: event_sender}, {:event_sender_variable, var}) do
-    event_sender && event_sender.parsed_state[var]
+    event_sender && event_sender.state[var]
   end
   def resolve_variable(%Runner{}, {:instance_state_variable, :north_edge}) do
     0
@@ -118,7 +118,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   end
   def resolve_variable(%Runner{object_id: object_id, state: state}, {:any_player, :is_facing}) do
     object = Levels.get_tile_by_id(state, %{id: object_id})
-    case object.parsed_state[:facing] do
+    case object.state[:facing] do
       nil ->    false
       "idle" -> false
       direction ->
@@ -136,8 +136,8 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
       tile_id when is_integer(tile_id) ->
         object = Levels.get_tile_by_id(state, %{id: object_id})
         player_tile = Levels.get_tile_by_id(state, %{id: tile_id})
-        ! is_nil(object.parsed_state[:facing]) &&
-          Direction.orthogonal_direction(object, player_tile) == [object.parsed_state[:facing]]
+        ! is_nil(object.state[:facing]) &&
+          Direction.orthogonal_direction(object, player_tile) == [object.state[:facing]]
 
       _ ->
         false
@@ -150,7 +150,7 @@ defmodule DungeonCrawl.Scripting.VariableResolution do
   def resolve_variable(%Runner{state: state, object_id: object_id}, {{:direction, direction}, var}) do
     base = Levels.get_tile_by_id(state, %{id: object_id})
     object = if Direction.valid_orthogonal_change?(direction) do
-               Levels.get_tile(state, base, Direction.change_direction(base.parsed_state[:facing], direction))
+               Levels.get_tile(state, base, Direction.change_direction(base.state[:facing], direction))
              else
                Levels.get_tile(state, base, direction)
              end

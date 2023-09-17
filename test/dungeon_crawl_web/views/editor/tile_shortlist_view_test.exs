@@ -8,7 +8,7 @@ defmodule DungeonCrawlWeb.Editor.TileShortlistViewTest do
     errors = [
       other: "error",
       script: {"Unknown command: `DERP` - near line 1", []},
-      state: {"Error parsing around: bad", []},
+      state: {"is invalid", []},
       name: {"should be at most %{count} character(s)",
        [count: 32, validation: :length, kind: :max, type: :string]}
     ]
@@ -24,7 +24,7 @@ defmodule DungeonCrawlWeb.Editor.TileShortlistViewTest do
                   detail: "Unknown command: `DERP` - near line 1",
                   field: :script
                 },
-                %{detail: "Error parsing around: bad", field: :state},
+                %{detail: "is invalid", field: :state},
                 %{detail: "should be at most 32 character(s)", field: :name}
              ]
            } = TileShortlistView.render("tile_shortlist.json", %{errors: errors})

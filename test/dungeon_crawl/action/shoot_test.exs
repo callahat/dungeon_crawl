@@ -13,7 +13,7 @@ defmodule DungeonCrawl.Action.ShootTest do
     instance = insert_stubbed_level_instance(%{},
       [%Tile{character: ".", row: 1, col: 2, z_index: 0},
        %Tile{character: ".", row: 2, col: 2, z_index: 0},
-       %Tile{character: "#", row: 3, col: 2, z_index: 0, state: "blocking: true"},
+       %Tile{character: "#", row: 3, col: 2, z_index: 0, state: %{blocking: true}},
        %Tile{character: "@", row: 2, col: 2, z_index: 1, state: config[:ammo] || ""}])
 
     {:ok, cache} = Cache.start_link([])
@@ -35,7 +35,7 @@ defmodule DungeonCrawl.Action.ShootTest do
     assert bullet = Levels.get_tile(updated_state, %{row: 2, col: 2})
 
     assert bullet.character == "◦"
-    assert bullet.parsed_state[:facing] == "north"
+    assert bullet.state[:facing] == "north"
     assert updated_state.program_contexts[bullet.id]
     assert updated_state.program_messages == []
     assert updated_state.new_pids == [bullet.id]
@@ -46,13 +46,13 @@ defmodule DungeonCrawl.Action.ShootTest do
     # damage defaults to five if shooter does not have bullet_damage in their state
     assert {:ok, updated_state} = Shoot.shoot(shooter, "north", state)
     assert bullet = Levels.get_tile(updated_state, %{row: 2, col: 2})
-    assert bullet.parsed_state[:damage] == 5
+    assert bullet.state[:damage] == 5
 
     # when shooter has state var bullet_damage set
     {shooter, state} = Levels.update_tile_state(state, shooter, %{bullet_damage: 20})
     assert {:ok, updated_state} = Shoot.shoot(shooter, "north", state)
     assert bullet = Levels.get_tile(updated_state, %{row: 2, col: 2})
-    assert bullet.parsed_state[:damage] == 20
+    assert bullet.state[:damage] == 20
   end
 
   test "shoot/3 idle does nothing", %{state: state, shooter: shooter} do
@@ -63,7 +63,7 @@ defmodule DungeonCrawl.Action.ShootTest do
   end
 
   test "shoot/3 can use the objects state variable", %{state: state, shooter: shooter} do
-    shooter = %{shooter | parsed_state: %{facing: "north"}}
+    shooter = %{shooter | state: %{facing: "north"}}
     assert {:ok, updated_state} = Shoot.shoot(shooter, "north", state)
     assert bullet = Levels.get_tile(updated_state, %{row: 2, col: 2})
 

@@ -26,13 +26,13 @@ defmodule Lighting.Benchmark do
   alias DungeonCrawl.DungeonProcesses.Render
 
   def benchmark do
-    basic_mapping = %{?' => %{state: "blocking: false"},
-                      ?+ => %{state: "blocking: true"},
-                      ?# => %{state: "blocking: true"},
-                      ?\s => %{state: "blocking: true"},
-                      ?♂ => %{state: "blocking: true"},
-                      ?. => %{state: "blocking: false"},
-                      ?? => %{state: "blocking: true"}}
+    basic_mapping = %{?' => %{state: %{blocking: false}},
+                      ?+ => %{state: %{blocking: true}},
+                      ?# => %{state: %{blocking: true}},
+                      ?\s => %{state: %{blocking: true}},
+                      ?♂ => %{state: %{blocking: true}},
+                      ?. => %{state: %{blocking: false}},
+                      ?? => %{state: %{blocking: true}}}
 
     tiles =
     TestRooms.generate("ignored", "ignored")

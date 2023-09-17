@@ -14,8 +14,8 @@ defmodule DungeonCrawl.Action.Shoot do
   def shoot(%Location{} = player_location, direction, %Levels{} = state) do
     player_tile = Levels.get_tile_by_id(state, %{id: player_location.tile_instance_id})
 
-    if player_tile.parsed_state[:ammo] && player_tile.parsed_state[:ammo] > 0 do
-      {player_tile, state} = Levels.update_tile_state(state, player_tile, %{ammo: player_tile.parsed_state[:ammo] -1})
+    if player_tile.state[:ammo] && player_tile.state[:ammo] > 0 do
+      {player_tile, state} = Levels.update_tile_state(state, player_tile, %{ammo: player_tile.state[:ammo] -1})
       shoot(player_tile, direction, state)
     else
       {:no_ammo}
@@ -33,7 +33,7 @@ defmodule DungeonCrawl.Action.Shoot do
       {:ok, bullet} = Map.take(shooter_tile, [:level_instance_id, :row, :col])
                       |> Map.merge(%{z_index: top_z_index + 1})
                       |> Map.merge(Map.take(bullet_tile_template, [:character, :color, :background_color, :script]))
-                      |> Map.put(:state, bullet_tile_template.state <> ", facing: " <> direction)
+                      |> Map.put(:state, Map.put(bullet_tile_template.state, :facing, direction))
                       |> DungeonCrawl.DungeonInstances.new_tile()
       {bullet, state} = Levels.create_tile(state, bullet)
       extras = if bullet_damage = StateValue.get_int(shooter_tile, :bullet_damage), do: %{damage: bullet_damage}, else: %{}

@@ -25,7 +25,7 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
       event_sender: %DungeonCrawl.Player.Location{
         id: 3177,
         name: "Doc",
-        parsed_state: %{
+        state: %{
           already_touched: false,
           ammo: 6,
           blocking: true,
@@ -40,7 +40,7 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
           pushable: true,
           score: 0,
           soft: true,
-          starting_equipment: "gun",
+          starting_equipment: ["gun"],
           steps: 13,
           torches: 0
         },
@@ -135,7 +135,7 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
       "event_sender_player_location" => %{
         "id" => 3177,
         "name" => "Doc",
-        "parsed_state" => %{
+        "state" => %{
           "already_touched" => false,
           "ammo" => 6,
           "blocking" => true,
@@ -150,7 +150,7 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
           "pushable" => true,
           "score" => 0,
           "soft" => true,
-          "starting_equipment" => "gun",
+          "starting_equipment" => ["gun"],
           "steps" => 13,
           "torches" => 0
         },

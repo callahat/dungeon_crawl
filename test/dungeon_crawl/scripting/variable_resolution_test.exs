@@ -12,12 +12,12 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
     test "resolves state_variable" do
       Equipment.Seeder.gun()
 
-      dungeon_instance = insert_stubbed_dungeon_instance(%{state: "di_thing1: 999, di_flag: false"})
+      dungeon_instance = insert_stubbed_dungeon_instance(%{state: %{di_thing1: 999, di_flag: false}})
       {tile_1, state} = Levels.create_tile(%Levels{state_values: %{rows: 20, cols: 40},
                                                                  dungeon_instance_id: dungeon_instance.id},
-                                                      %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "red_key: 1, facing: west, point: north, equipped: gun, equipment: gun"})
+                                                      %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: %{red_key: 1, facing: "west", point: "north", equipped: "gun", equipment: ["gun"]}})
       {tile_2, state} = Levels.create_tile(state,
-                          %Tile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X", name: "two", background_color: "red"})
+                          %Tile{id: 2, row: 0, col: 1, state: %{pass: "bob"}, character: "X", name: "two", background_color: "red"})
 
       state = %{ state | state_values: Map.merge(state.state_values, %{flag1: true, flash: "fire"})}
 
@@ -41,7 +41,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :equipped}) == "gun"
       assert VariableResolution.resolve_variable(runner_state1, {:state_variable, :equipment}) == ["gun"]
 
-      # variables can be obtained from the event sender map (which will only contain tile_id and parsed_state)
+      # variables can be obtained from the event sender map (which will only contain tile_id and state)
       assert VariableResolution.resolve_variable(runner_state1, {:event_sender_variable, :pass}) == "bob"
       assert VariableResolution.resolve_variable(%{ runner_state1 | event_sender: %{tile_id: 123}}, {:event_sender_variable, :id}) == 123
 
@@ -95,7 +95,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
   describe "resolve_keyed_variable" do
     test "resolves keyed_variable that might have specific format/size" do
       {tile_1, state} = Levels.create_tile(%Levels{state_values: %{rows: 20, cols: 40}},
-                          %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: "newcolor: teal"})
+                          %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray", state: %{newcolor: "teal"}})
 
       runner_state1 = %Runner{state: state, object_id: tile_1.id}
       var = {:state_variable, :newcolor}
@@ -108,11 +108,11 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
   describe "resolve_variables" do
     test "resolves a list of variables" do
       {tile_1, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray"})
-      {tile_2, state} = Levels.create_tile(state, %Tile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X"})
+      {tile_2, state} = Levels.create_tile(state, %Tile{id: 2, row: 0, col: 1, state: %{pass: "bob"}, character: "X"})
 
       state = %{ state | state_values: %{flag1: true, flash: "fire"}}
 
-      runner_state1 = %Runner{state: state, object_id: tile_1.id, event_sender: Map.put(%Location{id: 123, tile_instance_id: tile_2.id}, :parsed_state, tile_2.parsed_state)}
+      runner_state1 = %Runner{state: state, object_id: tile_1.id, event_sender: %Location{id: 123, tile_instance_id: tile_2.id, state: tile_2.state}}
 
       variable_list = ["nothing done",
                        {:state_variable, :color},
@@ -137,7 +137,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
 
     test "resolves a map of variables" do
       {tile_1, state} = Levels.create_tile(%Levels{}, %Tile{id: 1, row: 1, col: 1, color: "red", background_color: "gray"})
-      {tile_2, state} = Levels.create_tile(state, %Tile{id: 2, row: 0, col: 1, state: "pass: bob", character: "X"})
+      {tile_2, state} = Levels.create_tile(state, %Tile{id: 2, row: 0, col: 1, state: %{pass: "bob"}, character: "X"})
 
       state = %{ state | state_values: %{flag1: true, flash: "fire"}}
 
@@ -168,7 +168,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
   describe "special resolutions" do
     test "?any_player@is_facing returns true if the object is directly facing a player" do
       {fake_player, state} = Levels.create_player_tile(%Levels{}, %Tile{id: 2, row: 4, col: 2, character: "@"}, %Location{})
-      {tile_1, state} = Levels.create_tile(state, %Tile{id: 1, row: 4, col: 4, character: "?", state: "facing: west"})
+      {tile_1, state} = Levels.create_tile(state, %Tile{id: 1, row: 4, col: 4, character: "?", state: %{facing: "west"}})
       runner_state1 = %Runner{state: state, object_id: tile_1.id}
       assert VariableResolution.resolve_variable(runner_state1, {:any_player, :is_facing})
 
@@ -180,7 +180,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionTest do
     test "?{ @target_player_tile_id }@is_facing returns true if the object is directly facing targeted player" do
       {_fake_player, state} = Levels.create_player_tile(%Levels{}, %Tile{id: 1, row: 4, col: 2, character: "@"}, %Location{})
       {_other_fake_player, state} = Levels.create_player_tile(state, %Tile{id: 2, row: 1, col: 4, character: "@"}, %Location{})
-      {tile_1, state} = Levels.create_tile(state, %Tile{id: 3, row: 4, col: 4, character: "?", state: "facing: west, target_player_map_tile_id: 1"})
+      {tile_1, state} = Levels.create_tile(state, %Tile{id: 3, row: 4, col: 4, character: "?", state: %{facing: "west", target_player_map_tile_id: 1}})
       runner_state1 = %Runner{state: state, object_id: tile_1.id}
       assert VariableResolution.resolve_variable(runner_state1, {{:state_variable, :target_player_map_tile_id}, :is_facing})
       # also works with ID, as the above resolves to it at run time

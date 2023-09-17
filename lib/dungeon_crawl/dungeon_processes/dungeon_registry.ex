@@ -7,7 +7,6 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
   alias DungeonCrawl.DungeonProcesses.{DungeonProcess}
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.Repo
-  alias DungeonCrawl.StateValue
 
   ## Client API
 
@@ -91,8 +90,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
       {:noreply, {dungeon_ids, refs, supervisor}}
     else
       with di when not is_nil(di) <- DungeonInstances.get_dungeon(dungeon_id) do
-        {:ok, state_values} = StateValue.Parser.parse(di.state)
-        {:noreply, _create_dungeon(dungeon_id, di, state_values, {dungeon_ids, refs, supervisor})}
+        {:noreply, _create_dungeon(dungeon_id, di, {dungeon_ids, refs, supervisor})}
       else
         _error ->
           Logger.error "Got a CREATE cast for #{dungeon_id} but its already been cleared"
@@ -114,7 +112,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     {:noreply, {dungeon_ids, refs, supervisor}}
   end
 
-  defp _create_dungeon(dungeon_id, dungeon_instance, state_values, {dungeon_ids, refs, supervisor}) do
+  defp _create_dungeon(dungeon_id, dungeon_instance, {dungeon_ids, refs, supervisor}) do
     {:ok, map_set_process} = DynamicSupervisor.start_child(supervisor, DungeonProcess)
 
     dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
@@ -124,7 +122,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     DungeonProcess.set_author(map_set_process, author)
     DungeonProcess.set_dungeon(map_set_process, dungeon)
     DungeonProcess.set_dungeon_instance(map_set_process, dungeon_instance)
-    DungeonProcess.set_state_values(map_set_process, state_values)
+    DungeonProcess.set_state_values(map_set_process, dungeon_instance.state)
     DungeonProcess.start_scheduler(map_set_process)
 
     Repo.preload(dungeon_instance, :levels).levels

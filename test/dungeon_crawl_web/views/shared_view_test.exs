@@ -103,7 +103,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
     {:ok, instance_process} = LevelProcess.start_link([])
 
-    instance = insert_stubbed_level_instance(%{state: "visibility: fog"},
+    instance = insert_stubbed_level_instance(%{state: %{visibility: "fog"}},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
@@ -196,7 +196,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     {:safe, rendered_fields} =
       Phoenix.View.render(SharedView,
                           "state_fields.html",
-                          state: "foo: bar, baz: qux",
+                          state: %{foo: "bar", baz: "qux"},
                           form: %{name: "tile_template"},
                           standard_variables: ["test"])
     rendered_fields = Enum.join(rendered_fields, "")

@@ -1,5 +1,6 @@
 defmodule DungeonCrawlWeb.Admin.DungeonProcessControllerTest do
   use DungeonCrawlWeb.ConnCase
+  use AssertEventually, timeout: 50, interval: 5
 
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
@@ -55,9 +56,9 @@ defmodule DungeonCrawlWeb.Admin.DungeonProcessControllerTest do
       instance = setup_dungeon_instance()
       conn = delete conn, admin_dungeon_process_path(conn, :delete, instance.id)
       assert redirected_to(conn) == admin_dungeon_process_path(conn, :index)
-      :timer.sleep 50
-      assert DungeonInstances.get_dungeon(instance.id)
-      assert :error = DungeonRegistry.lookup(DungeonInstanceRegistry, instance.id)
+
+      eventually assert DungeonInstances.get_dungeon(instance.id)
+      eventually assert :error = DungeonRegistry.lookup(DungeonInstanceRegistry, instance.id)
     end
   end
 

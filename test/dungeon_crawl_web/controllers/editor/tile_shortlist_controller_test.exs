@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.Editor.TileShortlistControllerTest do
   use DungeonCrawlWeb.ConnCase
 
-  @create_attrs %{name: "ampersand", character: "&", state: "flag: true", script: "#end\n:touch\nHEY", color: "green"}
+  @create_attrs %{name: "ampersand", character: "&", state: %{flag: true}, script: "#end\n:touch\nHEY", color: "green"}
   @invalid_attrs %{character: "XXX", state: "derp", color: "red", script: "#alsoderp"}
 
   # Without registered user
@@ -31,7 +31,7 @@ defmodule DungeonCrawlWeb.Editor.TileShortlistControllerTest do
                                      "name" => "ampersand",
                                      "script" => "#end\n:touch\nHEY",
                                      "slug" => nil,
-                                     "state" => "flag: true",
+                                     "state" => %{"flag" => true},
                                      "tile_template_id" => nil}} = json_response(conn, 200)
     end
 
@@ -40,8 +40,8 @@ defmodule DungeonCrawlWeb.Editor.TileShortlistControllerTest do
                   edit_tile_shortlist_path(conn, :create),
                   tile_shortlist: @invalid_attrs
       assert json_response(conn, 200) == %{"errors" => [%{"detail" => "Unknown command: `alsoderp` - near line 1", "field" => "script"},
-                                                        %{"detail" => "Error parsing around: derp", "field" => "state"},
-                                                        %{"detail" => "should be at most 1 character(s)", "field" => "character"}]
+                                                        %{"detail" => "should be at most 1 character(s)", "field" => "character"},
+                                                        %{"detail" => "is invalid", "field" => "state"}]
                                          }
     end
   end

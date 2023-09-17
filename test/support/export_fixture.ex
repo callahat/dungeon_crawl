@@ -1,4 +1,5 @@
 defmodule DungeonCrawlWeb.ExportFixture do
+  # Basically the result of Jason.decode
   def export do
     %DungeonCrawl.Shipping.DungeonExports{
       dungeon: %{
@@ -8,7 +9,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
         description: "testing",
         line_identifier: 1,
         name: "Exporter",
-        state: "test: true, starting_equipment: tmp_item_id_0 tmp_item_id_2",
+        state: %{starting_equipment: ["tmp_item_id_0", "tmp_item_id_2"], test: true},
         title_number: 2,
         user_name: "Some User"
       },
@@ -57,7 +58,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           number_north: nil,
           number_south: nil,
           number_west: nil,
-          state: nil,
+          state: %{},
           tile_data: [],
           width: 20
         },
@@ -70,17 +71,17 @@ defmodule DungeonCrawlWeb.ExportFixture do
           number_north: 3,
           number_south: nil,
           number_west: nil,
-          state: nil,
+          state: %{},
           tile_data: [
-            ["v7LGkP63e0sgDTG6W1h6wd5cm5Q=", 0, 1, 0],
-            ["QGaTo+Lpwww47MmNLMhoP2NdfZY=", 0, 2, 0],
-            ["v7LGkP63e0sgDTG6W1h6wd5cm5Q=", 0, 3, 0],
-            ["v7LGkP63e0sgDTG6W1h6wd5cm5Q=", 1, 1, 0],
-            ["z1HjUtwaXr960VZLMO8P5ao66hc=", 1, 2, 0],
-            ["v7LGkP63e0sgDTG6W1h6wd5cm5Q=", 1, 3, 0],
-            ["zSFkeR0X0SN/ab1zFumnaojDHTY=", 2, 1, 0],
-            ["zSFkeR0X0SN/ab1zFumnaojDHTY=", 2, 2, 0],
-            ["zSFkeR0X0SN/ab1zFumnaojDHTY=", 2, 3, 0]
+            ["93FxCALCaNRi3Qha+X8FhFKEs0M=", 0, 1, 0],
+            ["rkQY6V9Hd9dQdcceDynKdb8qzss=", 0, 2, 0],
+            ["93FxCALCaNRi3Qha+X8FhFKEs0M=", 0, 3, 0],
+            ["93FxCALCaNRi3Qha+X8FhFKEs0M=", 1, 1, 0],
+            ["XbkErctmdpGH6WY1uYNmMLGBxEo=", 1, 2, 0],
+            ["93FxCALCaNRi3Qha+X8FhFKEs0M=", 1, 3, 0],
+            ["SCZP75gqQb24pMsM9N2zSAkGYcM=", 2, 1, 0],
+            ["SCZP75gqQb24pMsM9N2zSAkGYcM=", 2, 2, 0],
+            ["SCZP75gqQb24pMsM9N2zSAkGYcM=", 2, 3, 0]
           ],
           width: 20
         },
@@ -93,12 +94,12 @@ defmodule DungeonCrawlWeb.ExportFixture do
           number_north: nil,
           number_south: nil,
           number_west: nil,
-          state: "visibility: fog",
+          state: %{visibility: "fog"},
           tile_data: [
-            ["v7LGkP63e0sgDTG6W1h6wd5cm5Q=", 0, 1, 0],
-            ["v7LGkP63e0sgDTG6W1h6wd5cm5Q=", 0, 2, 0],
-            ["kOlRd6t2Ifl20S+D4VA5H8GcvN8=", 1, 1, 0],
-            ["OMA49yhZc4nRDkO5cAUutrHKWPk=", 1, 2, 1]
+            ["93FxCALCaNRi3Qha+X8FhFKEs0M=", 0, 1, 0],
+            ["93FxCALCaNRi3Qha+X8FhFKEs0M=", 0, 2, 0],
+            ["wzYQu68E9E1OJng4O2vDoBqzwXA=", 1, 1, 0],
+            ["WyKrLyI8BL4jV8BeBcSN50Hzo5U=", 1, 2, 1]
           ],
           width: 20
         }
@@ -170,7 +171,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "",
           slug: "floor",
-          state: "blocking: false",
+          state: %{blocking: false},
           temp_tt_id: "tmp_tt_id_0",
           unlisted: false,
           user_id: nil
@@ -190,7 +191,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "",
           slug: "wall",
-          state: "blocking: true",
+          state: %{blocking: true},
           temp_tt_id: "tmp_tt_id_1",
           unlisted: false,
           user_id: nil
@@ -210,7 +211,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "",
           slug: "rock",
-          state: "blocking: true",
+          state: %{blocking: true},
           temp_tt_id: "tmp_tt_id_2",
           unlisted: false,
           user_id: nil
@@ -230,7 +231,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "#END\n:CLOSE\n#SOUND tmp_sound_id_3\n#BECOME slug: tmp_tt_id_4",
           slug: "open_door",
-          state: "blocking: false, open: true",
+          state: %{blocking: false, open: true},
           temp_tt_id: "tmp_tt_id_3",
           unlisted: false,
           user_id: nil
@@ -250,7 +251,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "#END\n:OPEN\n#SOUND tmp_sound_id_3\n#BECOME slug: tmp_tt_id_3",
           slug: "closed_door",
-          state: "blocking: true, open: false",
+          state: %{blocking: true, open: false},
           temp_tt_id: "tmp_tt_id_4",
           unlisted: false,
           user_id: nil
@@ -270,7 +271,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: ":MAIN\n#WALK @facing\n:THUD\n#SOUND tmp_sound_id_1\n#PUT slug: tmp_tt_id_6, shape: circle, range: 2, damage: 10, owner: @owner\n#DIE\n",
           slug: "fireball",
-          state: "blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2",
+          state: %{blocking: false, wait_cycles: 2, not_pushing: true, not_squishing: true, flying: true, light_source: true, light_range: 2},
           temp_tt_id: "tmp_tt_id_5",
           unlisted: true,
           user_id: nil
@@ -290,7 +291,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "#SEND bombed, here\n:TOP\n#RANDOM c, red, orange, yellow\n#BECOME color: @c\n?i\n@count -= 1\n#IF @count > 0, top\n#DIE\n",
           slug: "explosion",
-          state: "count: 3, damage: 10, light_source: true, light_range: 1",
+          state: %{count: 3, damage: 10, light_source: true, light_range: 1},
           temp_tt_id: "tmp_tt_id_6",
           unlisted: true,
           user_id: nil
@@ -310,14 +311,14 @@ defmodule DungeonCrawlWeb.ExportFixture do
           public: true,
           script: "#if @thrown, thrown\n:main\n#end\n:touch\n#if ! ?sender@player, main\nPicked up a stone\n#equip tmp_item_id_1, ?sender\n#sound tmp_sound_id_5, ?sender\n#die\n:thrown\n#zap touch\n@flying = true\n#walk @facing\n:thud\n:touch\n@flying=false\n#restore thrown\n#restore touch\n#send shot, ?sender\n#send main\n",
           slug: "stone",
-          state: "blocking: false, soft: true, pushable: true, blocking_light: false, damage: 5, not_pushing: true, wait_cycles: 2",
+          state: %{blocking: false, soft: true, pushable: true, blocking_light: false, damage: 5, not_pushing: true, wait_cycles: 2},
           temp_tt_id: "tmp_tt_id_7",
           unlisted: false,
           user_id: nil
         }
       },
       tiles: %{
-        "OMA49yhZc4nRDkO5cAUutrHKWPk=" => %{
+        "WyKrLyI8BL4jV8BeBcSN50Hzo5U=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -328,10 +329,10 @@ defmodule DungeonCrawlWeb.ExportFixture do
           color: nil,
           name: "",
           script: "#end\n:touch\n#sound tmp_sound_id_0\n#equip tmp_item_id_1, ?sender\n#become slug: tmp_tt_id_1\n#unequip tmp_item_id_0, ?sender\n/i\n#sound tmp_sound_id_0",
-          state: "blocking: true",
+          state: %{blocking: true},
           tile_template_id: nil
         },
-        "QGaTo+Lpwww47MmNLMhoP2NdfZY=" => %{
+        "rkQY6V9Hd9dQdcceDynKdb8qzss=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -342,10 +343,10 @@ defmodule DungeonCrawlWeb.ExportFixture do
           color: nil,
           name: "Rock",
           script: "",
-          state: "blocking: true",
+          state: %{blocking: true},
           tile_template_id: "tmp_tt_id_2"
         },
-        "kOlRd6t2Ifl20S+D4VA5H8GcvN8=" => %{
+        "wzYQu68E9E1OJng4O2vDoBqzwXA=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -356,10 +357,10 @@ defmodule DungeonCrawlWeb.ExportFixture do
           color: nil,
           name: "Floor 2",
           script: "",
-          state: "light_source: true",
+          state: %{light_source: true},
           tile_template_id: "tmp_tt_id_0"
         },
-        "v7LGkP63e0sgDTG6W1h6wd5cm5Q=" => %{
+        "93FxCALCaNRi3Qha+X8FhFKEs0M=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -370,10 +371,10 @@ defmodule DungeonCrawlWeb.ExportFixture do
           color: nil,
           name: "Floor",
           script: "",
-          state: "blocking: false",
+          state: %{blocking: false},
           tile_template_id: "tmp_tt_id_0"
         },
-        "z1HjUtwaXr960VZLMO8P5ao66hc=" => %{
+        "XbkErctmdpGH6WY1uYNmMLGBxEo=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -384,10 +385,10 @@ defmodule DungeonCrawlWeb.ExportFixture do
           color: nil,
           name: "Closed Door",
           script: "#END\n:OPEN\n#SOUND tmp_sound_id_3\n#BECOME slug: tmp_tt_id_3",
-          state: "blocking: true, open: false",
+          state: %{blocking: true, open: false},
           tile_template_id: "tmp_tt_id_4"
         },
-        "zSFkeR0X0SN/ab1zFumnaojDHTY=" => %{
+        "SCZP75gqQb24pMsM9N2zSAkGYcM=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -398,7 +399,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           color: nil,
           name: "Wall",
           script: "",
-          state: "blocking: true",
+          state: %{blocking: true},
           tile_template_id: "tmp_tt_id_1"
         }
       }

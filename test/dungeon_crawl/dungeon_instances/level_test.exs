@@ -60,7 +60,7 @@ defmodule DungeonCrawl.DungeonInstances.LevelTest do
       3571654 => %{
         event_sender: %{
           name: "Fireball",
-          parsed_state: %{
+          state: %{
             blocking: false,
             facing: "up",
             flying: true,
@@ -118,7 +118,7 @@ defmodule DungeonCrawl.DungeonInstances.LevelTest do
         event_sender: %DungeonCrawl.Player.Location{
           id: 3177,
           name: "Doc",
-          parsed_state: %{
+          state: %{
             already_touched: false,
             ammo: 6,
             blocking: true,

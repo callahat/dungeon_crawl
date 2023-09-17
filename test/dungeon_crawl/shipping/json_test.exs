@@ -35,7 +35,7 @@ defmodule DungeonCrawl.Shipping.JsonTest do
     export = DungeonCrawlWeb.ExportFixture.export
     json = Json.encode!(export)
 
-    assert export == Json.decode!(json)
     assert json == Json.encode!(Json.decode!(json))
+    assert export == Json.decode!(json)
   end
 end
