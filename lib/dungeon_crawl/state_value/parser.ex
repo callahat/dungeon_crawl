@@ -93,6 +93,8 @@ defmodule DungeonCrawl.StateValue.Parser do
     |> Enum.join(", ")
   end
 
+  defp _stringify_key_value({key, value}) when is_binary(key),
+    do: _stringify_key_value({String.to_atom(key), value})
   defp _stringify_key_value({:equipment, value}),
     do: "equipment: #{Enum.join(value, " ")}"
   defp _stringify_key_value({:starting_equipment, value}),

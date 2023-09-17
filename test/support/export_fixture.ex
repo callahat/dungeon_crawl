@@ -1,4 +1,5 @@
 defmodule DungeonCrawlWeb.ExportFixture do
+  # Basically the result of Jason.decode
   def export do
     %DungeonCrawl.Shipping.DungeonExports{
       dungeon: %{
