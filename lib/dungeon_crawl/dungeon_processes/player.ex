@@ -87,7 +87,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   defp _with_equipped_and_equipment(stats, player_tile, state) do
     {equipped, _, _} = Levels.get_item(player_tile.state[:equipped], state)
-    equipped_name = equipped && equipped.name
+    equipped_name = _equipped_item_name(player_tile.state[:equipment], equipped)
     equipment = (player_tile.state[:equipment] || [])
                 |> Enum.map(fn item_slug ->
                      {item, _, _} = Levels.get_item(item_slug, state)
@@ -140,17 +140,28 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   defp _with_equipped(stats, player_tile) do
     equipped = Equipment.get_item(player_tile.state[:equipped])
-    Map.put(stats, :equipped, equipped && equipped.name)
+    Map.put(stats, :equipped, _equipped_item_name(player_tile.state[:equipment], equipped))
+  end
+
+  def _equipped_item_name(_, nil), do: nil
+  def _equipped_item_name(equipment, %{consumable: true} = equipped) do
+    case Enum.count(equipment, &(&1 == equipped.slug)) do
+      count when count > 1 -> equipped.name <> " (x#{ count })"
+      _ -> equipped.name
+    end
+  end
+  def _equipped_item_name(_, equipped) do
+    equipped.name
   end
 
   defp _item_span_decorator({item, 1}, equipped_name) do
-    if equipped_name == item.name,
-      do: "<span>-#{ equipped_name } (Equipped)</span>",
+    if String.starts_with?(equipped_name, item.name),
+      do: "<span>-#{ item.name } (Equipped)</span>",
       else: "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name }</span>"
   end
   defp _item_span_decorator({item, count}, equipped_name) do
-    if equipped_name == item.name,
-       do: "<span>-#{ equipped_name } (x#{count}) (Equipped)</span>",
+    if String.starts_with?(equipped_name, item.name),
+       do: "<span>-#{ item.name } (x#{count}) (Equipped)</span>",
        else: "<span class='btn-link messageLink' data-item-slug='#{ item.slug }'>▶#{ item.name } (x#{count})</span>"
   end
   defp _item_span_decorator(title_text, _), do: title_text
@@ -314,10 +325,6 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     else
       _relocated_coordinates(state, player_tile)
     end
-  end
-
-  defp _respawn_coordinates(state, player_tile) do
-    _relocated_coordinates(state, player_tile)
   end
 
   @doc """
