@@ -342,7 +342,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
       GenServer.stop(instance_registry, :shutdown)
 
       eventually refute Process.alive?(instance_registry)
-      refute Process.alive?(instance_process_1)
-      refute Process.alive?(instance_process_2)
+      eventually refute Process.alive?(instance_process_1)
+      eventually refute Process.alive?(instance_process_2)
   end
 end

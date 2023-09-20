@@ -5,7 +5,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
   alias DungeonCrawl.DungeonInstances.Tile
   alias DungeonCrawl.DungeonProcesses.Cache
+  alias DungeonCrawl.DungeonProcesses.DungeonRegistry
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.Levels
+  alias DungeonCrawl.DungeonProcesses.Registrar
 
   alias DungeonCrawl.Equipment
 
@@ -39,7 +42,9 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                        player_locations: %{player_location.tile.id => player_location},
                        state_values: %{height: 10, width: 10} }
 
-    %{state: state, player_tile: player_location.tile, player_location: player_location}
+    on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, instance.dungeon_instance_id) end)
+
+    %{state: state, player_tile: player_location.tile, player_location: player_location, instance: instance}
   end
 
   test "current_stats/2", %{state: state, player_tile: player_tile} do
@@ -82,6 +87,40 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
            } = Player.current_stats(state, player_tile)
   end
 
+  test "current_stats/2 equipped is nil", %{state: state, player_tile: player_tile} do
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipped: nil, equipment: []})
+
+    assert %{equipped: nil,
+             equipment: [],
+           } = Player.current_stats(state, player_tile)
+  end
+
+  test "current_stats/2 equipped is consumable", %{state: state, player_tile: player_tile} do
+    stone = insert_item(%{name: "Stone", consumable: true})
+
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: ["gun", stone.slug]})
+
+    assert %{equipped: "Stone",
+             equipment: [
+               "<span>Equippable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='gun'>▶Gun</span>",
+               "<span>Consumable Items:</span>",
+               "<span>-Stone (Equipped)</span>"
+             ],
+           } = Player.current_stats(state, player_tile)
+
+    {_, state} = Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: ["gun", stone.slug, stone.slug, stone.slug]})
+
+    assert %{equipped: "Stone (x3)",
+             equipment: [
+               "<span>Equippable Items:</span>",
+               "<span class='btn-link messageLink' data-item-slug='gun'>▶Gun</span>",
+               "<span>Consumable Items:</span>",
+               "<span>-Stone (x3) (Equipped)</span>"
+           ],
+           } = Player.current_stats(state, player_tile)
+  end
+
   test "current_stats/2 when the tile does not exist (this path should not happen)", %{player_tile: player_tile} do
     assert %{} == Player.current_stats(%Levels{}, player_tile)
   end
@@ -97,6 +136,26 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     refute stats[:equipment]
 
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" = keys
+  end
+
+  test "current_stats/1 when equipped is nil", %{player_tile: player_tile} do
+    DungeonCrawl.Repo.update Tile.changeset(player_tile, %{state: %{equipped: nil, equipment: []}})
+    assert %{equipped: nil} = Player.current_stats(@user_id_hash)
+  end
+
+  test "current_stats/1 equipped is consumable", %{instance: instance, player_tile: player_tile} do
+    stone = insert_item(%{name: "Stone", consumable: true})
+
+    {:ok, instance_process} = Registrar.instance_process(instance)
+    LevelProcess.run_with(instance_process, fn (state) ->
+      Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: [stone.slug]})
+    end)
+    assert %{equipped: "Stone"} = Player.current_stats(@user_id_hash)
+
+    LevelProcess.run_with(instance_process, fn (state) ->
+      Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: ["gun", stone.slug, stone.slug, stone.slug]})
+    end)
+    assert %{equipped: "Stone (x3)"} = Player.current_stats(@user_id_hash)
   end
 
   test "current_stats/1 handles someone not in a dungeon" do
