@@ -1360,7 +1360,7 @@ defmodule DungeonCrawl.Scripting.Command do
                                                             state.program_messages] } }
   end
   defp _send_message(%Runner{state: state, program: program, object_id: object_id} = runner_state, [label, "self", delay]) do
-    trigger_time = Time.utc_now |> Time.add(delay, :second)
+    trigger_time = DateTime.utc_now |> DateTime.add(delay, :second)
     object = Levels.get_tile_by_id(state, %{id: object_id})
     timed_messages = Enum.reverse([
         {trigger_time, label, %{tile_id: object.id, state: object.state}}

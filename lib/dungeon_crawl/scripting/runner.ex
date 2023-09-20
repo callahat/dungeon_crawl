@@ -31,7 +31,7 @@ require Logger
     runner_state =
       if program.timed_messages != [] do
         {triggered, timed_messages} = Enum.split_with(program.timed_messages, fn {trigger_time, _label, _} ->
-          Time.compare(Time.utc_now, trigger_time) != :lt
+          DateTime.compare(DateTime.utc_now, trigger_time) != :lt
         end)
         triggered = Enum.map(triggered, fn {_, message, sender} -> {message, sender} end)
         %{ runner_state | program: %{ program | messages: program.messages ++ triggered, timed_messages: timed_messages}}

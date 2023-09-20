@@ -46,7 +46,7 @@ defmodule DungeonCrawl.Scripting.Program do
     %{ program | messages: messages }
   end
   def send_message(program, label, sender, delay) do
-    trigger_time = Time.utc_now |> Time.add(delay, :second)
+    trigger_time = DateTime.utc_now |> DateTime.add(delay, :second)
     %{ program | timed_messages: [{trigger_time, label, sender} | program.timed_messages] }
   end
 end

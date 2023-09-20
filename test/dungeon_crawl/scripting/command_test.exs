@@ -1585,8 +1585,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     %Runner{state: state, program: program} = Command.send_message(runner_state, ["second_message", "self", 45])
     assert state.program_messages == []
     assert [{trigger_time_1, "tap", ^stubbed_id}, {trigger_time_2, "second_message", ^stubbed_id}] = program.timed_messages
-    assert_in_delta Time.diff(trigger_time_1, Time.utc_now), 15, 1
-    assert_in_delta Time.diff(trigger_time_2, Time.utc_now), 45, 1
+    assert_in_delta DateTime.diff(trigger_time_1, DateTime.utc_now), 15, 1
+    assert_in_delta DateTime.diff(trigger_time_2, DateTime.utc_now), 45, 1
   end
 
   test "SEND message to event sender" do
