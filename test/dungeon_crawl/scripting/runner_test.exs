@@ -74,8 +74,8 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
       stubbed_object = %{id: 1, state: %{}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
-      future = Time.add(Time.utc_now, 100)
-      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | timed_messages: [{future, "there", nil}, {Time.utc_now, "here", nil}], status: :idle}, object_id: 1, state: stubbed_state})
+      future = DateTime.add(DateTime.utc_now, 100)
+      %Runner{program: run_program} = Runner.run(%Runner{program: %{program | timed_messages: [{future, "there", nil}, {DateTime.utc_now, "here", nil}], status: :idle}, object_id: 1, state: stubbed_state})
       assert run_program.messages == [{"here", nil}]
       assert run_program.timed_messages == [{future, "there", nil}]
       assert run_program.responses == [] # the message would not have run yet

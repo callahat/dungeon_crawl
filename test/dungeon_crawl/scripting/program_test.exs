@@ -36,11 +36,11 @@ defmodule DungeonCrawl.Scripting.ProgramTest do
   test "send_message/4 with delay" do
     program = Program.send_message(%Program{}, "touch", 1234, 120)
     assert [{trigger_time, "touch", 1234}] = program.timed_messages
-    assert_in_delta Time.diff(trigger_time, Time.utc_now), 120, 1
+    assert_in_delta DateTime.diff(trigger_time, DateTime.utc_now), 120, 1
 
     program = Program.send_message(program, "panic", nil, 15)
     assert [{t2, "panic", nil}, {t1, "touch", 1234}] = program.timed_messages
-    assert_in_delta Time.diff(t1, Time.utc_now), 120, 1
-    assert_in_delta Time.diff(t2, Time.utc_now), 15, 1
+    assert_in_delta DateTime.diff(t1, DateTime.utc_now), 120, 1
+    assert_in_delta DateTime.diff(t2, DateTime.utc_now), 15, 1
   end
 end
