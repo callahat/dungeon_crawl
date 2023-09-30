@@ -6,7 +6,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
   describe "tile_templates" do
     alias DungeonCrawl.TileTemplates.TileTemplate
 
-    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black", active: true, state: %{blocking: true}, script: ""}
+    @valid_attrs %{name: "A Big X", description: "A big capital X", character: "X", color: "red", background_color: "black", active: true, state: %{"blocking" => true}, script: ""}
     @update_attrs %{color: "puce", character: "█"}
     @invalid_attrs %{name: "", character: "BIG"}
 
@@ -213,7 +213,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template.color == "red"
       assert tile_template.description == "A big capital X"
       assert tile_template.name == "A Big X"
-      assert tile_template.state == %{blocking: true}
+      assert tile_template.state == %{"blocking" => true}
       assert tile_template.script == ""
       assert tile_template.slug == "a_big_x_#{tile_template.id}"
     end
@@ -304,7 +304,7 @@ defmodule DungeonCrawl.TileTemplatesTest do
                color: "red",
                name: "A Big X",
                script: "",
-               state: %{blocking: true},
+               state: %{"blocking" => true},
                description: "A big capital X",
                group_name: "custom",
                public: false,

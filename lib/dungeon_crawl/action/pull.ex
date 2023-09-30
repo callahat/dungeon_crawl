@@ -32,8 +32,8 @@ require Logger
     do: {:ok, tile_changes, state}
   defp _execute_pull_chain({:ok, tile_changes, state}, [], puller) do
     {_, state} = cond do
-                   puller && Enum.member?(["map_tile_id", "tile_id"], puller.state[:pulling]) ->
-                     Levels.update_tile_state(state, puller, %{pulling: false})
+                   puller && Enum.member?(["map_tile_id", "tile_id"], puller.state["pulling"]) ->
+                     Levels.update_tile_state(state, puller, %{"pulling" => false})
                    true ->
                      {puller, state}
                  end
@@ -48,25 +48,27 @@ require Logger
     case Move.go(lead_tile, destination, state, tile_changes) do
       {:ok, tile_changes, state} ->
         lead_tile = Levels.get_tile_by_id(state, lead_tile)
-        lead_pullable = lead_tile && lead_tile.state[:pullable]
-        puller_pulling = puller && puller.state[:pulling]
+        lead_pullable = lead_tile && lead_tile.state["pullable"]
+        puller_pulling = puller && puller.state["pulling"]
 
         {lead_tile, state} = cond do
                                    Enum.member?(["map_tile_id", "tile_id"], lead_pullable) ->
-                                     Levels.update_tile_state(state, lead_tile, %{pullable: puller.id, facing: direction})
-                                   puller && is_binary(lead_pullable) && puller.state[String.to_atom(lead_pullable)] ->
-                                     Levels.update_tile_state(state, lead_tile, %{pullable: puller.id, facing: direction})
-                                   direction != lead_tile.state[:facing] ->
-                                     Levels.update_tile_state(state, lead_tile, %{facing: direction})
+                                   # TODO: same comment as below
+                                     Levels.update_tile_state(state, lead_tile, %{"pullable" => puller.id, "facing" => direction})
+                                   puller && is_binary(lead_pullable) && puller.state[lead_pullable] ->
+                                     Levels.update_tile_state(state, lead_tile, %{"pullable" => puller.id, "facing" => direction})
+                                   direction != lead_tile.state["facing"] ->
+                                     Levels.update_tile_state(state, lead_tile, %{"facing" => direction})
                                    true ->
                                      {lead_tile, state}
                                  end
 
         {_, state} = cond do
                        Enum.member?(["map_tile_id", "tile_id"], puller_pulling) ->
-                         Levels.update_tile_state(state, puller, %{pulling: lead_tile.id})
-                       lead_tile && is_binary(puller_pulling) && lead_tile.state[String.to_atom(puller_pulling)] ->
-                         Levels.update_tile_state(state, puller, %{pulling: lead_tile.id})
+                       # TODO: change pulling: to "pulling" =>, there may be many things like this that need updated
+                         Levels.update_tile_state(state, puller, %{"pulling" => lead_tile.id})
+                       lead_tile && is_binary(puller_pulling) && lead_tile.state[puller_pulling] ->
+                         Levels.update_tile_state(state, puller, %{"pulling" => lead_tile.id})
                        true ->
                          {puller, state}
                      end
@@ -93,12 +95,12 @@ require Logger
                   |> Enum.reject(fn(adjacent) -> would_not_pull(lead_tile, adjacent) end)
                   |> Enum.shuffle()
                   |> Enum.sort_by(fn pulled_tile ->
-                       {pulled_tile.state[:pullable] == lead_tile.id, is_binary(pulled_tile.state[:pullable]) }
+                       {pulled_tile.state["pullable"] == lead_tile.id, is_binary(pulled_tile.state["pullable"]) }
                      end, &>=/2)
                   |> Enum.at(0) # in case there are several pullable candidates, and because Enum.random errors when given empty list
 
     if pulled_tile do
-      if pulled_tile.state[:pulling] do
+      if pulled_tile.state["pulling"] do
         _pull_chain(pulled_tile, lead_tile, state, [ {lead_tile, destination} | pull_chain])
       else
         [{pulled_tile, lead_tile}, {lead_tile, destination} | pull_chain]
@@ -114,12 +116,12 @@ require Logger
   an adjacent tile that has the integer as its id.
   """
   def would_not_pull(tile, adjacent_tile) do
-    is_integer(tile.state[:pulling]) &&
-      tile.state[:pulling] != adjacent_tile.id ||
-    is_binary(tile.state[:pulling]) &&
-      !Enum.member?(["linear", "map_tile_id", "tile_id"], tile.state[:pulling]) &&
-      !(tile.state[:pulling] =~ ~r/\A[nsew]{1,4}\z/) &&
-      !adjacent_tile.state[String.to_atom(tile.state[:pulling])]
+    is_integer(tile.state["pulling"]) &&
+      tile.state["pulling"] != adjacent_tile.id ||
+    is_binary(tile.state["pulling"]) &&
+      !Enum.member?(["linear", "map_tile_id", "tile_id"], tile.state["pulling"]) &&
+      !(tile.state["pulling"] =~ ~r/\A[nsew]{1,4}\z/) &&
+      !adjacent_tile.state[tile.state["pulling"]]
   end
 
   @doc """
@@ -135,7 +137,7 @@ require Logger
     if direction == _get_direction(tile, adjacent_tile) || _already_pulling(adjacent_tile, pull_chain) do
       false
     else
-      case adjacent_tile.state[:pullable] do
+      case adjacent_tile.state["pullable"] do
         true          -> true
         false         -> false
         "linear"      -> _get_direction(adjacent_tile, tile) == direction
@@ -148,7 +150,7 @@ require Logger
             |> Enum.any?(&_in_direction(&1, adjacent_tile, tile))
           else
             # assume its a state variable
-            tile.state[String.to_atom(directions)]
+            tile.state[directions]
           end
         puller_tile_id -> tile.id == puller_tile_id
       end

@@ -30,14 +30,14 @@ defmodule DungeonCrawl.DungeonRegistryTest do
   end
 
   test "create/2", %{map_set_registry: map_set_registry} do
-    di = insert_stubbed_dungeon_instance(%{state: %{flag: "off"}}, %{}, [[%Tile{character: "O", row: 1, col: 1, z_index: 0}]])
+    di = insert_stubbed_dungeon_instance(%{state: %{"flag" => "off"}}, %{}, [[%Tile{character: "O", row: 1, col: 1, z_index: 0}]])
     d = Repo.preload(di, :dungeon).dungeon
 
     assert :ok = DungeonRegistry.create(map_set_registry, di.id)
     assert {:ok, msi_process} = DungeonRegistry.lookup(map_set_registry, di.id)
     assert %DungeonProcess{dungeon: ^d,
                           dungeon_instance: %Dungeon{},
-                          state_values: %{flag: "off"},
+                          state_values: %{"flag" => "off"},
                           instance_registry: instance_registry,
                           entrances: []} = DungeonProcess.get_state(msi_process)
     {level_id, level_number} = Repo.preload(di, :levels).levels

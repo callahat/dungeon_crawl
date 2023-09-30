@@ -113,7 +113,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     harp_down = SoundSeeder.harp_down
     {:ok, cache} = Cache.start_link([])
     li = insert_stubbed_level_instance()
-    player_tile = %Tile{level_instance_id: li.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: %{health: 100, lives: 3, player: true}}
+    player_tile = %Tile{level_instance_id: li.id, id: 123, row: 4, col: 4, z_index: 1, character: "@", state: %{"health" => 100, "lives" => 3, "player" => true}}
     player_location = %Location{id: 555, user_id_hash: "dubs", tile_instance_id: 123}
     {_player_tile, state} = Levels.create_player_tile(%{state | cache: cache}, player_tile, player_location)
 
@@ -211,7 +211,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert %{id: 1, character: "@"} = new_tile
     assert %Levels{
       program_contexts: %{},
-      map_by_ids: %{1 =>  Map.put(new_tile, :state, %{entry_col: 4, entry_row: 5})},
+      map_by_ids: %{1 =>  Map.put(new_tile, :state, %{"entry_col" => 4, "entry_row" => 5})},
       map_by_coords: %{ {5, 4} => %{1 => 1} },
       player_locations: %{new_tile.id => location},
       rerender_coords: %{%{col: 4, row: 5} => true}
@@ -222,7 +222,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert %{id: 1, character: "@"} = new_tile
     assert %Levels{
       program_contexts: %{},
-      map_by_ids: %{1 =>  Map.put(new_tile, :state, %{entry_col: 4, entry_row: 5})},
+      map_by_ids: %{1 =>  Map.put(new_tile, :state, %{"entry_col" => 4, "entry_row" => 5})},
       map_by_coords: %{ {5, 4} => %{1 => 1} },
       player_locations: %{new_tile.id => location},
       rerender_coords: %{%{col: 4, row: 5} => true}
@@ -230,14 +230,14 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "create_tile/2 creates a tile" do
-    new_tile = %{id: 1, row: 4, col: 4, z_index: 0, character: "M", state: %{light_source: true}, script: ""}
+    new_tile = %{id: 1, row: 4, col: 4, z_index: 0, character: "M", state: %{"light_source" => true}, script: ""}
 
     {new_tile, state} = Levels.create_tile(%Levels{}, new_tile)
 
     assert %{id: 1, character: "M"} = new_tile
     assert %Levels{
       program_contexts: %{},
-      map_by_ids: %{1 =>  Map.put(new_tile, :state, %{light_source: true})},
+      map_by_ids: %{1 =>  Map.put(new_tile, :state, %{"light_source" => true})},
       map_by_coords: %{ {4, 4} => %{0 => 1} },
       new_pids: [],
       rerender_coords: %{%{col: 4, row: 4} => true},
@@ -259,7 +259,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert capture_log(fn ->
              assert {_tile, updated_state} = Levels.create_tile(state, tile_bad_script)
              assert %Levels{ program_contexts: %{},
-                             map_by_ids: %{1 => Map.put(new_tile, :state, %{light_source: true}),
+                             map_by_ids: %{1 => Map.put(new_tile, :state, %{"light_source" => true}),
                                            123 => Map.put(tile_bad_script, :state, %{})},
                              map_by_coords: %{{1, 4} => %{0 => 123}, {4, 4} => %{0 => 1}},
                              rerender_coords: %{%{col: 4, row: 1} => true, %{col: 4, row: 4} => true},
@@ -305,7 +305,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
                                      event_sender: %{tile_id: "new_0"} }}
     state = %{ state | program_contexts: program_contexts }
 
-    new_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: %{blocking: true}, script: "#END\n:touch\nHI"}
+    new_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: %{"blocking" => true}, script: "#END\n:touch\nHI"}
     {new_tile, state} = Levels.create_tile(state, new_tile)
     assert new_tile.id == "new_0"
 
@@ -329,7 +329,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "set_tile_id/3 when new tile has no script" do
-    new_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: %{blocking: true}, script: ""}
+    new_tile = %{id: nil, row: 4, col: 4, z_index: 0, character: "M", state: %{"blocking" => true}, script: ""}
     {new_tile, state} = Levels.create_tile(%Levels{}, new_tile)
     assert new_tile.id == "new_0"
 
@@ -348,24 +348,24 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   test "update_tile_state/3", %{state: state} do
     tile = Levels.get_tile(state, %{id: 999, row: 1, col: 2})
-    assert {tile, state} = Levels.update_tile_state(state, tile, %{hamburders: 4})
-    assert tile.state[:hamburders] == 4
+    assert {tile, state} = Levels.update_tile_state(state, tile, %{"hamburders" => 4})
+    assert tile.state["hamburders"] == 4
 
-    assert {tile, _state} = Levels.update_tile_state(state, tile, %{coffee: 2})
-    assert tile.state[:hamburders] == 4
-    assert tile.state[:coffee] == 2
+    assert {tile, _state} = Levels.update_tile_state(state, tile, %{"coffee" => 2})
+    assert tile.state["hamburders"] == 4
+    assert tile.state["coffee"] == 2
 
     # light sources
-    assert {tile, updated_state} = Levels.update_tile_state(state, tile, %{light_source: true})
-    assert tile.state[:light_source] == true
+    assert {tile, updated_state} = Levels.update_tile_state(state, tile, %{"light_source" => true})
+    assert tile.state["light_source"] == true
     assert updated_state.light_sources[tile.id] == true
 
-    assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{other: false})
-    assert tile.state[:light_source] == true
+    assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{"other" => false})
+    assert tile.state["light_source"] == true
     assert updated_state.light_sources[tile.id] == true
 
-    assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{light_source: false})
-    assert tile.state[:light_source] == false
+    assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{"light_source" => false})
+    assert tile.state["light_source"] == false
     refute Map.has_key?(updated_state.light_sources, tile.id)
   end
 
@@ -411,7 +411,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
     # Adds a program
     refute state.program_contexts[-3]
-    assert {_updated_tile, state} = Levels.update_tile(state, %{id: -3}, %{script: "#END\n:TOUCH\n?s"})
+    assert {_updated_tile, state} = Levels.update_tile(state, %{id: -3}, %{"script" => "#END\n:TOUCH\n?s"})
     assert %{-3 => %{program: program, object_id: -3}} = state.program_contexts
     assert %{map_by_ids: %{-3 => %Tile{script: "#END\n:TOUCH\n?s"}}} = state
     assert %DungeonCrawl.Scripting.Program{
@@ -434,7 +434,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     # Adds a different program to something with one already
     assert state.program_contexts[999]
     assert state.program_contexts[999].program.status == :alive
-    assert {_updated_tile, state} = Levels.update_tile(state, %{id: 999}, %{script: "?n"})
+    assert {_updated_tile, state} = Levels.update_tile(state, %{id: 999}, %{"script" => "?n"})
     assert %{999 => %{program: program, object_id: 999}} = state.program_contexts
     assert %{map_by_ids: %{999 => %Tile{script: "?n"}}} = state
     assert %DungeonCrawl.Scripting.Program{
@@ -534,9 +534,9 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   test "direction_of_tile/3" do
     tile_nw = %Tile{id: 990, row: 2, col: 2, z_index: 0, character: "."}
-    tile_n  = %Tile{id: 991, row: 2, col: 3, z_index: 0, character: "#", state: %{blocking: true}}
+    tile_n  = %Tile{id: 991, row: 2, col: 3, z_index: 0, character: "#", state: %{"blocking" => true}}
     tile_ne = %Tile{id: 992, row: 2, col: 4, z_index: 0, character: "."}
-    tile_w  = %Tile{id: 993, row: 3, col: 2, z_index: 0, character: "#", state: %{blocking: true}}
+    tile_w  = %Tile{id: 993, row: 3, col: 2, z_index: 0, character: "#", state: %{"blocking" => true}}
     tile_me = %Tile{id: 994, row: 3, col: 3, z_index: 0, character: "@"}
     tile_e  = %Tile{id: 995, row: 3, col: 4, z_index: 0, character: "."}
     tile_sw = %Tile{id: 996, row: 4, col: 2, z_index: 0, character: "."}
@@ -584,22 +584,22 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "set_state_value/3" do
-    state = Levels.set_state_value(%Levels{}, :bacon, "good")
-    assert state.state_values == %{bacon: "good"}
+    state = Levels.set_state_value(%Levels{}, "bacon", "good")
+    assert state.state_values == %{"bacon" => "good"}
   end
 
   test "get_state_value/2" do
-    assert true == Levels.get_state_value(%Levels{state_values: %{flag: true}}, :flag)
+    assert true == Levels.get_state_value(%Levels{state_values: %{"flag" => true}}, "flag")
   end
 
   test "subtract/4 when loser does not exist" do
-    assert {:no_loser, _state} = Levels.subtract(%Levels{}, :anything, 2, 12345)
+    assert {:no_loser, _state} = Levels.subtract(%Levels{}, "anything", 2, 12345)
   end
 
   test "subtract/4 health on a tile" do
     wall       = %Tile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: %{}}
-    breakable  = %Tile{id: 993, row: 1, col: 2, z_index: 0, character: "B", state: %{destroyable: true}}
-    damageable = %Tile{id: 994, row: 1, col: 3, z_index: 0, character: "D", state: %{health: 10}}
+    breakable  = %Tile{id: 993, row: 1, col: 2, z_index: 0, character: "B", state: %{"destroyable" => true}}
+    damageable = %Tile{id: 994, row: 1, col: 3, z_index: 0, character: "D", state: %{"health" => 10}}
     state = %Levels{dungeon_instance_id: 14, instance_id: 12345}
     {wall, state} = Levels.create_tile(state, wall)
     {breakable, state} = Levels.create_tile(state, breakable)
@@ -608,33 +608,33 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     dungeon_channel = "level:14:12345"
     DungeonCrawlWeb.Endpoint.subscribe(dungeon_channel)
 
-    assert {:noop, updated_state} = Levels.subtract(state, :health, 5, wall.id)
+    assert {:noop, updated_state} = Levels.subtract(state, "health", 5, wall.id)
     assert state == updated_state
 
-    assert {:died, updated_state} = Levels.subtract(state, :health, 5, breakable.id)
+    assert {:died, updated_state} = Levels.subtract(state, "health", 5, breakable.id)
     refute Levels.get_tile_by_id(updated_state, breakable)
     assert Map.has_key? updated_state.rerender_coords, Map.take(breakable, [:row, :col])
 
-    assert {:ok, updated_state} = Levels.subtract(state, :health, 5, damageable.id)
-    assert Levels.get_tile_by_id(updated_state, damageable).state[:health] == 5
+    assert {:ok, updated_state} = Levels.subtract(state, "health", 5, damageable.id)
+    assert Levels.get_tile_by_id(updated_state, damageable).state["health"] == 5
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: %{tiles: [%{row: 1, col: 3, rendering: _anything}]}}
 
-    assert {:died, updated_state} = Levels.subtract(state, :health, 10, damageable.id)
+    assert {:died, updated_state} = Levels.subtract(state, "health", 10, damageable.id)
     refute Levels.get_tile_by_id(updated_state, damageable)
     assert Map.has_key? updated_state.rerender_coords, Map.take(damageable, [:row, :col])
   end
 
   test "subtract/4 non health on a tile" do
-    tile = %Tile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: %{cash: 5}}
+    tile = %Tile{id: 992, row: 1, col: 1, z_index: 0, character: "#", state: %{"cash" => 5}}
     {tile, state} = Levels.create_tile(%Levels{}, tile)
 
-    assert {:ok, updated_state} = Levels.subtract(state, :cash, 5, tile.id)
-    assert Levels.get_tile_by_id(updated_state, tile).state[:cash] == 0
-    assert {:not_enough, updated_state} = Levels.subtract(state, :cash, 6, tile.id)
+    assert {:ok, updated_state} = Levels.subtract(state, "cash", 5, tile.id)
+    assert Levels.get_tile_by_id(updated_state, tile).state["cash"] == 0
+    assert {:not_enough, updated_state} = Levels.subtract(state, "cash", 6, tile.id)
     assert state == updated_state
-    assert {:not_enough, updated_state} = Levels.subtract(state, :nothing, 1, tile.id)
+    assert {:not_enough, updated_state} = Levels.subtract(state, "nothing", 1, tile.id)
     assert state == updated_state
   end
 
@@ -643,7 +643,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     harp_down = SoundSeeder.harp_down
     {:ok, cache} = Cache.start_link([])
     instance = insert_stubbed_level_instance()
-    player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: %{gems: 10, health: 30, lives: 2}, script: "", level_instance_id: instance.id}
+    player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: %{"gems" => 10, "health" => 30, "lives" => 2}, script: "", level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
     state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
@@ -653,14 +653,14 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     player_channel = "players:444"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
-    assert {:ok, updated_state} = Levels.subtract(state, :health, 10, player_tile.id)
+    assert {:ok, updated_state} = Levels.subtract(state, "health", 10, player_tile.id)
     refute_receive %Phoenix.Socket.Broadcast{
             topic: ^dungeon_channel,
             payload: _anything}
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
     assert updated_state.sound_effects == [%{col: 4, row: 4, target: location, zzfx_params: ouch.zzfx_params}]
 
-    assert {:ok, updated_state} = Levels.subtract(state, :health, 30, player_tile.id)
+    assert {:ok, updated_state} = Levels.subtract(state, "health", 30, player_tile.id)
     assert Map.has_key? updated_state.rerender_coords, Map.take(player_tile, [:row, :col])
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel,
@@ -674,14 +674,14 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     ouch = SoundSeeder.ouch
     SoundSeeder.harp_down
     {:ok, cache} = Cache.start_link([])
-    instance = insert_stubbed_level_instance(%{state: %{reset_player_when_damaged: true}})
-    player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: %{gems: 10, health: 30, lives: 2}, level_instance_id: instance.id}
+    instance = insert_stubbed_level_instance(%{state: %{"reset_player_when_damaged" => true}})
+    player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: %{"gems" => 10, "health" => 30, "lives" => 2}, level_instance_id: instance.id}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
-    state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123, state_values: %{reset_player_when_damaged: true}}
+    state = %Levels{cache: cache, dungeon_instance_id: 14, instance_id: 123, state_values: %{"reset_player_when_damaged" => true}}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
-    {player_tile, state} = Levels.update_tile_state(state, player_tile, %{entry_row: 1, entry_col: 9})
+    {player_tile, state} = Levels.update_tile_state(state, player_tile, %{"entry_row" => 1, "entry_col" => 9})
 
-    assert {:ok, updated_state} = Levels.subtract(state, :health, 10, player_tile.id)
+    assert {:ok, updated_state} = Levels.subtract(state, "health", 10, player_tile.id)
 
     player_tile = Levels.get_tile_by_id(updated_state, player_tile)
     assert %{row: 1, col: 9} = player_tile
@@ -690,7 +690,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "subtract/4 non health on a player tile" do
-    player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: %{gems: 10, health: 30}}
+    player_tile = %Tile{id: 1, row: 4, col: 4, z_index: 1, character: "@", state: %{"gems" => 10, "health" => 30}}
     location = %Location{id: 444, user_id_hash: "dubs", tile_instance_id: 123}
     state = %Levels{instance_id: 123}
     {player_tile, state} = Levels.create_player_tile(state, player_tile, location)
@@ -698,13 +698,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     player_channel = "players:444"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
 
-    assert {:ok, updated_state} = Levels.subtract(state, :gems, 10, player_tile.id)
-    assert Levels.get_tile_by_id(updated_state, player_tile).state[:gems] == 0
+    assert {:ok, updated_state} = Levels.subtract(state, "gems", 10, player_tile.id)
+    assert Levels.get_tile_by_id(updated_state, player_tile).state["gems"] == 0
     assert Enum.member? updated_state.dirty_player_tile_stats, player_tile.id
 
-    assert {:not_enough, updated_state} = Levels.subtract(state, :gems, 12, player_tile.id)
+    assert {:not_enough, updated_state} = Levels.subtract(state, "gems", 12, player_tile.id)
     assert state == updated_state
-    assert {:not_enough, updated_state} = Levels.subtract(state, :cash, 500, player_tile.id)
+    assert {:not_enough, updated_state} = Levels.subtract(state, "cash", 500, player_tile.id)
     assert state == updated_state
   end
 
@@ -739,7 +739,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
     assert %{program: %Program{instructions: instructions}} = gun
     assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
-             2 => [:shoot, [state_variable: :facing]],
+             2 => [:shoot, [state_variable: "facing"]],
              3 => [:sound, ["shoot"]],
              4 => [:halt, [""]],
              5 => [:noop, "error"],
@@ -771,8 +771,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   test "gameover/3 - ends game for all players in instance" do
     instance = insert_stubbed_level_instance(%{}, [
-                 %Tile{character: "@", row: 1, col: 3, state: %{duration: 123, damage: 10, player: true, score: 3, steps: 10}, name: "player"},
-                 %Tile{character: "@", row: 1, col: 4, state: %{damage: 10, player: true, score: 1, steps: 99}, name: "player"}
+                 %Tile{character: "@", row: 1, col: 3, state: %{"duration" => 123, "damage" => 10, "player" => true, "score" => 3, "steps" => 10}, name: "player"},
+                 %Tile{character: "@", row: 1, col: 4, state: %{"damage" => 10, "player" => true, "score" => 1, "steps" => 99}, name: "player"}
                ])
     [player_tile_1, player_tile_2] = Repo.preload(instance, :tiles).tiles
                                      |> Enum.sort(fn a, b -> a.col < b.col end)
@@ -787,7 +787,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
                                   inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
                                   user_id_hash: "goober2"}
 
-    state = %Levels{state_values: %{rows: 20, cols: 20}, dungeon_instance_id: instance.dungeon_instance_id}
+    state = %Levels{state_values: %{"rows" => 20, "cols" => 20}, dungeon_instance_id: instance.dungeon_instance_id}
     {player_tile_1, state} = Levels.create_player_tile(state, player_tile_1, player_location_1)
     {player_tile_2, state} = Levels.create_player_tile(state, player_tile_2, player_location_2)
 
@@ -806,9 +806,9 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     score_1_id = score_1.id
     score_2_id = score_2.id
 
-    assert %{state: %{gameover: true, score_id: ^score_1_id}} =
+    assert %{state: %{"gameover" => true, "score_id" => ^score_1_id}} =
       Levels.get_tile_by_id(updated_state, player_tile_1)
-    assert %{state: %{gameover: true, score_id: ^score_2_id}} =
+    assert %{state: %{"gameover" => true, "score_id" => ^score_2_id}} =
       Levels.get_tile_by_id(updated_state, player_tile_2)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel_1,
@@ -859,7 +859,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
     # no scoring
     DungeonProcess.set_dungeon(dungeon_process, dungeon)
-    DungeonProcess.set_state_value(dungeon_process, :no_scoring, true)
+    DungeonProcess.set_state_value(dungeon_process, "no_scoring", true)
     Levels.gameover(state, true, "Done")
 
     assert Scores.list_scores == []
@@ -870,8 +870,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   test "gameover/4 - ends game for given player" do
     instance = insert_stubbed_level_instance(%{}, [
-                 %Tile{character: "@", row: 1, col: 3, state: %{damage: 10, player: true, score: 3, steps: 10}, name: "player"},
-                 %Tile{character: "@", row: 1, col: 4, state: %{damage: 10, player: true, score: 1, steps: 99}, name: "player"}
+                 %Tile{character: "@", row: 1, col: 3, state: %{"damage" => 10, "player" => true, "score" => 3, "steps" => 10}, name: "player"},
+                 %Tile{character: "@", row: 1, col: 4, state: %{"damage" => 10, "player" => true, "score" => 1, "steps" => 99}, name: "player"}
                ])
     [player_tile_1, player_tile_2] = Repo.preload(instance, :tiles).tiles
                                      |> Enum.sort(fn a, b -> a.col < b.col end)
@@ -886,7 +886,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
                                   inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now, -3),
                                   user_id_hash: "goober2"}
 
-    state = %Levels{state_values: %{rows: 20, cols: 20}, dungeon_instance_id: instance.dungeon_instance_id}
+    state = %Levels{state_values: %{"rows" => 20, "cols" => 20}, dungeon_instance_id: instance.dungeon_instance_id}
     {player_tile_1, state} = Levels.create_player_tile(state, player_tile_1, player_location_1)
     {player_tile_2, state} = Levels.create_player_tile(state, player_tile_2, player_location_2)
 
@@ -904,9 +904,9 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     score = Scores.list_scores |> Enum.reverse |> Enum.at(0)
     score_id = score.id
 
-    assert %{state: %{gameover: true, score_id: ^score_id}} =
+    assert %{state: %{"gameover" => true, "score_id" => ^score_id}} =
       Levels.get_tile_by_id(updated_state, player_tile_1)
-    refute Levels.get_tile_by_id(updated_state, player_tile_2).state[:gameover]
+    refute Levels.get_tile_by_id(updated_state, player_tile_2).state["gameover"]
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel_1,
             event: "gameover",
@@ -924,7 +924,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     updated_state = Levels.gameover(updated_state, player_tile_1.id, true, "Won Still")
 
     assert [score] == Scores.list_scores
-    assert %{state: %{gameover: true, score_id: ^score_id}} =
+    assert %{state: %{"gameover" => true, "score_id" => ^score_id}} =
       Levels.get_tile_by_id(updated_state, player_tile_1)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel_1,
@@ -936,12 +936,12 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     Scores.list_scores |> Enum.map(&(Repo.delete(&1)))
 
     # no scoring
-    DungeonProcess.set_state_value(dungeon_process, :no_scoring, true)
+    DungeonProcess.set_state_value(dungeon_process, "no_scoring", true)
     updated_state = Levels.gameover(state, player_tile_1.id, true, "Done")
 
     assert Scores.list_scores == []
 
-    assert %{state: %{gameover: true}} =
+    assert %{state: %{"gameover" => true}} =
       Levels.get_tile_by_id(updated_state, player_tile_1)
     assert_receive %Phoenix.Socket.Broadcast{
             topic: ^player_channel_1,

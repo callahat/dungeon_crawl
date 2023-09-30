@@ -12,11 +12,11 @@ defmodule DungeonCrawl.StateValue.ParserTest do
     end
 
     test "one state item" do
-      assert {:ok, %{blocking: true}} == Parser.parse("blocking: true")
+      assert {:ok, %{"blocking" => true}} == Parser.parse("blocking: true")
     end
 
     test "many state items with different types" do
-      assert {:ok, %{blocking: false, health: 98.6, foo: 3, neg: -1, name: "BobJohntrue"}} ==
+      assert {:ok, %{"blocking" => false, "health" => 98.6, "foo" => 3, "neg" => -1, "name" => "BobJohntrue"}} ==
              Parser.parse("blocking: false, health: 98.6, foo: 3, neg: -1, name: BobJohntrue")
     end
 
@@ -25,17 +25,17 @@ defmodule DungeonCrawl.StateValue.ParserTest do
     end
 
     test "state item that is equipment" do
-      assert {:ok, %{equipment: ["hand", "saw", "pickaxe"]}} == Parser.parse("equipment: hand saw pickaxe")
+      assert {:ok, %{"equipment" => ["hand", "saw", "pickaxe"]}} == Parser.parse("equipment: hand saw pickaxe")
     end
 
     test "state item that is starting_equipment" do
-      assert {:ok, %{starting_equipment: ["a", "c", "b"]}} == Parser.parse("starting_equipment: a c b")
+      assert {:ok, %{"starting_equipment" => ["a", "c", "b"]}} == Parser.parse("starting_equipment: a c b")
     end
   end
 
   describe "parse!" do
     test "returns the valid parsed state" do
-      assert %{blocking: true} == Parser.parse!("blocking: true")
+      assert %{"blocking" => true} == Parser.parse!("blocking: true")
       assert %{} == Parser.parse!(nil)
     end
 
@@ -55,18 +55,19 @@ defmodule DungeonCrawl.StateValue.ParserTest do
 
     test "map with one item" do
       assert "wall: true" == Parser.stringify(%{wall: true})
+      assert "wall: true" == Parser.stringify(%{"wall" => true})
     end
 
     test "map with several items" do
-      assert "a: 1, b: two, d: false, pasta: spaghetti" == Parser.stringify(%{a: 1, b: "two", d: false, pasta: "spaghetti"})
+      assert "a: 1, b: two, d: false, pasta: spaghetti" == Parser.stringify(%{"a" => 1, "b" => "two", "d" => false, "pasta" => "spaghetti"})
     end
 
     test "map with equipment" do
-      assert "equipment: file cabinet" == Parser.stringify(%{equipment: ["file", "cabinet"]})
+      assert "equipment: file cabinet" == Parser.stringify(%{"equipment" => ["file", "cabinet"]})
     end
 
     test "map with starting_equipment" do
-      assert "starting_equipment: file cabinet" == Parser.stringify(%{starting_equipment: ["file", "cabinet"]})
+      assert "starting_equipment: file cabinet" == Parser.stringify(%{"starting_equipment" => ["file", "cabinet"]})
     end
   end
 end

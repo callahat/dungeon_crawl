@@ -88,9 +88,9 @@ defmodule DungeonCrawlWeb.DungeonViewTest do
   describe "formatted_save_duration/1" do
     test "it formats the duration from the save" do
 
-      assert "01' 59\"" == DungeonView.formatted_saved_duration(%{state: %{duration: 119}})
-      assert "23' 01\"" == DungeonView.formatted_saved_duration(%{state: %{duration: 22 * 60 + 61}})
-      assert "01:00:00" == DungeonView.formatted_saved_duration(%{state: %{duration: 3600}})
+      assert "01' 59\"" == DungeonView.formatted_saved_duration(%{state: %{"duration" => 119}})
+      assert "23' 01\"" == DungeonView.formatted_saved_duration(%{state: %{"duration" => 22 * 60 + 61}})
+      assert "01:00:00" == DungeonView.formatted_saved_duration(%{state: %{"duration" => 3600}})
     end
   end
 end

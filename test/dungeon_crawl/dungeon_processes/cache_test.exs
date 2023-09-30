@@ -67,7 +67,7 @@ defmodule DungeonCrawl.DungeonProcesses.CacheTest do
 
     assert %{program: %Program{instructions: instructions}} = state.items["gun"]
     assert %{1 => [:take, ["ammo", 1, [:self], "error"]],
-             2 => [:shoot, [state_variable: :facing]],
+             2 => [:shoot, [state_variable: "facing"]],
              3 => [:sound, ["shoot"]],
              4 => [:halt, [""]],
              5 => [:noop, "error"],

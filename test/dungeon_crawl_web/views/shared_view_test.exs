@@ -103,12 +103,12 @@ defmodule DungeonCrawlWeb.SharedViewTest do
 
     {:ok, instance_process} = LevelProcess.start_link([])
 
-    instance = insert_stubbed_level_instance(%{state: %{visibility: "fog"}},
+    instance = insert_stubbed_level_instance(%{state: %{"visibility" => "fog"}},
                  [Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 1, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_a.id, row: 1, col: 2, z_index: 0}, Map.take(tile_a, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 3, z_index: 0}, Map.take(tile_b, @copyable_attrs)),
                   Map.merge(%{tile_template_id: tile_b.id, row: 1, col: 1, z_index: 1}, Map.take(tile_b, @copyable_attrs))])
-    LevelProcess.set_state_values(instance_process, %{visibility: "fog"})
+    LevelProcess.set_state_values(instance_process, %{"visibility" => "fog"})
     LevelProcess.set_instance_id(instance_process, instance.id)
     LevelProcess.load_level(instance_process, Repo.preload(instance, :tiles).tiles)
 
@@ -133,15 +133,15 @@ defmodule DungeonCrawlWeb.SharedViewTest do
   end
 
   test "fade_overlay_table/4 when level is foggy" do
-    assert "" == fade_overlay_table(%{state_values: %{visibility: "fog"}}, 40, 40, "1_1")
+    assert "" == fade_overlay_table(%{state_values: %{"visibility" => "fog"}}, 40, 40, "1_1")
   end
 
   test "fade_overlay_table/4 when level is dark" do
-    assert "" == fade_overlay_table(%{state_values: %{visibility: "dark"}}, 40, 40, "1_1")
+    assert "" == fade_overlay_table(%{state_values: %{"visibility" => "dark"}}, 40, 40, "1_1")
   end
 
   test "fade_overlay_table/4 when level has fade overlay off" do
-    assert "" == fade_overlay_table(%{state_values: %{fade_overlay: "off"}}, 40, 40, "1_1")
+    assert "" == fade_overlay_table(%{state_values: %{"fade_overlay" => "off"}}, 40, 40, "1_1")
   end
 
   test "fade_overlay_table/3/4 when level is not foggy" do
@@ -196,7 +196,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     {:safe, rendered_fields} =
       Phoenix.View.render(SharedView,
                           "state_fields.html",
-                          state: %{foo: "bar", baz: "qux"},
+                          state: %{"foo" => "bar", "baz" => "qux"},
                           form: %{name: "tile_template"},
                           standard_variables: ["test"])
     rendered_fields = Enum.join(rendered_fields, "")

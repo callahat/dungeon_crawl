@@ -34,7 +34,7 @@ defmodule DungeonCrawlWeb.PlayerChannel do
                                                          socket.assigns.level_owner_id)
     state = LevelProcess.get_state(instance_process)
 
-    level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values[:rows], state.state_values[:cols])
+    level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values["rows"], state.state_values["cols"])
     DungeonCrawlWeb.Endpoint.broadcast "players:#{socket.assigns.location_id}",
                                        "change_level",
                                        %{level_number: socket.assigns.level_number,

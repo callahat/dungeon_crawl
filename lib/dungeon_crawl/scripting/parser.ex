@@ -90,7 +90,7 @@ defmodule DungeonCrawl.Scripting.Parser do
   ## Examples
 
     iex> Parser.parse(~s/#become character: 4/)
-    {:ok, %Program{broadcasts: [], instructions: %{1 => [:become, [%{character: "4"}]]}, labels: %{}, locked: false, pc: 1, responses: [], status: :alive}}
+    {:ok, %Program{broadcasts: [], instructions: %{1 => [:become, [%{"character" => "4"}]]}, labels: %{}, locked: false, pc: 1, responses: [], status: :alive}}
 
     iex> Parser.parse(~s/#fakecommand/)
     {:error, "Unknown command: `fakecommand`", %Program{}}
@@ -225,7 +225,6 @@ defmodule DungeonCrawl.Scripting.Parser do
          target <- _cast_other_target(target),
          state_element <- String.trim(String.downcase(element)),
          %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_\d]+)(?<setting>.+)\z/i, state_element),
-         element = String.to_atom(element),
          {:ok, op, value} <- _parse_state_setting(setting),
          line_number <- Enum.count(program.instructions) + 1 do
       {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:change_other_state, [target, element, op, value]]) } }
@@ -238,7 +237,6 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _parse_state_change(type, element, program) do
     with state_element <- String.trim(String.downcase(element)),
          %{"element" => element, "setting" => setting} <- Regex.named_captures(~r/\A(?<element>[a-z_\d]+)(?<setting>.+)\z/i, state_element),
-         element = String.to_atom(element),
          {:ok, op, value} <- _parse_state_setting(setting),
          line_number <- Enum.count(program.instructions) + 1 do
       {:ok, %{program | instructions: Map.put(program.instructions, line_number, [type, [element, op, value]]) } }
@@ -336,11 +334,11 @@ defmodule DungeonCrawl.Scripting.Parser do
   end
 
   defp _format_keyword(key) do
-    key |> String.downcase() |> String.to_atom()
+    key |> String.downcase()
   end
 
   # Special keywords have an expected format; ie character will be used in become
-  defp _cast_kparam(param, :character) do
+  defp _cast_kparam(param, "character") do
     cond do
       Regex.match?(~r/^(\?[^@]*?@|@@|@).+?$/i, param) -> _normalize_state_arg(param)
       true -> param
@@ -405,10 +403,10 @@ defmodule DungeonCrawl.Scripting.Parser do
         end
 
       %{"type" => type, "state_element" => state_element, "concat" => ""} ->
-        {_state_var_type(type), String.trim(state_element) |> String.to_atom()}
+        {_state_var_type(type), String.trim(state_element)}
 
       %{"type" => type, "state_element" => state_element, "concat" => concat} ->
-        {_state_var_type(type), String.trim(state_element) |> String.to_atom(), String.replace(concat, ~r/^\s*\+\s*/,"")}
+        {_state_var_type(type), String.trim(state_element), String.replace(concat, ~r/^\s*\+\s*/,"")}
 
       _ -> # if this happens, then this method is being called in the wrong place
         :error
@@ -428,7 +426,7 @@ defmodule DungeonCrawl.Scripting.Parser do
 
       %{"lead" => "?", "mid" => who, "tail" => "@"} ->
         case Regex.named_captures(~r/^(?:(?<sender>[^@{}]*$|$)|{@(?<variable>[^@]+)})$/, who) do
-          %{"variable" => variable} when variable != "" -> {:state_variable, String.to_atom(variable)}
+          %{"variable" => variable} when variable != "" -> {:state_variable, variable}
 
           %{"sender" => "sender"}  -> :event_sender_variable
           %{"sender" => ""}        -> :event_sender_variable

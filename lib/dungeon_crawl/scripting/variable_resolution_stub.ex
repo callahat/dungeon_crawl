@@ -15,14 +15,14 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
     |> Enum.map(fn {key, val} -> resolve_keyed_variable(runner_state, key, val) end)
     |> Enum.into(%{})
   end
-  def resolve_keyed_variable(%{} = runner_state, :character, val) do
-    {:character, String.at("#{resolve_variable(runner_state, val)}", 0)}
+  def resolve_keyed_variable(%{} = runner_state, "character", val) do
+    {"character", String.at("#{resolve_variable(runner_state, val)}", 0)}
   end
-  def resolve_keyed_variable(%{}, :color, val) do
-    {:color, if(is_binary(val), do: val, else: "green")}
+  def resolve_keyed_variable(%{}, "color", val) do
+    {"color", if(is_binary(val), do: val, else: "green")}
   end
-  def resolve_keyed_variable(%{}, :background_color, val) do
-    {:background_color, if(is_binary(val), do: val, else: "#FFF")}
+  def resolve_keyed_variable(%{}, "background_color", val) do
+    {"background_color", if(is_binary(val), do: val, else: "#FFF")}
   end
   def resolve_keyed_variable(%{} = runner_state, key, val) do
     {key, resolve_variable(runner_state, val)}
@@ -35,29 +35,29 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
       resolved_variable
     end
   end
-  def resolve_variable(%{}, {:state_variable, :id}) do
+  def resolve_variable(%{}, {:state_variable, "id"}) do
     12345
   end
-  def resolve_variable(%{}, {:state_variable, :character}) do
+  def resolve_variable(%{}, {:state_variable, "character"}) do
     "X"
   end
-  def resolve_variable(%{}, {:state_variable, :color}) do
+  def resolve_variable(%{}, {:state_variable, "color"}) do
     "red"
   end
-  def resolve_variable(%{}, {:state_variable, :background_color}) do
+  def resolve_variable(%{}, {:state_variable, "background_color"}) do
     "white"
   end
-  def resolve_variable(%{}, {:state_variable, :name}) do
+  def resolve_variable(%{}, {:state_variable, "name"}) do
     "Test Stub"
   end
-  def resolve_variable(%{}, {:state_variable, :row}) do
+  def resolve_variable(%{}, {:state_variable, "row"}) do
     2
   end
-  def resolve_variable(%{}, {:state_variable, :col}) do
+  def resolve_variable(%{}, {:state_variable, "col"}) do
     4
   end
-  def resolve_variable(%{}, {:state_variable, :slug}) do
-    :stubbed_slug
+  def resolve_variable(%{}, {:state_variable, "slug"}) do
+    "stubbed_slug"
   end
   def resolve_variable(%{}, {:state_variable, _var}) do
     "."
@@ -65,7 +65,7 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, [:self]) do
     6789
   end
-  def resolve_variable(%{}, {:event_sender_variable, :id}) do
+  def resolve_variable(%{}, {:event_sender_variable, "id"}) do
     223344
   end
   def resolve_variable(%{}, [:event_sender]) do
@@ -74,16 +74,16 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:event_sender_variable, _var}) do
     "from sender"
   end
-  def resolve_variable(%{}, {:instance_state_variable, :north_edge}) do
+  def resolve_variable(%{}, {:instance_state_variable, "north_edge"}) do
     0
   end
-  def resolve_variable(%{}, {:instance_state_variable, :west_edge}) do
+  def resolve_variable(%{}, {:instance_state_variable, "west_edge"}) do
     0
   end
-  def resolve_variable(%{}, {:instance_state_variable, :east_edge}) do
+  def resolve_variable(%{}, {:instance_state_variable, "east_edge"}) do
     29
   end
-  def resolve_variable(%{}, {:instance_state_variable, :south_edge}) do
+  def resolve_variable(%{}, {:instance_state_variable, "south_edge"}) do
     19
   end
   def resolve_variable(%{}, {:instance_state_variable, _var}) do
@@ -95,13 +95,13 @@ defmodule DungeonCrawl.Scripting.VariableResolutionStub do
   def resolve_variable(%{}, {:random, _var}) do
     7 # is a fine random number
   end
-  def resolve_variable(%{}, {_target, :distance}) do
+  def resolve_variable(%{}, {_target, "distance"}) do
     3.14
   end
-  def resolve_variable(%{}, {:any_player, :is_facing}) do
+  def resolve_variable(%{}, {:any_player, "is_facing"}) do
     true
   end
-  def resolve_variable(%{}, {id, :is_facing}) when is_integer(id) do
+  def resolve_variable(%{}, {id, "is_facing"}) when is_integer(id) do
     false
   end
   def resolve_variable(%{}, {{:direction, _direction}, _var}) do

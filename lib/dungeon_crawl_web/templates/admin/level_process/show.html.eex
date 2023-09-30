@@ -18,8 +18,8 @@
       <%= render(DungeonCrawlWeb.SharedView,
                  "dungeon_admin.html",
                  level: Map.put(@instance_state, :id, @instance_state.instance_id),
-                 width: @instance_state.state_values[:cols],
-                 height: @instance_state.state_values[:rows]) %>
+                 width: @instance_state.state_values["cols"],
+                 height: @instance_state.state_values["rows"]) %>
     </div>
   </div>
 <% end %>

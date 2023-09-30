@@ -123,7 +123,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   defp sto_starting_item_slugs(export, dungeon) do
     case dungeon.state do
-      %{starting_equipment: equipment} ->
+      %{"starting_equipment" => equipment} ->
         equipment
         |> Enum.reduce(export, fn slug, export -> sto_item_slug(export, slug) end)
       _ ->
@@ -266,12 +266,12 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   defp repoint_dungeon_item_slugs(%{dungeon: dungeon} = export) do
     case dungeon.state do
-      %{starting_equipment: equipment} ->
+      %{"starting_equipment" => equipment} ->
         starting_equipment = \
         equipment
         |> Enum.map(fn slug -> export.items[slug].temp_item_id end)
 
-        dungeon = %{ dungeon | state: %{ dungeon.state | starting_equipment: starting_equipment}}
+        dungeon = %{ dungeon | state: %{ dungeon.state | "starting_equipment" => starting_equipment}}
         %{ export | dungeon: dungeon }
       _ ->
         export

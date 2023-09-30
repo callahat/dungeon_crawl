@@ -203,14 +203,14 @@ defmodule DungeonCrawl.Player do
   end
 
   defp _set_player_lives(player_tile, di) do
-    starting_lives = %{lives: di.state[:starting_lives] || -1}
+    starting_lives = %{lives: di.state["starting_lives"] || -1}
 
     Tile.changeset(player_tile, %{state: Map.merge(player_tile.state, starting_lives)})
     |> Repo.update!()
   end
 
   defp _set_player_equipment(player_tile, di) do
-    equipment = di.state[:starting_equipment] || []
+    equipment = di.state["starting_equipment"] || []
 
     equipment = if equipment == [], do: ["gun"],
                                     else: equipment

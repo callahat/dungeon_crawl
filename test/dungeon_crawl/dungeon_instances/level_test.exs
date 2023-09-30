@@ -61,15 +61,15 @@ defmodule DungeonCrawl.DungeonInstances.LevelTest do
         event_sender: %{
           name: "Fireball",
           state: %{
-            blocking: false,
-            facing: "up",
-            flying: true,
-            light_range: 2,
-            light_source: true,
-            not_pushing: true,
-            not_squishing: true,
-            owner: 3571971,
-            wait_cycles: 2
+            "blocking" => false,
+            "facing" => "up",
+            "flying" => true,
+            "light_range" => 2,
+            "light_source" => true,
+            "not_pushing" => true,
+            "not_squishing" => true,
+            "owner" => 3571971,
+            "wait_cycles" => 2
           },
           tile_id: "new_0"
         },
@@ -79,7 +79,7 @@ defmodule DungeonCrawl.DungeonInstances.LevelTest do
           instructions: %{
             1 => [:halt, [""]],
             2 => [:noop, "OPEN"],
-            3 => [:become, [%{slug: "open_door"}]]
+            3 => [:become, [%{"slug" => "open_door"}]]
           },
           labels: %{"open" => [[2, true]]},
           lc: 0,
@@ -119,23 +119,23 @@ defmodule DungeonCrawl.DungeonInstances.LevelTest do
           id: 3177,
           name: "Doc",
           state: %{
-            already_touched: false,
-            ammo: 6,
-            blocking: true,
-            bullet_damage: 10,
-            cash: 0,
-            equipment: ["gun"],
-            equipped: "gun",
-            gems: 0,
-            health: 100,
-            lives: -1,
-            player: true,
-            pushable: true,
-            score: 0,
-            soft: true,
-            starting_equipment: "gun",
-            steps: 13,
-            torches: 0
+            "already_touched" => false,
+            "ammo" => 6,
+            "blocking" => true,
+            "bullet_damage" => 10,
+            "cash" => 0,
+            "equipment" => ["gun"],
+            "equipped" => "gun",
+            "gems" => 0,
+            "health" => 100,
+            "lives" => -1,
+            "player" => true,
+            "pushable" => true,
+            "score" => 0,
+            "soft" => true,
+            "starting_equipment" => "gun",
+            "steps" => 13,
+            "torches" => 0
           },
           tile_instance_id: 3572819,
           user_id_hash: "9fqSkIyUEajmy60SE5N4T6wvR6Dc7SL0"

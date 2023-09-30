@@ -26,7 +26,7 @@ defmodule DungeonCrawlWeb.TestHelpers do
       name: "Floor",
       description: "A dusty floor",
       character: ".",
-      state: %{blocking: false},
+      state: %{"blocking" => false},
       script: ""
     }, attrs)
 

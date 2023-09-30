@@ -35,7 +35,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   end
 
   test "lookup solo instance", %{instance_registry: instance_registry} do
-    instance = insert_stubbed_level_instance(%{state: %{solo: true}})
+    instance = insert_stubbed_level_instance(%{state: %{"solo" => true}})
     location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "testhash"})
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
 
@@ -61,7 +61,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
   end
 
   test "lookup_or_create solo instance", %{instance_registry: instance_registry} do
-    instance = insert_stubbed_level_instance(%{state: %{solo: true}})
+    instance = insert_stubbed_level_instance(%{state: %{"solo" => true}})
     location = insert_player_location(%{level_instance_id: instance.id, user_id_hash: "testhash"})
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
     Dungeons.set_spawn_locations(instance.level_id, [{1,1}])
@@ -74,8 +74,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
   test "create/2", %{instance_registry: instance_registry} do
     user = insert_user()
-    button_tile = insert_tile_template(%{state: %{blocking: true}, script: "#END\n:TOUCH\n*PimPom*"})
-    instance = insert_stubbed_level_instance(%{state: %{flag: false}},
+    button_tile = insert_tile_template(%{state: %{"blocking" => true}, script: "#END\n:TOUCH\n*PimPom*"})
+    instance = insert_stubbed_level_instance(%{state: %{"flag" => false}},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
                  Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
        %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: %{}, script: ""}])
@@ -121,8 +121,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
                                     }
                        }
     assert player_locations == %{location.tile_instance_id => location}
-    assert map_by_ids[tile.id] == Map.put(tile, :state, %{blocking: true})
-    assert state_values == %{flag: false, cols: 20, rows: 20}
+    assert map_by_ids[tile.id] == Map.put(tile, :state, %{"blocking" => true})
+    assert state_values == %{"flag" => false, "cols" => 20, "rows" => 20}
     assert spawn_coordinates == [{9, 10}]
     assert instance_id == instance.id
     assert adjacent_level_numbers == %{"east" => nil, "north" => instance.number, "south" => nil, "west" => nil}
@@ -131,8 +131,8 @@ defmodule DungeonCrawl.LevelRegistryTest do
 
   test "create/2 when program contexts exist in the DB", %{instance_registry: instance_registry} do
     user = insert_user()
-    button_tile = insert_tile_template(%{state: %{blocking: true}, script: "#END\n:TOUCH\n*PimPom*"})
-    instance = insert_stubbed_level_instance(%{state: %{flag: false}},
+    button_tile = insert_tile_template(%{state: %{"blocking" => true}, script: "#END\n:TOUCH\n*PimPom*"})
+    instance = insert_stubbed_level_instance(%{state: %{"flag" => false}},
       [Map.merge(%{row: 1, col: 2, tile_template_id: button_tile.id, z_index: 0},
         Map.take(button_tile, [:character,:color,:background_color,:state,:script])),
         %{row: 9, col: 10, name: "Floor", tile_template_id: nil, z_index: 0, character: ".", color: nil, background_color: nil, state: %{}, script: ""}])
@@ -141,14 +141,13 @@ defmodule DungeonCrawl.LevelRegistryTest do
     instance = Level.changeset(instance,
                  %{
                    number_north: instance.number,
-                   program_contexts: %{tile.id => %{program: alt_program, event_sender: %{tile_id: 123}, object_id: tile.id}},
+                   program_contexts: %{tile.id => %{program: alt_program, event_sender: %{tile_id: 456}, object_id: tile.id}},
                    passage_exits: [{123, "Puce"}]
                  }
                )
                |> Repo.update!
 
     LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
-
     Repo.preload(instance, [dungeon: :dungeon]).dungeon.dungeon
     |> Dungeons.update_dungeon(%{user_id: user.id})
 
@@ -171,14 +170,14 @@ defmodule DungeonCrawl.LevelRegistryTest do
                status: :idle,
                wait_cycles: 0
              },
-             event_sender: %{tile_id: 123}
+             event_sender: %{tile_id: 456}
            }
          }
     assert passage_exits == [{123, "Puce"}]
   end
 
   test "create/2 when a solo instance", %{instance_registry: instance_registry} do
-    instance = insert_stubbed_level_instance(%{state: %{solo: true}})
+    instance = insert_stubbed_level_instance(%{state: %{"solo" => true}})
     location = insert_player_location(%{level_instance_id: instance.id, row: 1, user_id_hash: "itsmehash"})
     instance = %{instance | player_location_id: location.id}
 
@@ -199,10 +198,10 @@ defmodule DungeonCrawl.LevelRegistryTest do
     tiles = [tile]
 
     assert tile.level_instance_id ==
-             LevelRegistry.create(instance_registry, nil, tile.level_instance_id, tiles, [], %{flag: false}, nil, level_number, %{}, author)
+             LevelRegistry.create(instance_registry, nil, tile.level_instance_id, tiles, [], %{"flag" => false}, nil, level_number, %{}, author)
     assert reg_state = :sys.get_state(instance_registry)
     assert :exists ==
-             LevelRegistry.create(instance_registry, nil, tile.level_instance_id, tiles, [], %{flag: false}, nil, level_number, %{}, author)
+             LevelRegistry.create(instance_registry, nil, tile.level_instance_id, tiles, [], %{"flag" => false}, nil, level_number, %{}, author)
     assert reg_state == :sys.get_state(instance_registry)
 
     assert {:ok, {_instance_id, instance_process}} = LevelRegistry.lookup(instance_registry, level_number, 1)
@@ -211,7 +210,7 @@ defmodule DungeonCrawl.LevelRegistryTest do
     assert %Levels{program_contexts: programs,
                    map_by_ids: by_ids,
                    map_by_coords: by_coords,
-                   state_values: %{flag: false},
+                   state_values: %{"flag" => false},
                    author: ^author} = LevelProcess.get_state(instance_process)
     assert by_ids == %{tile.id => Map.put(tile, :state, %{})}
     assert by_coords ==  %{ {tile.row, tile.col} => %{tile.z_index => tile.id} }

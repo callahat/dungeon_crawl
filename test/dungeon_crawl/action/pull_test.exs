@@ -31,16 +31,16 @@ defmodule DungeonCrawl.Action.PullTest do
 
   describe "pull/3" do
     test "pulling but movement is blocked", %{state: state, puller: puller, destination: destination} do
-      object           = %Tile{id: 998, row: 3, col: 2, z_index: 0, character: "X", state: %{pullable: true}}
+      object           = %Tile{id: 998, row: 3, col: 2, z_index: 0, character: "X", state: %{"pullable" => true}}
       {_object, state} = Levels.create_tile(state, object)
-      {destination, state} = Levels.update_tile_state(state, destination, %{blocking: true})
+      {destination, state} = Levels.update_tile_state(state, destination, %{"blocking" => true})
 
       program_messages = [{destination.id, "touch", %{name: nil, state: %{}, tile_id: puller.id}}]
       assert {:invalid, %{}, Map.put(state, :program_messages, program_messages)} == Pull.pull(puller, destination, state)
     end
 
     test "pulling but nothing to pull", %{state: state, puller: puller, destination: destination} do
-      object           = %Tile{id: 998, row: 3, col: 2, z_index: 0, character: "X", state: %{pullable: false}}
+      object           = %Tile{id: 998, row: 3, col: 2, z_index: 0, character: "X", state: %{"pullable" => false}}
       {_object, state} = Levels.create_tile(state, object)
 
       assert {:ok, tile_changes, _updated_state} = Pull.pull(puller, destination, state)
@@ -49,8 +49,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "successful pull of one item", %{state: state, puller: puller, destination: destination} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true}}
-      object2          = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: %{pullable: true}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true}}
+      object2          = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: %{"pullable" => true}}
       {_object1, state} = Levels.create_tile(state, object1)
       {_object2, state} = Levels.create_tile(state, object2)
 
@@ -62,8 +62,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "pull a chain of items", %{state: state, puller: puller, destination: destination} do
-      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: true, facing: "north"}}
-      object2           = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: %{pullable: true}}
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true, "facing" => "north"}}
+      object2           = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: %{"pullable" => true}}
       {_object1, state} = Levels.create_tile(state, object1)
       {_object2, state} = Levels.create_tile(state, object2)
 
@@ -76,9 +76,9 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "pull a chain of items but one is blocked", %{state: state, puller: puller, destination: destination} do
-      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: true, facing: "north"}}
-      object2           = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: %{pullable: true}}
-      wall1             = %Tile{id: 997, row: 3, col: 2, z_index: 0, character: "#", state: %{blocking: true}}
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true, "facing" => "north"}}
+      object2           = %Tile{id: 999, row: 3, col: 3, z_index: 1, character: "Y", state: %{"pullable" => true}}
+      wall1             = %Tile{id: 997, row: 3, col: 2, z_index: 0, character: "#", state: %{"blocking" => true}}
       {_object1, state} = Levels.create_tile(state, object1)
       {_object2, state} = Levels.create_tile(state, object2)
       {_wall1, state}   = Levels.create_tile(state, wall1)
@@ -92,10 +92,10 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "pull a chain of items that form a circuit", %{state: state, puller: puller, destination: destination} do
-      object1           = %Tile{id: 990, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: true}}
-      object2           = %Tile{id: 991, row: 3, col: 1, z_index: 1, character: "X", state: %{pullable: true, pulling: true}}
-      object3           = %Tile{id: 992, row: 4, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: true}}
-      object4           = %Tile{id: 993, row: 4, col: 1, z_index: 1, character: "X", state: %{pullable: true, pulling: true}}
+      object1           = %Tile{id: 990, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true}}
+      object2           = %Tile{id: 991, row: 3, col: 1, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true}}
+      object3           = %Tile{id: 992, row: 4, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true}}
+      object4           = %Tile{id: 993, row: 4, col: 1, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true}}
       {_object1, state} = Levels.create_tile(state, object1)
       {_object2, state} = Levels.create_tile(state, object2)
       {_object3, state} = Levels.create_tile(state, object3)
@@ -112,8 +112,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "map_tile_id is replaced with the pullers id", %{state: state, puller: puller, destination: destination} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: "map_tile_id", pulling: true}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: "map_tile_id"}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => "map_tile_id", "pulling" => true}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => "map_tile_id"}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, state} = Levels.create_tile(state, object2)
@@ -126,15 +126,15 @@ defmodule DungeonCrawl.Action.PullTest do
       assert length(Map.keys(tile_changes)) == 4
       object1 = Levels.get_tile_by_id(updated_state, object1)
       object2 = Levels.get_tile_by_id(updated_state, object2)
-      assert object1.state[:pullable] == puller.id
-      assert object2.state[:pullable] == object1.id
-      assert object1.state[:facing] == "north"
-      assert object2.state[:facing] == "north"
+      assert object1.state["pullable"] == puller.id
+      assert object2.state["pullable"] == object1.id
+      assert object1.state["facing"] == "north"
+      assert object2.state["facing"] == "north"
     end
 
     test "map_tile_id for pulling is replaced with the pullees id", %{state: state, puller: puller, destination: destination} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: "map_tile_id"}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: "map_tile_id", pulling: "map_tile_id"}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => "map_tile_id"}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => "map_tile_id", "pulling" => "map_tile_id"}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, state} = Levels.create_tile(state, object2)
@@ -147,17 +147,17 @@ defmodule DungeonCrawl.Action.PullTest do
       assert length(Map.keys(tile_changes)) == 4
       object1 = Levels.get_tile_by_id(updated_state, object1)
       object2 = Levels.get_tile_by_id(updated_state, object2)
-      assert object1.state[:pullable] == true
-      assert object2.state[:pullable] == object1.id
-      assert object1.state[:facing] == "north"
-      assert object2.state[:facing] == "north"
-      assert object1.state[:pulling] == object2.id
-      assert object2.state[:pulling] == false
+      assert object1.state["pullable"] == true
+      assert object2.state["pullable"] == object1.id
+      assert object1.state["facing"] == "north"
+      assert object2.state["facing"] == "north"
+      assert object1.state["pulling"] == object2.id
+      assert object2.state["pulling"] == false
     end
 
     test "state variable name is replaced with the pullers id", %{state: state, puller: puller, destination: destination} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: true, restricted: true}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: "restricted"}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true, "restricted" => true}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => "restricted"}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, state} = Levels.create_tile(state, object2)
@@ -170,15 +170,15 @@ defmodule DungeonCrawl.Action.PullTest do
       assert length(Map.keys(tile_changes)) == 4
       object1 = Levels.get_tile_by_id(updated_state, object1)
       object2 = Levels.get_tile_by_id(updated_state, object2)
-      assert object1.state[:pullable] == true
-      assert object2.state[:pullable] == object1.id
-      assert object1.state[:facing] == "north"
-      assert object2.state[:facing] == "north"
+      assert object1.state["pullable"] == true
+      assert object2.state["pullable"] == object1.id
+      assert object1.state["facing"] == "north"
+      assert object2.state["facing"] == "north"
     end
 
     test "state variable name for pulling is replaced with the pullees id", %{state: state, puller: puller, destination: destination} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: "restricted"}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: "map_tile_id", pulling: "map_tile_id", restricted: true}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => "restricted"}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => "map_tile_id", "pulling" => "map_tile_id", "restricted" => true}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, state} = Levels.create_tile(state, object2)
@@ -191,12 +191,12 @@ defmodule DungeonCrawl.Action.PullTest do
       assert length(Map.keys(tile_changes)) == 4
       object1 = Levels.get_tile_by_id(updated_state, object1)
       object2 = Levels.get_tile_by_id(updated_state, object2)
-      assert object1.state[:pullable] == true
-      assert object2.state[:pullable] == object1.id
-      assert object1.state[:facing] == "north"
-      assert object2.state[:facing] == "north"
-      assert object1.state[:pulling] == object2.id
-      assert object2.state[:pulling] == false
+      assert object1.state["pullable"] == true
+      assert object2.state["pullable"] == object1.id
+      assert object1.state["facing"] == "north"
+      assert object2.state["facing"] == "north"
+      assert object1.state["pulling"] == object2.id
+      assert object2.state["pulling"] == false
     end
 
     test "cant pull bad inputs" do
@@ -206,8 +206,8 @@ defmodule DungeonCrawl.Action.PullTest do
 
   describe "would_not_pull/2" do
     test "would not pull", %{state: state} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pulling: 1000}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: true}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pulling" => 1000}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => true}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
@@ -216,8 +216,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "would not pull an invalid state variable", %{state: state} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pulling: "restricted"}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: true}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pulling" => "restricted"}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => true}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
@@ -226,8 +226,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "would pull", %{state: state} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pulling: 999}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: true}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pulling" => 999}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => true}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
@@ -236,8 +236,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "would pull matching state variable", %{state: state} do
-      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pulling: "restricted"}}
-      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{pullable: true, restricted: true}}
+      object1          = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pulling" => "restricted"}}
+      object2          = %Tile{id: 999, row: 4, col: 2, z_index: 1, character: "Y", state: %{"pullable" => true, "restricted" => true}}
 
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
@@ -254,20 +254,20 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "cannot pull a tile that is in the direction puller is moving to", %{state: state, puller: puller, destination: destination} do
-      object           = %Tile{id: 998, row: 1, col: 2, z_index: 1, character: "X", state: %{pullable: true}}
+      object           = %Tile{id: 998, row: 1, col: 2, z_index: 1, character: "X", state: %{"pullable" => true}}
       {object, _state} = Levels.create_tile(state, object)
       refute Pull.can_pull(puller, object, destination)
     end
 
     test "can pull", %{state: state, puller: puller, destination: destination} do
-      object           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true}}
+      object           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true}}
       {object, _state} = Levels.create_tile(state, object)
       assert Pull.can_pull(puller, object, destination)
     end
 
     test "pullable but only linearly", %{state: state, puller: puller, destination: destination} do
-      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: "linear"}}
-      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{pullable: "linear"}}
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => "linear"}}
+      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{"pullable" => "linear"}}
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
 
@@ -276,8 +276,8 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "pullable but only in a specified direction", %{state: state, puller: puller, destination: destination} do
-      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: "s"}}
-      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{pullable: "ew"}}
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => "s"}}
+      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{"pullable" => "ew"}}
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
 
@@ -286,23 +286,23 @@ defmodule DungeonCrawl.Action.PullTest do
     end
 
     test "cannot pull a tile that does not have the state variable", %{state: state, puller: puller, destination: destination} do
-      object           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: "restricted"}}
+      object           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => "restricted"}}
       {object, _state} = Levels.create_tile(state, object)
       refute Pull.can_pull(puller, object, destination)
     end
 
     test "can pull a tile that has the state variable", %{state: state, puller: puller, destination: destination} do
-      object           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: "restricted"}}
+      object           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => "restricted"}}
       {object, _state} = Levels.create_tile(state, object)
-      {puller, _state} = Levels.update_tile_state(state, puller, %{restricted: true})
+      {puller, _state} = Levels.update_tile_state(state, puller, %{"restricted" => true})
       assert Pull.can_pull(puller, object, destination)
     end
 
     test "pullable but only by a specific tile id", %{state: state, puller: puller, destination: destination} do
       # this could be generic, then set automatically at runtime
-      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: puller.id}}
-      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{pullable: 12345}}
-      object3           = %Tile{id: 992, row: 2, col: 1, z_index: 1, character: "X", state: %{pullable: "map_tile_id"}}
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => puller.id}}
+      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{"pullable" => 12345}}
+      object3           = %Tile{id: 992, row: 2, col: 1, z_index: 1, character: "X", state: %{"pullable" => "map_tile_id"}}
       {object1, state} = Levels.create_tile(state, object1)
       {object2, state} = Levels.create_tile(state, object2)
       {object3, _state} = Levels.create_tile(state, object3)
@@ -319,8 +319,8 @@ defmodule DungeonCrawl.Action.PullTest do
 
   describe "can_pull/4" do
     test "takes into account tiles already being pulled", %{state: state, puller: puller, destination: destination} do
-      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{pullable: true, pulling: true}}
-      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{pullable: true, pulling: true}}
+      object1           = %Tile{id: 998, row: 3, col: 2, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true}}
+      object2           = %Tile{id: 999, row: 2, col: 3, z_index: 1, character: "X", state: %{"pullable" => true, "pulling" => true}}
       {object1, state} = Levels.create_tile(state, object1)
       {object2, _state} = Levels.create_tile(state, object2)
 

@@ -40,7 +40,7 @@ defmodule DungeonCrawlWeb.CrawlerController do
     scorable = _scorable_dungeon(dungeon)
 
     saveable = !!(dungeon.dungeon.active &&
-      dungeon.state[:saveable] &&
+      dungeon.state["saveable"] &&
       conn.assigns.current_user)
 
     {:ok, instance_process} = Registrar.instance_process(player_location.tile.level)

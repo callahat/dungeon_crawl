@@ -13,13 +13,13 @@ defmodule DungeonCrawl.Action.Move do
 
       _is_teleporter(destination, entity_tile) ->
         # Mainly for the player; if they teleport the will not have yet touched the tiles on the other side and should
-        {entity_tile, state} = Levels.update_tile_state(state, entity_tile, %{already_touched: false})
-        Direction.coordinates_to_edge(destination, destination.state[:facing], state.state_values)
+        {entity_tile, state} = Levels.update_tile_state(state, entity_tile, %{"already_touched" => false})
+        Direction.coordinates_to_edge(destination, destination.state["facing"], state.state_values)
         |> _possible_teleporter_destinations(state, [], true)
         |> Enum.reverse()
         |> _teleport(entity_tile, state, tile_changes)
 
-      _is_pushable(destination.state[:pushable], entity_tile, destination) ->
+      _is_pushable(destination.state["pushable"], entity_tile, destination) ->
         direction = _get_direction(entity_tile, destination)
         pushed_location = Levels.get_tile(state, destination, direction)
 
@@ -28,7 +28,7 @@ defmodule DungeonCrawl.Action.Move do
             _move(entity_tile, destination, state, tile_changes)
 
           _ ->
-            if destination.state[:squishable] do
+            if destination.state["squishable"] do
               {squashed_tile, state} = Levels.delete_tile(state, destination)
               _move(entity_tile, squashed_tile, state, tile_changes)
             else
@@ -52,7 +52,7 @@ defmodule DungeonCrawl.Action.Move do
 
   def can_move(nil), do: false
   def can_move(destination) do
-    !destination.state[:blocking]
+    !destination.state["blocking"]
   end
 
   defp _move(entity_tile, destination, state, tile_changes) do
@@ -67,7 +67,7 @@ defmodule DungeonCrawl.Action.Move do
     {:ok, Map.merge(tile_changes, new_changes), state}
   end
 
-  defp _send_touches(%{state: %{already_touched: true}} = _entity_tile, _destination, state), do: state
+  defp _send_touches(%{state: %{"already_touched" => true}} = _entity_tile, _destination, state), do: state
   defp _send_touches(entity_tile, destination, state) do
     toucher = if player_location = Levels.get_player_location(state, entity_tile),
                 do: Map.merge(player_location, Map.take(entity_tile, [:name, :state])),
@@ -80,19 +80,19 @@ defmodule DungeonCrawl.Action.Move do
     %{ state | program_messages: program_messages}
   end
 
-  defp _increment_player_steps(state, %{state: %{player: true}} = player_tile) do
-    steps = player_tile.state[:steps] || 0
-    Levels.update_tile_state(state, player_tile, %{steps: steps + 1})
+  defp _increment_player_steps(state, %{state: %{"player" => true}} = player_tile) do
+    steps = player_tile.state["steps"] || 0
+    Levels.update_tile_state(state, player_tile, %{"steps" => steps + 1})
   end
   defp _increment_player_steps(state, tile), do: {tile, state}
 
   defp _is_teleporter(destination, entity_tile) do
-    destination.state[:teleporter] &&
-      Direction.orthogonal_direction(entity_tile, destination) == [destination.state[:facing]]
+    destination.state["teleporter"] &&
+      Direction.orthogonal_direction(entity_tile, destination) == [destination.state["facing"]]
   end
 
   defp _is_pushable(pushable, entity_tile, destination) do
-    if entity_tile.state[:not_pushing] do
+    if entity_tile.state["not_pushing"] do
       false
     else
       case pushable do
@@ -111,16 +111,16 @@ defmodule DungeonCrawl.Action.Move do
   defp _is_blocking(destination, entity_tile, state) do
     Levels.get_tiles(state, destination)
     |> Enum.any?(fn destination_tile ->
-                   destination_tile.state[:blocking] &&
-                     !(entity_tile.state[:flying] && destination_tile.state[:low])
+                   destination_tile.state["blocking"] &&
+                     !(entity_tile.state["flying"] && destination_tile.state["low"])
                  end)
   end
 
   defp _is_squishable(destination, entity_tile) do
-    if entity_tile.state[:not_squishing] do
+    if entity_tile.state["not_squishing"] do
       false
     else
-      destination.state[:squishable]
+      destination.state["squishable"]
     end
   end
 
@@ -165,7 +165,7 @@ defmodule DungeonCrawl.Action.Move do
   defp _is_destination_candidate(nil, _, _), do: false
   defp _is_destination_candidate(_, nil, _), do: false
   defp _is_destination_candidate(tile, candidate_tile, true) do
-     tile && candidate_tile && tile.state[:teleporter]
+     tile && candidate_tile && tile.state["teleporter"]
   end
   defp _is_destination_candidate(tile, candidate_tile, false) do
     _is_teleporter(tile, candidate_tile)

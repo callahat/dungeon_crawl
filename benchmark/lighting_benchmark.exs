@@ -26,13 +26,13 @@ defmodule Lighting.Benchmark do
   alias DungeonCrawl.DungeonProcesses.Render
 
   def benchmark do
-    basic_mapping = %{?' => %{state: %{blocking: false}},
-                      ?+ => %{state: %{blocking: true}},
-                      ?# => %{state: %{blocking: true}},
-                      ?\s => %{state: %{blocking: true}},
-                      ?♂ => %{state: %{blocking: true}},
-                      ?. => %{state: %{blocking: false}},
-                      ?? => %{state: %{blocking: true}}}
+    basic_mapping = %{?' => %{state: %{"blocking" => false}},
+                      ?+ => %{state: %{"blocking" => true}},
+                      ?# => %{state: %{"blocking" => true}},
+                      ?\s => %{state: %{"blocking" => true}},
+                      ?♂ => %{state: %{"blocking" => true}},
+                      ?. => %{state: %{"blocking" => false}},
+                      ?? => %{state: %{"blocking" => true}}}
 
     tiles =
     TestRooms.generate("ignored", "ignored")
@@ -41,7 +41,7 @@ defmodule Lighting.Benchmark do
           [ %Tile{id: row * 1000 + col, row: row, col: col, character: "#{[tile]}", state: basic_mapping[tile].state}
             | tiles ]
        end)
-    initial_state = %Levels{instance_id: 1, state_values: %{rows: 20, cols: 20}}
+    initial_state = %Levels{instance_id: 1, state_values: %{"rows" => 20, "cols" => 20}}
     initial_state = Enum.reduce(tiles, initial_state, fn(tile, state) ->
                       {_, state} = Levels.create_tile(state, tile)
                       state
@@ -68,16 +68,16 @@ defmodule Lighting.Benchmark do
         state
       end)
 
-    fog_state = %{ initial_state | state_values: Map.put(initial_state.state_values, :visibility, "fog")}
+    fog_state = %{ initial_state | state_values: Map.put(initial_state.state_values, "visibility", "fog")}
 
-    {_, dark_state_1_light} = %{ initial_state | state_values: Map.put(initial_state.state_values, :visibility, "dark")}
-                              |> Levels.update_tile_state(player_tile, %{light_source: true})
-    {_, dark_state_2_light} = Levels.update_tile_state(dark_state_1_light, Enum.random(floor_tiles), %{light_source: true})
+    {_, dark_state_1_light} = %{ initial_state | state_values: Map.put(initial_state.state_values, "visibility", "dark")}
+                              |> Levels.update_tile_state(player_tile, %{"light_source" => true})
+    {_, dark_state_2_light} = Levels.update_tile_state(dark_state_1_light, Enum.random(floor_tiles), %{"light_source" => true})
 
     dark_state_10_light = Enum.shuffle(floor_tiles)
                           |> Enum.take(8)
                           |> Enum.reduce(dark_state_2_light, fn floor, state ->
-                               {_, state} = Levels.update_tile_state(state, floor, %{light_source: true})
+                               {_, state} = Levels.update_tile_state(state, floor, %{"light_source" => true})
                                state
                              end)
 

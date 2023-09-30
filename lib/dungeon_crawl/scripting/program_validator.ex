@@ -88,7 +88,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
 
-  defp _validate(program, [ {line_no, [ :facing, [ direction ] ]} | instructions], errors, user) do
+  defp _validate(program, [ {line_no, [:facing, [ direction ] ]} | instructions], errors, user) do
     if @valid_facings |> Enum.member?(direction) or is_tuple(direction) do
       _validate(program, instructions, errors, user)
     else
@@ -409,18 +409,18 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
       params = resolve_variable_map(%{}, params)
       dummy_template = %TileTemplate{character: ".", name: "Floor", description: "Just a dusty floor"}
       # settable_params = resolve_variable_map(%{}, Map.take(params, [:character, :color, :background_color]))
-      settable_params = Map.take(params, [:character, :color, :background_color])
+      settable_params = Map.take(params, ["character", "color", "background_color"])
       changeset =  TileTemplate.changeset(dummy_template, settable_params)
 
       errors = _validate_slug(command, line_no, params, errors, user)
       errors = if command == "PUT" &&
-                    ((params[:row] && is_nil(params[:col])) || (is_nil(params[:row]) && params[:col])) do
-                 ["Line #{line_no}: #{command} command must have both row and col or neither: `row: #{params[:row]}, col: #{params[:col]}`" | errors]
+                    ((params["row"] && is_nil(params["col"])) || (is_nil(params["row"]) && params["col"])) do
+                 ["Line #{line_no}: #{command} command must have both row and col or neither: `row: #{as_binary(params["row"])}, col: #{as_binary(params["col"])}`" | errors]
                else
                  errors
                end
       errors = if (command == "REMOVE" || command == "REPLACE") &&
-                    !Enum.any?(Map.keys(params), fn k -> Atom.to_string(k) =~ ~r/^target/ end ) do
+                    !Enum.any?(Map.keys(params), fn k -> k =~ ~r/^target/ end ) do
                  ["Line #{line_no}: #{command} command has no target KWARGs: `#{as_binary params}`" | errors]
                else
                  errors
@@ -447,22 +447,24 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate_slug(command, line_no, params, errors, user) do
-    tt = TileTemplates.get_tile_template_by_slug(params[:slug], :validation)
+    tt = TileTemplates.get_tile_template_by_slug(params["slug"], :validation)
     cond do
-      is_nil(params[:slug]) || is_nil(user) || params[:slug] == :stubbed_slug ->
+      is_nil(params["slug"]) || is_nil(user) || params["slug"] == "stubbed_slug" ->
         errors
 
       is_nil(tt) ->
-        ["Line #{line_no}: #{command} command references a SLUG that does not match a template `#{params[:slug]}`" | errors]
+        ["Line #{line_no}: #{command} command references a SLUG that does not match a template `#{params["slug"]}`" | errors]
 
       tt.public || user.is_admin || (user.id == tt.user_id) ->
         errors
 
       true ->
-        ["Line #{line_no}: #{command} command references a SLUG that you can't use `#{params[:slug]}`" | errors]
+        ["Line #{line_no}: #{command} command references a SLUG that you can't use `#{params["slug"]}`" | errors]
     end
   end
 
+  defp as_binary(nil), do: "<nil>"
+  defp as_binary(""), do: "<empty string>"
   defp as_binary(what) when is_binary(what), do: what
   defp as_binary(what), do: inspect(what)
 end

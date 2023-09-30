@@ -108,7 +108,7 @@ defmodule DungeonCrawl.Scripting.RunnerTest do
                After label
                """
       {:ok, program} = Parser.parse(script)
-      stubbed_object = %{id: 1, state: %{locked: true}}
+      stubbed_object = %{id: 1, state: %{"locked" => true}}
       stubbed_state = %Levels{map_by_ids: %{ 1 => stubbed_object} }
 
       %Runner{program: run_program} = Runner.run(%Runner{program: %{program | status: :idle}, object_id: 1, state: stubbed_state}, "Here")

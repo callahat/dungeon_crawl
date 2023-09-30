@@ -51,12 +51,18 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   @doc """
   Returns the top tile in the given directon from the provided coordinates.
   """
+  def get_tile(state, %{"row" => row, "col" => col} = _tile, direction) do
+    get_tile(state, %{row: row, col: col}, direction)
+  end
   def get_tile(state, %{row: row, col: col} = _tile, direction) do
     {d_row, d_col} = Direction.delta(direction)
     get_tile(state, %{row: row + d_row, col: col + d_col})
   end
   def get_tile(_,_,_), do: nil
 
+  def get_tile(state, %{"row" => row, "col" => col} = _tile) do
+    get_tile(state, %{row: row, col: col})
+  end
   def get_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
          [{_z_index, top_tile}] <- Map.to_list(tiles)
@@ -73,9 +79,15 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   @doc """
   Returns the tiles in the given directon from the provided coordinates.
   """
+  def get_tiles(%Levels{} = state, %{"row" => row, "col" => col} = _tile, direction) do
+    get_tiles(state, %{row: row, col: col}, direction)
+  end
   def get_tiles(%Levels{} = state, %{row: row, col: col} = _tile, direction) do
     {d_row, d_col} = Direction.delta(direction)
-    Levels.get_tiles(state, %{row: row + d_row, col: col + d_col})
+    get_tiles(state, %{row: row + d_row, col: col + d_col})
+  end
+  def get_tiles(state, %{"row" => row, "col" => col} = _tile) do
+    get_tiles(state, %{row: row, col: col})
   end
   def get_tiles(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = _state, %{row: row, col: col} = _tile) do
     with tiles when is_map(tiles) <- by_coords[{row, col}],
@@ -190,7 +202,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
 
     {top, instance_state} = Levels.create_tile(state, tile)
     # put here for now then reconsider when the state string goes away and replaced by "attributes" and "items"
-    {top, instance_state} = Levels.update_tile_state(instance_state, top, %{entry_row: top.row, entry_col: top.col})
+    {top, instance_state} = Levels.update_tile_state(instance_state, top, %{"entry_row" => top.row, "entry_col" => top.col})
     {top, %{ instance_state | player_locations: Map.put(player_locations, tile.id, location)}}
   end
 
@@ -221,7 +233,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       # Tile already registered
       {by_id[tile.id], state}
     else
-      state = if tile.state[:light_source] == true,
+      state = if tile.state["light_source"] == true,
                 do: %{ state | light_sources: Map.put(state.light_sources, tile.id, true), players_visible_coords: %{} },
                 else: state
 
@@ -316,16 +328,16 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   values already in the state. An existing state attribute (ie, `blocking`) that is not
   included in this map will be unaffected.
   """
-  @ignorable_state_attrs [:entry_row, :entry_col, :steps, :already_touched]
+  @ignorable_state_attrs ["entry_row", "entry_col", "steps", "already_touched"]
   def update_tile_state(%Levels{map_by_ids: by_id} = state, %{id: tile_id}, state_attributes) do
     tile = by_id[tile_id]
     tile_state = Map.merge(tile.state || %{}, state_attributes)
 
     # handle change to light sources
     state = cond do
-              state_attributes[:light_source] == true ->
+              state_attributes["light_source"] == true ->
                 %{state | light_sources: Map.put_new(state.light_sources, tile_id, true), players_los_coords: %{}}
-              Map.has_key?(state_attributes, :light_source) ->
+              Map.has_key?(state_attributes, "light_source") ->
                 %{state | light_sources: Map.delete(state.light_sources, tile_id), players_los_coords: %{}}
               Map.has_key?(state_attributes, :light_range) ->
                 %{state | players_los_coords: %{}}
@@ -349,18 +361,20 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   the tiles current state.
   """
   def update_tile(%Levels{map_by_ids: by_id, map_by_coords: by_coords} = state, %{id: tile_id}, new_attributes) do
-    new_attributes = Map.delete(new_attributes, :id)
+    new_attributes = Map.delete(new_attributes, "id")
     previous_changeset = state.dirty_ids[tile_id] || Tile.changeset(by_id[tile_id], %{})
+    new_changeset = Tile.changeset(previous_changeset, new_attributes)
 
-    script_changed = !!new_attributes[:script]
+    script_changed = !!new_attributes["script"]
 
-    updated_tile = by_id[tile_id] |> Map.merge(new_attributes)
+    updated_tile = by_id[tile_id]
+                   |> Map.merge(new_changeset.changes)
 
     old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
     updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
 
     by_id = Map.put(by_id, tile_id, updated_tile)
-    dirty_ids = Map.put(state.dirty_ids, tile_id, Tile.changeset(previous_changeset, new_attributes))
+    dirty_ids = Map.put(state.dirty_ids, tile_id, new_changeset)
     rerender_coords = Map.put_new(state.rerender_coords, Map.take(updated_tile, [:row, :col]), true)
                       |> Map.put_new(Map.take(old_tile_coords, [:row, :col]), true)
 
@@ -371,7 +385,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
         {nil, state}
       else
-        players_los_coords = if Map.has_key?(updated_tile.state, :light_source),
+        players_los_coords = if Map.has_key?(updated_tile.state, "light_source"),
                                do: %{},
                                else: state.players_los_coords
 
@@ -439,7 +453,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       by_id = Map.delete(by_id, tile_id)
       player_locations = Map.delete(player_locations, tile_id)
       players_visible_coords = Map.delete(players_visible_coords, tile_id)
-      players_los_coords = if tile.state[:light_source] == true,
+      players_los_coords = if tile.state["light_source"] == true,
                              do: %{},
                              else: Map.delete(players_los_coords, tile_id)
 
@@ -549,10 +563,10 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
 
   ## Examples
 
-    iex> subtract(state, :cash, 100, 12345)
+    iex> subtract(state, "cash", 100, 12345)
     {:ok, state}
   """
-  def subtract(%Levels{} = state, what, amount, loser_id) do
+  def subtract(%Levels{} = state, what, amount, loser_id) when is_binary(what) do
     loser = Levels.get_tile_by_id(state, %{id: loser_id})
 
     if loser do
@@ -563,10 +577,10 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
-  def _subtract(%Levels{} = state, :health, amount, loser, nil) do
-    current_amount = loser.state[:health]
+  def _subtract(%Levels{} = state, "health", amount, loser, nil) do
+    current_amount = loser.state["health"]
 
-    if is_nil(current_amount) && not StateValue.get_bool(loser, :destroyable) do
+    if is_nil(current_amount) && not StateValue.get_bool(loser, "destroyable") do
       {:noop, state}
     else
       new_amount = (current_amount || 0) - amount
@@ -575,7 +589,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
         {_deleted_tile, state} = Levels.delete_tile(state, loser)
         {:died, state}
       else
-        {_loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
+        {_loser, state} = Levels.update_tile_state(state, loser, %{"health" => new_amount})
         {:ok, state}
       end
     end
@@ -592,16 +606,16 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     end
   end
 
-  def _subtract(%Levels{} = state, :health, amount, loser, player_location) do
-    new_amount = (loser.state[:health] || 0) - amount
+  def _subtract(%Levels{} = state, "health", amount, loser, player_location) do
+    new_amount = (loser.state["health"] || 0) - amount
 
     cond do
-      StateValue.get_bool(loser, :buried) || StateValue.get_bool(loser, :gameover) ->
+      StateValue.get_bool(loser, "buried") || StateValue.get_bool(loser, "gameover") ->
         {:noop, state}
 
       new_amount <= 0 ->
-        lives = if loser.state[:lives] > 0, do: loser.state[:lives] - 1, else: -1
-        {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount, lives: lives})
+        lives = if loser.state["lives"] > 0, do: loser.state["lives"] - 1, else: -1
+        {loser, state} = Levels.update_tile_state(state, loser, %{"health" => new_amount, "lives" => lives})
         {_grave, state} = Player.bury(state, loser)
 
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "You died!"}
@@ -613,17 +627,17 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
           {:ok, state}
         end
 
-      state.state_values[:reset_player_when_damaged] ->
+      state.state_values["reset_player_when_damaged"] ->
         state = _add_sound_effect(state, loser, "ouch")
 
-        {loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
+        {loser, state} = Levels.update_tile_state(state, loser, %{"health" => new_amount})
         {_loser, state} = Player.reset(state, loser)
         {:ok, state}
 
       true ->
         state = _add_sound_effect(state, loser, "ouch")
 
-        {_loser, state} = Levels.update_tile_state(state, loser, %{health: new_amount})
+        {_loser, state} = Levels.update_tile_state(state, loser, %{"health" => new_amount})
         {:ok, state}
     end
   end
@@ -708,16 +722,16 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       # TODO: update scoers to allow nil dungeon_id, which indicates it was an autogenerated solo dungeon score
       cond do
         not scorable ->
-          {_player_tile, state} = Levels.update_tile_state(state, tile, %{gameover: true})
+          {_player_tile, state} = Levels.update_tile_state(state, tile, %{"gameover" => true})
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
                                              %{}
           state
 
-        tile.state[:gameover] ->
+        tile.state["gameover"] ->
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
-                                             Map.take(tile.state, [:score_id, :dungeon_id])
+                                             %{score_id: tile.state["score_id"], dungeon_id: tile.state["dungeon_id"]}
           state
 
         !autogenerated && Enum.member?(["Idled Out", "Gave Up"], result) ->
@@ -725,23 +739,23 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
 
         true ->
           seconds = NaiveDateTime.diff(NaiveDateTime.utc_now, player_location.inserted_at) +
-            (tile.state[:duration] || 0)
+            (tile.state["duration"] || 0)
 
           {result, dungeon_id} = if autogenerated, do: {"#{result}, Level: #{state.number}", nil}, else: {result, dungeon.id}
 
-          attrs = %{duration: seconds,
-                    result: result,
-                    score: tile.state[:score],
-                    steps: tile.state[:steps],
-                    deaths: tile.state[:deaths] || 0,
-                    victory: victory,
-                    user_id_hash: player_location.user_id_hash,
-                    dungeon_id: dungeon_id}
+          attrs = %{"duration" => seconds,
+                    "result" => result,
+                    "score" => tile.state["score"],
+                    "steps" => tile.state["steps"],
+                    "deaths" => tile.state["deaths"] || 0,
+                    "victory" => victory,
+                    "user_id_hash" => player_location.user_id_hash,
+                    "dungeon_id" => dungeon_id}
 
           {:ok, score} = Scores.create_score(attrs)
-          {_player_tile, state} = Levels.update_tile_state(state, tile, %{gameover: true,
-                                                                          score_id: score.id,
-                                                                          dungeon_id: score.dungeon_id})
+          {_player_tile, state} = Levels.update_tile_state(state, tile, %{"gameover" => true,
+                                                                          "score_id" => score.id,
+                                                                          "dungeon_id" => score.dungeon_id})
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                              "gameover",
                                              %{dungeon_id: score.dungeon_id, score_id: score.id}

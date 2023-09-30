@@ -1,7 +1,7 @@
 defmodule DungeonCrawlWeb.Editor.TileShortlistControllerTest do
   use DungeonCrawlWeb.ConnCase
 
-  @create_attrs %{name: "ampersand", character: "&", state: %{flag: true}, script: "#end\n:touch\nHEY", color: "green"}
+  @create_attrs %{name: "ampersand", character: "&", state: %{"flag" => true}, script: "#end\n:touch\nHEY", color: "green"}
   @invalid_attrs %{character: "XXX", state: "derp", color: "red", script: "#alsoderp"}
 
   # Without registered user

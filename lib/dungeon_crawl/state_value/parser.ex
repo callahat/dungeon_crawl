@@ -9,10 +9,10 @@ defmodule DungeonCrawl.StateValue.Parser do
   ## Examples
 
       iex> Parser.parse("blocking: true")
-      {:ok, %{blocking: true}}
+      {:ok, %{"blocking" => true}}
 
       iex> Parser.parse("blocking: true, open: false, name: Wall")
-      {:ok, %{blocking: true, open: false, name: "Wall"}}
+      {:ok, %{"blocking" => true, "open" => false, "name" => "Wall"}}
 
       iex> Parser.parse("jibberish")
       {:error, "Error parsing around: jibberish"}
@@ -53,12 +53,12 @@ defmodule DungeonCrawl.StateValue.Parser do
     |> Enum.map(fn(s) -> String.trim(s) end)
   end
 
-  defp _normalize_key_and_value(key, value) when is_binary(key),
-    do: _normalize_key_and_value(String.to_atom(key), value)
-  defp _normalize_key_and_value(:equipment, value),
-    do: {:equipment, String.split(value)}
-  defp _normalize_key_and_value(:starting_equipment, value),
-       do: {:starting_equipment, String.split(value)}
+  defp _normalize_key_and_value(key, value) when is_atom(key),
+    do: _normalize_key_and_value(Atom.to_string(key), value)
+  defp _normalize_key_and_value("equipment", value),
+    do: {"equipment", String.split(value)}
+  defp _normalize_key_and_value("starting_equipment", value),
+       do: {"starting_equipment", String.split(value)}
   defp _normalize_key_and_value(key, value),
     do: {key, _cast_param(value)}
 
@@ -93,11 +93,11 @@ defmodule DungeonCrawl.StateValue.Parser do
     |> Enum.join(", ")
   end
 
-  defp _stringify_key_value({key, value}) when is_binary(key),
-    do: _stringify_key_value({String.to_atom(key), value})
-  defp _stringify_key_value({:equipment, value}),
+  defp _stringify_key_value({key, value}) when is_atom(key),
+    do: _stringify_key_value({Atom.to_string(key), value})
+  defp _stringify_key_value({"equipment", value}),
     do: "equipment: #{Enum.join(value, " ")}"
-  defp _stringify_key_value({:starting_equipment, value}),
+  defp _stringify_key_value({"starting_equipment", value}),
        do: "starting_equipment: #{Enum.join(value, " ")}"
   defp _stringify_key_value({key, nil}),
     do: "#{key}: nil"
