@@ -159,7 +159,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
     case Map.fetch(level_numbers, level_number) do
       {:ok, instance_ids} ->
         owner_key = if Map.has_key?(instance_ids, nil), do: nil, else: owner_id
-
+        # TODO: in the time that lookup returns a result, the process could time out with no players
+        # present. Make the lookup alo "touch" the instance process to reset the "count to idle"
         {:reply, Map.fetch(instance_ids, owner_key), level_registry}
       _ ->
         {:reply, :error, level_registry}
