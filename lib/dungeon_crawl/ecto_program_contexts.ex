@@ -112,6 +112,9 @@ defmodule DungeonCrawl.EctoProgramContexts do
       {"labels", _} ->
         true
 
+      {"timed_messages", _} ->
+        true
+
       {key, value} when is_binary(key) ->
         _valid_json?(value)
 
@@ -138,6 +141,11 @@ defmodule DungeonCrawl.EctoProgramContexts do
   end
 
   defp _decode_to_elixir(params, atomize_keys \\ false)
+  defp _decode_to_elixir(%{"calendar" => ["__ATOM__", "Elixir.Calendar.ISO"]} = params, _) do
+    Enum.map(params, fn {k, v} -> {String.to_atom(k), _decode_to_elixir(v)} end)
+    |> Enum.into(%{})
+    |> Map.put(:__struct__, DateTime)
+  end
   defp _decode_to_elixir(params, atomize_keys) when is_map(params) do
     Enum.map(params, fn
       {"event_sender", value} ->

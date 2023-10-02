@@ -103,7 +103,18 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         responses: [],
         status: :active,
         wait_cycles: 0,
-        timed_messages: []
+        timed_messages: [
+          {
+            DateTime.from_unix!(1_694_796_368),
+            "fuse_lit",
+            %{
+              "state" => %{
+                "harvestable" => false
+              },
+              "tile_id" => 3571817
+            }
+          }
+        ]
       }
     }
   }
@@ -213,7 +224,32 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         "responses" => [],
         "status" => ["__ATOM__", "active"],
         "wait_cycles" => 0,
-        "timed_messages" => []
+        "timed_messages" => [
+          [
+            "__TUPLE__",
+            %{
+              "day" => 15,
+              "hour" => 16,
+              "year" => 2023,
+              "month" => 9,
+              "minute" => 46,
+              "second" => 8,
+              "calendar" => ["__ATOM__", "Elixir.Calendar.ISO"],
+              "time_zone" => "Etc/UTC",
+              "zone_abbr" => "UTC",
+              "std_offset" => 0,
+              "utc_offset" => 0,
+              "microsecond" => ["__TUPLE__", 0, 0]
+            },
+            "fuse_lit",
+            %{
+              "state" => %{
+                "harvestable" => false
+              },
+              "tile_id" => 3571817
+            }
+          ]
+        ]
       }
     }
   }
