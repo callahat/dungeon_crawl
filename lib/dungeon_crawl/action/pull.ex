@@ -53,7 +53,6 @@ require Logger
 
         {lead_tile, state} = cond do
                                    Enum.member?(["map_tile_id", "tile_id"], lead_pullable) ->
-                                   # TODO: same comment as below
                                      Levels.update_tile_state(state, lead_tile, %{"pullable" => puller.id, "facing" => direction})
                                    puller && is_binary(lead_pullable) && puller.state[lead_pullable] ->
                                      Levels.update_tile_state(state, lead_tile, %{"pullable" => puller.id, "facing" => direction})
@@ -65,7 +64,6 @@ require Logger
 
         {_, state} = cond do
                        Enum.member?(["map_tile_id", "tile_id"], puller_pulling) ->
-                       # TODO: change pulling: to "pulling" =>, there may be many things like this that need updated
                          Levels.update_tile_state(state, puller, %{"pulling" => lead_tile.id})
                        lead_tile && is_binary(puller_pulling) && lead_tile.state[puller_pulling] ->
                          Levels.update_tile_state(state, puller, %{"pulling" => lead_tile.id})
