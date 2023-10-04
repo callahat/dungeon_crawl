@@ -217,9 +217,9 @@ defmodule DungeonCrawl.Player do
 
     tile_state = player_tile.state
                  |> Map.merge(
-                      %{equipped: Enum.at(equipment, 0),
-                        equipment: equipment,
-                        starting_equipment: equipment}
+                      %{"equipped" => Enum.at(equipment, 0),
+                        "equipment" => equipment,
+                        "starting_equipment" => equipment}
                     )
     Repo.update!(Tile.changeset(player_tile, %{state: tile_state}))
   end
