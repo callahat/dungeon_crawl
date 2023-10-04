@@ -42,7 +42,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.BasicTiles do
   @doc """
   Seeds the DB with a door that can open and close.
   """
-  def solo_door(character \\ "+", state \\ "blocking: true, open: false") do
+  def solo_door(character \\ "+", state \\ %{"blocking" => true, "open" => false}) do
     create_with_defaults!(
       "basic_door",
       %{

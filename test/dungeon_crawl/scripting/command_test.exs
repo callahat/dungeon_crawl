@@ -290,13 +290,13 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: tile.id, state: state}, [3])
     tile = Levels.get_tile_by_id(state, tile)
-    assert tile.state == %{wait_cycles: 3}
+    assert tile.state == %{"wait_cycles" => 3}
     %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: tile.id, state: state}, [-2])
     tile = Levels.get_tile_by_id(state, tile)
-    assert tile.state == %{wait_cycles: 3}
+    assert tile.state == %{"wait_cycles" => 3}
     %Runner{state: state} = Command.cycle(%Runner{program: program, object_id: tile.id, state: state}, [1])
     tile = Levels.get_tile_by_id(state, tile)
-    assert tile.state == %{wait_cycles: 1}
+    assert tile.state == %{"wait_cycles" => 1}
   end
 
   test "COMPOUND_MOVE" do
@@ -619,7 +619,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map[receiving_tile.id].state["health"] == 1
 
     # Does nothing when there is no event sender
-    %Runner{state: updated_state} = Command.give(%{runner_state | event_sender: nil}, [:health, {:state_variable, "nonexistant"}, [:event_sender]])
+    %Runner{state: updated_state} = Command.give(%{runner_state | event_sender: nil}, ["health", {:state_variable, "nonexistant"}, [:event_sender]])
     assert updated_state == state
 
     # Give a state variable
@@ -2061,7 +2061,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert map[losing_tile.id].state["health"] == 10
 
     # Does nothing when there is no event sender
-    %Runner{state: updated_state} = Command.take(%{runner_state | event_sender: nil}, [:health, {:state_variable, "nonexistant"}, [:event_sender]])
+    %Runner{state: updated_state} = Command.take(%{runner_state | event_sender: nil}, ["health", {:state_variable, "nonexistant"}, [:event_sender]])
     assert updated_state == state
   end
 

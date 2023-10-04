@@ -339,7 +339,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
                 %{state | light_sources: Map.put_new(state.light_sources, tile_id, true), players_los_coords: %{}}
               Map.has_key?(state_attributes, "light_source") ->
                 %{state | light_sources: Map.delete(state.light_sources, tile_id), players_los_coords: %{}}
-              Map.has_key?(state_attributes, :light_range) ->
+              Map.has_key?(state_attributes, "light_range") ->
                 %{state | players_los_coords: %{}}
               true ->
                 state

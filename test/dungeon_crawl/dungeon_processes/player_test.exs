@@ -299,8 +299,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location)
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 6
     assert placed_tile.col == 9
     assert placed_tile.z_index == 0
@@ -312,8 +314,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
             |> Map.put(:instance_id, player_tile.level_instance_id)
     {placed_player_tile, updated_state} = Player.place(state, player_tile, player_location)
     placed_tile = Levels.get_tile(updated_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 2
     assert placed_tile.col == 2
     assert placed_tile.z_index == 1
@@ -326,8 +330,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location)
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 3
     assert placed_tile.col == 4
     assert placed_tile.z_index == 0
@@ -339,8 +345,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{match_key: "red"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 1
     assert placed_tile.col == 6
     assert placed_tile.z_index == 1
@@ -361,9 +369,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_state} = Player.place(state, player_tile, player_location, Map.put(passage_1, :match_key, "red"))
     placed_tile = Levels.get_tile(updated_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 1
     assert placed_tile.col == 6
     assert placed_tile.z_index == 3
@@ -375,9 +384,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{match_key: "fakecolor"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     # falls back to spawn location logic
     assert placed_tile.row == 6
     assert placed_tile.col == 9
@@ -390,9 +400,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{match_key: nil})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 1
     assert placed_tile.col == 6
     assert placed_tile.z_index == 1
@@ -405,9 +416,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{edge: "north"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 0
     assert placed_tile.col == 4 # col was mod by cols to keep it within the borders
     assert placed_tile.z_index == 0

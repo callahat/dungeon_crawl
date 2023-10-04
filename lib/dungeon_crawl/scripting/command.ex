@@ -365,7 +365,7 @@ defmodule DungeonCrawl.Scripting.Command do
     if wait_cycles < 1 do
       runner_state
     else
-      change_state(runner_state, [:wait_cycles, "=", wait_cycles])
+      change_state(runner_state, ["wait_cycles", "=", wait_cycles])
     end
   end
 

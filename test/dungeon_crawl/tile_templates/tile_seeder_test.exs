@@ -5,8 +5,8 @@ defmodule DungeonCrawl.TileTemplates.TileSeederTest do
   alias DungeonCrawl.TileTemplates.TileTemplate
 
   test "basic_tiles returns the same map on subsequent calls" do
-    assert  %{?. => _, ?# => _, ?\s => _, ?' => _, ?+ => _, ?@ => statue,
-              "." => _, "#" => _, " " => _, "'" => _, "+" => _, "@" => statue} = basic_tiles = TileSeeder.basic_tiles()
+    assert  %{?. => _, ?# => _, ?\s => _, ?' => _, ?+ => _, ?@ => _,
+              "." => _, "#" => _, " " => _, "'" => _, "+" => _, "@" => _} = basic_tiles = TileSeeder.basic_tiles()
     assert basic_tiles == TileSeeder.basic_tiles()
   end
 
