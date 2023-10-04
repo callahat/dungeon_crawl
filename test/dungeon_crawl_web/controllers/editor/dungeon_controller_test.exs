@@ -12,10 +12,10 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
   alias DungeonCrawl.Shipping
   @create_attrs %{name: "some name"}
   @update_attrs %{name: "new name"}
-  @invalid_attrs %{name: ""}
+  @invalid_attrs %{name: "", state_variables: ["flag", "starting_equipment"], state_values: ["true", "baditem"]}
 
   def fixture(:dungeon, user_id) do
-    {:ok, dungeon} = Dungeons.create_dungeon(Map.put(@create_attrs, :user_id, user_id))
+    {:ok, dungeon} = Dungeons.create_dungeon(Map.merge(@create_attrs, %{user_id: user_id, state: %{"banner" => "hark"}}))
     dungeon
   end
 
@@ -176,6 +176,11 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
     test "renders errors when data is invalid", %{conn: conn} do
       conn = post conn, edit_dungeon_path(conn, :create), dungeon: @invalid_attrs
       assert html_response(conn, 200) =~ "New dungeon"
+      assert html_response(conn, 200) =~ "starting_equipment contains invalid items: `[&quot;baditem&quot;]`"
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_variables\]\[\]" type="text" value="flag">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_values\]\[\]" type="text" value="true">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_variables\]\[\]" type="text" value="starting_equipment">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_values\]\[\]" type="text" value="baditem">|
     end
   end
 
@@ -214,6 +219,13 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
     test "renders errors when data is invalid", %{conn: conn, dungeon: dungeon} do
       conn = put conn, edit_dungeon_path(conn, :update, dungeon), dungeon: @invalid_attrs
       assert html_response(conn, 200) =~ "Edit dungeon"
+      assert html_response(conn, 200) =~ "starting_equipment contains invalid items: `[&quot;baditem&quot;]`"
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_variables\]\[\]" type="text" value="banner">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_values\]\[\]" type="text" value="hark">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_variables\]\[\]" type="text" value="flag">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_values\]\[\]" type="text" value="true">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_variables\]\[\]" type="text" value="starting_equipment">|
+      assert html_response(conn, 200) =~ ~r|<input class="form-control" name="dungeon\[state_values\]\[\]" type="text" value="baditem">|
     end
 
     test "cannot update active dungeon", %{conn: conn, dungeon: dungeon} do

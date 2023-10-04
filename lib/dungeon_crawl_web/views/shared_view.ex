@@ -228,5 +228,9 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp _tile_template_id(%TileTemplate{id: id}), do: id
   defp _tile_template_id(%{tile_template_id: id}), do: id
+
+  def stringify_state_value(value) when is_list(value),
+      do: Enum.join(value, " ")
+  def stringify_state_value(value), do: "#{value}"
 end
 

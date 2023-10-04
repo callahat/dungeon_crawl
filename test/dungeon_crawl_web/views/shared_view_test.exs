@@ -197,7 +197,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
       Phoenix.View.render(SharedView,
                           "state_fields.html",
                           state: %{"foo" => "bar", "baz" => "qux"},
-                          form: %{name: "tile_template"},
+                          form: %{name: "tile_template", errors: %{}},
                           standard_variables: ["test"])
     rendered_fields = Enum.join(rendered_fields, "")
     assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_variables\]\[\]" type="text" value="foo">|
@@ -206,5 +206,24 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_variables\]\[\]" type="text" value="baz">|
     assert rendered_fields =~ ~r|<input class="form-control" name="tile_template\[state_values\]\[\]" type="text" value="qux">|
     assert rendered_fields =~ ~r|<button type="button" class="btn btn-danger delete-state-fields-row">X</button>|
+  end
+
+  test "show_state_fields.html" do
+    {:safe, rendered} =
+      Phoenix.View.render(SharedView,
+        "show_state_fields.html",
+        state: %{"foo" => "bar", "baz" => true, "array" => ["hammer", "baconer"]})
+    rendered = Enum.join(rendered, "")
+
+    assert rendered =~ ~r|<pre class="script" style="display: inline">foo: bar</pre>|
+    assert rendered =~ ~r|<pre class="script" style="display: inline">baz: true</pre>|
+    assert rendered =~ ~r|<pre class="script" style="display: inline">array: hammer baconer</pre>|
+  end
+
+  test "stringify_state_value/1" do
+    assert "one two three" = stringify_state_value(["one", "two", "three"])
+    assert "true" = stringify_state_value(true)
+    assert "123" = stringify_state_value(123)
+    assert "test" = stringify_state_value("test")
   end
 end

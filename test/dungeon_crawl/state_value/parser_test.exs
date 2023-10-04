@@ -69,5 +69,14 @@ defmodule DungeonCrawl.StateValue.ParserTest do
     test "map with starting_equipment" do
       assert "starting_equipment: file cabinet" == Parser.stringify(%{"starting_equipment" => ["file", "cabinet"]})
     end
+
+    @tag capture_log: true
+    test "map with an atom for a key" do
+      log = ExUnit.CaptureLog.capture_log(fn ->
+        assert "starting_equipment: file cabinet" == Parser.stringify(%{"starting_equipment" => ["file", "cabinet"]})
+      end)
+
+      log =~ "equipment - file cabinet state value pair had an atom as a key, state value keys should be strings"
+    end
   end
 end

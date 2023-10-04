@@ -5,7 +5,7 @@
     <%= for {variable, value} <- @state
                                  |> Map.to_list()
                                  |> Enum.sort() do %>
-      <pre class="script" style="display: inline"><%= variable %>: <%= value %></pre>
+      <pre class="script" style="display: inline"><%= variable %>: <%= stringify_state_value(value) %></pre>
     <% end %>
   </span>
 </div>

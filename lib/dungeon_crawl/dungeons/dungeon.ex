@@ -89,10 +89,10 @@ defmodule DungeonCrawl.Dungeons.Dungeon do
                 else: changeset.data.user_id
 
     with state <- changeset.changes[:state],
-         %{starting_equipment: se} <- state,
+         %{"starting_equipment" => se} <- state,
          author <- Account.get_user(user_id),
          invalid_equipment when invalid_equipment != [] <- _invalid_equipment(se, author) do
-      add_error(changeset, :base, "starting_equipment contains invalid items: `#{inspect invalid_equipment}}`")
+      add_error(changeset, :state, "starting_equipment contains invalid items: `#{inspect invalid_equipment}`")
     else
       _ -> changeset
     end
