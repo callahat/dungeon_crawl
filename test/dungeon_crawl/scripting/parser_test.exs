@@ -91,7 +91,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #MOVE @facing
                #GO @facing
                #TRY @facing
-               ?{?sender}@health = 1
+               ?{?sender}@health = -1
                ?north@blocking = true
                ?12345@pullable = false
                ?{@facing}@health -= 10
@@ -114,6 +114,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #UNEQUIP gun, south, TOUCH
                #IF @equipment =~ gun, TOUCH
                #SOUND boop
+               #BECOME count: -3
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -173,7 +174,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  55 => [:move, [{:state_variable, "facing"}]],
                                                  56 => [:go, [{:state_variable, "facing"}]],
                                                  57 => [:try, [{:state_variable, "facing"}]],
-                                                 58 => [:change_other_state, [[:event_sender], "health", "=", 1]],
+                                                 58 => [:change_other_state, [[:event_sender], "health", "=", -1]],
                                                  59 => [:change_other_state, ["north", "blocking", "=", true]],
                                                  60 => [:change_other_state, [12345, "pullable", "=", false]],
                                                  61 => [:change_other_state, [{:state_variable, "facing"}, "health", "-=", 10]],
@@ -196,6 +197,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  78 => [:unequip, ["gun", "south", "TOUCH"]],
                                                  79 => [:jump_if, [[{:state_variable, "equipment"}, "=~", "gun"], "TOUCH"]],
                                                  80 => [:sound, ["boop"]],
+                                                 81 => [:become, [%{"count" => -3}]],
                                                  },
                                  status: :alive,
                                  pc: 1,

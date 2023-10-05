@@ -250,7 +250,7 @@ defmodule DungeonCrawl.Scripting.Parser do
     cond do
       Regex.match?(~r/^self$|^$/, param) -> [:self]
       Regex.match?(~r/^sender$|^$/, param) -> [:event_sender]
-      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^-?\d+$/, param) -> String.to_integer(param)
       Regex.match?(~r/^@.+?$/, param) -> _normalize_state_arg(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string, probably a direction
@@ -351,8 +351,8 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^nil$/i, param) -> nil
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
-      Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
-      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^-?\d+\.\d+$/, param) -> String.to_float(param)
+      Regex.match?(~r/^-?\d+$/, param) -> String.to_integer(param)
       Regex.match?(~r/^(not |! ?)?(\?[^@]*?@|@@|@|&).+?((!=|==|<=|>=|<|>|=~|!~).+)?$/i, param) -> _normalize_conditional(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
@@ -364,8 +364,8 @@ defmodule DungeonCrawl.Scripting.Parser do
       Regex.match?(~r/^nil$/i, param) -> nil
       Regex.match?(~r/^true$/i, param) -> true
       Regex.match?(~r/^false$/i, param) -> false
-      Regex.match?(~r/^\d+\.\d+$/, param) -> String.to_float(param)
-      Regex.match?(~r/^\d+$/, param) -> String.to_integer(param)
+      Regex.match?(~r/^-?\d+\.\d+$/, param) -> String.to_float(param)
+      Regex.match?(~r/^-?\d+$/, param) -> String.to_integer(param)
       Regex.match?(~r/^(\?[^@]*?@|@@|@|&).+?$/i, param) -> _normalize_state_arg(param)
       Regex.match?(~r/^\?.+?$/i, param) -> _normalize_special_var(param)
       true -> param # just a string
