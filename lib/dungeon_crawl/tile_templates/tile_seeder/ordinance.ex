@@ -22,7 +22,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Ordinance do
                 #END
                 :FUSE_LIT
                 #ZAP TOUCH
-                #IF @owner, 1
+                #IF !@owner, 1
                 @owner = ?sender@id
                 #BECOME character: @counter
                 Ssssss.....
