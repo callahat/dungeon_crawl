@@ -189,18 +189,18 @@ defmodule DungeonCrawl.Scripting.Direction do
 
   ## Examples
 
-    iex> Direction.coordinates_to_edge(%{row: 5, col: 10}, "east", %{rows: 10, cols: 15})
+    iex> Direction.coordinates_to_edge(%{row: 5, col: 10}, "east", %{"rows" => 10, "cols" => 15})
     [%{row: 5, col: 10}, %{row: 5, col: 11}, %{row: 5, col: 12}, %{row: 5, col: 13}, %{row: 5, col: 14}]
-    iex> Direction.coordinates_to_edge(%{row: 5, col: 5}, "west", %{rows: 10, cols: 15})
+    iex> Direction.coordinates_to_edge(%{row: 5, col: 5}, "west", %{"rows" => 10, "cols" => 15})
     [%{row: 5, col: 5},%{row: 5, col: 4}, %{row: 5, col: 3}, %{row: 5, col: 2}, %{row: 5, col: 1}, %{row: 5, col: 0}]
-    iex> Direction.coordinates_to_edge(%{row: 0, col: 5}, "up", %{rows: 10, cols: 15})
+    iex> Direction.coordinates_to_edge(%{row: 0, col: 5}, "up", %{"rows" => 10, "cols" => 15})
     [%{row: 0, col: 5}]
-    iex> Direction.coordinates_to_edge(%{row: 3, col: 10}, "south", %{rows: 6, cols: 15})
+    iex> Direction.coordinates_to_edge(%{row: 3, col: 10}, "south", %{"rows" => 6, "cols" => 15})
     [%{row: 3, col: 10}, %{row: 4, col: 10}, %{row: 5, col: 10}]
-    iex> Direction.coordinates_to_edge(%{row: 0, col: 5}, "junk", %{rows: 10, cols: 15})
+    iex> Direction.coordinates_to_edge(%{row: 0, col: 5}, "junk", %{"rows" => 10, "cols" => 15})
     []
   """
-  def coordinates_to_edge(%{row: origin_row, col: origin_col}, direction, %{rows: rows, cols: cols}) do
+  def coordinates_to_edge(%{row: origin_row, col: origin_col}, direction, %{"rows" => rows, "cols" => cols}) do
     case normalize_orthogonal(direction) do
       "north" -> for row <- origin_row..0, do: %{row: row, col: origin_col}
       "south" -> for row <- origin_row..(rows - 1), do: %{row: row, col: origin_col}

@@ -83,12 +83,12 @@ defmodule DungeonCrawlWeb.LevelChannel do
       cond do
         is_nil(player_location) || is_nil(player_tile) ->
           {:ok, instance_state}
-        instance_state.state_values[:visibility] != "dark" ->
+        instance_state.state_values["visibility"] != "dark" ->
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "Don't need a torch here"}
           {:ok, instance_state}
-        player_tile.state[:torches] > 0 ->
-          new_torch_count = player_tile.state[:torches] - 1
-          {_player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{torches: new_torch_count, torch_light: 6, light_source: true, light_range: 6})
+        player_tile.state["torches"] > 0 ->
+          new_torch_count = player_tile.state["torches"] - 1
+          {_player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{"torches" => new_torch_count, "torch_light" => 6, "light_source" => true, "light_range" => 6})
           {:ok, instance_state}
         true ->
           DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: "Don't have any torches"}
@@ -110,9 +110,9 @@ defmodule DungeonCrawlWeb.LevelChannel do
     LevelProcess.run_with(instance, fn (instance_state) ->
       with {player_location, player_tile} when not is_nil(player_location) <-
              _player_location_and_tile(instance_state, socket.assigns.user_id_hash),
-           true <- Enum.member?(player_tile.state[:equipment] || [], item_slug),
+           true <- Enum.member?(player_tile.state["equipment"] || [], item_slug),
            {item, instance_state, _} when not is_nil(item) <- Levels.get_item(item_slug, instance_state) do
-        Levels.update_tile_state(instance_state, player_tile, %{equipped: item_slug})
+        Levels.update_tile_state(instance_state, player_tile, %{"equipped" => item_slug})
       else
         _ -> {:ok, instance_state}
       end
@@ -157,7 +157,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
 
       if player_tile && not _player_alive(player_tile) && _game_active(player_tile, player_location) do
         {player_tile, instance_state} = Player.respawn(instance_state, player_tile)
-        death_note = "You live again, after #{player_tile.state[:deaths]} death#{if player_tile.state[:deaths] > 1, do: "s"}"
+        death_note = "You live again, after #{player_tile.state["deaths"]} death#{if player_tile.state["deaths"] > 1, do: "s"}"
 
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "message", %{message: death_note}
         DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}", "stat_update", %{stats: Player.current_stats(instance_state, player_tile)}
@@ -181,8 +181,8 @@ defmodule DungeonCrawlWeb.LevelChannel do
       if _item_ready(socket) && _player_alive(player_tile) && _game_active(player_tile, player_location) do
         player_channel = "players:#{player_location.id}"
 
-        {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{facing: direction})
-        slug = player_tile.state[:equipped]
+        {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{"facing" => direction})
+        slug = player_tile.state["equipped"]
 
         case Levels.get_item(slug, instance_state) do
           {nil, _, :nothing_equipped} ->
@@ -262,14 +262,14 @@ defmodule DungeonCrawlWeb.LevelChannel do
           Travel.passage(player_location, %{edge: Direction.change_direction(direction, "reverse")}, adjacent_level_number, instance_state)
 
         destination ->
-          {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: true})
+          {player_tile, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{"already_touched" => true})
           case move_func.(player_tile, destination, instance_state) do
             {:ok, _tile_changes, instance_state} ->
-              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
+              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{"already_touched" => false})
               {:moved, instance_state}
 
             {:invalid, _tile_changes, instance_state} ->
-              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{already_touched: false})
+              {_, instance_state} = Levels.update_tile_state(instance_state, player_tile, %{"already_touched" => false})
               {:invalid, instance_state}
           end
 
@@ -343,11 +343,11 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   defp _player_alive(nil), do: false
-  defp _player_alive(player_tile), do: player_tile.state[:health] > 0
+  defp _player_alive(player_tile), do: player_tile.state["health"] > 0
 
   defp _game_active(nil, _), do: false
   defp _game_active(player_tile, player_location) do
-    if player_tile.state[:gameover] == true do
+    if player_tile.state["gameover"] == true do
       DungeonCrawlWeb.Endpoint.broadcast "players:#{player_location.id}",
                                          "gameover",
                                          Map.take(player_tile.state, [:score_id, :dungeon_id])
@@ -435,9 +435,9 @@ defmodule DungeonCrawlWeb.LevelChannel do
   defp _adjacent_level_number(instance_state, player_tile, "north"),
     do: player_tile.row == 0 && instance_state.adjacent_level_numbers["north"]
   defp _adjacent_level_number(instance_state, player_tile, "south"),
-    do: player_tile.row == instance_state.state_values[:rows]-1  && instance_state.adjacent_level_numbers["south"]
+    do: player_tile.row == instance_state.state_values["rows"]-1  && instance_state.adjacent_level_numbers["south"]
   defp _adjacent_level_number(instance_state, player_tile, "east"),
-    do: player_tile.col == instance_state.state_values[:cols]-1 && instance_state.adjacent_level_numbers["east"]
+    do: player_tile.col == instance_state.state_values["cols"]-1 && instance_state.adjacent_level_numbers["east"]
   defp _adjacent_level_number(instance_state, player_tile, "west"),
     do: player_tile.col == 0 && instance_state.adjacent_level_numbers["west"]
   defp _adjacent_level_number(_,_,_), do: nil
@@ -445,7 +445,7 @@ defmodule DungeonCrawlWeb.LevelChannel do
   defp _use_item(socket, instance_state, item, player_location) do
     player_channel = "players:#{player_location.id}"
 
-    if instance_state.state_values[:pacifism] && item.weapon do
+    if instance_state.state_values["pacifism"] && item.weapon do
       DungeonCrawlWeb.Endpoint.broadcast player_channel, "message", %{message: "Can't use that here!"}
       {socket, instance_state}
     else
@@ -487,10 +487,10 @@ defmodule DungeonCrawlWeb.LevelChannel do
   end
 
   defp _item_used_up(player_tile, item, state) do
-    equipment = player_tile.state[:equipment] -- [item.slug]
+    equipment = player_tile.state["equipment"] -- [item.slug]
     equipped = if Enum.member?(equipment, item.slug), do: item.slug, else: Enum.at(equipment, 0)
 
-    Levels.update_tile_state(state, player_tile, %{equipment: equipment, equipped: equipped})
+    Levels.update_tile_state(state, player_tile, %{"equipment" => equipment, "equipped" => equipped})
   end
 
   defp _to_integer(""), do: nil

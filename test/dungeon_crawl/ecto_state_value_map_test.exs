@@ -18,14 +18,14 @@ defmodule DungeonCrawl.EctoStateValueMapTest do
       assert EctoStateValueMap.cast(nil) == {:ok, %{}}
       assert EctoStateValueMap.cast(%{one: :two}) == {:ok, %{one: :two}}
       assert EctoStateValueMap.cast("one: two, three: five, equipment: 1 2 3") ==
-               {:ok, %{one: "two", three: "five", equipment: ["1", "2", "3"]}}
+               {:ok, %{"one" => "two", "three" => "five", "equipment" => ["1", "2", "3"]}}
     end
   end
 
   describe "load/1" do
     test "loads data that should be valid" do
       assert EctoStateValueMap.load("one: two, three: five, equipment: 1 2 3") ==
-               {:ok, %{one: "two", three: "five", equipment: ["1", "2", "3"]}}
+               {:ok, %{"one" => "two", "three" => "five", "equipment" => ["1", "2", "3"]}}
     end
 
     test "doesnt load corrupt data" do

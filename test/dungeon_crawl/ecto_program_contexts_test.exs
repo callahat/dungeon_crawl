@@ -26,23 +26,23 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         id: 3177,
         name: "Doc",
         state: %{
-          already_touched: false,
-          ammo: 6,
-          blocking: true,
-          bullet_damage: 10,
-          cash: 0,
-          equipment: ["gun"],
-          equipped: "gun",
-          gems: 0,
-          health: 100,
-          lives: -1,
-          player: true,
-          pushable: true,
-          score: 0,
-          soft: true,
-          starting_equipment: ["gun"],
-          steps: 13,
-          torches: 0
+          "already_touched" => false,
+          "ammo" => 6,
+          "blocking" => true,
+          "bullet_damage" => 10,
+          "cash" => 0,
+          "equipment" => ["gun"],
+          "equipped" => "gun",
+          "gems" => 0,
+          "health" => 100,
+          "lives" => -1,
+          "player" => true,
+          "pushable" => true,
+          "score" => 0,
+          "soft" => true,
+          "starting_equipment" => ["gun"],
+          "steps" => 13,
+          "torches" => 0
         },
         tile_instance_id: 3572819,
         user_id_hash: "9fqSkIyUEajmy60SE5N4T6wvR6Dc7SL0"
@@ -51,39 +51,39 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
       program: %DungeonCrawl.Scripting.Program{
         broadcasts: [],
         instructions: %{
-          1 => [:jump_if, [{:state_variable, :fuse_lit}, "FUSE_LIT"]],
+          1 => [:jump_if, [{:state_variable, "fuse_lit"}, "FUSE_LIT"]],
           2 => [:halt, [""]],
           3 => [:noop, "TOUCH"],
           4 => [:zap, ["TOUCH"]],
-          5 => [:jump_if, [{:event_sender_variable, :player}, "FUSE_LIT"]],
+          5 => [:jump_if, [{:event_sender_variable, "player"}, "FUSE_LIT"]],
           6 => [:restore, ["TOUCH"]],
           7 => [:halt, [""]],
           8 => [:noop, "FUSE_LIT"],
           9 => [:zap, ["TOUCH"]],
-          10 => [:jump_if, [{:state_variable, :owner}, 1]],
-          11 => [:change_state, [:owner, "=", {:event_sender_variable, :id}]],
-          12 => [:become, [%{character: {:state_variable, :counter}}]],
+          10 => [:jump_if, [{:state_variable, "owner"}, 1]],
+          11 => [:change_state, ["owner", "=", {:event_sender_variable, "id"}]],
+          12 => [:become, [%{"character" => {:state_variable, "counter"}}]],
           13 => [:text, [["Ssssss....."]]],
           14 => [:noop, "TOP"],
           15 => [:compound_move, [{"idle", false}, {"idle", false}]],
-          16 => [:change_state, [:counter, "-=", 1]],
-          17 => [:become, [%{character: {:state_variable, :counter}}]],
-          18 => [:jump_if, [[{:state_variable, :counter}, "<=", 0], "BOOM"]],
+          16 => [:change_state, ["counter", "-=", 1]],
+          17 => [:become, [%{"character" => {:state_variable, "counter"}}]],
+          18 => [:jump_if, [[{:state_variable, "counter"}, "<=", 0], "BOOM"]],
           19 => [:send_message, ["TOP"]],
           20 => [:halt, [""]],
           21 => [:noop, "BOMBED"],
-          22 => [:change_state, [:owner, "=", {:event_sender_variable, :owner}]],
+          22 => [:change_state, ["owner", "=", {:event_sender_variable, "owner"}]],
           23 => [:noop, "BOOM"],
           24 => [:sound, ["bomb"]],
           25 => [
             :put,
             [
               %{
-                damage: {:state_variable, :bomb_damage},
-                owner: {:state_variable, :owner},
-                range: 6,
-                shape: "circle",
-                slug: "explosion"
+                "damage" => {:state_variable, "bomb_damage"},
+                "owner" => {:state_variable, "owner"},
+                "range" => 6,
+                "shape" => "circle",
+                "slug" => "explosion"
               }
             ]
           ],
@@ -103,7 +103,18 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         responses: [],
         status: :active,
         wait_cycles: 0,
-        timed_messages: []
+        timed_messages: [
+          {
+            DateTime.from_unix!(1_694_796_368),
+            "fuse_lit",
+            %{
+              "state" => %{
+                "harvestable" => false
+              },
+              "tile_id" => 3571817
+            }
+          }
+        ]
       }
     }
   }
@@ -161,36 +172,36 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
       "program" => %{
         "broadcasts" => [],
         "instructions" => %{
-          "1" => [["__ATOM__", "jump_if"], [["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "fuse_lit"]], "FUSE_LIT"]],
+          "1" => [["__ATOM__", "jump_if"], [["__TUPLE__", ["__ATOM__", "state_variable"], "fuse_lit"], "FUSE_LIT"]],
           "2" => [["__ATOM__", "halt"], [""]],
           "3" => [["__ATOM__", "noop"], "TOUCH"],
           "4" => [["__ATOM__", "zap"], ["TOUCH"]],
-          "5" => [["__ATOM__", "jump_if"], [["__TUPLE__", ["__ATOM__", "event_sender_variable"], ["__ATOM__", "player"]], "FUSE_LIT"]],
+          "5" => [["__ATOM__", "jump_if"], [["__TUPLE__", ["__ATOM__", "event_sender_variable"], "player"], "FUSE_LIT"]],
           "6" => [["__ATOM__", "restore"], ["TOUCH"]],
           "7" => [["__ATOM__", "halt"], [""]],
           "8" => [["__ATOM__", "noop"], "FUSE_LIT"],
           "9" => [["__ATOM__", "zap"], ["TOUCH"]],
-          "10" => [["__ATOM__", "jump_if"], [["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "owner"]], 1]],
-          "11" => [["__ATOM__", "change_state"], [["__ATOM__", "owner"], "=", ["__TUPLE__", ["__ATOM__", "event_sender_variable"], ["__ATOM__", "id"]]]],
-          "12" => [["__ATOM__", "become"], [%{"character" => ["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "counter"]]}]],
+          "10" => [["__ATOM__", "jump_if"], [["__TUPLE__", ["__ATOM__", "state_variable"], "owner"], 1]],
+          "11" => [["__ATOM__", "change_state"], ["owner", "=", ["__TUPLE__", ["__ATOM__", "event_sender_variable"], "id"]]],
+          "12" => [["__ATOM__", "become"], [%{"character" => ["__TUPLE__", ["__ATOM__", "state_variable"], "counter"]}]],
           "13" => [["__ATOM__", "text"], [["Ssssss....."]]],
           "14" => [["__ATOM__", "noop"], "TOP"],
           "15" => [["__ATOM__", "compound_move"], [["__TUPLE__", "idle", false], ["__TUPLE__", "idle", false]]],
-          "16" => [["__ATOM__", "change_state"], [["__ATOM__", "counter"], "-=", 1]],
-          "17" => [["__ATOM__", "become"], [%{"character" => ["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "counter"]]}]],
-          "18" => [["__ATOM__", "jump_if"], [[["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "counter"]], "<=", 0], "BOOM"]],
+          "16" => [["__ATOM__", "change_state"], ["counter", "-=", 1]],
+          "17" => [["__ATOM__", "become"], [%{"character" => ["__TUPLE__", ["__ATOM__", "state_variable"], "counter"]}]],
+          "18" => [["__ATOM__", "jump_if"], [[["__TUPLE__", ["__ATOM__", "state_variable"], "counter"], "<=", 0], "BOOM"]],
           "19" => [["__ATOM__", "send_message"], ["TOP"]],
           "20" => [["__ATOM__", "halt"], [""]],
           "21" => [["__ATOM__", "noop"], "BOMBED"],
-          "22" => [["__ATOM__", "change_state"], [["__ATOM__", "owner"], "=", ["__TUPLE__", ["__ATOM__", "event_sender_variable"], ["__ATOM__", "owner"]]]],
+          "22" => [["__ATOM__", "change_state"], ["owner", "=", ["__TUPLE__", ["__ATOM__", "event_sender_variable"], "owner"]]],
           "23" => [["__ATOM__", "noop"], "BOOM"],
           "24" => [["__ATOM__", "sound"], ["bomb"]],
           "25" => [
             ["__ATOM__", "put"],
             [
               %{
-                "damage" => ["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "bomb_damage"]],
-                "owner" => ["__TUPLE__", ["__ATOM__", "state_variable"], ["__ATOM__", "owner"]],
+                "damage" => ["__TUPLE__", ["__ATOM__", "state_variable"], "bomb_damage"],
+                "owner" => ["__TUPLE__", ["__ATOM__", "state_variable"], "owner"],
                 "range" => 6,
                 "shape" => "circle",
                 "slug" => "explosion"
@@ -213,7 +224,32 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         "responses" => [],
         "status" => ["__ATOM__", "active"],
         "wait_cycles" => 0,
-        "timed_messages" => []
+        "timed_messages" => [
+          [
+            "__TUPLE__",
+            %{
+              "day" => 15,
+              "hour" => 16,
+              "year" => 2023,
+              "month" => 9,
+              "minute" => 46,
+              "second" => 8,
+              "calendar" => ["__ATOM__", "Elixir.Calendar.ISO"],
+              "time_zone" => "Etc/UTC",
+              "zone_abbr" => "UTC",
+              "std_offset" => 0,
+              "utc_offset" => 0,
+              "microsecond" => ["__TUPLE__", 0, 0]
+            },
+            "fuse_lit",
+            %{
+              "state" => %{
+                "harvestable" => false
+              },
+              "tile_id" => 3571817
+            }
+          ]
+        ]
       }
     }
   }

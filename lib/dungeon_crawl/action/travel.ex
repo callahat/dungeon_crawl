@@ -94,8 +94,8 @@ defmodule DungeonCrawl.Action.Travel do
   end
 
   defp _no_overlay?(instance_state_values, adjacent_level) do
-    Enum.member?(["fog", "dark"], instance_state_values[:visibility]) or
-      instance_state_values[:fade_overlay] == "off" or
-      (Enum.member?(["passages", nil], instance_state_values[:fade_overlay]) and adjacent_level)
+    Enum.member?(["fog", "dark"], instance_state_values["visibility"]) or
+      instance_state_values["fade_overlay"] == "off" or
+      (Enum.member?(["passages", nil], instance_state_values["fade_overlay"]) and adjacent_level)
   end
 end

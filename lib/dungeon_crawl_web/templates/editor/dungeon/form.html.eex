@@ -41,7 +41,7 @@
 
   <div class="form-group">
     <%= render SharedView, "state_fields.html",
-               state: @changeset.data.state,
+               state: Map.merge(Map.get(@changeset.data, :state, %{}), Map.get(@changeset.changes, :state, %{})),
                form: f,
                standard_variables: StandardVariables.dungeon %>
   </div>

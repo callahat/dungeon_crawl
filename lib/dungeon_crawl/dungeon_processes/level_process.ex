@@ -364,7 +364,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @impl true
-  def handle_info(:perform_actions, %Levels{count_to_idle: 0, state_values: %{reset_when_no_players: true}} = state) do
+  def handle_info(:perform_actions, %Levels{count_to_idle: 0, state_values: %{"reset_when_no_players" => true}} = state) do
     # Terminate, writing nothing to the DB]
     Logger.info "instance # #{state.instance_id} resets when no players present; shutting down process and discarding any tile changes"
     {:stop, :normal, state}
@@ -376,7 +376,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     DungeonInstances.update_level(state.instance_id, %{
       program_contexts: state.program_contexts,
       passage_exits: state.passage_exits,
-      state: StateValue.Parser.stringify(state.state_values)
+      state: state.state_values
     })
 
     {:stop, :normal, state}
@@ -424,17 +424,17 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     |> Map.keys # get player map tile ids
     |> Enum.reduce(state, fn player_tile_id, state ->
       player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
-      torch_light = (player_tile && player_tile.state[:torch_light]) || 0
+      torch_light = (player_tile && player_tile.state["torch_light"]) || 0
 
       cond do
         torch_light == 2 ->
-          {_, state} = Levels.update_tile_state(state, player_tile, %{torch_light: torch_light - 1, light_range: 2})
+          {_, state} = Levels.update_tile_state(state, player_tile, %{"torch_light" => torch_light - 1, "light_range" => 2})
           state
         torch_light > 1 ->
-          {_, state} = Levels.update_tile_state(state, player_tile, %{torch_light: torch_light - 1})
+          {_, state} = Levels.update_tile_state(state, player_tile, %{"torch_light" => torch_light - 1})
           state
         torch_light == 1 ->
-          {_, state} = Levels.update_tile_state(state, player_tile, %{torch_light: 0, light_source: false, light_range: nil})
+          {_, state} = Levels.update_tile_state(state, player_tile, %{"torch_light" => 0, "light_source" => false, "light_range" => nil})
           state
         true ->
           state
@@ -618,10 +618,10 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     object = Levels.get_tile_by_id(state, %{id: tile_id})
 
     cond do
-      object && StateValue.get_int(object, :health) ->
+      object && StateValue.get_int(object, "health") ->
         _damaged_tile(object, sender, messages, state)
 
-      object && StateValue.get_bool(object, :destroyable) ->
+      object && StateValue.get_bool(object, "destroyable") ->
         _destroyed_tile(object, sender, messages, state)
 
       true ->
@@ -630,7 +630,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   defp _damaged_tile(object, sender, messages, state) do
-    {result, state} = Levels.subtract(state, :health, StateValue.get_int(sender, :damage, 0), object.id)
+    {result, state} = Levels.subtract(state, "health", StateValue.get_int(sender, "damage", 0), object.id)
 
     state = if result == :died, do: _award_points(object, sender, state), else: state
 
@@ -649,16 +649,16 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
 
   defp _award_points(object, sender, state) do
     awardee = case sender do
-                %{state: %{owner: owner_id}} -> Levels.get_tile_by_id(state, %{id: owner_id})
+                %{state: %{"owner" => owner_id}} -> Levels.get_tile_by_id(state, %{id: owner_id})
                 %{tile_id: id} -> Levels.get_tile_by_id(state, %{id: id})
                 _ -> nil
               end
 
-    points = object.state[:points]
+    points = object.state["points"]
 
     if is_number(points) && awardee do
-      current_points = awardee.state[:score] || 0
-      {_awardee, state} = Levels.update_tile_state(state, awardee, %{score: current_points + points})
+      current_points = awardee.state["score"] || 0
+      {_awardee, state} = Levels.update_tile_state(state, awardee, %{"score" => current_points + points})
 
       state
     else

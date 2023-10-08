@@ -36,10 +36,6 @@ defmodule DungeonCrawl.StateValue.StandardVariables do
              "wait_cycles",
            ]
 
-
-
-
-
   @doc """
   Returns the standard variables for the dungeon.
   """

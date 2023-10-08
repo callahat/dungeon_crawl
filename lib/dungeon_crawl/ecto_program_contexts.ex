@@ -65,6 +65,7 @@ defmodule DungeonCrawl.EctoProgramContexts do
 
   # Verify that any tuples in command params have not been encoded to a list
   # with first element as "__TUPLE__", but are still actual elixir tuples
+  # these validations are somewhat lazy as a user should not be editing them
   defp _valid_program_context_as_elixir?(data) when is_map(data) do
     _valid_elixir?(data)
   end
@@ -74,6 +75,12 @@ defmodule DungeonCrawl.EctoProgramContexts do
     Enum.all?(Map.drop(params, [:__struct__, :__meta__]), fn
       {:labels, _} ->
         true
+
+      {:instructions, _} ->
+        true
+
+      {:state, values} ->
+        Enum.all?(values, fn {k,v} -> is_binary(k) && _valid_elixir?(v) end)
 
       {key, value} when is_integer(key) or is_atom(key) ->
         _valid_elixir?(value)
@@ -105,6 +112,9 @@ defmodule DungeonCrawl.EctoProgramContexts do
       {"labels", _} ->
         true
 
+      {"timed_messages", _} ->
+        true
+
       {key, value} when is_binary(key) ->
         _valid_json?(value)
 
@@ -125,47 +135,59 @@ defmodule DungeonCrawl.EctoProgramContexts do
   # and the encoded list back into a tuple
   defp _convert_to_elixir(data) do
     Enum.map(data, fn {tile_id, program_context} ->
-      {String.to_integer(tile_id), _decode_to_elixir(program_context)}
+      {String.to_integer(tile_id), _decode_to_elixir(program_context, true)}
     end)
     |> Enum.into(%{})
   end
 
-  defp _decode_to_elixir(params) when is_map(params) do
+  defp _decode_to_elixir(params, atomize_keys \\ false)
+  defp _decode_to_elixir(%{"calendar" => ["__ATOM__", "Elixir.Calendar.ISO"]} = params, _) do
+    Enum.map(params, fn {k, v} -> {String.to_atom(k), _decode_to_elixir(v)} end)
+    |> Enum.into(%{})
+    |> Map.put(:__struct__, DateTime)
+  end
+  defp _decode_to_elixir(params, atomize_keys) when is_map(params) do
     Enum.map(params, fn
+      {"event_sender", value} ->
+        {:event_sender, _decode_to_elixir(value, true)}
+
       {"event_sender_player_location", value} ->
         # location's map needs that struct put back in
-        {:event_sender, Map.merge(%Location{}, _decode_to_elixir(value))}
+        {:event_sender, Map.merge(%Location{}, _decode_to_elixir(value, true))}
 
       {"program", value} ->
         # program's map needs that struct put back in
-        {:program, Map.merge(%Program{}, _decode_to_elixir(value))}
+        {:program, Map.merge(%Program{}, _decode_to_elixir(value, true))}
 
       {"labels", value} ->
         # if its a label, nothing to do as its associated map is 1:1 going to/from json to/from elixir
         {:labels, value}
 
       {key, value} ->
-        if key =~ ~r/\d+/,
-           do: {String.to_integer(key), _decode_to_elixir(value)},
-           else: {String.to_atom(key), _decode_to_elixir(value)}
+        formatted_key = cond do
+          key =~ ~r/\d+/ -> String.to_integer(key)
+          atomize_keys -> String.to_atom(key)
+          true -> key
+        end
+        {formatted_key, _decode_to_elixir(value)} # todo: this might not always (or ever) be an atom now
     end)
     |> Enum.into(%{})
   end
-  defp _decode_to_elixir([@tuple | params]) do
+  defp _decode_to_elixir([@tuple | params], _) do
     tupled_param =
       params
       |> Enum.map(&_decode_to_elixir/1)
       |> List.to_tuple()
     tupled_param
   end
-  defp _decode_to_elixir([@atom , param]) do
+  defp _decode_to_elixir([@atom , param], _) do
     String.to_atom(param)
   end
-  defp _decode_to_elixir([param | params]) do
+  defp _decode_to_elixir([param | params], _) do
     [_decode_to_elixir(param) | _decode_to_elixir(params)]
   end
-  defp _decode_to_elixir([]), do: []
-  defp _decode_to_elixir(params), do: params
+  defp _decode_to_elixir([], _), do: []
+  defp _decode_to_elixir(params, _), do: params
 
   # Converts the elixir map into encoded lists having "__TUPLE__" added
   # as the first element for the command params

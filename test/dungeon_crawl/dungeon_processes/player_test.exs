@@ -19,13 +19,13 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     insert_item(%{name: "knife"})
 
     instance = insert_stubbed_level_instance(%{},
-      [%Tile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: %{blocking: false}},
-       %Tile{name: "Floor", character: ".", row: 2, col: 3, z_index: 0, state: %{blocking: false}}])
+      [%Tile{name: "Floor", character: ".", row: 2, col: 2, z_index: 0, state: %{"blocking" => false}},
+       %Tile{name: "Floor", character: ".", row: 2, col: 3, z_index: 0, state: %{"blocking" => false}}])
 
     player_location = insert_player_location(%{level_instance_id: instance.id,
                                                row: 23,
                                                col: 24,
-                                               state: %{ammo: 4, health: 100, cash: 420, gems: 1, red_key: 1, orange_key: 0, torches: 1, torch_light: 3, equipped: "gun", equipment: ["gun", "knife"], starting_equipment: ["gun"]},
+                                               state: %{"ammo" => 4, "health" => 100, "cash" => 420, "gems" => 1, "red_key" => 1, "orange_key" => 0, "torches" => 1, "torch_light" => 3, "equipped" => "gun", "equipment" => ["gun", "knife"], "starting_equipment" => ["gun"]},
                                                user_id_hash: @user_id_hash})
                       |> Repo.preload(:tile)
 
@@ -40,7 +40,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                end)
     state = %{ state | spawn_coordinates: [{2,3}],
                        player_locations: %{player_location.tile.id => player_location},
-                       state_values: %{height: 10, width: 10} }
+                       state_values: %{"height" => 10, "width" => 10} }
 
     on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, instance.dungeon_instance_id) end)
 
@@ -51,17 +51,17 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     zap_item = insert_item(%{name: "Zapper"})
     other_item = insert_item(%{name: "Other Item"})
 
-    {_, state} = Levels.update_tile_state(state, player_tile, %{equipment: ["gun", zap_item.slug, other_item.slug]})
+    {_, state} = Levels.update_tile_state(state, player_tile, %{"equipment" => ["gun", zap_item.slug, other_item.slug]})
 
-    assert %{ammo: 4,
-             cash: 420,
-             gems: 1,
-             health: 100,
-             keys: keys,
-             torches: 1,
-             torch_light: torch_light,
-             equipped: "Gun",
-             equipment: [
+    assert %{"ammo" => 4,
+             "cash" => 420,
+             "gems" => 1,
+             "health" => 100,
+             "keys" => keys,
+             "torches" => 1,
+             "torch_light" => torch_light,
+             "equipped" => "Gun",
+             "equipment" => [
                "<span>Equippable Items:</span>",
                "<span class='btn-link messageLink' data-item-slug='other_item'>▶Other Item</span>",
                "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
@@ -75,9 +75,9 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     zap_item = insert_item(%{name: "Zapper"})
     other_item = insert_item(%{name: "Other Item", consumable: true})
 
-    {_, state} = Levels.update_tile_state(state, player_tile, %{equipment: ["gun", "gun", zap_item.slug, other_item.slug, other_item.slug]})
+    {_, state} = Levels.update_tile_state(state, player_tile, %{"equipment" => ["gun", "gun", zap_item.slug, other_item.slug, other_item.slug]})
 
-    assert %{equipment: [
+    assert %{"equipment" => [
                "<span>Equippable Items:</span>",
                "<span class='btn-link messageLink' data-item-slug='zapper'>▶Zapper</span>",
                "<span>-Gun (x2) (Equipped)</span>",
@@ -88,20 +88,20 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "current_stats/2 equipped is nil", %{state: state, player_tile: player_tile} do
-    {_, state} = Levels.update_tile_state(state, player_tile, %{equipped: nil, equipment: []})
+    {_, state} = Levels.update_tile_state(state, player_tile, %{"equipped" => nil, "equipment" => []})
 
-    assert %{equipped: nil,
-             equipment: [],
+    assert %{"equipped" => nil,
+             "equipment" => [],
            } = Player.current_stats(state, player_tile)
   end
 
   test "current_stats/2 equipped is consumable", %{state: state, player_tile: player_tile} do
     stone = insert_item(%{name: "Stone", consumable: true})
 
-    {_, state} = Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: ["gun", stone.slug]})
+    {_, state} = Levels.update_tile_state(state, player_tile, %{"equipped" => stone.slug, "equipment" => ["gun", stone.slug]})
 
-    assert %{equipped: "Stone",
-             equipment: [
+    assert %{"equipped" => "Stone",
+             "equipment" => [
                "<span>Equippable Items:</span>",
                "<span class='btn-link messageLink' data-item-slug='gun'>▶Gun</span>",
                "<span>Consumable Items:</span>",
@@ -109,10 +109,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
              ],
            } = Player.current_stats(state, player_tile)
 
-    {_, state} = Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: ["gun", stone.slug, stone.slug, stone.slug]})
+    {_, state} = Levels.update_tile_state(state, player_tile, %{"equipped" => stone.slug, "equipment" => ["gun", stone.slug, stone.slug, stone.slug]})
 
-    assert %{equipped: "Stone (x3)",
-             equipment: [
+    assert %{"equipped" => "Stone (x3)",
+             "equipment" => [
                "<span>Equippable Items:</span>",
                "<span class='btn-link messageLink' data-item-slug='gun'>▶Gun</span>",
                "<span>Consumable Items:</span>",
@@ -127,20 +127,20 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
   test "current_stats/1" do
     assert stats = Player.current_stats(@user_id_hash)
-    assert %{ammo: 4,
-             cash: 420,
-             gems: 1,
-             health: 100,
-             keys: keys,
-             equipped: "Gun"} = stats
-    refute stats[:equipment]
+    assert %{"ammo" => 4,
+             "cash" => 420,
+             "gems" => 1,
+             "health" => 100,
+             "keys" => keys,
+             "equipped" => "Gun"} = stats
+    refute stats["equipment"]
 
     assert "<pre class='tile_template_preview'><span style='color: red;'>♀</span></pre>" = keys
   end
 
   test "current_stats/1 when equipped is nil", %{player_tile: player_tile} do
-    DungeonCrawl.Repo.update Tile.changeset(player_tile, %{state: %{equipped: nil, equipment: []}})
-    assert %{equipped: nil} = Player.current_stats(@user_id_hash)
+    DungeonCrawl.Repo.update Tile.changeset(player_tile, %{state: %{"equipped" => nil, "equipment" => []}})
+    assert %{"equipped" => nil} = Player.current_stats(@user_id_hash)
   end
 
   test "current_stats/1 equipped is consumable", %{instance: instance, player_tile: player_tile} do
@@ -148,14 +148,14 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {:ok, instance_process} = Registrar.instance_process(instance)
     LevelProcess.run_with(instance_process, fn (state) ->
-      Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: [stone.slug]})
+      Levels.update_tile_state(state, player_tile, %{"equipped" => stone.slug, "equipment" => [stone.slug]})
     end)
-    assert %{equipped: "Stone"} = Player.current_stats(@user_id_hash)
+    assert %{"equipped" => "Stone"} = Player.current_stats(@user_id_hash)
 
     LevelProcess.run_with(instance_process, fn (state) ->
-      Levels.update_tile_state(state, player_tile, %{equipped: stone.slug, equipment: ["gun", stone.slug, stone.slug, stone.slug]})
+      Levels.update_tile_state(state, player_tile, %{"equipped" => stone.slug, "equipment" => ["gun", stone.slug, stone.slug, stone.slug]})
     end)
-    assert %{equipped: "Stone (x3)"} = Player.current_stats(@user_id_hash)
+    assert %{"equipped" => "Stone (x3)"} = Player.current_stats(@user_id_hash)
   end
 
   test "current_stats/1 handles someone not in a dungeon" do
@@ -188,18 +188,18 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                                           """
 
     assert 0 = state.map_by_ids[player_tile.id].z_index
-    assert 0 = state.map_by_ids[player_tile.id].state[:health]
-    assert 0 = state.map_by_ids[player_tile.id].state[:red_key]
-    assert 0 = state.map_by_ids[player_tile.id].state[:orange_key]
-    assert 0 = state.map_by_ids[player_tile.id].state[:cash]
-    assert 0 = state.map_by_ids[player_tile.id].state[:gems]
-    assert 0 = state.map_by_ids[player_tile.id].state[:ammo]
-    assert 1 = state.map_by_ids[player_tile.id].state[:deaths]
+    assert 0 = state.map_by_ids[player_tile.id].state["health"]
+    assert 0 = state.map_by_ids[player_tile.id].state["red_key"]
+    assert 0 = state.map_by_ids[player_tile.id].state["orange_key"]
+    assert 0 = state.map_by_ids[player_tile.id].state["cash"]
+    assert 0 = state.map_by_ids[player_tile.id].state["gems"]
+    assert 0 = state.map_by_ids[player_tile.id].state["ammo"]
+    assert 1 = state.map_by_ids[player_tile.id].state["deaths"]
 
     # doesnt break when called twice
     {grave, state} = Player.bury(state, player_tile)
     refute grave.script =~ ~r/#GIVE ammo, 4, \?sender/i
-    assert 2 = state.map_by_ids[player_tile.id].state[:deaths]
+    assert 2 = state.map_by_ids[player_tile.id].state["deaths"]
   end
 
   test "drop_all_items/2", %{state: state, player_tile: player_tile} do
@@ -244,15 +244,15 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "respawn/2", %{state: state, player_tile: player_tile} do
-    {player_tile, state} = Levels.update_tile_state(state, player_tile, %{entry_row: 5, entry_col: 8})
+    {player_tile, state} = Levels.update_tile_state(state, player_tile, %{"entry_row" => 5, "entry_col" => 8})
     state = %{ state | spawn_coordinates: [{3,7}]}
     # prefers player's entry location
     {respawned_player_tile, updated_state} = Player.respawn(state, player_tile)
 
     respawned_tile = Levels.get_tile(updated_state, respawned_player_tile)
     assert respawned_tile.character == "@"
-    assert respawned_tile.state[:health] == 100
-    assert respawned_tile.state[:buried] == false
+    assert respawned_tile.state["health"] == 100
+    assert respawned_tile.state["buried"] == false
     assert respawned_tile.row == 5
     assert respawned_tile.col == 8
 
@@ -265,7 +265,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
     assert respawned_tile.col == 7
 
     # when respawn_at_entry is false, falls back to spawn coordinates
-    state = %{ state | state_values: Map.put(state.state_values, :respawn_at_entry, false)}
+    state = %{ state | state_values: Map.put(state.state_values, "respawn_at_entry", false)}
     {respawned_player_tile, updated_state} = Player.respawn(state, player_tile)
 
     respawned_tile = Levels.get_tile(updated_state, respawned_player_tile)
@@ -282,7 +282,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "reset/2", %{state: state, player_tile: player_tile} do
-    {player_tile, state} = Levels.update_tile_state(state, player_tile, %{entry_row: 5, entry_col: 8})
+    {player_tile, state} = Levels.update_tile_state(state, player_tile, %{"entry_row" => 5, "entry_col" => 8})
 
     # prefers player's entry location; logic is the same for respawn, only reset changes just coordinates
     {reset_player_tile, updated_state} = Player.reset(state, player_tile)
@@ -299,8 +299,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location)
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 6
     assert placed_tile.col == 9
     assert placed_tile.z_index == 0
@@ -312,8 +314,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
             |> Map.put(:instance_id, player_tile.level_instance_id)
     {placed_player_tile, updated_state} = Player.place(state, player_tile, player_location)
     placed_tile = Levels.get_tile(updated_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 2
     assert placed_tile.col == 2
     assert placed_tile.z_index == 1
@@ -326,8 +330,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location)
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 3
     assert placed_tile.col == 4
     assert placed_tile.z_index == 0
@@ -339,8 +345,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{match_key: "red"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) == Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 1
     assert placed_tile.col == 6
     assert placed_tile.z_index == 1
@@ -348,8 +356,8 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   test "place/4 at the same level prefers different passage exit", %{state: state, player_tile: player_tile, player_location: player_location} do
-    passage_tiles = [%Tile{name: "Passage", character: "0", row: 1, col: 1, z_index: 2, state: %{blocking: true}, color: "red"},
-                     %Tile{name: "Passage", character: "0", row: 1, col: 6, z_index: 2, state: %{blocking: true}, color: "red"}]
+    passage_tiles = [%Tile{name: "Passage", character: "0", row: 1, col: 1, z_index: 2, state: %{"blocking" => true}, color: "red"},
+                     %Tile{name: "Passage", character: "0", row: 1, col: 6, z_index: 2, state: %{"blocking" => true}, color: "red"}]
 
     state = Enum.reduce(passage_tiles, state, fn(t, state) ->
               {_, state} = Levels.create_tile(state, t)
@@ -361,9 +369,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_state} = Player.place(state, player_tile, player_location, Map.put(passage_1, :match_key, "red"))
     placed_tile = Levels.get_tile(updated_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 1
     assert placed_tile.col == 6
     assert placed_tile.z_index == 3
@@ -375,9 +384,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{match_key: "fakecolor"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     # falls back to spawn location logic
     assert placed_tile.row == 6
     assert placed_tile.col == 9
@@ -390,9 +400,10 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{match_key: nil})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 1
     assert placed_tile.col == 6
     assert placed_tile.z_index == 1
@@ -401,20 +412,21 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
 
   test "place/4 when coming from an adjacent level", %{player_tile: player_tile, player_location: player_location} do
     {other_instance, other_state} = _setup_other_instance_and_state()
-    other_state = %{ other_state | state_values: %{rows: 20, cols: 20} }
+    other_state = %{ other_state | state_values: %{"rows" => 20, "cols" => 20} }
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{edge: "north"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
-    assert Map.take(placed_tile, [:character, :health, :ammo, :gems, :cash]) ==
-           Map.take(player_tile, [:character, :health, :ammo, :gems, :cash])
 
+    assert placed_tile.character == player_tile.character
+    assert Map.take(placed_tile.state, ["health", "ammo", "gems", "cash"]) ==
+             Map.take(player_tile.state, ["health", "ammo", "gems", "cash"])
     assert placed_tile.row == 0
     assert placed_tile.col == 4 # col was mod by cols to keep it within the borders
     assert placed_tile.z_index == 0
     assert placed_tile.level_instance_id == other_instance.id
 
     # when other is within the range, no mod needed for the static coord
-    other_state = %{ other_state | state_values: %{rows: 20, cols: 30} }
+    other_state = %{ other_state | state_values: %{"rows" => 20, "cols" => 30} }
 
     {placed_player_tile, updated_other_state} = Player.place(other_state, player_tile, player_location, %{edge: "north"})
     placed_tile = Levels.get_tile(updated_other_state, placed_player_tile)
@@ -426,7 +438,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
   end
 
   defp _setup_other_instance_and_state() do
-    tiles = [%Tile{name: "Stairs Down", character: ">", row: 1, col: 6, z_index: 0, state: %{blocking: false}, color: "red"}]
+    tiles = [%Tile{name: "Stairs Down", character: ">", row: 1, col: 6, z_index: 0, state: %{"blocking" => false}, color: "red"}]
     other_instance = insert_stubbed_level_instance(%{height: 20, width: 20}, tiles)
     passage = Enum.at(Repo.preload(other_instance, :tiles).tiles, 0)
     other_state = Repo.preload(other_instance, :tiles).tiles
@@ -435,7 +447,7 @@ defmodule DungeonCrawl.DungeonProcesses.PlayerTest do
                        state
                      end)
                   |> Map.merge(%{ spawn_coordinates: [{6,9}], instance_id: other_instance.id })
-                  |> Map.put(:state_values, %{height: other_instance.height, width: other_instance.width})
+                  |> Map.put(:state_values, %{"height" => other_instance.height, "width" => other_instance.width})
                   |> Map.put(:passage_exits, [{passage.id, "red"}])
     {other_instance, other_state}
   end

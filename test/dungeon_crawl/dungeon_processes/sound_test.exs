@@ -9,7 +9,7 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
 
   # very similar stubbed dungeon as render
   setup do
-    state = %Levels{state_values: %{rows: 20, cols: 20},
+    state = %Levels{state_values: %{"rows" => 20, "cols" => 20},
                     dungeon_instance_id: 1,
                     number: 2}
 
@@ -19,10 +19,10 @@ defmodule DungeonCrawl.DungeonProcesses.SoundTest do
     #2 . @       _
 
     tiles = [
-        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: %{blocking: true}},
+        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: %{"blocking" => true}},
         %Tile{id: 109, character: ".", row: 2, col: 1, z_index: 0},
-        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: %{light_range: 1}},
-        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: %{light_range: 2}},
+        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: %{"light_range" => 1}},
+        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: %{"light_range" => 2}},
         %Tile{id: 108, character: ".", row: 1, col: 1, z_index: 0},
         %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
         %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0},

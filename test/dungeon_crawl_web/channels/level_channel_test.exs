@@ -56,13 +56,13 @@ defmodule DungeonCrawl.LevelChannelTest do
                         row: @player_row,
                         col: @player_col,
                         state: %{
-                          ammo: config[:ammo] || 10,
-                          health: config[:health] || 100,
-                          deaths: 1,
-                          gameover: config[:gameover] || false,
-                          player: true,
-                          torches: config[:torches] || 0,
-                          equipped: "gun"
+                          "ammo" => config[:ammo] || 10,
+                          "health" => config[:health] || 100,
+                          "deaths" => 1,
+                          "gameover" => config[:gameover] || false,
+                          "player" => true,
+                          "torches" => config[:torches] || 0,
+                          "equipped" => "gun"
                       }})
                       |> Repo.preload(:tile)
 
@@ -146,9 +146,9 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.state[:torches] == 1
-      assert player_tile.state[:torch_light] == nil
-      {:ok, %{ instance_state | state_values: Map.put(instance_state.state_values, :visibility, "dark")}}
+      assert player_tile.state["torches"] == 1
+      assert player_tile.state["torch_light"] == nil
+      {:ok, %{ instance_state | state_values: Map.put(instance_state.state_values, "visibility", "dark")}}
     end)
 
     # Only lights a torch in the dark provided player has one
@@ -158,8 +158,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.state[:torches] == 0
-      assert player_tile.state[:torch_light] == 6
+      assert player_tile.state["torches"] == 0
+      assert player_tile.state["torch_light"] == 6
       {:ok, instance_state}
     end)
 
@@ -330,7 +330,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     item = insert_item(%{name: "Cool Thing"})
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      Levels.update_tile_state(instance_state, player_tile, %{equipment: [item.slug]})
+      Levels.update_tile_state(instance_state, player_tile, %{"equipment" => [item.slug]})
     end)
 
     player_channel = "players:#{player_location.id}"
@@ -340,7 +340,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     assert_receive %Phoenix.Socket.Broadcast{
       topic: ^player_channel,
       event: "stat_update",
-      payload: %{stats: %{equipped: "Cool Thing"}}}
+      payload: %{stats: %{"equipped" => "Cool Thing"}}}
 
     # when the message is not valid for the player to send, nothing happens
     push socket, "message_action", %{"item_slug" => "invalid item"}
@@ -400,7 +400,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     item = insert_item(%{name: "Cool Thing", script: "This is real cool!\n#DIE"})
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      Levels.update_tile_state(instance_state, player_tile, %{equipment: [item.slug, "gun"], equipped: item.slug})
+      Levels.update_tile_state(instance_state, player_tile, %{"equipment" => [item.slug, "gun"], "equipped" => item.slug})
     end)
 
     # Not sure how to check that something was set in the socket
@@ -409,8 +409,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.state[:equipped] == "gun"
-      assert player_tile.state[:equipment] == ["gun"]
+      assert player_tile.state["equipped"] == "gun"
+      assert player_tile.state["equipment"] == ["gun"]
       {:ok, instance_state}
     end)
   end
@@ -425,7 +425,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     item = insert_item(%{name: "Cool Thing", script: "you float into the air\n@flying = true", consumable: true})
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      Levels.update_tile_state(instance_state, player_tile, %{equipment: [item.slug], equipped: item.slug})
+      Levels.update_tile_state(instance_state, player_tile, %{"equipment" => [item.slug], "equipped" => item.slug})
     end)
 
     # Not sure how to check that something was set in the socket
@@ -434,8 +434,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.state[:equipped] == nil
-      assert player_tile.state[:equipment] == []
+      assert player_tile.state["equipped"] == nil
+      assert player_tile.state["equipment"] == []
       {:ok, instance_state}
     end)
   end
@@ -453,7 +453,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
       Levels.update_tile_state(instance_state, player_tile,
-        %{equipment: [other_item.slug, item.slug, item.slug], equipped: item.slug})
+        %{"equipment" => [other_item.slug, item.slug, item.slug], "equipped" => item.slug})
     end)
 
     push socket, "use_item", %{"direction" => "up"}
@@ -461,8 +461,8 @@ defmodule DungeonCrawl.LevelChannelTest do
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
-      assert player_tile.state[:equipped] == item.slug
-      assert player_tile.state[:equipment] == [other_item.slug, item.slug]
+      assert player_tile.state["equipped"] == item.slug
+      assert player_tile.state["equipment"] == [other_item.slug, item.slug]
       {:ok, instance_state}
     end)
   end
@@ -473,7 +473,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                                                            player_location: player_location,
                                                                            instance_registry: instance_registry} do
     {:ok, {_, instance}} = LevelRegistry.lookup_or_create(instance_registry, level_instance.number, player_location.id)
-    LevelProcess.set_state_values(instance, %{pacifism: true})
+    LevelProcess.set_state_values(instance, %{"pacifism" => true})
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     push socket, "use_item", %{"direction" => "up"}
@@ -485,7 +485,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                                        player_location: player_location,
                                                        instance: instance} do
     LevelProcess.run_with(instance, fn (instance_state) ->
-      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: "missingo"})
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{"equipped" => "missingo"})
     end)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -498,7 +498,7 @@ defmodule DungeonCrawl.LevelChannelTest do
                                                   player_location: player_location,
                                                   instance: instance} do
     LevelProcess.run_with(instance, fn (instance_state) ->
-      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: nil})
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{"equipped" => nil})
     end)
     player_channel = "players:#{player_location.id}"
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
@@ -507,7 +507,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     assert_broadcast "message", %{message: "You have nothing equipped"}
 
     LevelProcess.run_with(instance, fn (instance_state) ->
-      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{equipped: ""})
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{"equipped" => ""})
     end)
     push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "tile_changes", %{tiles: [%{col: 1, rendering: "<div>◦</div>", row: 2}] }
@@ -552,7 +552,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     DungeonCrawlWeb.Endpoint.subscribe(player_channel)
     push socket, "use_item", %{"direction" => "up"}
     refute_broadcast "message", %{message: "Out of ammo"}
-    assert_broadcast "stat_update", %{stats: %{ammo: 0}}
+    assert_broadcast "stat_update", %{stats: %{"ammo" => 0}}
   end
 
   @tag up_tile: " "
@@ -628,7 +628,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     # does not go through walls
     LevelProcess.run_with(instance, fn (instance_state) ->
       wall_tile = %DungeonInstances.Tile{id: "new_1",
-                                         state: %{blocking: true},
+                                         state: %{"blocking" => true},
                                          character: "#",
                                          level_instance_id: instance_state.instance_id,
                                          row: @player_row-1,
@@ -788,7 +788,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     ref = push socket, "respawn", %{}
     assert_reply ref, :ok, %{}
     assert_broadcast "tile_changes", %{tiles: [%{col: _, row: _, rendering: "<div>@</div>"}]}
-    assert_broadcast "stat_update", %{stats: %{health: 100}}
+    assert_broadcast "stat_update", %{stats: %{"health" => 100}}
     assert_broadcast "message", %{message: "You live again, after 1 death"}
   end
 
@@ -800,7 +800,7 @@ defmodule DungeonCrawl.LevelChannelTest do
     ref = push socket, "respawn", %{}
     assert_reply ref, :ok, %{}
     refute_broadcast "tile_changes", %{tiles: [%{col: _, row: _, rendering: "<div>@</div>"}]}
-    refute_broadcast "stat_update", %{stats: %{health: 100}}
+    refute_broadcast "stat_update", %{stats: %{"health" => 100}}
     refute_broadcast "message", %{message: "You live again, after 1 death"}
   end
 

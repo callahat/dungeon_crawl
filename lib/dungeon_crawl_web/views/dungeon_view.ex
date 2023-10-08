@@ -80,7 +80,7 @@ defmodule DungeonCrawlWeb.DungeonView do
   end
 
   def formatted_saved_duration(save) do
-    save.state[:duration]
+    save.state["duration"]
     |> format_duration()
   end
 end

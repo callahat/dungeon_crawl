@@ -6,7 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   alias DungeonCrawl.DungeonProcesses.{Levels, LevelProcess, Registrar}
   alias DungeonCrawl.TileTemplates
 
-  @stats [:health, :gems, :cash, :ammo, :score, :lives, :torches]
+  @stats ["health", "gems", "cash", "ammo", "score", "lives", "torches"]
 
   @doc """
   Returns the current stats (health, gems, cash, ammo, torches, torch_light, etc) for the player.
@@ -22,10 +22,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   ## Examples
 
       iex> current_stats(%Levels{}, player_tile)
-      %{health: 100, gems: 0, ... , equipped: {"gun", "Gun"}, equipment: [{"gun", "Gun"}, {"hands", "Fisticuffs"}]}
+      %{"health" => 100, "gems" => 0, ... , "equipped" => "gun", "equipment" => ["gun", "hands"]}
 
       iex> current_stats("useridhash123")
-      %{health: 100, gems: 0, ... , equipped: {"gun", "Gun"}}
+      %{"health" => 100, "gems" => 0, ... , "equipped" => "gun"}
   """
   def current_stats(%Levels{} = state, %{id: tile_id} = _player_tile) do
     case Levels.get_tile_by_id(state, %{id: tile_id}) do
@@ -61,10 +61,10 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
            |> Enum.join("")
     torch_light = _torch_light(tile)
 
-    %{health: 0, gems: 0, cash: 0, ammo: 0, score: 0, lives: -1, torches: 0}
+    %{"health" => 0, "gems" => 0, "cash" => 0, "ammo" => 0, "score" => 0, "lives" => -1, "torches" => 0}
     |> Map.merge(Map.take(tile.state, @stats))
-    |> Map.put(:keys, keys)
-    |> Map.put(:torch_light, torch_light)
+    |> Map.put("keys", keys)
+    |> Map.put("torch_light", torch_light)
   end
 
   defp _door_keys(%{state: state} = _tile), do: _door_keys(state)
@@ -76,19 +76,19 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   defp _torch_light(%{state: state} = _tile), do: _torch_light(state)
   defp _torch_light(state) do
-    if is_nil(state[:torch_light]) || state[:torch_light] == 0 do
+    if is_nil(state["torch_light"]) || state["torch_light"] == 0 do
       ""
     else
-      meter_length = min(state[:torch_light], 6)
+      meter_length = min(state["torch_light"], 6)
       chars = String.duplicate("█", meter_length) <> String.duplicate("░", 6 - meter_length)
       "<pre class='tile_template_preview'><span class='torch-bar'>#{chars}</span></pre>"
     end
   end
 
   defp _with_equipped_and_equipment(stats, player_tile, state) do
-    {equipped, _, _} = Levels.get_item(player_tile.state[:equipped], state)
-    equipped_name = _equipped_item_name(player_tile.state[:equipment], equipped)
-    equipment = (player_tile.state[:equipment] || [])
+    {equipped, _, _} = Levels.get_item(player_tile.state["equipped"], state)
+    equipped_name = _equipped_item_name(player_tile.state["equipment"], equipped)
+    equipment = (player_tile.state["equipment"] || [])
                 |> Enum.map(fn item_slug ->
                      {item, _, _} = Levels.get_item(item_slug, state)
                      item
@@ -99,8 +99,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                 |> _partition_titles()
                 |> _flatten_and_decorate(equipped_name)
 
-    Map.merge(stats, %{equipped: equipped_name,
-                       equipment: equipment })
+    Map.merge(stats, %{"equipped" => equipped_name,
+                       "equipment" => equipment })
   end
 
   defp _unique_counts(equipment) do
@@ -139,8 +139,8 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   end
 
   defp _with_equipped(stats, player_tile) do
-    equipped = Equipment.get_item(player_tile.state[:equipped])
-    Map.put(stats, :equipped, _equipped_item_name(player_tile.state[:equipment], equipped))
+    equipped = Equipment.get_item(player_tile.state["equipped"])
+    Map.put(stats, "equipped", _equipped_item_name(player_tile.state["equipment"], equipped))
   end
 
   def _equipped_item_name(_, nil), do: nil
@@ -180,27 +180,27 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
     last_player_z_index = player_tile.z_index
 
     {player_tile, state} = Levels.update_tile(state, player_tile, %{z_index: bottom_z_index - 1})
-    deaths = case player_tile.state[:deaths] do
+    deaths = case player_tile.state["deaths"] do
                nil    -> 1
                deaths -> deaths + 1
              end
 
-    starting_equipment = player_tile.state[:starting_equipment]
+    starting_equipment = player_tile.state["starting_equipment"]
 
     new_state = _door_keys(player_tile)
                 |> Enum.into(%{}, fn {k,_v} -> {k, 0} end)
-                |> Map.merge(%{pushable: false,
-                               health: 0,
-                               gems: 0,
-                               cash: 0,
-                               ammo: 0,
-                               torches: 0,
-                               torch_light: 0,
-                               light_source: false,
-                               buried: true,
-                               deaths: deaths,
-                               equipment: starting_equipment,
-                               equipped: Enum.at(starting_equipment || [], 0)})
+                |> Map.merge(%{"pushable" => false,
+                               "health" => 0,
+                               "gems" => 0,
+                               "cash" => 0,
+                               "ammo" => 0,
+                               "torches" => 0,
+                               "torch_light" => 0,
+                               "light_source" => false,
+                               "buried" => true,
+                               "deaths" => deaths,
+                               "equipment" => starting_equipment,
+                               "equipped" => Enum.at(starting_equipment || [], 0)})
     {player_tile, state} = Levels.update_tile_state(state, player_tile, new_state)
 
     script_fn = fn items -> """
@@ -257,7 +257,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   defp _spawn_loot_tile(%Levels{} = state, tile_template, script_fn, original_state, player_tile, z_index) do
     # items that really are stored as state variables
-    items_stolen = Map.take(original_state, [:gems, :cash, :ammo, :torches])
+    items_stolen = Map.take(original_state, ["gems", "cash", "ammo", "torches"])
                    |> Map.to_list
                    |> Enum.concat(_door_keys(original_state))
                    |> Enum.reject(fn {_, count} -> count <= 0 end)
@@ -267,7 +267,7 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
                       end)
 
     # add the equippable items
-    items_stolen = ((original_state[:equipment] || []) -- (player_tile.state[:equipment] || []))
+    items_stolen = ((original_state["equipment"] || []) -- (player_tile.state["equipment"] || []))
                    |> Enum.reduce(items_stolen, fn item_slug, [words, equips] ->
                            {item, _, _} = Levels.get_item(item_slug, state)
                            [ [ "Found a #{item.name}" | words],
@@ -316,12 +316,12 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
   def respawn(%Levels{} = state, player_tile) do
     new_coords = _respawn_coordinates(state, player_tile)
     {player_tile, state} = Levels.update_tile(state, player_tile, new_coords)
-    Levels.update_tile_state(state, player_tile, %{health: 100, buried: false, pushable: true })
+    Levels.update_tile_state(state, player_tile, %{"health" => 100, "buried" => false, "pushable" => true })
   end
 
   defp _respawn_coordinates(state, %{state: player_state} = player_tile) do
-    if state.state_values[:respawn_at_entry] != false && player_state[:entry_row] && player_state[:entry_col] do
-      _relocated_coordinates_with_z(state, %{row: player_state.entry_row, col: player_state.entry_col})
+    if state.state_values["respawn_at_entry"] != false && player_state["entry_row"] && player_state["entry_col"] do
+      _relocated_coordinates_with_z(state, %{row: player_state["entry_row"], col: player_state["entry_col"]})
     else
       _relocated_coordinates(state, player_tile)
     end
@@ -366,15 +366,15 @@ defmodule DungeonCrawl.DungeonProcesses.Player do
 
   defp _relocated_coordinates(%Levels{spawn_coordinates: spawn_coordinates} = state, player_tile) do
     {row, col} = case spawn_coordinates do
-                    []     -> {round(:math.fmod(player_tile.row, state.state_values.height)),
-                               round(:math.fmod(player_tile.col, state.state_values.width))}
+                    []     -> {round(:math.fmod(player_tile.row, state.state_values["height"])),
+                               round(:math.fmod(player_tile.col, state.state_values["width"]))}
                     coords -> Enum.random(coords)
                  end
 
     _relocated_coordinates_with_z(state, %{row: row, col: col})
   end
 
-  defp _relocated_coordinates(%Levels{state_values: %{rows: rows, cols: cols}} = state, player_tile, %{edge: edge}) do
+  defp _relocated_coordinates(%Levels{state_values: %{"rows" => rows, "cols" => cols}} = state, player_tile, %{edge: edge}) do
     {row, col} = case edge do
                    "north" -> {0, player_tile.col}
                    "south" -> {rows - 1, player_tile.col}

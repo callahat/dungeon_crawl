@@ -10,7 +10,7 @@ defmodule DungeonCrawl.SharedTests do
         # lopsided
         changeset = unquote(module).changeset(%unquote(module){state: state}, bad_attrs)
         assert changeset.changes == bad_attrs
-        assert changeset.errors[:base] == {"state_variables and state_values are of different lengths", []}
+        assert changeset.errors[:state] == {"state_variables and state_values are of different lengths", []}
         # missing
         changeset = unquote(module).changeset(%unquote(module){state: state}, Map.delete(good_attrs, :state_variables))
         assert changeset.errors[:state_variables] == {"must be present and have same number of elements as state_values", []}
@@ -18,10 +18,10 @@ defmodule DungeonCrawl.SharedTests do
         assert changeset.errors[:state_values] == {"must be present and have same number of elements as state_variables", []}
         # good attrs, state_variables and state_values virtual fields are deleted and state is added to the changeset
         changeset = unquote(module).changeset(%unquote(module){state: state}, good_attrs)
-        assert changeset.changes == %{state: %{one: 1, two: 2}}
+        assert changeset.changes == %{state: %{"one" => 1, "two" => 2}}
         refute changeset.errors[:state_variables]
         refute changeset.errors[:state_values]
-        refute changeset.errors[:base]
+        refute changeset.errors[:state]
       end
     end
   end

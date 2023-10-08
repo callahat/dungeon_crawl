@@ -29,13 +29,13 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
                           _level_admin_channel(state)])
     rerender_tiles(%{state | full_rerender: false})
   end
-  def rerender_tiles(%Levels{state_values: %{visibility: "fog"}} = state) do
+  def rerender_tiles(%Levels{state_values: %{"visibility" => "fog"}} = state) do
     state.player_locations
     |> Enum.reduce(state, fn {player_tile_id, location}, state ->
          visible_tiles_for_player(state, player_tile_id, location.id)
        end)
   end
-  def rerender_tiles(%Levels{state_values: %{visibility: "dark"}} = state) do
+  def rerender_tiles(%Levels{state_values: %{"visibility" => "dark"}} = state) do
     illuminated_tiles = illuminated_tile_map(state)
     state.player_locations
     |> Enum.reduce(state, fn {player_tile_id, location}, state ->
@@ -74,8 +74,8 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   only will broadcast to the dungeon_admin channel.
   """
   def rerender_tiles_for_admin(%Levels{rerender_coords: coords} = state ) when coords == %{}, do: state
-  def rerender_tiles_for_admin(%Levels{state_values: %{visibility: "dark"}} = state), do: _rerender_for_admin(state)
-  def rerender_tiles_for_admin(%Levels{state_values: %{visibility: "fog"}} = state), do: _rerender_for_admin(state)
+  def rerender_tiles_for_admin(%Levels{state_values: %{"visibility" => "dark"}} = state), do: _rerender_for_admin(state)
+  def rerender_tiles_for_admin(%Levels{state_values: %{"visibility" => "fog"}} = state), do: _rerender_for_admin(state)
   def rerender_tiles_for_admin(%Levels{} = state), do: state
 
   defp _rerender_for_admin(state) do
@@ -92,7 +92,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   Broadcasts a full rerender of all the level tiles to the given channels.
   """
   def full_rerender(%Levels{} = state, channels) do
-    level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values[:rows], state.state_values[:cols])
+    level_table = DungeonCrawlWeb.SharedView.level_as_table(state, state.state_values["rows"], state.state_values["cols"])
     Enum.each(channels, fn channel ->
       DungeonCrawlWeb.Endpoint.broadcast channel,
                                          "full_render",
@@ -123,12 +123,12 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
   Additionally, it updates the player's visible coordinates and adds that update to the returned instance
   state struct.
   """
-  def visible_tiles_for_player(%Levels{state_values: %{visibility: "fog"}} = state, player_tile_id, location_id) do
+  def visible_tiles_for_player(%Levels{state_values: %{"visibility" => "fog"}} = state, player_tile_id, location_id) do
     visible_coords = state.players_visible_coords[player_tile_id] || []
     player_tile = Levels.get_tile_by_id(state, %{id: player_tile_id})
 
     if player_tile && _should_update_visible_tiles(visible_coords, state.rerender_coords) do
-      range = if player_tile.state[:buried] == true, do: 0, else: state.state_values[:fog_range] || 6 # get this from the player?
+      range = if player_tile.state["buried"] == true, do: 0, else: state.state_values["fog_range"] || 6 # get this from the player?
       current_visible_coords = Shape.circle(%{state: state, origin: player_tile}, range, true, "visible", 0.33)
                                |> Enum.map(fn {row, col} -> %{row: row, col: col} end)
 
@@ -139,7 +139,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     end
   end
   def visible_tiles_for_player(%Levels{} = state, _player_tile_id, _location_id), do: state
-  def visible_tiles_for_player(%Levels{state_values: %{visibility: "dark", rows: rows, cols: cols}} = state,
+  def visible_tiles_for_player(%Levels{state_values: %{"visibility" => "dark", "rows" => rows, "cols" => cols}} = state,
                                player_tile_id,
                                location_id,
                                illuminated_tiles) do
@@ -218,7 +218,7 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
 
   defp _illuminated_tiles(state, light_source_tile_id, illumination_map) do
     light_tile = Levels.get_tile_by_id(state, %{id: light_source_tile_id})
-    range = light_tile.state[:light_range] || 6
+    range = light_tile.state["light_range"] || 6
     illumination_map = Map.put(illumination_map, {light_tile.row, light_tile.col}, true)
 
     Shape.circle(%{state: state, origin: light_tile}, range, true, "visible", 0.33)
@@ -229,9 +229,9 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
              cond do
                is_nil(tile) ->
                  acc
-               tile.state[:blocking] != true ||
-                    tile.state[:low] == true ||
-                    tile.state[:blocking_light] == false ->
+               tile.state["blocking"] != true ||
+                    tile.state["low"] == true ||
+                    tile.state["blocking_light"] == false ->
                  Map.put(acc, coords, true)
                true ->
                  facing = Direction.orthogonal_direction(%{row: row, col: col}, %{row: light_tile.row, col: light_tile.col})
@@ -249,10 +249,10 @@ defmodule DungeonCrawl.DungeonProcesses.Render do
     |> Enum.reject(fn facing ->
                      tile = Levels.get_tile(state, lit_tile, facing)
                      is_nil(tile) ||
-                       tile.state[:blocking] == true &&
-                       tile.state[:low] != true &&
-                       tile.state[:blocking_light] != false &&
-                       tile.state[:light_source] != true
+                       tile.state["blocking"] == true &&
+                       tile.state["low"] != true &&
+                       tile.state["blocking_light"] != false &&
+                       tile.state["light_source"] != true
                    end)
   end
 

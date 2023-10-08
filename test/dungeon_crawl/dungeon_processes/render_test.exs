@@ -8,7 +8,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
   alias DungeonCrawl.Player.Location
 
   setup do
-    state = %Levels{state_values: %{rows: 20, cols: 20},
+    state = %Levels{state_values: %{"rows" => 20, "cols" => 20},
                     dungeon_instance_id: 1,
                     instance_id: 3,
                     number: 2}
@@ -19,13 +19,13 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     #2 . @       _
 
     tiles = [
-        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: %{blocking: true}},
+        %Tile{id: 100, character: "#", row: 1, col: 2, z_index: 0, state: %{"blocking" => true}},
         %Tile{id: 109, character: ".", row: 2, col: 1, z_index: 0},
-        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: %{light_range: 1}},
-        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: %{light_range: 2}},
+        %Tile{id: 101, character: ".", row: 0, col: 1, z_index: 0, state: %{"light_range" => 1}},
+        %Tile{id: 110, character: ".", row: 0, col: 1, z_index: 1, state: %{"light_range" => 2}},
         %Tile{id: 108, character: ".", row: 1, col: 1, z_index: 0},
         %Tile{id: 102, character: ".", row: 0, col: 3, z_index: 0},
-        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0, state: %{blocking: true, blocking_light: false}},
+        %Tile{id: 103, character: ".", row: 1, col: 3, z_index: 0, state: %{"blocking" => true, "blocking_light" => false}},
         %Tile{id: 104, character: "O", row: 1, col: 10, z_index: 0},
         %Tile{id: 105, character: "O", row: 1, col: 4, z_index: 0}
       ]
@@ -74,7 +74,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
                                                               level_admin_channel: level_admin_channel,
                                                               player_channel: player_channel,
                                                               state: state} do
-      state = %{state | state_values: Map.put(state.state_values, :visibility, "fog"), rerender_coords: %{%{col: 10, row: 1} => true}}
+      state = %{state | state_values: Map.put(state.state_values, "visibility", "fog"), rerender_coords: %{%{col: 10, row: 1} => true}}
       assert updated_state = Render.rerender_tiles(state)
       assert Map.delete(updated_state, :players_visible_coords) == Map.delete(state, :players_visible_coords)
       assert updated_state.players_visible_coords != state.players_visible_coords
@@ -92,7 +92,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
       level_admin_channel: level_admin_channel,
       player_channel: player_channel,
       state: state} do
-      state = %{state | state_values: Map.put(state.state_values, :visibility, "dark"), rerender_coords: %{%{col: 10, row: 1} => true}}
+      state = %{state | state_values: Map.put(state.state_values, "visibility", "dark"), rerender_coords: %{%{col: 10, row: 1} => true}}
       assert updated_state = Render.rerender_tiles(state)
       assert Map.drop(updated_state, [:players_visible_coords, :players_los_coords]) ==
                Map.drop(state, [:players_visible_coords, :players_los_coords])
@@ -166,7 +166,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
     test "broadcasts to the dungeon_admin channel only", %{state: state,
                                                            level_channel: level_channel,
                                                            level_admin_channel: level_admin_channel} do
-      state = %{ state | state_values: Map.put(state.state_values, :visibility, "fog"),
+      state = %{ state | state_values: Map.put(state.state_values, "visibility", "fog"),
                          rerender_coords: %{%{col: 10, row: 1} => true, %{col: 10, row: 2} => true}}
       assert state == Render.rerender_tiles_for_admin(state)
 
@@ -179,7 +179,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
               event: "tile_changes",
               payload: %{tiles: _}}
 
-      state = %{ state | state_values: Map.put(state.state_values, :visibility, "dark"),
+      state = %{ state | state_values: Map.put(state.state_values, "visibility", "dark"),
         rerender_coords: %{%{col: 10, row: 1} => true, %{col: 10, row: 2} => true}}
       assert state == Render.rerender_tiles_for_admin(state)
 
@@ -275,7 +275,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
 
     test "when it is foggy", %{state: state, player_location: player_location, player_channel: player_channel} do
       # no rerender_coords, so nothing to do
-      state = %{state | state_values: Map.put(state.state_values, :visibility, "fog")}
+      state = %{state | state_values: Map.put(state.state_values, "visibility", "fog")}
       assert state == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
       refute_receive %Phoenix.Socket.Broadcast{}
 
@@ -304,7 +304,7 @@ defmodule DungeonCrawl.DungeonProcesses.RenderTest do
 
     test "when it is dark", %{state: state, player_location: player_location, player_channel: player_channel} do
       # no rerender_coords, so nothing to do
-      state = %{state | state_values: Map.put(state.state_values, :visibility, "dark"),
+      state = %{state | state_values: Map.put(state.state_values, "visibility", "dark"),
                         light_sources: %{103 => true, 108 => true}} # 1, 3 - in front of player
       assert state == Render.visible_tiles_for_player(state, player_location.tile_instance_id, player_location.id)
       refute_receive %Phoenix.Socket.Broadcast{}

@@ -12,7 +12,7 @@ defmodule DungeonCrawlWeb.SharedView do
   # todo: pass in if its foggy instead maybe
   def level_as_table(level, height, width, admin \\ false)
   def level_as_table(%Levels{state_values: state_values} = level, height, width, admin) do
-    if Enum.member?(@occluded_visibilities, state_values[:visibility]) && not admin do
+    if Enum.member?(@occluded_visibilities, state_values["visibility"]) && not admin do
       rows(%{}, height, width, &fog_cells/3)
     else
       _level_as_table(level, height, width)
@@ -23,15 +23,15 @@ defmodule DungeonCrawlWeb.SharedView do
     _level_as_table(level, height, width)
   end
 
-  def fade_overlay_table(%{state_values: %{visibility: "fog"}}, _height, _width, _player_coord_id) do
+  def fade_overlay_table(%{state_values: %{"visibility" => "fog"}}, _height, _width, _player_coord_id) do
     ""
   end
 
-  def fade_overlay_table(%{state_values: %{visibility: "dark"}}, _height, _width, _player_coord_id) do
+  def fade_overlay_table(%{state_values: %{"visibility" => "dark"}}, _height, _width, _player_coord_id) do
     ""
   end
 
-  def fade_overlay_table(%{state_values: %{fade_overlay: "off"}}, _height, _width, _player_coord_id) do
+  def fade_overlay_table(%{state_values: %{"fade_overlay" => "off"}}, _height, _width, _player_coord_id) do
     ""
   end
 
@@ -228,5 +228,9 @@ defmodule DungeonCrawlWeb.SharedView do
 
   defp _tile_template_id(%TileTemplate{id: id}), do: id
   defp _tile_template_id(%{tile_template_id: id}), do: id
+
+  def stringify_state_value(value) when is_list(value),
+      do: Enum.join(value, " ")
+  def stringify_state_value(value), do: "#{value}"
 end
 

@@ -80,7 +80,7 @@
 
               <%= render SharedView, "state_fields.html",
                          state: %{},
-                         form: %{name: "tile_template"},
+                         form: %{name: "tile_template", errors: %{}},
                          standard_variables: StandardVariables.tile %>
               <pre id="tile_template_state_error_messages"></pre>
             </div>
