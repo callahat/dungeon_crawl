@@ -58,7 +58,7 @@ defmodule DungeonCrawl.TileShortlists.TileShortlist do
   @doc false
   def changeset(tile_shortlist, attrs) do
     tile_shortlist
-    |> cast(attrs, @changeset_attributes)
+    |> cast(attrs, @changeset_attributes, empty_values: [])
     |> validate_length(:name, max: 32)
     |> validate_required([:user_id])
     |> _validate_tile_template_id

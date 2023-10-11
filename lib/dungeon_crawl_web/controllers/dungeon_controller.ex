@@ -1,8 +1,6 @@
 defmodule DungeonCrawlWeb.DungeonController do
   use DungeonCrawl.Web, :controller
 
-  alias DungeonCrawl.Player
-
   plug :validate_not_crawling
   plug :validate_logged_in when action in [:saved_games]
 

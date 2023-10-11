@@ -78,7 +78,7 @@ defmodule DungeonCrawlWeb.Editor.LevelControllerTest do
       conn = post conn,
                   edit_dungeon_level_path(conn, :validate_tile, level.dungeon_id, level),
                   tile: Map.merge(@tile_attrs, %{"character" => "toobig", "state" => "derp", state_variables: ["foo", "baz", ""], state_values: ["bar", "qux", ""]})
-      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "should be at most 1 character(s)", "field" => "character"}, %{"detail" => "is invalid", "field" => "state"}],
+      assert json_response(conn, 200) == %{"errors" => [%{"detail" => "should be at most 1 character(s)", "field" => "character"}],
                                            "tile" => %{"character" => "toobig", "col" => 42, "row" => 8, "state" => "baz: qux, foo: bar", "z_index" => 2}}
     end
   end

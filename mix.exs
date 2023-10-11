@@ -4,9 +4,9 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.13",
+     elixir: "~> 1.14",
      elixirc_paths: elixirc_paths(Mix.env),
-     compilers: [:gettext] ++ Mix.compilers,
+     compilers: Mix.compilers,
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: ExCoveralls],
@@ -58,6 +58,8 @@ defmodule DungeonCrawl.Mixfile do
      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
      {:floki, ">= 0.30.0", only: :test},
      {:assert_eventually, "~> 1.0.0", only: :test},
+     {:phoenix_view, "~> 2.0"},
+     {:phoenix_live_view, "~> 0.20"}
     ]
   end
 

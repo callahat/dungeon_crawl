@@ -191,7 +191,8 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
     render(conn, "tile_errors.json", tile: _stringify_state(tile_changeset.changes), tile_errors: tile_changeset.errors)
   end
 
-  defp _stringify_state(%{state: state} = changes), do: %{ changes | state: Parser.stringify(state) }
+  defp _stringify_state(%{state: state} = changes) when not is_nil(state),
+       do: %{ changes | state: Parser.stringify(state) }
   defp _stringify_state(changes), do: changes
 
   def delete(conn, %{"id" => _id}) do
