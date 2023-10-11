@@ -18,7 +18,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
   plug :validate_updateable when action in [:edit, :update]
   plug :set_sidebar_col when action in [:edit, :update]
 
-  @level_generator Application.get_env(:dungeon_crawl, :generator) || ConnectedRooms
+  @level_generator Application.compile_env(:dungeon_crawl, :generator) || ConnectedRooms
   @selectable_generators ["Rooms", "Rooms and Tunnels", "Labrynth", "Drunkards Walk", "Empty Map"]
 
   def new(conn, _params) do

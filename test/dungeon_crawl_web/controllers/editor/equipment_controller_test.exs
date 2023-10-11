@@ -55,7 +55,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentControllerTest do
       target_item = insert_item @valid_attrs
       conn = get conn, edit_equipment_path(conn, :show, target_item)
       assert redirected_to(conn) == edit_equipment_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "renders page not found when id is nonexistent", %{conn: conn} do
@@ -74,7 +74,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentControllerTest do
       target_item = insert_item @valid_attrs
       conn = get conn, edit_equipment_path(conn, :edit, target_item)
       assert redirected_to(conn) == edit_equipment_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "updates chosen resource and redirects when data is valid", %{conn: conn} do
@@ -94,7 +94,7 @@ defmodule DungeonCrawlWeb.Editor.EquipmentControllerTest do
       target_item = insert_item @valid_attrs
       conn = put conn, edit_equipment_path(conn, :update, target_item), item: @update_attrs
       assert redirected_to(conn) == edit_equipment_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "deletes chosen resource on delete", %{conn: conn} do

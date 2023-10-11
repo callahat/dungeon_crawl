@@ -59,7 +59,7 @@ defmodule DungeonCrawlWeb.Admin.LevelProcessControllerTest do
       instance = setup_level_instance()
       conn = get conn, admin_level_process_path(conn, :show, instance.dungeon_instance_id, -1, instance.player_location_id || "none")
       eventually assert redirected_to(conn) == admin_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
-      assert get_flash(conn, :info) ==
+      assert Flash.get(conn.assigns.flash, :info) ==
                "Level instance process not found: dungeon instance `#{instance.dungeon_instance_id}`, level number `-1`, owner id ``"
     end
 

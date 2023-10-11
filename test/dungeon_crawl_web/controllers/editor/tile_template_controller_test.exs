@@ -55,7 +55,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       target_tile_template = insert_tile_template @valid_attrs
       conn = get conn, edit_tile_template_path(conn, :show, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "renders page not found when id is nonexistent", %{conn: conn} do
@@ -74,14 +74,14 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       target_tile_template = insert_tile_template @valid_attrs
       conn = get conn, edit_tile_template_path(conn, :edit, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "cannot edit active tile_template", %{conn: conn} do
       tile_template = insert_tile_template(%{active: true, user_id: conn.assigns.current_user.id})
       conn = get conn, edit_tile_template_path(conn, :edit, tile_template), tile_template: @update_attrs
       assert redirected_to(conn) == edit_tile_template_path(conn, :index)
-      assert get_flash(conn, :error) == "Cannot edit active tile template"
+      assert Flash.get(conn.assigns.flash, :error) == "Cannot edit active tile template"
     end
 
     test "updates chosen resource and redirects when data is valid", %{conn: conn} do
@@ -101,14 +101,14 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       target_tile_template = insert_tile_template @valid_attrs
       conn = put conn, edit_tile_template_path(conn, :update, target_tile_template), tile_template: @update_attrs
       assert redirected_to(conn) == edit_tile_template_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "cannot update active tile template", %{conn: conn} do
       tile_template = insert_tile_template(%{active: true, user_id: conn.assigns.current_user.id})
       conn = put conn, edit_tile_template_path(conn, :update, tile_template), tile_template: @update_attrs
       assert redirected_to(conn) == edit_tile_template_path(conn, :index)
-      assert get_flash(conn, :error) == "Cannot edit active tile template"
+      assert Flash.get(conn.assigns.flash, :error) == "Cannot edit active tile template"
     end
 
     test "soft deletes chosen resource on delete", %{conn: conn} do
@@ -138,7 +138,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       target_tile_template = insert_tile_template(%{user_id: conn.assigns.current_user.id})
       conn = post conn, edit_tile_template_new_version_path(conn, :new_version, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :show, target_tile_template)
-      assert get_flash(conn, :error) == "Inactive tile template"
+      assert Flash.get(conn.assigns.flash, :error) == "Inactive tile template"
     end
 
     test "does not create a new version if tile_template already has a next version", %{conn: conn} do
@@ -146,7 +146,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       insert_tile_template(%{previous_version_id: target_tile_template.id})
       conn = post conn, edit_tile_template_new_version_path(conn, :new_version, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :show, target_tile_template)
-      assert get_flash(conn, :error) == "New version already exists"
+      assert Flash.get(conn.assigns.flash, :error) == "New version already exists"
     end
 
     test "creates a new version", %{conn: conn} do
@@ -309,7 +309,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       target_tile_template = insert_tile_template @valid_attrs
       conn = post conn, edit_tile_template_new_version_path(conn, :new_version, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :show, target_tile_template)
-      assert get_flash(conn, :error) == "Inactive tile template"
+      assert Flash.get(conn.assigns.flash, :error) == "Inactive tile template"
     end
 
     test "does not create a new version if tile_template already has a next version", %{conn: conn} do
@@ -317,7 +317,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       insert_tile_template(%{previous_version_id: target_tile_template.id})
       conn = post conn, edit_tile_template_new_version_path(conn, :new_version, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :show, target_tile_template)
-      assert get_flash(conn, :error) == "New version already exists"
+      assert Flash.get(conn.assigns.flash, :error) == "New version already exists"
     end
 
     test "does not create a new version if tile_template is corrupted", %{conn: conn} do
@@ -326,7 +326,7 @@ defmodule DungeonCrawlWeb.Editor.TileTemplateControllerTest do
       {:ok, target_tile_template} = Repo.update(Ecto.Changeset.cast(target_tile_template, %{script: "#BECOME color: #corrupt"}, [:script]))
       conn = post conn, edit_tile_template_new_version_path(conn, :new_version, target_tile_template)
       assert redirected_to(conn) == edit_tile_template_path(conn, :show, target_tile_template)
-      assert get_flash(conn, :error) == "Error creating new version."
+      assert Flash.get(conn.assigns.flash, :error) == "Error creating new version."
     end
 
     test "creates a new version", %{conn: conn} do

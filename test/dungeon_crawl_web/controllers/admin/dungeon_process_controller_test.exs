@@ -49,7 +49,7 @@ defmodule DungeonCrawlWeb.Admin.DungeonProcessControllerTest do
       setup_dungeon_instance()
       conn = get conn, admin_dungeon_process_path(conn, :show, -1)
       assert redirected_to(conn) == admin_dungeon_process_path(conn, :index)
-      assert get_flash(conn, :info) == "Dungeon instance process not found: `-1`"
+      assert Flash.get(conn.assigns.flash, :info) == "Dungeon instance process not found: `-1`"
     end
 
     test "deletes chosen dungeon instance", %{conn: conn} do
