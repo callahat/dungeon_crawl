@@ -74,7 +74,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
   defp extract_tile_data(%{tiles: tiles} = export, dried_tiles, [level_tile | level_tiles]) do
     {coords, tile_fields} = Dungeons.copy_tile_fields(level_tile)
                             |> Map.split([:row, :col, :z_index])
-    tile_hash = Base.encode64(:crypto.hash(:sha, inspect(tile_fields)))
+    tile_hash = calculate_tile_hash(tile_fields)
 
     export = sto_tile_template(export, tile_fields.tile_template_id)
 
@@ -280,7 +280,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   defp recalculate_tile_hashes(%{levels: levels, tiles: tiles} = export) do
     old_to_new_hash = Enum.map(tiles, fn {old_hash, tile_fields} ->
-                        {old_hash, Base.encode64(:crypto.hash(:sha, inspect(tile_fields)))}
+                        {old_hash, calculate_tile_hash(tile_fields)}
                       end)
                       |> Enum.into(%{})
     tiles = Enum.map(tiles, fn {old_hash, tile_fields} ->
@@ -296,6 +296,10 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
              |> Enum.into(%{})
 
     %{ export | levels: levels, tiles: tiles }
+  end
+
+  defp calculate_tile_hash(tile_fields) do
+    Base.encode64(:crypto.hash(:sha, inspect(Enum.sort(tile_fields))))
   end
 
   defp switch_keys(export, asset_key, temp_id_key) do

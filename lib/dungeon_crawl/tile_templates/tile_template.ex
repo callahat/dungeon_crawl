@@ -74,7 +74,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
                     :animate_background_colors,
                     :animate_characters,
                     :animate_period,
-                    :group_name])
+                    :group_name],
+         empty_values: [""])
     |> validate_required([:name, :description])
     |> validate_inclusion(:group_name, @groups)
     |> validate_animation_fields

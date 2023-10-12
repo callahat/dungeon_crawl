@@ -47,7 +47,7 @@ defmodule DungeonCrawl.DungeonInstances.Tile do
                     :animate_background_colors,
                     :animate_characters,
                     :animate_period],
-         empty_values: [])
+         empty_values: [""])
     |> validate_required([:row, :col, :level_instance_id, :z_index])
     |> TileTemplate.validate_animation_fields
     |> TileTemplate.validate_renderables

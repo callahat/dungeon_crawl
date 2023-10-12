@@ -540,8 +540,8 @@ defmodule DungeonCrawl.LevelProcessTest do
             payload: %{fog: [%{col: 10, row: 1}],
                        tiles: [%{col: 1, rendering: "<div>O</div>", row: 1},
                                %{col: 2, rendering: "<div>◦</div>", row: 1},
-                               %{col: 3, rendering: "<div>@</div>", row: 2},
-                               %{col: 4, rendering: "<div>.</div>", row: 1}]}}
+                               %{col: 4, rendering: "<div>.</div>", row: 1},
+                               %{col: 3, rendering: "<div>@</div>", row: 2}]}}
   end
 
   test "perform_actions broadcasting sound", %{instance_process: instance_process, level_instance: level_instance} do

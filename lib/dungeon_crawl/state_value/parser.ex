@@ -91,6 +91,7 @@ defmodule DungeonCrawl.StateValue.Parser do
   def stringify(state_map) do
     state_map
     |> Map.to_list
+    |> Enum.sort()
     |> Enum.map(&(_stringify_key_value(&1)))
     |> Enum.join(", ")
   end

@@ -73,15 +73,15 @@ defmodule DungeonCrawlWeb.ExportFixture do
           number_west: nil,
           state: %{},
           tile_data: [
-            ["Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=", 0, 1, 0],
-            ["j/WtUjzMD1/3izQN+p04gNVCEKA=", 0, 2, 0],
-            ["Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=", 0, 3, 0],
-            ["Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=", 1, 1, 0],
-            ["6hhbs8NaE95xD146dTq/lG0RFmM=", 1, 2, 0],
-            ["Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=", 1, 3, 0],
-            ["wf6ws9+IUn1br5Aya4zjFLWvq8M=", 2, 1, 0],
-            ["wf6ws9+IUn1br5Aya4zjFLWvq8M=", 2, 2, 0],
-            ["wf6ws9+IUn1br5Aya4zjFLWvq8M=", 2, 3, 0]
+            ["lL2wYqn3w87XJdNEL9ILgkTlxzc=", 0, 1, 0],
+            ["B/4FiuxvsdZqQUvsinnOSALs730=", 0, 2, 0],
+            ["lL2wYqn3w87XJdNEL9ILgkTlxzc=", 0, 3, 0],
+            ["lL2wYqn3w87XJdNEL9ILgkTlxzc=", 1, 1, 0],
+            ["tkkzlR+LnYgle2hGYATT2KcG4PM=", 1, 2, 0],
+            ["lL2wYqn3w87XJdNEL9ILgkTlxzc=", 1, 3, 0],
+            ["NOjz7ST8416i6lrYmRYEPpjjdU0=", 2, 1, 0],
+            ["NOjz7ST8416i6lrYmRYEPpjjdU0=", 2, 2, 0],
+            ["NOjz7ST8416i6lrYmRYEPpjjdU0=", 2, 3, 0]
           ],
           width: 20
         },
@@ -96,10 +96,10 @@ defmodule DungeonCrawlWeb.ExportFixture do
           number_west: nil,
           state: %{"visibility" => "fog"},
           tile_data: [
-            ["Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=", 0, 1, 0],
-            ["Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=", 0, 2, 0],
-            ["oQzxMVqt0rGJS6nC0TuX61ALqe8=", 1, 1, 0],
-            ["WkiY3U+g2tZbZoTRoJa4HRq2Z4Q=", 1, 2, 1]
+            ["lL2wYqn3w87XJdNEL9ILgkTlxzc=", 0, 1, 0],
+            ["lL2wYqn3w87XJdNEL9ILgkTlxzc=", 0, 2, 0],
+            ["XMuFul9Dl0e4Twpbu09Irw4BY2A=", 1, 1, 0],
+            ["cfgMQZYjq1QUzRMqduZVm3Y2m9g=", 1, 2, 1]
           ],
           width: 20
         }
@@ -318,7 +318,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
         }
       },
       tiles: %{
-        "WkiY3U+g2tZbZoTRoJa4HRq2Z4Q=" => %{
+        "cfgMQZYjq1QUzRMqduZVm3Y2m9g=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -332,7 +332,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           state: %{"blocking" => true},
           tile_template_id: nil
         },
-        "j/WtUjzMD1/3izQN+p04gNVCEKA=" => %{
+        "B/4FiuxvsdZqQUvsinnOSALs730=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -346,7 +346,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           state: %{"blocking" => true},
           tile_template_id: "tmp_tt_id_2"
         },
-        "oQzxMVqt0rGJS6nC0TuX61ALqe8=" => %{
+        "XMuFul9Dl0e4Twpbu09Irw4BY2A=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -360,7 +360,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           state: %{"light_source" => true},
           tile_template_id: "tmp_tt_id_0"
         },
-        "Hh2RsvEeCQGPYuz4rDbaFmWi/Lk=" => %{
+        "lL2wYqn3w87XJdNEL9ILgkTlxzc=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -374,7 +374,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           state: %{"blocking" => false},
           tile_template_id: "tmp_tt_id_0"
         },
-        "6hhbs8NaE95xD146dTq/lG0RFmM=" => %{
+        "tkkzlR+LnYgle2hGYATT2KcG4PM=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
@@ -388,7 +388,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
           state: %{"blocking" => true, "open" => false},
           tile_template_id: "tmp_tt_id_4"
         },
-        "wf6ws9+IUn1br5Aya4zjFLWvq8M=" => %{
+        "NOjz7ST8416i6lrYmRYEPpjjdU0=" => %{
           animate_background_colors: nil,
           animate_characters: nil,
           animate_colors: nil,
