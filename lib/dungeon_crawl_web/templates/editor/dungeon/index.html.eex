@@ -29,7 +29,7 @@
           <td class="text-right">
             <%= activate_or_new_version_button(@conn, dungeon, @conn.assigns.player_location) %>
             <%= link "Show", to: Routes.edit_dungeon_path(@conn, :show, dungeon), class: "btn btn-light btn-sm" %>
-            <%= unless dungeon.active, do: link "Edit", to: Routes.edit_dungeon_path(@conn, :edit, dungeon), class: "btn btn-light btn-sm" %>
+            <%= unless dungeon.active, do: link("Edit", to: Routes.edit_dungeon_path(@conn, :edit, dungeon), class: "btn btn-light btn-sm") %>
             <%= link "Delete", to: Routes.edit_dungeon_path(@conn, :delete, dungeon), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %>
           </td>
         </tr>

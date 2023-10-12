@@ -97,7 +97,7 @@ defmodule DungeonCrawl.StateValue.Parser do
   end
 
   defp _stringify_key_value({key, value}) when is_atom(key) do
-    Logger.warn("#{key} - #{value} state value pair had an atom as a key, state value keys should be strings")
+    Logger.warning("#{key} - #{value} state value pair had an atom as a key, state value keys should be strings")
     _stringify_key_value({Atom.to_string(key), value})
   end
   defp _stringify_key_value({"equipment", value}) when is_list(value),

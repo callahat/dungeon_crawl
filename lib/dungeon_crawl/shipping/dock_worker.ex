@@ -81,7 +81,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
             GenServer.call(dock_worker, params, @timeout)
           catch
             e, r -> _broadcast_status("error", params)
-                    Logger.warn("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
+                    Logger.warning("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
                     :ok
           end
         end,

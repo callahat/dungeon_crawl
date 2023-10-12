@@ -13,7 +13,7 @@ defmodule StairPlaceBenchmark do
 
   def guess_random_coords_vs_filter_a_random_space(iterations \\ 10_000) do
     logger_level = Logger.level
-    Logger.configure level: :warn
+    Logger.configure level: :warning
 
     IO.puts "Generating maps:"
     start_ms = :os.system_time(:millisecond)

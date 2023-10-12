@@ -17,8 +17,8 @@ defmodule DungeonCrawl.AttributeQueryableTest do
       assert DungeonCrawl.Repo.to_sql(:all, TestModel.attrs_query(%{one: 123, slug: "blah", name: nil})) ==
                {"SELECT t0.\"id\", t0.\"one\", t0.\"slug\", t0.\"name\" " <>
                 "FROM \"nil\" AS t0 " <>
-                "WHERE (t0.\"name\" IS NULL) AND (t0.\"slug\" = $1) AND (t0.\"one\" = $2)",
-                 ["blah", 123]}
+                "WHERE (t0.\"name\" IS NULL) AND (t0.\"one\" = $1) AND (t0.\"slug\" = $2)",
+                 [123, "blah"]}
     end
   end
 

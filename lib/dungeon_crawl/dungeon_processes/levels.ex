@@ -259,10 +259,10 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
          {:none, tile, state}
        end
      other ->
-       Logger.warn """
-                   Possible corrupt script for tile instance: #{inspect tile}
-                   Not :ok response: #{inspect other}
-                   """
+       Logger.warning """
+                      Possible corrupt script for tile instance: #{inspect tile}
+                      Not :ok response: #{inspect other}
+                      """
        {:none, tile, state}
     end
   end
