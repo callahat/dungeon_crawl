@@ -20,7 +20,7 @@ defmodule DungeonCrawlWeb.Endpoint do
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
     plug Phoenix.LiveReloader
-    # plug Phoenix.CodeReloader # this line seems to cause a compile error now, not sure why
+    plug Phoenix.CodeReloader
   end
 
   plug Phoenix.LiveDashboard.RequestLogger,
