@@ -5,7 +5,7 @@ defmodule DungeonCrawl.DungeonGeneration.InfiniteDungeon do
   alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp}
   alias DungeonCrawl.Repo
 
-  @level_generators Application.get_env(:dungeon_crawl, :generators) ||
+  @level_generators Application.compile_env(:dungeon_crawl, :generators) ||
                       [ConnectedRooms, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp]
 
   @doc """

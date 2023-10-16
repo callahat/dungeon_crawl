@@ -18,7 +18,7 @@ defmodule InstanceBenchmark do
 
   def process_vs_db(iterations \\ 10_000) do
     logger_level = Logger.level
-    Logger.configure level: :warn
+    Logger.configure level: :warning
 
     IO.puts "Generating instance in DB:"
     start_ms = :os.system_time(:millisecond)

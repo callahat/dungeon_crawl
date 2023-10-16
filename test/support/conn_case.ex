@@ -20,6 +20,7 @@ defmodule DungeonCrawlWeb.ConnCase do
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
+      alias Phoenix.Flash
 
       alias DungeonCrawl.Repo
       import Ecto

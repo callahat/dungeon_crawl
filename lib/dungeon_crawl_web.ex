@@ -47,7 +47,7 @@ defmodule DungeonCrawl.Web do
                         namespace: DungeonCrawlWeb
 
       # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1, controller_module: 1]
+      import Phoenix.Controller, only: [get_csrf_token: 0, view_module: 1, controller_module: 1]
 
       unquote(view_helpers())
     end
@@ -55,7 +55,7 @@ defmodule DungeonCrawl.Web do
 
   def live_view do
     quote do
-      use Phoenix.LiveView, layout: {DungeonCrawlWeb.LayoutView, "live.html"}
+      use Phoenix.LiveView, layout: {DungeonCrawlWeb.LayoutView, :live}
 
       unquote(view_helpers())
     end
@@ -87,6 +87,7 @@ defmodule DungeonCrawl.Web do
 
       # Import LiveView helpers (live_render, live_component, live_patch, etc)
       import Phoenix.LiveView.Helpers
+      import Phoenix.Component
 
       # Import basic rendering functionality (render, render_layout, etc)
       import Phoenix.View

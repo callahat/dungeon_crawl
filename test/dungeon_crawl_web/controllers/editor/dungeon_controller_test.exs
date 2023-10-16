@@ -141,7 +141,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       Dungeons.update_dungeon(dungeon, %{importing: true})
       conn = get conn, edit_dungeon_path(conn, :show, dungeon)
       assert redirected_to(conn) == edit_dungeon_path(conn, :index)
-      assert get_flash(conn, :error) == "Import still in progress, try again later."
+      assert Flash.get(conn.assigns.flash, :error) == "Import still in progress, try again later."
     end
   end
 
@@ -196,14 +196,14 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{active: true})
       conn = get conn, edit_dungeon_path(conn, :edit, dungeon)
       assert redirected_to(conn) == edit_dungeon_path(conn, :index)
-      assert get_flash(conn, :error) == "Cannot edit an active dungeon"
+      assert Flash.get(conn.assigns.flash, :error) == "Cannot edit an active dungeon"
     end
 
     test "cannot edit a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
       Dungeons.update_dungeon(dungeon, %{importing: true})
       conn = get conn, edit_dungeon_path(conn, :edit, dungeon)
       assert redirected_to(conn) == edit_dungeon_path(conn, :index)
-      assert get_flash(conn, :error) == "Import still in progress, try again later."
+      assert Flash.get(conn.assigns.flash, :error) == "Import still in progress, try again later."
     end
   end
 
@@ -232,14 +232,14 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{active: true})
       conn = put conn, edit_dungeon_path(conn, :update, dungeon), dungeon: @update_attrs
       assert redirected_to(conn) == edit_dungeon_path(conn, :index)
-      assert get_flash(conn, :error) == "Cannot edit an active dungeon"
+      assert Flash.get(conn.assigns.flash, :error) == "Cannot edit an active dungeon"
     end
 
     test "cannot update a dungeon that is still importing", %{conn: conn, dungeon: dungeon} do
       Dungeons.update_dungeon(dungeon, %{importing: true})
       conn = put conn, edit_dungeon_path(conn, :update, dungeon), dungeon: @update_attrs
       assert redirected_to(conn) == edit_dungeon_path(conn, :index)
-      assert get_flash(conn, :error) == "Import still in progress, try again later."
+      assert Flash.get(conn.assigns.flash, :error) == "Import still in progress, try again later."
     end
   end
 
@@ -307,7 +307,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       export = Shipping.create_export!(%{user_id: other_user.id, dungeon_id: dungeon.id, file_name: "test.json", status: :completed, data: "{}"})
       conn = get conn, edit_dungeon_export_path(conn, :download_dungeon_export, export.id)
       assert redirected_to(conn) == edit_dungeon_export_path(conn, :dungeon_export_list)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "renders error when the export does not exist", %{conn: conn} do
@@ -342,7 +342,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       Repo.insert_all(Tile, [%{level_id: level.id, row: 1, col: 1, tile_template_id: inactive_tile_template.id, z_index: 0}] )
       conn = put conn, edit_dungeon_activate_path(conn, :activate, dungeon)
       assert redirected_to(conn) == edit_dungeon_path(conn, :show, dungeon)
-      assert get_flash(conn, :error) == "Inactive tiles: INT (id: #{inactive_tile_template.id}) 1 times"
+      assert Flash.get(conn.assigns.flash, :error) == "Inactive tiles: INT (id: #{inactive_tile_template.id}) 1 times"
     end
 
     test "soft deletes the previous version", %{conn: conn, dungeon: dungeon} do
@@ -390,7 +390,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
     test "does not create a new version if dungeon not active", %{conn: conn, dungeon: dungeon} do
       conn = post conn, edit_dungeon_new_version_path(conn, :new_version, dungeon)
       assert redirected_to(conn) == edit_dungeon_path(conn, :show, dungeon)
-      assert get_flash(conn, :error) == "Inactive dungeon"
+      assert Flash.get(conn.assigns.flash, :error) == "Inactive dungeon"
     end
 
     test "does not create a new version if dungeon already has a next version", %{conn: conn, dungeon: dungeon} do
@@ -398,7 +398,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       _new_dungeon = insert_stubbed_dungeon(%{previous_version_id: dungeon.id, user_id: conn.assigns[:current_user].id})
       conn = post conn, edit_dungeon_new_version_path(conn, :new_version, dungeon)
       assert redirected_to(conn) == edit_dungeon_path(conn, :show, dungeon)
-      assert get_flash(conn, :error) == "New version already exists"
+      assert Flash.get(conn.assigns.flash, :error) == "New version already exists"
     end
 
     test "does not create a new version if dungeon fails validation", %{conn: conn, dungeon: dungeon} do
@@ -406,7 +406,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{active: true})
       Admin.update_setting(%{autogen_height: 20, autogen_width: 20, max_width: 20, max_height: 20})
       conn = post conn, edit_dungeon_new_version_path(conn, :new_version, dungeon)
-      assert get_flash(conn, :error) == "Cannot create new version; dimensions restricted?"
+      assert Flash.get(conn.assigns.flash, :error) == "Cannot create new version; dimensions restricted?"
       assert redirected_to(conn) == edit_dungeon_path(conn, :show, dungeon)
     end
 
@@ -451,7 +451,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
     test "does not test crawl if the dungeon has no levels", %{conn: conn, user: user} do
       dungeon = fixture(:dungeon, user.id)
       conn = post conn, edit_dungeon_test_crawl_path(conn, :test_crawl, dungeon)
-      assert get_flash(conn, :error) == "Add a level first"
+      assert Flash.get(conn.assigns.flash, :error) == "Add a level first"
       assert redirected_to(conn) == edit_dungeon_path(conn, :show, dungeon)
     end
   end

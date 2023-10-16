@@ -7,7 +7,7 @@ defmodule DungeonCrawl.Shipping.JsonTest do
 
   describe "encode/1" do
     test "encodes the map" do
-      assert "{\"test\":{\"string==\":\"yes\",\"subject\":true}}"
+      assert Jason.encode!(%{test: %{subject: true, "string==": "yes"}})
              == Json.encode!(%{test: %{subject: true, "string==": "yes"}})
     end
 

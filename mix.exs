@@ -4,9 +4,9 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.13",
+     elixir: "~> 1.15",
      elixirc_paths: elixirc_paths(Mix.env),
-     compilers: [:gettext] ++ Mix.compilers,
+     compilers: Mix.compilers,
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: ExCoveralls],
@@ -38,7 +38,7 @@ defmodule DungeonCrawl.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [{:phoenix, "~> 1.6"},
+    [{:phoenix, "~> 1.7"},
      {:phoenix_ecto, "~> 4.0"},
      {:ecto_psql_extras, "~> 0.7"},
      {:postgrex, ">= 0.0.0"},
@@ -51,13 +51,15 @@ defmodule DungeonCrawl.Mixfile do
      {:jason, "~> 1.0"},
      {:plug_cowboy, "~> 2.5"},
      {:comeonin, "~> 5.3"},
-     {:bcrypt_elixir, "~> 2.0"},
+     {:bcrypt_elixir, "~> 3.0"},
      {:poolboy, "~> 1.5.1"},
      {:excoveralls, "~> 0.10", only: :test},
      {:benchee, "~> 1.0", only: :dev},
      {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
      {:floki, ">= 0.30.0", only: :test},
      {:assert_eventually, "~> 1.0.0", only: :test},
+     {:phoenix_view, "~> 2.0"},
+     {:phoenix_live_view, "~> 0.20"}
     ]
   end
 

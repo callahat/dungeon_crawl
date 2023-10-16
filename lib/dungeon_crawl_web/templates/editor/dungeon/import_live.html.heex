@@ -9,7 +9,7 @@
 
       <div class="form-group">
         <label class="control-label" for="file">File</label>
-        <%= live_file_input @uploads.file, class: "form-control" %>
+        <.live_file_input upload={@uploads.file} />
       </div>
 
       <div class="form-group">
@@ -46,7 +46,7 @@
           <td><%= import.file_name %></td>
           <td><%= import.inserted_at %></td>
           <td><%= import.status %></td>
-          <td><%= if import.dungeon_id, do: link DungeonCrawl.Repo.preload(import, :dungeon).dungeon.name, to: Routes.edit_dungeon_path(@socket, :show, import.dungeon_id) %></td>
+          <td><%= if import.dungeon_id, do: link(DungeonCrawl.Repo.preload(import, :dungeon).dungeon.name, to: Routes.edit_dungeon_path(@socket, :show, import.dungeon_id)) %></td>
           <td><%= link "Delete", to: "#", phx_click: "delete#{import.id}", data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
         </tr>
       <% end %>

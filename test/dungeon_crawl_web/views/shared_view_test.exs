@@ -94,7 +94,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_3'><div style='color: #FFF'>B</div></td>}
 
     # cleanup
-    Process.exit(instance_process, :kill)
+#    Process.exit(instance_process, :kill)
   end
 
   test "level_as_table/3 returns table rows of the level instance when its foggy" do
@@ -129,7 +129,7 @@ defmodule DungeonCrawlWeb.SharedViewTest do
     assert rows =~ ~r{<td id='1_3'><div style='background-color: darkgray'>░</div></td>}
 
     # cleanup
-    Process.exit(instance_process, :kill)
+#    Process.exit(instance_process, :kill)
   end
 
   test "fade_overlay_table/4 when level is foggy" do

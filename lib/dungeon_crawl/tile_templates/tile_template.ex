@@ -74,7 +74,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
                     :animate_background_colors,
                     :animate_characters,
                     :animate_period,
-                    :group_name])
+                    :group_name],
+         empty_values: [""])
     |> validate_required([:name, :description])
     |> validate_inclusion(:group_name, @groups)
     |> validate_animation_fields
@@ -138,11 +139,13 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
               |> StateValue.Parser.stringify()
               |> StateValue.Parser.parse!()
 
-      delete_change(changeset, :state_variables)
+      %{ changeset | errors: Keyword.delete(changeset.errors, :state)}
+      |> delete_change(:state_variables)
       |> delete_change(:state_values)
       |> put_change(:state, state)
     else
-      add_error(changeset, :state, "state_variables and state_values are of different lengths")
+      %{ changeset | errors: Keyword.delete(changeset.errors, :state)}
+      |> add_error(:state, "state_variables and state_values are of different lengths")
     end
   end
   def validate_state_values(%{changes: %{state_variables: _}} = changeset) do

@@ -53,7 +53,7 @@ defmodule DungeonCrawlWeb.Editor.EffectControllerTest do
       target_effect = insert_effect @valid_attrs
       conn = get conn, edit_effect_path(conn, :show, target_effect)
       assert redirected_to(conn) == edit_effect_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "renders page not found when id is nonexistent", %{conn: conn} do
@@ -72,7 +72,7 @@ defmodule DungeonCrawlWeb.Editor.EffectControllerTest do
       target_effect = insert_effect @valid_attrs
       conn = get conn, edit_effect_path(conn, :edit, target_effect)
       assert redirected_to(conn) == edit_effect_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "updates chosen resource and redirects when data is valid", %{conn: conn} do
@@ -92,7 +92,7 @@ defmodule DungeonCrawlWeb.Editor.EffectControllerTest do
       target_effect = insert_effect @valid_attrs
       conn = put conn, edit_effect_path(conn, :update, target_effect), effect: @update_attrs
       assert redirected_to(conn) == edit_effect_path(conn, :index)
-      assert get_flash(conn, :error) == "You do not have access to that"
+      assert Flash.get(conn.assigns.flash, :error) == "You do not have access to that"
     end
 
     test "deletes chosen resource on delete", %{conn: conn} do

@@ -394,7 +394,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
-      Logger.warn "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+      Logger.warning "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
     end
 
     Process.send_after(self(), :perform_actions, @timeout)
