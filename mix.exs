@@ -59,7 +59,8 @@ defmodule DungeonCrawl.Mixfile do
      {:floki, ">= 0.30.0", only: :test},
      {:assert_eventually, "~> 1.0.0", only: :test},
      {:phoenix_view, "~> 2.0"},
-     {:phoenix_live_view, "~> 0.20"}
+     {:phoenix_live_view, "~> 0.20"},
+     {:dotenvy, "~> 0.8"},
     ]
   end
 

@@ -11,11 +11,6 @@ config :logger, level: :warning
 
 # Configure your database
 config :dungeon_crawl, DungeonCrawl.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  username: "elixir",
-  password: "elixir",
-  database: "dungeon_crawl_test",
-  hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :bcrypt_elixir, :log_rounds, 4
