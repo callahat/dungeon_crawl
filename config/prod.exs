@@ -55,7 +55,3 @@ config :logger, level: :info
 #
 #     config :dungeon_crawl, DungeonCrawl.Endpoint, server: true
 #
-
-# Finally import the config/prod.secret.exs
-# which should be versioned separately.
-import_config "prod.secret.exs"
