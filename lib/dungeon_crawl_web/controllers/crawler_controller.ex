@@ -154,8 +154,10 @@ defmodule DungeonCrawlWeb.CrawlerController do
 
     leave_and_broadcast(location)
 
-    Games.list_saved_games(%{user_id_hash: conn.assigns[:user_id_hash], dungeon_id: dungeon_id})
-    |> Enum.each(fn save -> Games.delete_save(save) end)
+    unless dungeon_id == "null" || is_nil(dungeon_id) do
+      Games.list_saved_games(%{user_id_hash: conn.assigns[:user_id_hash], dungeon_id: dungeon_id})
+      |> Enum.each(fn save -> Games.delete_save(save) end)
+    end
 
     conn
     |> put_flash(:info, "Dungeon cleared.")
