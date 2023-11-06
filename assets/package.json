@@ -2,13 +2,17 @@
   "repository": {},
   "license": "MIT",
   "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
     "bootstrap": "^4.4.1",
-    "codemirror": "^5.58.2",
+    "codemirror": "^6.65.7",
     "file-loader": "^5.0.2",
     "font-awesome": "^4.7.0",
     "jquery": "^3.5.1",
     "popper.js": "^1.16.0",
     "zzfx": "^1.1.8"
   },
-  "name": "assets"
+  "name": "assets",
+  "devDependencies": {
+    "@codemirror/view": "^6.22.0"
+  }
 }

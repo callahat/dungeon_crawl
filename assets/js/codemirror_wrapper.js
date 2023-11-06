@@ -1,5 +1,8 @@
-import 'codemirror/addon/mode/simple.js';
-import CodeMirror from 'codemirror/lib/codemirror.js';
+// import 'codemirror/addon/mode/simple.js';
+// import CodeMirror from 'codemirror/lib/codemirror.js';
+
+import {basicSetup} from "@codemirror/basic-setup"
+import {EditorView} from "@codemirror/view"
 
 let CodemirrorWrapper = {
   initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
@@ -19,9 +22,24 @@ let CodemirrorWrapper = {
   init(textAreaEl) { if(!textAreaEl) { return }
     if(! this.decorated){
       this.decorated = true
-      this.codemirror = CodeMirror.fromTextArea(textAreaEl, {
-        lineNumbers: true
-      });
+      // this.codemirror = CodeMirror.fromTextArea(textAreaEl, {
+      //   lineNumbers: true
+      // });
+      console.log("HEY")
+      this.codemirror = new EditorView({
+        doc: textAreaEl.value,
+        extensions: [
+          basicSetup
+        ]
+      })
+      textAreaEl.parentNode.insertBefore(this.codemirror.dom, textAreaEl)
+      textAreaEl.hidden = true
+      if (textAreaEl.form) textAreaEl.form.addEventListener("submit", () => {
+        textAreaEl.value = this.codemirror.state.doc.toString()
+      })
+
+      console.log(this.codemirror)
+
     } else {
       this.codemirror.getDoc().setValue(textAreaEl.value)
     }
@@ -80,43 +98,43 @@ let commands = [
     "zap"
   ].join("|")
 
-CodeMirror.defineSimpleMode("simplemode", {
-  start: [
-    // interpolated text
-    {regex: /\${/, token: "meta", sol: true, mode: {spec: "simplemode", end: /}/}, next: "text"},
-    // text link
-    {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
-    // text
-    {regex: /^[^&#@:\/\?]/, token: "string", sol: true, next: "text"},
-    // Label
-    {regex: /:[^ ]*$/, token: "label", sol: true},
-    {regex: /:.*$/, token: "error", sol: true},
-    // Command
-    {regex: RegExp("#(?:" + commands +")(?: |$)", "i"), token: "command", sol: true},
-    {regex: RegExp("#.*$"), token: "error", sol: true},
-    // Shorthand movements
-    {regex: /[\?\/][nsewicp]/i, token: "command"},
-    // directions
-    {regex: /\b(?:north|up|south|down|east|right|west|left|idle|player|continue)\b/, token: "atom"},
-    // boolean
-    {regex: /true|false/, token: "atom"},
-    // number
-    {regex: /[-+]?\d+\.?\d*/, token: "number"},
-    // state change
-    {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variable-2"},
-    // invalid state change
-    {regex: /(\?.*@|\?{@.+}@).+\b/, token: "error"},
-    // operators
-    {regex: /==|>=|<=|<|>|!=|\+=|-=|\/=|\*=|\+\+|--|=|not|!/, token: "operator"},
-    // invalid movement shorthand
-    {regex: /[\?\/]./, token: "error"},
-  ],
-  text: [
-    {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
-    {regex: /\${/, token: "meta", mode: {spec: "simplemode", end: /}/}},
-    {regex: /.$/, token: "string", next: "start"},
-    {regex: /./, token: "string"}
-  ]
-})
+// CodeMirror.defineSimpleMode("simplemode", {
+//   start: [
+//     // interpolated text
+//     {regex: /\${/, token: "meta", sol: true, mode: {spec: "simplemode", end: /}/}, next: "text"},
+//     // text link
+//     {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
+//     // text
+//     {regex: /^[^&#@:\/\?]/, token: "string", sol: true, next: "text"},
+//     // Label
+//     {regex: /:[^ ]*$/, token: "label", sol: true},
+//     {regex: /:.*$/, token: "error", sol: true},
+//     // Command
+//     {regex: RegExp("#(?:" + commands +")(?: |$)", "i"), token: "command", sol: true},
+//     {regex: RegExp("#.*$"), token: "error", sol: true},
+//     // Shorthand movements
+//     {regex: /[\?\/][nsewicp]/i, token: "command"},
+//     // directions
+//     {regex: /\b(?:north|up|south|down|east|right|west|left|idle|player|continue)\b/, token: "atom"},
+//     // boolean
+//     {regex: /true|false/, token: "atom"},
+//     // number
+//     {regex: /[-+]?\d+\.?\d*/, token: "number"},
+//     // state change
+//     {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variable-2"},
+//     // invalid state change
+//     {regex: /(\?.*@|\?{@.+}@).+\b/, token: "error"},
+//     // operators
+//     {regex: /==|>=|<=|<|>|!=|\+=|-=|\/=|\*=|\+\+|--|=|not|!/, token: "operator"},
+//     // invalid movement shorthand
+//     {regex: /[\?\/]./, token: "error"},
+//   ],
+//   text: [
+//     {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
+//     {regex: /\${/, token: "meta", mode: {spec: "simplemode", end: /}/}},
+//     {regex: /.$/, token: "string", next: "start"},
+//     {regex: /./, token: "string"}
+//   ]
+// })
 
 export default CodemirrorWrapper
