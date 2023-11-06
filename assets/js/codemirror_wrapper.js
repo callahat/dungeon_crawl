@@ -2,28 +2,10 @@ import 'codemirror/addon/mode/simple.js';
 import CodeMirror from 'codemirror/lib/codemirror.js';
 
 let CodemirrorWrapper = {
-  init(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
+  initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
 
     $(triggerEl).on("shown.bs.tab", () => {
-      if(! this.decorated){
-        this.decorated = true
-        this.codemirror = CodeMirror.fromTextArea(textAreaEl, {
-          lineNumbers: true
-        });
-      } else {
-        this.codemirror.getDoc().setValue(textAreaEl.value)
-      }
-
-      let saveTileChangesButton = document.getElementById("save_tile_changes"),
-          shortlistTileButton = document.getElementById("tile_edit_add_to_shortlist")
-      if(saveTileChangesButton) {
-        saveTileChangesButton.addEventListener('mouseover', e => { this.codemirror.save() })
-        saveTileChangesButton.addEventListener('focus', e => { this.codemirror.save() })
-      }
-      if(shortlistTileButton) {
-        shortlistTileButton.addEventListener('mouseover', e => { this.codemirror.save() })
-        shortlistTileButton.addEventListener('focus', e => { this.codemirror.save() })
-      }
+      this.init(textAreaEl)
     })
 
     $(triggerEl).on("hide.bs.tab", () => {
@@ -32,6 +14,27 @@ let CodemirrorWrapper = {
 
     if(!!$("#tile_template_script ~ pre.help-block")[0]) {
       $(triggerEl).tab('show')
+    }
+  },
+  init(textAreaEl) { if(!textAreaEl) { return }
+    if(! this.decorated){
+      this.decorated = true
+      this.codemirror = CodeMirror.fromTextArea(textAreaEl, {
+        lineNumbers: true
+      });
+    } else {
+      this.codemirror.getDoc().setValue(textAreaEl.value)
+    }
+
+    let saveTileChangesButton = document.getElementById("save_tile_changes"),
+      shortlistTileButton = document.getElementById("tile_edit_add_to_shortlist")
+    if(saveTileChangesButton) {
+      saveTileChangesButton.addEventListener('mouseover', e => { this.codemirror.save() })
+      saveTileChangesButton.addEventListener('focus', e => { this.codemirror.save() })
+    }
+    if(shortlistTileButton) {
+      shortlistTileButton.addEventListener('mouseover', e => { this.codemirror.save() })
+      shortlistTileButton.addEventListener('focus', e => { this.codemirror.save() })
     }
   },
   decorated: false,
