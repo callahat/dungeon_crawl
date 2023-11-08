@@ -2,7 +2,10 @@
 @import "./fonts.css";
 @import "../node_modules/bootstrap/dist/css/bootstrap.css";
 @import "../node_modules/font-awesome/css/font-awesome.css";
-@import "../node_modules/codemirror/lib/codemirror.css";
+/*@import "../node_modules/codemirror/lib/codemirror.css";*/
+
+.cm-editor { border: 2px solid black }
+.cm-editor.cm-focused { border: 2px solid black }
 
 a:not(.collapsed) svg.rotate-icon{
   -webkit-transform: rotate(180deg);

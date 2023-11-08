@@ -1,8 +1,7 @@
 // import 'codemirror/addon/mode/simple.js';
 // import CodeMirror from 'codemirror/lib/codemirror.js';
 
-import {basicSetup} from "@codemirror/basic-setup"
-import {EditorView} from "@codemirror/view"
+import {EditorView, basicSetup} from "codemirror"
 
 let CodemirrorWrapper = {
   initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
@@ -26,6 +25,12 @@ let CodemirrorWrapper = {
       //   lineNumbers: true
       // });
       console.log("HEY")
+      //
+      // let view = new EditorView({
+      //   state,
+      //   parent: document.body
+      // })
+
       this.codemirror = new EditorView({
         doc: textAreaEl.value,
         extensions: [
