@@ -2,6 +2,7 @@
   "repository": {},
   "license": "MIT",
   "dependencies": {
+    "@codemirror/legacy-modes": "^6.3.3",
     "bootstrap": "^4.4.1",
     "codemirror": "^6.0.1",
     "file-loader": "^5.0.2",
@@ -10,7 +11,5 @@
     "popper.js": "^1.16.0",
     "zzfx": "^1.1.8"
   },
-  "name": "assets",
-  "devDependencies": {
-  }
+  "name": "assets"
 }
