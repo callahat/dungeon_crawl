@@ -112,11 +112,12 @@ let commands = [
 export const dscript = simpleMode({
   start: [
     // interpolated text
-    {regex: /\${/, token: "meta", sol: true, next: "text"},
+    {regex: /\${/, token: "meta", next: "interpolated"},
     // text link
     {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
     // text
-    {regex: /^[^&#@:\/\?${}]+/, token: "string", sol: true, next: "text"},
+    {regex: /[^&#@:\/?${}]+$/, token: "string", sol: true},
+    {regex: /[^&#@:\/?${}]+/, token: "string", sol: true, next: "text"},
     // Label
     {regex: /:[^ ]*$/, token: "name", sol: true},
     {regex: /:.*$/, token: "invalid", sol: true},
@@ -143,12 +144,15 @@ export const dscript = simpleMode({
     {regex: /[\?\/]./, token: "invalid"},
   ],
   text: [
-    {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
+    {regex: /^[^${}]*$/, token: "string", sol: true, next: "start"},
+    {regex: /^[&#@:\/?]/, sol: true, next: "start"},
     {regex: /\${/, token: "meta", next: "interpolated"},
-    {regex: /[^${}]+$/, token: "string", next: "start"},
-    {regex: /[^${}]+/, token: "string"}
+    {regex: /[^${}]$/, token: "string", next: "start"},
+    {regex: /[^${}]/, token: "string"}
   ],
   interpolated: [
+    {regex: /}$/, token: "meta", next: "start"},
+    {regex: /}/, token: "meta", next: "text"},
     // directions
     {regex: /\b(?:north|up|south|down|east|right|west|left|idle|player|continue)\b/, token: "atom"},
     // boolean
@@ -159,7 +163,6 @@ export const dscript = simpleMode({
     {regex: /\?(?:self|sender)/, token: "variableName"},
     // state change
     {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variableName"},
-    {regex: /\}/, token: "meta", next: "text"},
   ]
 })
 
