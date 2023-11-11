@@ -4,19 +4,29 @@
 import {EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
   lineNumbers, highlightActiveLineGutter} from "@codemirror/view"
 import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
-import {StreamLanguage, syntaxHighlighting} from "@codemirror/language"
+import {StreamLanguage, syntaxHighlighting, HighlightStyle} from "@codemirror/language"
+import {tags} from "@lezer/highlight";
 
-import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode";
+const dscriptHighlightStyle = HighlightStyle.define([
+  {tag: tags.link, color: "#00C", textDecoration: "underline"},
+  {tag: tags.meta, color: "#555"},
+  {tag: tags.string, color: "#A11"},
+  {tag: tags.atom, color: "#219"},
+  {tag: tags.name, color: "#00F"},
+  {tag: tags.invalid, color: "red"},
+  {tag: tags.keyword, color: "#708"},
+  {tag: tags.variableName, color: "#05A"},
+  {tag: tags.number, color: "#164"},
+  {tag: tags.operator, color: "black"},
+]);
+
+import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
 
 let CodemirrorWrapper = {
   initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
 
     $(triggerEl).on("shown.bs.tab", () => {
       this.init(textAreaEl)
-    })
-
-    $(triggerEl).on("hide.bs.tab", () => {
-      this.codemirror.save()
     })
 
     if(!!$("#tile_template_script ~ pre.help-block")[0]) {
@@ -26,15 +36,6 @@ let CodemirrorWrapper = {
   init(textAreaEl) { if(!textAreaEl) { return }
     if(! this.decorated){
       this.decorated = true
-      // this.codemirror = CodeMirror.fromTextArea(textAreaEl, {
-      //   lineNumbers: true
-      // });
-      console.log("HEY")
-      //
-      // let view = new EditorView({
-      //   state,
-      //   parent: document.body
-      // })
 
       this.codemirror = new EditorView({
         doc: textAreaEl.value,
@@ -49,6 +50,7 @@ let CodemirrorWrapper = {
             ...defaultKeymap,
             ...historyKeymap
           ]),
+          syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
           StreamLanguage.define(dscript)
         ]
       })
@@ -63,17 +65,6 @@ let CodemirrorWrapper = {
     } else {
       this.codemirror.getDoc().setValue(textAreaEl.value)
     }
-
-  //   let saveTileChangesButton = document.getElementById("save_tile_changes"),
-  //     shortlistTileButton = document.getElementById("tile_edit_add_to_shortlist")
-  //   if(saveTileChangesButton) {
-  //     saveTileChangesButton.addEventListener('mouseover', e => { this.codemirror.save() })
-  //     saveTileChangesButton.addEventListener('focus', e => { this.codemirror.save() })
-  //   }
-  //   if(shortlistTileButton) {
-  //     shortlistTileButton.addEventListener('mouseover', e => { this.codemirror.save() })
-  //     shortlistTileButton.addEventListener('focus', e => { this.codemirror.save() })
-  //   }
   },
   decorated: false,
   codemirror: null
@@ -121,19 +112,21 @@ let commands = [
 export const dscript = simpleMode({
   start: [
     // interpolated text
-    {regex: /\${/, token: "meta", sol: true, mode: {spec: "simplemode", end: /}/}, next: "text"},
+    {regex: /\${/, token: "meta", sol: true, next: "text"},
     // text link
     {regex: / *![^ ]*?;/, token: "link", sol: true, next: "text"},
     // text
-    {regex: /^[^&#@:\/\?]/, token: "string", sol: true, next: "text"},
+    {regex: /^[^&#@:\/\?${}]+/, token: "string", sol: true, next: "text"},
     // Label
-    {regex: /:[^ ]*$/, token: "label", sol: true},
-    {regex: /:.*$/, token: "error", sol: true},
+    {regex: /:[^ ]*$/, token: "name", sol: true},
+    {regex: /:.*$/, token: "invalid", sol: true},
     // Command
-    {regex: RegExp("#(?:" + commands +")(?: |$)", "i"), token: "command", sol: true},
-    {regex: RegExp("#.*$"), token: "error", sol: true},
+    {regex: RegExp("#(?:" + commands +")(?: |$)", "i"), token: "keyword", sol: true},
+    {regex: RegExp("#.*$"), token: "invalid", sol: true},
+    // Special variables
+    {regex: /\?(?:self|sender)/, token: "variable"},
     // Shorthand movements
-    {regex: /[\?\/][nsewicp]/i, token: "command"},
+    {regex: /[\?\/][nsewicp]/i, token: "keyword"},
     // directions
     {regex: /\b(?:north|up|south|down|east|right|west|left|idle|player|continue)\b/, token: "atom"},
     // boolean
@@ -141,19 +134,32 @@ export const dscript = simpleMode({
     // number
     {regex: /[-+]?\d+\.?\d*/, token: "number"},
     // state change
-    {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variable-2"},
+    {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variableName"},
     // invalid state change
-    {regex: /(\?.*@|\?{@.+}@).+\b/, token: "error"},
+    {regex: /(\?.*@|\?{@.+}@).+\b/, token: "invalid"},
     // operators
     {regex: /==|>=|<=|<|>|!=|\+=|-=|\/=|\*=|\+\+|--|=|not|!/, token: "operator"},
     // invalid movement shorthand
-    {regex: /[\?\/]./, token: "error"},
+    {regex: /[\?\/]./, token: "invalid"},
   ],
   text: [
     {regex: /^[&#@:\/\?]/, sol: true, next: "start"},
-    {regex: /\${/, token: "meta", mode: {spec: "simplemode", end: /}/}},
-    {regex: /.$/, token: "string", next: "start"},
-    {regex: /./, token: "string"}
+    {regex: /\${/, token: "meta", next: "interpolated"},
+    {regex: /[^${}]+$/, token: "string", next: "start"},
+    {regex: /[^${}]+/, token: "string"}
+  ],
+  interpolated: [
+    // directions
+    {regex: /\b(?:north|up|south|down|east|right|west|left|idle|player|continue)\b/, token: "atom"},
+    // boolean
+    {regex: /true|false/, token: "atom"},
+    // number
+    {regex: /[-+]?\d+\.?\d*/, token: "number"},
+    // Special variables
+    {regex: /\?(?:self|sender)/, token: "variableName"},
+    // state change
+    {regex: /(\?[^ {]*?@|\?{@[^ ]+?}@|@|@@|&)[^@]+?\b/, token: "variableName"},
+    {regex: /\}/, token: "meta", next: "text"},
   ]
 })
 
