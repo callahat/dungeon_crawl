@@ -3,6 +3,7 @@
 
 import {EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
   lineNumbers, highlightActiveLineGutter} from "@codemirror/view"
+import {autocompletion} from "@codemirror/autocomplete"
 import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 import {StreamLanguage, syntaxHighlighting, HighlightStyle} from "@codemirror/language"
 import {tags} from "@lezer/highlight";
@@ -51,7 +52,8 @@ let CodemirrorWrapper = {
             ...historyKeymap
           ]),
           syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
-          StreamLanguage.define(dscript)
+          StreamLanguage.define(dscript),
+          autocompletion({override: [completionFunction]})
         ]
       })
       textAreaEl.parentNode.insertBefore(this.codemirror.dom, textAreaEl)
@@ -70,44 +72,63 @@ let CodemirrorWrapper = {
   codemirror: null
 }
 
-let commands = [
-    "become",
-    "cycle",
-    "die",
-    "end",
-    "equip",
-    "facing",
-    "gameover",
-    "give",
-    "go",
-    "if",
-    "lock",
-    "move",
-    "noop",
-    "passage",
-    "pull",
-    "push",
-    "put",
-    "random",
-    "replace",
-    "remove",
-    "restore",
-    "send",
-    "sequence",
-    "shift",
-    "shoot",
-    "sound",
-    "take",
-    "target_player",
-    "terminate",
-    "text",
-    "transport",
-    "try",
-    "unequip",
-    "unlock",
-    "walk",
-    "zap"
-  ].join("|")
+// detail will be a quick reminder of the params this command takes, but
+// not a full reference
+const commandCompletions = [
+  {label: "#become", detail: "slug:, character:, ...", info: "KWARGS"},
+  {label: "#cycle", detail: "number"},
+  {label: "#die"},
+  {label: "#end"},
+  {label: "#equip", detail: "what, who, [max], [label]"},
+  {label: "#facing", detail: "direction"},
+  {label: "#gameover", detail: "[win/loss], [result], [who]"},
+  {label: "#give", detail: "what, amount, who, [max], [label]"},
+  {label: "#go", detail: "direction"},
+  {label: "#if", detail: "condition, label or number"},
+  {label: "#lock"},
+  {label: "#move", detail: "direction, [try until successful]"},
+  {label: "#noop"},
+  {label: "#passage", detail: "match_key"},
+  {label: "#pull", detail: "direction, [try until successful]"},
+  {label: "#push", detail: "direction, [range]"},
+  {label: "#put", detail: "slug:, direction:, ...", info: "KWARGS"},
+  {label: "#random", detail: "variable name, (a,b,c or min-max)"},
+  {label: "#remove",
+    detail: "target:, (target_[attribute]): ...",
+    info: "KWARGS, attributes prefixed with 'target_' will be used for selecting tile(s) to be removed"},
+  {label: "#replace",
+    detail: "target: (target_[attribute]), color:, ...",
+    info: "KWARGS, attributes prefixed with 'target_' will be used for selecting tile(s) to be replaced"},
+  {label: "#restore", detail: "label"},
+  {label: "#send", detail: "message, [who], [delay]"},
+  {label: "#sequence", detail: "variable, list"},
+  {label: "#shift", detail: "clockwise or counterclockwise"},
+  {label: "#shoot", detail: "direction"},
+  {label: "#sound", detail: "sound, (who)"},
+  {label: "#take", detail: "what, amount, who, [label]"},
+  {label: "#target_player", detail: "nearest or random"},
+  {label: "#terminate"},
+  {label: "#transport", detail: "who, level, [match_key]"},
+  {label: "#try", detail: "direction"},
+  {label: "#unequip", detail: "what, who, [label]"},
+  {label: "#unlock"},
+  {label: "#walk", detail: "direction"},
+  {label: "#zap", detail: "label"},
+]
+
+function completionFunction(context) {
+  let before = context.matchBefore(/^[#\w]+/)
+  // If completion wasn't explicitly started and there
+  // is no word before the cursor, don't open completions.
+  if (!context.explicit && !before) return null
+  return {
+    from: before ? before.from : context.pos,
+    options: commandCompletions,
+    validFor: /^#\w*$/
+  }
+}
+
+const commands = commandCompletions.map((m) => m.label.replace("#","")).join("|")
 
 export const dscript = simpleMode({
   start: [
