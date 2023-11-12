@@ -1,6 +1,3 @@
-// import 'codemirror/addon/mode/simple.js';
-// import CodeMirror from 'codemirror/lib/codemirror.js';
-
 import {EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
   lineNumbers, highlightActiveLineGutter} from "@codemirror/view"
 import {autocompletion} from "@codemirror/autocomplete"
