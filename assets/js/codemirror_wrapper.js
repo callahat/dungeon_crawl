@@ -80,7 +80,7 @@ const CodemirrorWrapper = {
     }
   },
   save(textAreaEl) {
-    textAreaEl.value = this.codemirror.state.doc.text.join("\n")
+    textAreaEl.value = this.codemirror.state.doc.toString()
   },
   decorated: false,
   codemirror: null
