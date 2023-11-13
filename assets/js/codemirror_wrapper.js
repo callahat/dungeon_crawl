@@ -3,7 +3,8 @@ import {EditorView, keymap, drawSelection, highlightActiveLine, dropCursor,
 import {autocompletion} from "@codemirror/autocomplete"
 import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 import {StreamLanguage, syntaxHighlighting, HighlightStyle} from "@codemirror/language"
-import {tags} from "@lezer/highlight";
+import {tags} from "@lezer/highlight"
+import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
 
 const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.link, color: "#00C", textDecoration: "underline"},
@@ -18,13 +19,15 @@ const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.operator, color: "black"},
 ]);
 
-import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
 
-let CodemirrorWrapper = {
+const CodemirrorWrapper = {
   initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
-
     $(triggerEl).on("shown.bs.tab", () => {
       this.init(textAreaEl)
+    })
+
+    $(triggerEl).on("hide.bs.tab", () => {
+      this.save(textAreaEl)
     })
 
     if(!!$("#tile_template_script ~ pre.help-block")[0]) {
@@ -34,6 +37,17 @@ let CodemirrorWrapper = {
   init(textAreaEl) { if(!textAreaEl) { return }
     if(! this.decorated){
       this.decorated = true
+
+      let saveTileChangesButton = document.getElementById("save_tile_changes"),
+        shortlistTileButton = document.getElementById("tile_edit_add_to_shortlist")
+      if(saveTileChangesButton) {
+        saveTileChangesButton.addEventListener('mouseover', e => { this.save(textAreaEl) })
+        saveTileChangesButton.addEventListener('focus', e => { this.save(textAreaEl) })
+      }
+      if(shortlistTileButton) {
+        shortlistTileButton.addEventListener('mouseover', e => { this.save(textAreaEl) })
+        shortlistTileButton.addEventListener('focus', e => { this.save(textAreaEl) })
+      }
 
       this.codemirror = new EditorView({
         doc: textAreaEl.value,
@@ -56,14 +70,17 @@ let CodemirrorWrapper = {
       textAreaEl.parentNode.insertBefore(this.codemirror.dom, textAreaEl)
       textAreaEl.hidden = true
       if (textAreaEl.form) textAreaEl.form.addEventListener("submit", () => {
-        textAreaEl.value = this.codemirror.state.doc.toString()
+        this.save(textAreaEl)
       })
 
-      console.log(this.codemirror)
-
     } else {
-      this.codemirror.getDoc().setValue(textAreaEl.value)
+      this.codemirror.dispatch(
+        this.codemirror.state.update({changes: {from: 0, to: this.codemirror.state.doc.length, insert: textAreaEl.value}})
+      )
     }
+  },
+  save(textAreaEl) {
+    textAreaEl.value = this.codemirror.state.doc.text.join("\n")
   },
   decorated: false,
   codemirror: null
@@ -113,6 +130,8 @@ const commandCompletions = [
   {label: "#zap", detail: "label"},
 ]
 
+const commands = commandCompletions.map((m) => m.label.replace("#","")).join("|")
+
 function completionFunction(context) {
   let before = context.matchBefore(/^[#\w]+/)
   // If completion wasn't explicitly started and there
@@ -125,9 +144,7 @@ function completionFunction(context) {
   }
 }
 
-const commands = commandCompletions.map((m) => m.label.replace("#","")).join("|")
-
-export const dscript = simpleMode({
+const dscript = simpleMode({
   start: [
     // interpolated text
     {regex: /\${/, token: "meta", next: "interpolated"},
