@@ -29,6 +29,24 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                  responses: []}
     end
 
+    test "newlines and carriage returns" do
+      script = "#end\r\n:touch\rhandle this\ngracefully and strip the\n\rtrailing   \n\n"
+      assert {:ok, program = %Program{}} = Parser.parse(script)
+      assert program == %Program{instructions: %{
+                                     1 => [:halt, [""]],
+                                     2 => [:noop, "touch"],
+                                     3 => [:text, [["handle this"]]],
+                                     4 => [:text, [["gracefully and strip the"]]],
+                                     5 => [:text, [["trailing   "]]]
+                                   },
+                                 status: :alive,
+                                 pc: 1,
+                                 labels: %{"touch" => [[2, true]]},
+                                 locked: false,
+                                 broadcasts: [],
+                                 responses: []}
+    end
+
     test "script with everything" do
       DungeonCrawl.TileTemplates.TileSeeder.BasicTiles.bullet_tile
 

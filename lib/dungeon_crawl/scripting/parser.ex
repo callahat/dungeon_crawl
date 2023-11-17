@@ -98,7 +98,10 @@ defmodule DungeonCrawl.Scripting.Parser do
   def parse(nil), do: {:ok, %Program{}}
   def parse(""),  do: {:ok, %Program{}}
   def parse(script_string) do
-    case _parse_script(String.split(String.replace_trailing(script_string, "\n", ""), "\n"), %Program{}) do
+    Regex.replace(~r/(?:\r\n|\n\r|\n|\r)$/, script_string, "")
+    |> String.split(~r/\r\n|\n\r|\r|\n/)
+    |> _parse_script(%Program{})
+    |> case do
       {:ok, program} ->
         {:ok, %{program | status: :alive } }
 
