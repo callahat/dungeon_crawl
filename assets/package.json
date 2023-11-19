@@ -2,8 +2,9 @@
   "repository": {},
   "license": "MIT",
   "dependencies": {
+    "@codemirror/legacy-modes": "^6.3.3",
     "bootstrap": "^4.4.1",
-    "codemirror": "^5.58.2",
+    "codemirror": "^6.0.1",
     "file-loader": "^5.0.2",
     "font-awesome": "^4.7.0",
     "jquery": "^3.5.1",
