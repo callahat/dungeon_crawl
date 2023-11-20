@@ -19,6 +19,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   use DungeonCrawl.Shipping.SlugMatching
 
+  require Logger
+
   @derive Jason.Encoder
   defstruct dungeon: nil,
             levels: %{},
@@ -107,6 +109,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.tile_templates, tile_template.id) do
       export
     else
+      Logger.info "sto tile template; id: #{tile_template.id} (slug: #{tile_template.slug})"
       tt = TileTemplates.copy_fields(tile_template)
            |> Map.put(:id, tile_template.id)
            |> Map.put(:previous_version_id, tile_template.previous_version_id)
@@ -135,15 +138,15 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.items, slug) do
       export
     else
+      Logger.info "sto item; slug: #{slug}"
       item = Equipment.get_item!(slug)
       item = Equipment.copy_fields(item)
              |> Map.put(:id, item.id)
 
-      export = check_for_tile_template_slugs(export, item)
-               |> check_for_script_items(item)
-               |> check_for_script_sounds(item)
-
       %{ export | items: Map.put(export.items, slug, item)}
+      |> check_for_tile_template_slugs(item)
+      |> check_for_script_items(item)
+      |> check_for_script_sounds(item)
     end
   end
 
@@ -151,6 +154,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.sounds, slug) do
       export
     else
+      Logger.info "sto sound; slug: #{slug}"
       sound = Sound.get_effect_by_slug!(slug)
       sound = Sound.copy_fields(sound)
               |> Map.put(:id, sound.id)

@@ -80,7 +80,8 @@ defmodule DungeonCrawl.Shipping.DockWorker do
           try do
             GenServer.call(dock_worker, params, @timeout)
           catch
-            e, r -> _broadcast_status("error", params)
+            e, r -> _update_status(params, %{status: :failed})
+                    _broadcast_status("error", params)
                     Logger.warning("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
                     :ok
           end
@@ -88,6 +89,15 @@ defmodule DungeonCrawl.Shipping.DockWorker do
         @timeout
       )
     end)
+  end
+
+  # todo: make this switch live in Shipping
+  defp _update_status({:export, record}, attrs) do
+    Shipping.update_export(record, attrs)
+  end
+
+  defp _update_status({:import, record}, attrs) do
+    Shipping.update_import(record, attrs)
   end
 
   defp _broadcast_status(params) do
