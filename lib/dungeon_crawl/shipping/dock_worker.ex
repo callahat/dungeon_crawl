@@ -77,12 +77,14 @@ defmodule DungeonCrawl.Shipping.DockWorker do
       :poolboy.transaction(
         :dock_worker,
         fn dock_worker ->
+          Logger.info("*** Starting worker for: #{ inspect params }")
           try do
             GenServer.call(dock_worker, params, @timeout)
           catch
             e, r -> _update_status(params, %{status: :failed})
                     _broadcast_status("error", params)
                     Logger.warning("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
+                    Process.exit(dock_worker, :kill) # make sure its dead, esp on a timeout
                     :ok
           end
         end,
