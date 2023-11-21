@@ -80,6 +80,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
           Logger.info("*** Starting worker for: #{ inspect params }")
           try do
             GenServer.call(dock_worker, params, @timeout)
+            Logger.info("*** Worker done for: #{ inspect params }")
           catch
             e, r -> _update_status(params, %{status: :failed})
                     _broadcast_status("error", params)
