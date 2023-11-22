@@ -155,6 +155,12 @@ defmodule DungeonCrawl.LevelProcessTest do
             } = programs
   end
 
+  test "reset_count_to_idle/1", %{instance_process: instance_process} do
+    LevelProcess.run_with(instance_process, fn(state) -> {:ok, %{ state | count_to_idle: 1 }} end)
+    assert :ok = LevelProcess.reset_count_to_idle((instance_process))
+    assert %{count_to_idle: 5} = LevelProcess.get_state(instance_process)
+  end
+
   test "responds_to_event?", %{instance_process: instance_process, tile_id: tile_id} do
     assert LevelProcess.responds_to_event?(instance_process, tile_id, "TOUCH")
     refute LevelProcess.responds_to_event?(instance_process, tile_id, "SNIFF")

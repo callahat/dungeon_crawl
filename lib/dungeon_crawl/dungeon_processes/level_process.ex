@@ -132,6 +132,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   end
 
   @doc """
+  Resets the count_to_idle to the initial value
+  """
+  def reset_count_to_idle(instance) do
+    GenServer.call(instance, {:reset_count_to_idle})
+  end
+
+  @doc """
   Check is a tile/program responds to an event
   """
   def responds_to_event?(instance, tile_id, event) do
@@ -264,6 +271,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   def handle_call({:get_tiles, {row, col, direction}}, _from, %Levels{} = state) do
     tiles = Levels.get_tiles(state, %{row: row, col: col}, direction)
     {:reply, tiles, state}
+  end
+
+  @impl true
+  def handle_call({:reset_count_to_idle}, _from, state) do
+    {:reply, :ok, %{state | count_to_idle: 5}}
   end
 
   @impl true
