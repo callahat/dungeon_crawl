@@ -12,6 +12,9 @@ defmodule DungeonCrawl.LevelRegistryTest do
       id: TestInstanceRegistry,
       start: {LevelRegistry, :start_link, [nil, []]}
     })
+
+    on_exit(fn -> Process.exit(instance_registry, :kill) end)
+
     %{instance_registry: instance_registry}
   end
 

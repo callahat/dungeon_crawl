@@ -36,6 +36,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     LevelProcess.load_level(instance_process, [tile])
     LevelProcess.set_state_values(instance_process, %{"rows" => 20, "cols" => 20})
 
+    on_exit(fn -> Process.exit(instance_process, :kill) end)
+
     %{instance_process: instance_process, tile_id: tile.id, level_instance: level_instance}
   end
 
