@@ -56,7 +56,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
                   |> DungeonImports.run(import.user_id, import.line_identifier)
 
     Shipping.update_import(import,
-      %{dungeon_id: import_hash.dungeon.id, status: :completed})
+      %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil})
     _broadcast_status({:import, import})
 
     {:reply, :ok, state}
@@ -82,9 +82,10 @@ defmodule DungeonCrawl.Shipping.DockWorker do
             GenServer.call(dock_worker, params, @timeout)
             Logger.info("*** Worker done for: #{ inspect params }")
           catch
-            e, r -> _update_status(params, %{status: :failed})
+            code, error ->
+                    _update_status(params, %{status: :failed, details: _readable_error(error)})
                     _broadcast_status("error", params)
-                    Logger.warning("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
+                    Logger.warning("poolboy transaction caught error: #{inspect(code)}, #{inspect(error)}")
                     Process.exit(dock_worker, :kill) # make sure its dead, esp on a timeout
                     :ok
           end
@@ -110,5 +111,26 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   defp _broadcast_status(type, {import_or_export, record}) do
     Endpoint.broadcast("#{ import_or_export }_status_#{record.user_id}", type, nil)
     Endpoint.broadcast("#{ import_or_export }_status", type, nil)
+  end
+
+  defp _readable_error({:timeout, _}) do
+    "took too long"
+  end
+
+  defp _readable_error({{error = %Ecto.NoResultsError{}, _}, _}) do
+    case Regex.named_captures(~r/in DungeonCrawl\..*?\.(?<class>.*?),.*?slug == \^\"(?<slug>.*?)\"/s, error.message) do
+      %{"class" => class, "slug" => slug} ->
+        "could not find a #{ class } with slug '#{ slug }' that was referenced in a script or starting equipment"
+      _ ->
+        "could not find a slug that was referenced in a script or starting equipment"
+    end
+  end
+
+  defp _readable_error({{%Jason.DecodeError{}, _}, _}) do
+    "error parsing JSON"
+  end
+
+  defp _readable_error(_) do
+    "a problem occurred"
   end
 end

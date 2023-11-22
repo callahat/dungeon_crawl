@@ -35,4 +35,12 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
   def title_level_name(level) do
     "#{level.number} #{level.name}"
   end
+
+  def td_status(%{details: details, status: status}) do
+    {:safe,
+    """
+    <td title="#{ details }">#{ status }#{ if details, do: "*" }</td>
+    """
+    }
+  end
 end
