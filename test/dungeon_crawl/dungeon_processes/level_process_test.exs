@@ -36,6 +36,8 @@ defmodule DungeonCrawl.LevelProcessTest do
     LevelProcess.load_level(instance_process, [tile])
     LevelProcess.set_state_values(instance_process, %{"rows" => 20, "cols" => 20})
 
+    on_exit(fn -> Process.exit(instance_process, :kill) end)
+
     %{instance_process: instance_process, tile_id: tile.id, level_instance: level_instance}
   end
 
@@ -153,6 +155,12 @@ defmodule DungeonCrawl.LevelProcessTest do
                        object_id: ^tile_id,
                        program: %Program{status: :alive}}
             } = programs
+  end
+
+  test "reset_count_to_idle/1", %{instance_process: instance_process} do
+    LevelProcess.run_with(instance_process, fn(state) -> {:ok, %{ state | count_to_idle: 1 }} end)
+    assert :ok = LevelProcess.reset_count_to_idle((instance_process))
+    assert %{count_to_idle: 5} = LevelProcess.get_state(instance_process)
   end
 
   test "responds_to_event?", %{instance_process: instance_process, tile_id: tile_id} do

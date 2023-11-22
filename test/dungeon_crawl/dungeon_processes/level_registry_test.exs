@@ -12,6 +12,9 @@ defmodule DungeonCrawl.LevelRegistryTest do
       id: TestInstanceRegistry,
       start: {LevelRegistry, :start_link, [nil, []]}
     })
+
+    on_exit(fn -> Process.exit(instance_registry, :kill) end)
+
     %{instance_registry: instance_registry}
   end
 
@@ -70,6 +73,19 @@ defmodule DungeonCrawl.LevelRegistryTest do
     # Finds the already existing one
     assert {:ok, instance_id_and_process} == LevelRegistry.lookup_or_create(instance_registry, instance.number, location.id)
     assert {:ok, instance_id_and_process} != LevelRegistry.lookup_or_create(instance_registry, instance.number, nil)
+  end
+
+  test "lookup reset the count to idle as a side effect", %{instance_registry: instance_registry} do
+    instance = insert_stubbed_level_instance()
+    LevelRegistry.set_dungeon_instance_id(instance_registry, instance.dungeon_instance_id)
+    LevelRegistry.create(instance_registry, instance.number, 1)
+    assert {:ok, {instance_id, instance_pid}} = LevelRegistry.lookup(instance_registry, instance.number, nil)
+    LevelProcess.run_with(instance_pid, fn(state) -> {:ok, %{ state | count_to_idle: 1 }} end)
+    assert %{count_to_idle: 1} = LevelProcess.get_state(instance_pid)
+
+    #the actual test, PID should not change, but mainly we care that the count to idle was reset to 5
+    assert {:ok, {instance_id, instance_pid}} == LevelRegistry.lookup(instance_registry, instance.number, nil)
+    assert %{count_to_idle: 5} = LevelProcess.get_state(instance_pid)
   end
 
   test "create/2", %{instance_registry: instance_registry} do
