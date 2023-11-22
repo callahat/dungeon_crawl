@@ -72,7 +72,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
   end
 
-  defp _pool_wrapper(params) do
+  defp _pool_wrapper({_, record} = params) do
     Task.async(fn ->
       :poolboy.transaction(
         :dock_worker,
@@ -83,25 +83,16 @@ defmodule DungeonCrawl.Shipping.DockWorker do
             Logger.info("*** Worker done for: #{ inspect params }")
           catch
             code, error ->
-                    _update_status(params, %{status: :failed, details: _readable_error(error)})
-                    _broadcast_status("error", params)
-                    Logger.warning("poolboy transaction caught error: #{inspect(code)}, #{inspect(error)}")
-                    Process.exit(dock_worker, :kill) # make sure its dead, esp on a timeout
-                    :ok
+              Shipping.update(record, %{status: :failed, details: _readable_error(error)})
+              _broadcast_status("error", params)
+              Logger.warning("poolboy transaction caught error: #{inspect(code)}, #{inspect(error)}")
+              Process.exit(dock_worker, :kill) # make sure its dead, esp on a timeout
+              :ok
           end
         end,
         @timeout
       )
     end)
-  end
-
-  # todo: make this switch live in Shipping
-  defp _update_status({:export, record}, attrs) do
-    Shipping.update_export(record, attrs)
-  end
-
-  defp _update_status({:import, record}, attrs) do
-    Shipping.update_import(record, attrs)
   end
 
   defp _broadcast_status(params) do

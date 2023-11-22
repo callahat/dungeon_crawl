@@ -237,4 +237,20 @@ defmodule DungeonCrawl.Shipping do
                         exp.user_id == ^user_id and
                         exp.status in [:queued, :running])
   end
+
+  @doc """
+  Updates the export or import.
+
+  ## Examples
+
+       iex> update(%Export{}, attrs)
+       {:ok, %Export{}}
+  """
+  def update(%Export{} = export, attrs) do
+    update_export(export, attrs)
+  end
+
+  def update(%Import{} = import, attrs) do
+    update_import(import, attrs)
+  end
 end
