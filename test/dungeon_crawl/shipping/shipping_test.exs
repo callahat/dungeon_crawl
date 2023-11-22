@@ -43,18 +43,18 @@ defmodule DungeonCrawl.ShippingTest do
       assert_raise Ecto.InvalidChangesetError, fn -> Shipping.create_export!(@invalid_attrs) end
     end
 
-    test "update_export/2 with valid data updates the export" do
+    test "update/2 with valid data updates the export" do
       export = export_fixture()
       update_attrs = %{data: "some updated data", status: :completed}
 
-      assert {:ok, %Export{} = export} = Shipping.update_export(export, update_attrs)
+      assert {:ok, %Export{} = export} = Shipping.update(export, update_attrs)
       assert export.data == "some updated data"
       assert export.status == :completed
     end
 
-    test "update_export/2 with invalid data returns error changeset" do
+    test "update/2 with invalid data returns error changeset" do
       export = export_fixture()
-      assert {:error, %Ecto.Changeset{}} = Shipping.update_export(export, @invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Shipping.update(export, @invalid_attrs)
       assert export == Shipping.get_export!(export.id)
     end
 
@@ -113,21 +113,21 @@ defmodule DungeonCrawl.ShippingTest do
       assert_raise Ecto.InvalidChangesetError, fn -> Shipping.create_import!(@invalid_attrs) end
     end
 
-    test "update_import/2 with valid data updates the import" do
+    test "update/2 with valid data updates the import" do
       import = import_fixture()
       user = insert_user()
       _dungeon = insert_dungeon(%{user_id: user.id, line_identifier: 43})
       update_attrs = %{data: "some updated data", line_identifier: 43, status: :completed, user_id: user.id}
 
-      assert {:ok, %Import{} = import} = Shipping.update_import(import, update_attrs)
+      assert {:ok, %Import{} = import} = Shipping.update(import, update_attrs)
       assert import.data == "some updated data"
       assert import.line_identifier == 43
       assert import.status == :completed
     end
 
-    test "update_import/2 with invalid data returns error changeset" do
+    test "update/2 with invalid data returns error changeset" do
       import = import_fixture()
-      assert {:error, %Ecto.Changeset{}} = Shipping.update_import(import, @invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Shipping.update(import, @invalid_attrs)
       assert import == Shipping.get_import!(import.id)
     end
 

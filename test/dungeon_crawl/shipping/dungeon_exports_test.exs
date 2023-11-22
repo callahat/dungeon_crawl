@@ -375,6 +375,83 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert Map.delete(dungeon, :user_name) == Map.delete(Dungeons.copy_dungeon_fields(updated_dungeon), :user_id)
   end
 
+  @tag timeout: 5_000
+  test "when a script references an item which references itself" do
+    {:ok, equipment_tile} = TileTemplates.create_tile_template(%{
+      name: "Bread Maker",
+      description: "it makes bread",
+      character: "x",
+      active: true
+    })
+    {:ok, equipment_item} = Equipment.create_item(%{
+      slug: "bread_maker",
+      name: "Bread Maker",
+      description: "put this somewhere it can make bread",
+      script: """
+              #replace target: @facing, slug: #{ equipment_tile.slug }
+              #unequip bread_maker, ?self
+              """
+    })
+    gives_item_tile = %{
+      name: "",
+      character: "x",
+      state: %{"blocking" => true},
+      script: "#end\n:touch\n#equip #{equipment_item.slug}, ?sender",
+      row: 1,
+      col: 3,
+      z_index: 0
+    }
+    dungeon  = insert_stubbed_dungeon(%{state: %{starting_equipment: []}}, %{}, [[gives_item_tile]])
+
+    # This will also raise a timeout error if the export gets stuck in an infinite
+    # recursive loop while exporting
+    export_hash = DungeonExports.run(dungeon.id)
+
+    assert %DungeonExports{
+             levels: levels,
+             tiles: tiles,
+             items: items,
+             tile_templates: tile_templates,
+           } = export_hash
+
+
+    # Items
+    assert [{tmp_item_bread_maker_id, item_bread_maker}] = Map.to_list(items)
+
+    assert comp_item_fields(equipment_item) == comp_item_fields(item_bread_maker)
+    assert %{temp_item_id: ^tmp_item_bread_maker_id} = item_bread_maker
+
+    # Tile templates
+    assert [{tmp_bm_tt_id, bm_tt}] = Map.to_list(tile_templates)
+
+    assert bm_tt.name == equipment_tile.name
+
+    assert comp_tt_fields(equipment_tile) == comp_tt_fields(bm_tt)
+    assert %{temp_tt_id: ^tmp_bm_tt_id} = bm_tt
+
+    # Item scripts
+    assert item_bread_maker.script == """
+           #replace target: @facing, slug: #{ tmp_bm_tt_id }
+           #unequip #{ tmp_item_bread_maker_id }, ?self
+           """
+
+    # Tiles
+    assert [{gives_item_hash, gives_item}] = Map.to_list(tiles)
+
+    assert Map.take(gives_item_tile, [:character, :name, :script, :state])
+           |> Map.put(:script, "#end\n:touch\n#equip #{tmp_item_bread_maker_id}, ?sender" )
+           == Map.take(gives_item, [:character, :name, :script, :state])
+
+    assert is_nil(gives_item.tile_template_id)
+
+    # Levels
+    assert %{1 => level_1} = levels
+    assert length(Map.keys(levels)) == 1
+
+    assert %{tile_data: level_1_tile_data} = level_1
+    assert [[gives_item_hash, 1, 3, 0]] == level_1_tile_data
+  end
+
   def comp_item_fields(item) do
     Equipment.copy_fields(item)
     |> Map.drop([:temp_item_id, :script])

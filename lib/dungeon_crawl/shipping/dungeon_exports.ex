@@ -139,11 +139,10 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       item = Equipment.copy_fields(item)
              |> Map.put(:id, item.id)
 
-      export = check_for_tile_template_slugs(export, item)
-               |> check_for_script_items(item)
-               |> check_for_script_sounds(item)
-
       %{ export | items: Map.put(export.items, slug, item)}
+      |> check_for_tile_template_slugs(item)
+      |> check_for_script_items(item)
+      |> check_for_script_sounds(item)
     end
   end
 

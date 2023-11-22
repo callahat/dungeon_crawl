@@ -56,7 +56,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
                   |> DungeonImports.run(import.user_id, import.line_identifier)
 
     Shipping.update_import(import,
-      %{dungeon_id: import_hash.dungeon.id, status: :completed})
+      %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil})
     _broadcast_status({:import, import})
 
     {:reply, :ok, state}
@@ -72,17 +72,22 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
   end
 
-  defp _pool_wrapper(params) do
+  defp _pool_wrapper({_, record} = params) do
     Task.async(fn ->
       :poolboy.transaction(
         :dock_worker,
         fn dock_worker ->
+          Logger.info("*** Starting worker for: #{ inspect params }")
           try do
             GenServer.call(dock_worker, params, @timeout)
+            Logger.info("*** Worker done for: #{ inspect params }")
           catch
-            e, r -> _broadcast_status("error", params)
-                    Logger.warning("poolboy transaction caught error: #{inspect(e)}, #{inspect(r)}")
-                    :ok
+            code, error ->
+              Shipping.update(record, %{status: :failed, details: _readable_error(error)})
+              _broadcast_status("error", params)
+              Logger.warning("poolboy transaction caught error: #{inspect(code)}, #{inspect(error)}")
+              Process.exit(dock_worker, :kill) # make sure its dead, esp on a timeout
+              :ok
           end
         end,
         @timeout
@@ -97,5 +102,26 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   defp _broadcast_status(type, {import_or_export, record}) do
     Endpoint.broadcast("#{ import_or_export }_status_#{record.user_id}", type, nil)
     Endpoint.broadcast("#{ import_or_export }_status", type, nil)
+  end
+
+  defp _readable_error({:timeout, _}) do
+    "took too long"
+  end
+
+  defp _readable_error({{error = %Ecto.NoResultsError{}, _}, _}) do
+    case Regex.named_captures(~r/in DungeonCrawl\..*?\.(?<class>.*?),.*?slug == \^\"(?<slug>.*?)\"/s, error.message) do
+      %{"class" => class, "slug" => slug} ->
+        "could not find a #{ class } with slug '#{ slug }' that was referenced in a script or starting equipment"
+      _ ->
+        "could not find a slug that was referenced in a script or starting equipment"
+    end
+  end
+
+  defp _readable_error({{%Jason.DecodeError{}, _}, _}) do
+    "error parsing JSON"
+  end
+
+  defp _readable_error(_) do
+    "a problem occurred"
   end
 end

@@ -10,6 +10,7 @@ defmodule DungeonCrawl.Shipping.Export do
     field :data, :string
     field :file_name, :string
     field :status, Ecto.Enum, values: [queued: 1, running: 2, completed: 3, failed: 4], default: :queued
+    field :details, :string
     belongs_to :dungeon, Dungeon
     belongs_to :user, User
 
@@ -19,7 +20,7 @@ defmodule DungeonCrawl.Shipping.Export do
   @doc false
   def changeset(export, attrs) do
     export
-    |> cast(attrs, [:dungeon_id, :user_id, :status, :data, :file_name])
+    |> cast(attrs, [:dungeon_id, :user_id, :status, :details, :data, :file_name])
     |> validate_required([:dungeon_id, :user_id, :status])
     |> _validate_not_already_queued()
   end

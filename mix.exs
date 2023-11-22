@@ -27,7 +27,7 @@ defmodule DungeonCrawl.Mixfile do
     [mod: {DungeonCrawl.Application, []},
 #     applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
 #                    :phoenix_ecto, :postgrex, :comeonin]]
-      extra_applications: [:logger, :runtime_tools, :os_mon]]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :observer, :wx]]
   end
 
   # Specifies which paths to compile per environment.

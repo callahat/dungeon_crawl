@@ -37,6 +37,32 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
            == Map.take(Shipping.get_export!(dungeon_export.id), [:dungeon_id, :status, :data, :user_id, :file_name])
   end
 
+  @tag capture_log: true
+  test "export/1 but with slug not matching a record", %{user: user} do
+    bad_tile = %{
+      name: "",
+      character: "x",
+      state: %{"blocking" => true},
+      script: "#end\n:touch\n#equip asdfasdf, ?sender",
+      row: 1,
+      col: 3,
+      z_index: 0
+    }
+    dungeon  = insert_stubbed_dungeon(%{}, %{}, [[bad_tile]])
+    dungeon_export = Shipping.create_export!(%{dungeon_id: dungeon.id, user_id: user.id})
+
+    log = ExUnit.CaptureLog.capture_log(fn ->
+      assert %Task{ref: ref} = DockWorker.export(dungeon_export)
+      assert_receive {^ref, :ok}
+    end)
+
+    assert log =~ "poolboy transaction caught error: :exit, {{%Ecto.NoResultsError"
+    dungeon_export = Shipping.get_export!(dungeon_export.id)
+    assert dungeon_export.status == :failed
+    assert dungeon_export.details ==
+             "could not find a Item with slug 'asdfasdf' that was referenced in a script or starting equipment"
+  end
+
   test "import/1", %{user: user} do
     dungeon = insert_dungeon(%{user_id: user.id})
     dungeon_import = Shipping.create_import!(%{
@@ -79,6 +105,9 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     end)
 
     assert 0 == Enum.count(Dungeons.list_dungeons())
+    dungeon_import = Shipping.get_import!(dungeon_import.id)
+    assert dungeon_import.status == :failed
+    assert dungeon_import.details == "error parsing JSON"
 
     assert log =~ "poolboy transaction caught error: :exit, {{%Jason.DecodeError"
   end

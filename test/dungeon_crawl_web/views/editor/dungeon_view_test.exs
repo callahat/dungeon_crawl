@@ -47,4 +47,11 @@ defmodule DungeonCrawlWeb.Editor.DungeonViewTest do
     assert "<no levels>" == DungeonView.title_level_name(nil)
     assert "2 Map" == DungeonView.title_level_name(level)
   end
+
+  test "td_status/1" do
+    assert {:safe, "<td title=\"\">queued</td>\n"} ==
+             DungeonView.td_status(%{status: "queued", details: nil})
+    assert {:safe, "<td title=\"Oof\">failed*</td>\n"} ==
+             DungeonView.td_status(%{status: "failed", details: "Oof"})
+  end
 end
