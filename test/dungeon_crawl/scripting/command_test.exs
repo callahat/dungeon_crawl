@@ -251,6 +251,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert 1000 == DungeonProcess.get_state_value(map_set_process, "di_thing1")
     assert "well ok" == DungeonProcess.get_state_value(map_set_process, "di_flag")
     assert 5 == DungeonProcess.get_state_value(map_set_process, "b")
+
+    # cleanup
+    DungeonRegistry.remove(DungeonInstanceRegistry, state.dungeon_instance_id)
   end
 
   test "CHANGE_OTHER_STATE" do
@@ -1362,6 +1365,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {:ok, map_set_process} = DungeonRegistry.lookup_or_create(DungeonInstanceRegistry, state.dungeon_instance_id)
 
     assert Enum.member?(["test", "check"], DungeonProcess.get_state_value(map_set_process, "levelset_me"))
+
+    # cleanup
+    DungeonRegistry.remove(DungeonInstanceRegistry, state.dungeon_instance_id)
   end
 
   test "REPLACE tile in a direction" do

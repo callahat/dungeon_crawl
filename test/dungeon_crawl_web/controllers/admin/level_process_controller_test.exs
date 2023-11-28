@@ -70,7 +70,7 @@ defmodule DungeonCrawlWeb.Admin.LevelProcessControllerTest do
       assert redirected_to(conn) == admin_dungeon_process_path(conn, :show, instance.dungeon_instance_id)
 
       eventually assert DungeonInstances.get_level(instance.dungeon_instance_id, instance.number)
-      assert :error = LevelRegistry.lookup(instance_registry, instance.number, instance.player_location_id)
+      eventually assert :error = LevelRegistry.lookup(instance_registry, instance.number, instance.player_location_id)
     end
 
     test "deletes chosen solo instance", %{conn: conn} do

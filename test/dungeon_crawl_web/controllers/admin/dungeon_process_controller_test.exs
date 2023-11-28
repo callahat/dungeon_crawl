@@ -27,15 +27,19 @@ defmodule DungeonCrawlWeb.Admin.DungeonProcessControllerTest do
     setup [:admin_user]
 
     test "lists all entries on index", %{conn: conn} do
-      setup_dungeon_instance()
+      instance = setup_dungeon_instance()
       conn = get conn, admin_dungeon_process_path(conn, :index)
       assert html_response(conn, 200) =~ "Listing dungeon processes"
+
+      DungeonRegistry.remove(DungeonInstanceRegistry, instance.id)
     end
 
     test "shows chosen dungeon instance", %{conn: conn} do
       instance = setup_dungeon_instance()
       conn = get conn, admin_dungeon_process_path(conn, :show, instance.id)
       assert html_response(conn, 200) =~ "DB Backed Dungeon Process"
+
+      DungeonRegistry.remove(DungeonInstanceRegistry, instance.id)
     end
 
     test "shows chosen dungeon instance when no backing db instance", %{conn: conn} do
@@ -43,13 +47,17 @@ defmodule DungeonCrawlWeb.Admin.DungeonProcessControllerTest do
       DungeonInstances.delete_dungeon(instance)
       conn = get conn, admin_dungeon_process_path(conn, :show, instance.id)
       assert html_response(conn, 200) =~ "Orphaned Dungeon Process"
+
+      DungeonRegistry.remove(DungeonInstanceRegistry, instance.id)
     end
 
     test "redirects with a message when dungeon instance is nonexistent", %{conn: conn} do
-      setup_dungeon_instance()
+      instance = setup_dungeon_instance()
       conn = get conn, admin_dungeon_process_path(conn, :show, -1)
       assert redirected_to(conn) == admin_dungeon_process_path(conn, :index)
       assert Flash.get(conn.assigns.flash, :info) == "Dungeon instance process not found: `-1`"
+
+      DungeonRegistry.remove(DungeonInstanceRegistry, instance.id)
     end
 
     test "deletes chosen dungeon instance", %{conn: conn} do
@@ -59,6 +67,8 @@ defmodule DungeonCrawlWeb.Admin.DungeonProcessControllerTest do
 
       eventually assert DungeonInstances.get_dungeon(instance.id)
       eventually assert :error = DungeonRegistry.lookup(DungeonInstanceRegistry, instance.id)
+
+      DungeonRegistry.remove(DungeonInstanceRegistry, instance.id)
     end
   end
 

@@ -3,6 +3,7 @@ defmodule DungeonCrawlWeb.Admin.DungeonControllerTest do
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.DungeonProcesses.DungeonRegistry
   alias DungeonCrawl.Games
 
   import DungeonCrawl.GamesFixtures
@@ -64,6 +65,9 @@ defmodule DungeonCrawlWeb.Admin.DungeonControllerTest do
       assert html_response(updated_conn, 200) =~ "Saved Games"
       updated_conn = get conn, admin_dungeon_path(conn, :show, dungeon, instance_id: dungeon_instance.id, level: "#{level_instance.number}")
       assert html_response(updated_conn, 200) =~ "Dungeon: "
+
+      # cleanup
+      DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id)
     end
 
     test "renders page not found when id is nonexistent", %{conn: conn} do
