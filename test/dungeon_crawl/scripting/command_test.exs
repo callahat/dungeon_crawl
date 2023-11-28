@@ -237,7 +237,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
       Command.change_level_instance_state(%Runner{state: state}, ["fog_range", "=", 2])
   end
 
-  test "CHANGE_MAP_SET_INSTANCE_STATE" do
+  test "CHANGE_DUNGEON_INSTANCE_STATE" do
     dungeon_instance = insert_stubbed_dungeon_instance(%{state: %{"di_thing1" => 999, "di_flag" => false}})
     state = %Levels{state_values: %{"a" => 5}, dungeon_instance_id: dungeon_instance.id}
     {_tile, state} = Levels.create_tile(state, %Tile{id: 123, row: 1, col: 2, character: "."})
@@ -553,6 +553,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # cleanup
     :code.purge levels_mock_mod
     :code.delete levels_mock_mod
+    DungeonRegistry.remove(DungeonInstanceRegistry, state.dungeon_instance_id)
   end
 
   test "GAMEOVER with bad target doesnt crash game" do
@@ -576,6 +577,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     # doesn't crash when given bad player (ie player already left)
     assert runner_state == Command.gameover(runner_state, [true, "ok", {:state_variable, "nothing"}])
     refute_receive %Phoenix.Socket.Broadcast{}
+
+    #cleanup
+    DungeonRegistry.remove(DungeonInstanceRegistry, state.dungeon_instance_id)
   end
 
   test "GIVE" do
