@@ -505,7 +505,7 @@ defmodule DungeonCrawl.DungeonsTest do
     end
 
     test "generate_level/2 with the various generators for solo and dungeon editing" do
-      attrs = fn -> Map.put(@valid_attrs, :dungeon_id, insert_dungeon().id) end
+      attrs = fn -> Map.merge(@valid_attrs, %{dungeon_id: insert_dungeon().id, height: 20, width: 20}) end
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(ConnectedRooms, attrs.())
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(ConnectedRooms, attrs.(), 1)
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(Labrynth, attrs.())
