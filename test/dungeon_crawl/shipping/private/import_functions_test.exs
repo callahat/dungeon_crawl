@@ -7,6 +7,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
 
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.StateValue.Parser
 
@@ -32,6 +33,47 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   end
 
   describe "find_item/2" do
+    test "an existing public item can be used" do
+      user = insert_user()
+      potion = EquipmentSeeder.levitation_potion()
+
+      attrs = Equipment.copy_fields(potion)
+      assert potion == find_item(user.id, attrs)
+    end
+
+    test "an existing private item owned by someone else" do
+      user = insert_user()
+      user2 = insert_user(%{user_id_hash: "other"})
+      item = insert_item(%{user_id: user2.id, public: false})
+
+      attrs = Equipment.copy_fields(item)
+      # right now, no checks happen to see if a slug belongs to someone else for a match
+      assert item == find_item(user.id, attrs)
+    end
+
+    test "an existing item owned by importer" do
+      user = insert_user()
+      tile = insert_item(%{user_id: user.id})
+
+      attrs = Equipment.copy_fields(tile)
+      assert tile == find_item(user.id, attrs)
+    end
+
+    test "a nonexistant item" do
+      user = insert_user()
+
+      attrs = %{name: "non existant", script: "HI"}
+
+      refute find_item(user.id, attrs)
+    end
+
+    test "an item with a script referencing a nonexistant asset slug" do
+      user = insert_user()
+      tile = insert_item(%{public: true, script: "#become slug: clay"})
+
+      attrs = Equipment.copy_fields(tile)
+      refute find_item(user.id, attrs)
+    end
   end
 
   describe "find_tile_template/2" do
@@ -69,14 +111,45 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     end
 
     test "an existing template that is private and someone elses" do
+      user = insert_user()
+      user2 = insert_user(%{user_id_hash: "other"})
+      tile = insert_tile_template(%{user_id: user2.id, public: false})
+
+      attrs = TileTemplates.copy_fields(tile)
+      # right now, no checks happen to see if a slug belongs to someone else for a match
+      assert tile == find_tile_template(user.id, attrs)
     end
 
     test "an existing template owned by importer" do
+      user = insert_user()
+      tile = insert_tile_template(%{user_id: user.id})
 
+      attrs = TileTemplates.copy_fields(tile)
+      assert tile == find_tile_template(user.id, attrs)
     end
 
     test "a template that does not exist" do
+      user = insert_user()
 
+      attrs = %{
+        name: "non existant",
+        script: "",
+        description: nil,
+        character: nil,
+        slug: "banana",
+        user_id: nil,
+        group_name: "custom"
+      }
+
+      refute find_tile_template(user.id, attrs)
+    end
+
+    test "a template with a script refering to a slug that does not exist" do
+      user = insert_user()
+      tile = insert_tile_template(%{public: true, active: true, script: "#become slug: clay"})
+
+      attrs = TileTemplates.copy_fields(tile)
+      refute find_tile_template(user.id, attrs)
     end
   end
 
