@@ -3,9 +3,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   import DungeonCrawl.Shipping.Private.ImportFunctions
 
-  alias DungeonCrawl.TileTemplate.Seeder, as: TileTemplateSeeder
+  alias DungeonCrawl.TileTemplates.TileSeeder, as: TileTemplateSeeder
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
+
+  alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.StateValue.Parser
 
   # invocations from DungeonImports
   # find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
@@ -33,10 +36,39 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   describe "find_tile_template/2" do
     test "an existing public template can be used" do
+      user = insert_user()
+      bandit = TileTemplateSeeder.bandit
+      misorderd_state = Enum.map(bandit.state, fn {k,v} -> "#{k}: #{v}" end)
+                        |> Enum.reverse()
+                        |> Enum.join(", ")
 
+      # a bug existed where when it compared the state strings, they were equivalent
+      # but not in the same order causing a miss when it should have matched
+      # This ensures the order of the state string is different from the order used by
+      # the custom Ecto Type
+      Ecto.Adapters.SQL.query!(DungeonCrawl.Repo,
+        "UPDATE tile_templates SET state = '#{misorderd_state}' WHERE id = #{bandit.id}", [])
+
+      # smoke check that the state strings don't match at least in order
+      [[stored_state]] =
+        Ecto.Adapters.SQL.query!(
+          DungeonCrawl.Repo,
+          "SELECT state from tile_templates WHERE id = #{bandit.id}").rows
+      refute Parser.stringify(bandit.state) == stored_state
+      assert String.length(Parser.stringify(bandit.state)) == String.length(stored_state)
+
+      # the actual tests
+      attrs = TileTemplates.copy_fields(bandit)
+      assert bandit == find_tile_template(user.id, attrs)
+
+      # slightly different state causes a miss
+      Ecto.Adapters.SQL.query!(DungeonCrawl.Repo,
+        "UPDATE tile_templates SET state = '#{misorderd_state}, different: yes' WHERE id = #{bandit.id}", [])
+
+      refute find_tile_template(user.id, attrs)
     end
 
-    test "an existing template that is private and someone elses"
+    test "an existing template that is private and someone elses" do
     end
 
     test "an existing template owned by importer" do
@@ -48,10 +80,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     end
   end
 
+  # this one might be better to just make internal, because its only used for tile template
+  # and item after its already been looked up, and this function uses script fuzzer and all
+  # slugs usable
   describe "useable_asset/3" do
     # this check is not performed for Sound
     test "a template that should be useable" do
-      bandit TileTemplateSeeder.bandit
 
     end
   end

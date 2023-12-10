@@ -58,7 +58,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
 
   def find_tile_template(user_id, attrs) do
-    TileTemplates.find_tile_templates(Map.delete(attrs, :script))
+    TileTemplates.find_tile_templates(Map.drop(attrs, [:state, :script]))
+    |> Enum.filter(fn tt -> tt.state == attrs.state end)
     |> useable_asset(attrs.script, user_id)
   end
 
@@ -88,6 +89,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     && all_slugs_useable?(script, user_id, &Sound.get_effect_by_slug/1, @script_sound_slug)
   end
 
+  defp all_slugs_useable?(nil, _user_id, _slug_lookup, _slug_pattern), do: true
   defp all_slugs_useable?(script, _user_id, slug_lookup, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, script)
 
