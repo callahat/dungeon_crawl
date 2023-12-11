@@ -63,7 +63,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     |> useable_asset(attrs.script, user_id)
   end
 
-  def useable_asset(assets, script, user_id) do
+  defp useable_asset(assets, script, user_id) do
     Enum.filter(assets, fn asset -> script_fuzzer(asset.script) == script_fuzzer(script) end)
     |> Enum.find(fn asset -> all_slugs_useable?(asset.script, user_id) end)
   end

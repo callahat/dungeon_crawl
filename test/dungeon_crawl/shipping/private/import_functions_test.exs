@@ -9,7 +9,10 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.Sound
   alias DungeonCrawl.StateValue.Parser
+
+  alias DungeonCrawlWeb.ExportFixture
 
   # invocations from DungeonImports
   # find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
@@ -22,7 +25,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   describe "find_effect/2" do
     test "finds the effect, user id impacts nothing" do
       user_id = "not_used"
-      click = SoundSeeder.click
+      click = SoundSeeder.click()
 
       attrs = Map.take(click, [:name, :public, :user_id, :zzfx_params, :slug])
 
@@ -79,7 +82,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   describe "find_tile_template/2" do
     test "an existing public template can be used" do
       user = insert_user()
-      bandit = TileTemplateSeeder.bandit
+      bandit = TileTemplateSeeder.bandit()
       misorderd_state = Enum.map(bandit.state, fn {k,v} -> "#{k}: #{v}" end)
                         |> Enum.reverse()
                         |> Enum.join(", ")
@@ -153,16 +156,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     end
   end
 
-  # this one might be better to just make internal, because its only used for tile template
-  # and item after its already been looked up, and this function uses script fuzzer and all
-  # slugs usable
-  describe "useable_asset/3" do
-    # this check is not performed for Sound
-    test "a template that should be useable" do
-
-    end
-  end
-
   describe "script_fuzzer/1" do
     test "replaces slugs with <FUZZ> for equivalent comparision purposes" do
       script = """
@@ -187,27 +180,128 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   describe "all_slugs_useable?/2" do
     test "all slugs are useable (they exist)" do
+      bandit = TileTemplateSeeder.bandit()
+      click = SoundSeeder.click()
+      potion = EquipmentSeeder.levitation_potion()
 
+      script = """
+      #equip #{potion.slug}, ?sender
+      #sound #{click.slug}
+      #become slug: #{bandit.slug}
+      """
+
+      assert all_slugs_useable?(script, 1)
+    end
+
+    test "no slugs in the script" do
+      assert all_slugs_useable?(nil, 1)
+      assert all_slugs_useable?("#become color: red", 1)
     end
 
     test "a sound slug is not usable" do
-
+      refute all_slugs_useable?("#sound bong", 1)
     end
 
     test "an item slug is not usable" do
-
+      refute all_slugs_useable?("#equip rock", 1)
     end
 
     test "a tile template slug is not usable" do
-
+      refute all_slugs_useable?("#become slug: door", 1)
     end
 
     test "some slugs are usable, some are not" do
+      bandit = TileTemplateSeeder.bandit()
 
+      script = """
+      #equip slab_of_bacon, ?sender
+      #become slug: #{bandit.slug}
+      """
+
+      refute all_slugs_useable?(script, 1)
     end
   end
 
   describe "repoint_ttids_and_slugs/2" do
+    setup do
+      user_id = insert_user().id
+      export = ExportFixture.minimal_export()
+               |> find_or_create_assets(:sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
+               |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
+               |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
+               |> swap_scripts_to_tmp_scripts(:tiles)
+
+      IO.inspect export
+      %{
+        tile_templates: %{
+          "tmp_tt_id_0" => %{
+            id: rock_tt_id,
+            slug: rock_tile_slug
+          },
+          "tmp_tt_id_1" => %{
+            id: stone_tt_id,
+            slug: stone_tile_slug
+          },
+        },
+        sounds: %{
+          "tmp_sound_id_0" => %{id: click_id, slug: click_slug},
+          "tmp_sound_id_1" => %{id: blip_id, slug: blip_slug},
+          "tmp_sound_id_2" => %{id: shoot_id, slug: shoot_slug}
+        },
+        items: %{
+          "tmp_item_id_0" => %{},
+          "tmp_item_id_1" => %{slug: stone_slug}
+        }
+      } = export
+
+     %{ export: export }
+    end
+
+    test "repoints tiles", %{export: export} do
+      updated_export = repoint_ttids_and_slugs(export, :tiles)
+
+      %{
+        tile_templates: %{
+          "tmp_tt_id_0" => %{
+            id: rock_tt_id,
+            slug: rock_tile_slug
+          }
+        },
+        sounds: %{
+          "tmp_sound_id_0" => %{slug: click_slug}
+        },
+        items: %{
+          "tmp_item_id_1" => %{slug: stone_slug}
+        }
+      } = export
+IO.inspect updated_export
+      %{
+        tiles: %{
+          "rock_hash" => %{
+#            tile_template_id: ^rock_tt_id
+          },
+          "thing_hash" => %{
+            tile_template_id: nil,
+            script: thing_script,
+            tmp_script: thing_tmp_script
+          }
+        }
+      } = updated_export
+
+      # this one probably should be checked in a different function t helper test
+      # that hasnt been written yet for an earlier function in the chain
+      assert rock_tt_id == TileTemplates.get_tile_template_by_slug(rock_tile_slug).id
+      assert thing_script == thing_tmp_script
+      assert thing_script ==
+               "#end\n:touch\n#sound #{ click_slug }\n#equip #{ stone_slug }, ?sender\n#become slug: #{ rock_tile_slug }"
+    end
+
+    test ":items" do
+
+    end
+    test ":tile_templates" do
+
+    end
   end
 
   describe "repoint_tile_template_id/2" do
