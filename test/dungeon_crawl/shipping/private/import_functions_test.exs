@@ -14,12 +14,60 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   alias DungeonCrawlWeb.ExportFixture
 
+  # TODO: for each of these functions make sure to assert and check the significant changes to export;
+  # some will change a whole node after looking up a record but that may not be significant
+  # as some functions, such as repoint, only care about the ID and new slug that was added
+  # when they change data related to their operation (such as changing a temporary tile template id
+  # from "tmp_..." to the record ID from the backing database.
+
   # invocations from DungeonImports
   # find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
   # find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
   # find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
   describe "find_or_create_assets/5" do
+    setup do
+      existing_asset = ExportFixture.minimal_export().tile_templates["tmp_tt_id_0"]
+      export = %DungeonCrawl.Shipping.DungeonExports{
+        tile_templates: %{
+          "tmp_tt_id_0" => existing_asset
+        }
+      }
 
+      %{export: export}
+    end
+
+#    @fn_dont_call fn _ -> raise "should not have called this function" end
+
+    # tile_template
+    test "finds the asset when its owned by the user", %{export: export} do
+      user = insert_user()
+      asset = insert_tile_template(
+        Map.merge(ExportFixture.minimal_export().tile_templates["tmp_tt_id_0"], %{user_id: user.id}))
+
+      find_asset_mock = fn user_id, attrs ->
+        assert user_id == user.id
+        asset
+      end
+      dummy_function = fn _ -> raise "should not have called this function" end
+
+      # I guess find_asset could be mock?
+#      find_or_create_assets(export, :tile_template, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user.id)
+      updated_export = find_or_create_assets(export, :tile_templates, find_asset_mock, dummy_function, user.id)
+      assert Map.delete(updated_export, :tile_templates) == Map.delete(export, :tile_templates)
+      assert %{tile_templates: %{"tmp_tt_id_0" => ^asset}} = updated_export
+    end
+
+    test "finds the asset when its public" do
+
+    end
+
+    test "creates the asset when one exists but is not public nor owned by user" do
+
+    end
+
+    test "the created asset has a script" do
+
+    end
   end
 
   describe "find_effect/2" do
@@ -225,12 +273,17 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   describe "repoint_ttids_and_slugs/2" do
     setup do
       user_id = insert_user().id
+
+      # sort of cheating with the setup; as this test assumes the functions below return correct results
+      # but also guarantees that `export` will have the proper changes that this function will use.
       export = ExportFixture.minimal_export()
                |> find_or_create_assets(:sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
                |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
                |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
                |> swap_scripts_to_tmp_scripts(:tiles)
 
+      # todo: delete this inspect and unused map; its here for now to remind how this map looks and what \
+      # the important bits look like for this test scetion
       IO.inspect export
       %{
         tile_templates: %{
@@ -260,46 +313,31 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     test "repoints tiles", %{export: export} do
       updated_export = repoint_ttids_and_slugs(export, :tiles)
 
-      %{
-        tile_templates: %{
-          "tmp_tt_id_0" => %{
-            id: rock_tt_id,
-            slug: rock_tile_slug
-          }
-        },
-        sounds: %{
-          "tmp_sound_id_0" => %{slug: click_slug}
-        },
-        items: %{
-          "tmp_item_id_1" => %{slug: stone_slug}
-        }
-      } = export
-IO.inspect updated_export
-      %{
-        tiles: %{
-          "rock_hash" => %{
-#            tile_template_id: ^rock_tt_id
-          },
-          "thing_hash" => %{
-            tile_template_id: nil,
-            script: thing_script,
-            tmp_script: thing_tmp_script
-          }
-        }
-      } = updated_export
+      rock_tt_id =       export.tile_templates["tmp_tt_id_0"].id
+      rock_tt_slug =     export.tile_templates["tmp_tt_id_0"].slug
+      click_sound_slug = export.sounds["tmp_sound_id_0"].slug
+      stone_item_slug =  export.items["tmp_item_id_1"].slug
 
-      # this one probably should be checked in a different function t helper test
-      # that hasnt been written yet for an earlier function in the chain
+      thing_script = updated_export.tiles["thing_hash"].script
+      thing_tmp_script = updated_export.tiles["thing_hash"].tmp_script
+      click_slug = updated_export.sounds["tmp_sound_id_0"].slug
+      stone_slug = updated_export.items["tmp_item_id_1"].slug
+      rock_tile_slug = updated_export.tile_templates["tmp_tt_id_0"].slug
+      assert rock_tt_id == updated_export.tiles["rock_hash"].tile_template_id
+      refute updated_export.tiles["thing_hash"].tile_template_id
+      assert thing_script == updated_export.tiles["thing_hash"].tmp_script
+
+
       assert rock_tt_id == TileTemplates.get_tile_template_by_slug(rock_tile_slug).id
       assert thing_script == thing_tmp_script
       assert thing_script ==
                "#end\n:touch\n#sound #{ click_slug }\n#equip #{ stone_slug }, ?sender\n#become slug: #{ rock_tile_slug }"
     end
 
-    test ":items" do
+    test "repoints items" do
 
     end
-    test ":tile_templates" do
+    test "repoints tile_templates" do
 
     end
   end

@@ -25,4 +25,30 @@ defmodule DungeonCrawl.SharedTests do
       end
     end
   end
+
+  # revisit this after writing one, figure out the abstraction then, it'll be very similar for
+  # the three types of assets
+  defmacro finds_or_creates_assets_correctly(asset_key) do
+    quote do
+      test "finds the asset when its owned by the user" do
+
+      end
+
+      test "finds the asset when its public" do
+
+      end
+
+      test "creates the asset when one exists but is not public nor owned by user" do
+
+      end
+
+      test "the created asset has a script" do
+
+      end
+
+      test "only mutates the map for that asset key, nothing else" do
+
+      end
+    end
+  end
 end
