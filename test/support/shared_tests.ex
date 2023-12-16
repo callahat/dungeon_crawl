@@ -26,28 +26,96 @@ defmodule DungeonCrawl.SharedTests do
     end
   end
 
-  # revisit this after writing one, figure out the abstraction then, it'll be very similar for
-  # the three types of assets
-  defmacro finds_or_creates_assets_correctly(asset_key) do
+  defmacro finds_or_creates_assets_correctly(asset_key, key, insert_asset_fn, comparable_field_fn) do
     quote do
-      test "finds the asset when its owned by the user" do
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - find when its owned by the user", %{export: export} do
+        user = insert_user()
+        user_id = user.id
+        asset = unquote(insert_asset_fn).(
+          Map.get(export, unquote(asset_key))[unquote(key)]
+          |> Map.merge(%{user_id: user.id}))
 
+        find_asset_mock = fn
+          _, %{public: _} -> nil
+          ^user_id, %{user_id: ^user_id} -> asset
+        end
+        unused_function = fn _ -> raise "unexpected call for create asset" end
+
+        updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, unused_function, user.id)
+
+        # The other fields in the export are unchanged
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        # The assets are updated by replacing the attribute hash with the asset's
+        # database record as the value associated with the temporary id key
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
       end
 
-      test "finds the asset when its public" do
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - find when its public", %{export: export} do
+        user = insert_user()
+        asset = unquote(insert_asset_fn).(
+          Map.get(export, unquote(asset_key))[unquote(key)]
+          |> Map.merge(%{user_id: nil, public: true}))
 
+        find_asset_mock = fn
+          _, %{public: _} -> asset
+          user_id, %{user_id: _} -> nil
+        end
+        unused_function = fn _ -> raise "unexpected call for create asset" end
+
+        updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, unused_function, user.id)
+
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
       end
 
-      test "creates the asset when one exists but is not public nor owned by user" do
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - creates when one exists but is not public nor owned by user", %{export: export} do
+        user = insert_user()
+        attrs = Map.get(export, unquote(asset_key))[unquote(key)]
 
+        find_asset_mock = fn _, _ -> nil end
+        create_asset_mock = fn attrs -> unquote(insert_asset_fn).(attrs) end
+
+        updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, create_asset_mock, user.id)
+
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
+        assert Map.drop(unquote(comparable_field_fn).(asset), [:active, :public, :script, :slug, :user_id]) ==
+                 Map.drop(unquote(comparable_field_fn).(attrs), [:active, :public, :script, :slug, :user_id])
+
+        if unquote(asset_key) == :tile_templates, do: assert asset.active
+        refute asset.public
+        assert asset.slug =~ if unquote(asset_key) == :jk,
+                                do: ~r/^#{ attrs.slug }$/,
+                                else: ~r/#{ attrs.slug }_\d+/
+        if unquote(asset_key) == :tile_templates do
+          # equipment must have a script
+          assert asset.script == ""
+          refute Map.has_key?(asset, :tmp_script)
+        end
+        assert asset.user_id == user.id
       end
 
-      test "the created asset has a script" do
+      # sounds do not have a script
+      if unquote(asset_key) != :sounds do
+        @tag asset_key: unquote(asset_key), key: unquote(key)
+        test "#{ unquote(asset_key) } - created when asset has a script", %{export: export} do
+          user = insert_user()
+          attrs = Map.merge(Map.get(export, unquote(asset_key))[unquote(key)], %{user_id: user.id, script: "test words"})
+          export = %{ export | unquote(asset_key) => %{unquote(key) => attrs} }
 
-      end
+          find_asset_mock = fn _, _ -> nil end
+          create_asset_mock = fn attrs -> unquote(insert_asset_fn).(attrs) end
 
-      test "only mutates the map for that asset key, nothing else" do
+          updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, create_asset_mock, user.id)
 
+          assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
+
+          assert asset.script == "#end" # placeholder, will be overwritten
+          assert asset.tmp_script == attrs.script
+        end
       end
     end
   end

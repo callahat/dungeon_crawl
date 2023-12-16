@@ -3,7 +3,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   import DungeonCrawl.Shipping.Private.ImportFunctions
 
-  alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileSeeder, as: TileTemplateSeeder
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
@@ -15,16 +14,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   alias DungeonCrawlWeb.ExportFixture
 
+  require DungeonCrawl.SharedTests
+
   # TODO: for each of these functions make sure to assert and check the significant changes to export;
   # some will change a whole node after looking up a record but that may not be significant
   # as some functions, such as repoint, only care about the ID and new slug that was added
   # when they change data related to their operation (such as changing a temporary tile template id
   # from "tmp_..." to the record ID from the backing database.
 
-  # invocations from DungeonImports
-  # find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
-  # find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
-  # find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
   describe "find_or_create_assets/5" do
     setup config do
       existing_asset = Map.get(ExportFixture.minimal_export(), config.asset_key)[config.key]
@@ -37,77 +34,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       %{export: export}
     end
 
-    # tile_template
-    @tag asset_key: :tile_templates, key: "tmp_tt_id_0"
-    test "finds the asset when its owned by the user", %{export: export} do
-      user = insert_user()
-      my_user_id = user.id
-      asset = insert_tile_template(
-        Map.merge(export.tile_templates["tmp_tt_id_0"], %{user_id: user.id}))
+    DungeonCrawl.SharedTests.finds_or_creates_assets_correctly(
+      :items, "tmp_item_id_0", &insert_item/1, &Equipment.copy_fields/1)
 
-      find_asset_mock = fn
-        _, %{public: _} -> nil
-        user_id, %{user_id: ^my_user_id} -> asset
-      end
-      unused_function = fn _ -> raise "unexpected call for create asset" end
+    DungeonCrawl.SharedTests.finds_or_creates_assets_correctly(
+      :tile_templates, "tmp_tt_id_0", &insert_tile_template/1, &TileTemplates.copy_fields/1)
 
-      updated_export = find_or_create_assets(export, :tile_templates, find_asset_mock, unused_function, user.id)
-      assert Map.delete(updated_export, :tile_templates) == Map.delete(export, :tile_templates)
-      assert %{tile_templates: %{"tmp_tt_id_0" => ^asset}} = updated_export
-    end
-
-    @tag asset_key: :tile_templates, key: "tmp_tt_id_0"
-    test "finds the asset when its public", %{export: export} do
-      user = insert_user()
-      asset = insert_tile_template(
-        Map.merge(export.tile_templates["tmp_tt_id_0"], %{user_id: nil, public: true}))
-      find_asset_mock = fn
-        _, %{public: _} -> asset
-        user_id, %{user_id: _} -> nil
-      end
-      unused_function = fn _ -> raise "unexpected call for create asset" end
-
-      updated_export = find_or_create_assets(export, :tile_templates, find_asset_mock, unused_function, user.id)
-      assert Map.delete(updated_export, :tile_templates) == Map.delete(export, :tile_templates)
-      assert %{tile_templates: %{"tmp_tt_id_0" => ^asset}} = updated_export
-    end
-
-    @tag asset_key: :tile_templates, key: "tmp_tt_id_0"
-    test "creates the asset when one exists but is not public nor owned by user", %{export: export} do
-      user = insert_user()
-      asset = insert_tile_template(
-        Map.merge(export.tile_templates["tmp_tt_id_0"], %{user_id: user.id}))
-      find_asset_mock = fn _, _ -> nil end
-      create_asset_mock = fn _ ->
-        asset
-      end
-
-      updated_export = find_or_create_assets(export, :tile_templates, find_asset_mock, create_asset_mock, user.id)
-      assert Map.delete(updated_export, :tile_templates) == Map.delete(export, :tile_templates)
-      assert %{tile_templates: %{"tmp_tt_id_0" => ^asset}} = updated_export
-    end
-
-    @tag asset_key: :tile_templates, key: "tmp_tt_id_0"
-    test "the created asset has a script", %{export: export} do
-      user = insert_user()
-      attrs = Map.merge(export.tile_templates["tmp_tt_id_0"], %{user_id: user.id, script: "test words"})
-      export = %{ export | tile_templates: %{"tmp_tt_id_0" => attrs} }
-
-      find_asset_mock = fn _, _ -> nil end
-      create_asset_mock = fn attrs -> TileTemplates.create_tile_template!(attrs) end
-
-      updated_export = find_or_create_assets(export, :tile_templates, find_asset_mock, create_asset_mock, user.id)
-      assert Map.delete(updated_export, :tile_templates) == Map.delete(export, :tile_templates)
-      assert %{tile_templates: %{"tmp_tt_id_0" => asset}} = updated_export
-      assert Map.drop(TileTemplates.copy_fields(asset), [:active, :public, :script, :slug]) ==
-               Map.drop(TileTemplates.copy_fields(attrs), [:active, :public, :script, :slug])
-
-      assert asset.active
-      refute asset.public
-      assert asset.slug =~ ~r/rock_\d+/
-      assert asset.script == "#end" # placeholder, will be overwritten
-      assert asset.tmp_script == "test words"
-    end
+    DungeonCrawl.SharedTests.finds_or_creates_assets_correctly(
+      :sounds, "tmp_sound_id_0", &insert_effect/1, &Sound.copy_fields/1)
   end
 
   describe "find_effect/2" do
