@@ -365,15 +365,19 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   end
 
   describe "repoint_tile_template_id/2" do
-  end
+    test "repoints the tile_template_id" do
+      export = %{tile_templates: %{"tmp_tt_id_0" => %{id: 500}}}
+      asset = %{tile_template_id: "tmp_tt_id_0"}
+      updated_asset = repoint_tile_template_id(asset, export)
+      assert updated_asset.tile_template_id == 500
+    end
 
-  describe "repoint_script_slugs/4" do
-  end
-
-  describe "swap_scripts_to_tmp_scripts/2" do
-  end
-
-  describe "swap_tmp_script/1" do
+    test "does nothing if the asset does not have a tile_template_id" do
+      export = %{tile_templates: %{"tmp_tt_id_0" => %{id: 500}}}
+      asset = %{tile_template_id: nil}
+      updated_asset = repoint_tile_template_id(asset, export)
+      refute updated_asset.tile_template_id
+    end
   end
 
   describe "repoint_dungeon_starting_items/1" do

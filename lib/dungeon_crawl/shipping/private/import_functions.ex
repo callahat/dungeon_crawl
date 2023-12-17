@@ -125,7 +125,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
   def repoint_tile_template_id(asset, _export), do: asset
 
-  def repoint_script_slugs(asset, export, slug_type, slug_pattern) do
+  defp repoint_script_slugs(asset, export, slug_type, slug_pattern) do
     slug_kwargs = Regex.scan(slug_pattern, Map.get(asset, :tmp_script) || "")
 
     Enum.reduce(slug_kwargs, asset, fn [slug_kwarg], %{tmp_script: _tmp_script} = asset ->
@@ -136,7 +136,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     end)
   end
 
-  def swap_scripts_to_tmp_scripts(export, asset_key) do
+  defp swap_scripts_to_tmp_scripts(export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {
         th,
@@ -148,21 +148,21 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     %{ export | asset_key => assets }
   end
 
-  def swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
+  defp swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
     {:ok, asset} = TileTemplates.update_tile_template(asset, %{script: tmp_script})
     asset
   end
 
-  def swap_tmp_script(%{__struct__: Item, tmp_script: tmp_script} = asset) do
+  defp swap_tmp_script(%{__struct__: Item, tmp_script: tmp_script} = asset) do
     {:ok, asset} = Equipment.update_item(asset, %{script: tmp_script})
     asset
   end
 
-  def swap_tmp_script(%{tmp_script: tmp_script} = asset) do
+  defp swap_tmp_script(%{tmp_script: tmp_script} = asset) do
     Map.put(asset, :script, tmp_script)
   end
 
-  def swap_tmp_script(asset) do
+  defp swap_tmp_script(asset) do
     asset
   end
 
