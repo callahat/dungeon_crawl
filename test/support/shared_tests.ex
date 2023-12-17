@@ -26,6 +26,9 @@ defmodule DungeonCrawl.SharedTests do
     end
   end
 
+  # There are three invocations of this function, all of them are very similar in their operation,
+  # hence shared tests. There are a few slight differences depending on which asset is operated on
+  # which have been noted in comments.
   defmacro finds_or_creates_assets_correctly(asset_key, key, insert_asset_fn, comparable_field_fn) do
     quote do
       @tag asset_key: unquote(asset_key), key: unquote(key)
