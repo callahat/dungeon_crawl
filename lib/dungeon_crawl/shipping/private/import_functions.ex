@@ -136,7 +136,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     end)
   end
 
-  defp swap_scripts_to_tmp_scripts(export, asset_key) do
+  def swap_scripts_to_tmp_scripts(export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {
         th,

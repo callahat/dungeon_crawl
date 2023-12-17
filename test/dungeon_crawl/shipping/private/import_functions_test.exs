@@ -7,6 +7,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
 
+  alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Equipment
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.Sound
@@ -380,13 +381,117 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     end
   end
 
+  describe "swap_scripts_to_tmp_scripts/2" do
+    # this function is only used for :tiles
+    test "it puts the script into tmp_script" do
+      export = %{
+        tiles: %{ "tile_hash" => %{script: "#end\n:touch\nhey"}},
+        items: %{"tmp_item_0" => %{script: "does nothing"}}
+      }
+
+      updated_export = swap_scripts_to_tmp_scripts(export, :tiles)
+      assert Map.delete(updated_export, :tiles) == Map.delete(export, :tiles)
+      assert %{script: "#end\n:touch\nhey",
+               tmp_script: "#end\n:touch\nhey"} = updated_export.tiles["tile_hash"]
+    end
+  end
+
   describe "repoint_dungeon_starting_items/1" do
+    test "does nothing if no starting equipment" do
+      export = %{ dungeon: %{ state: %{} }, items: %{"tmp_item_id_0" => %{slug: "thing"}} }
+      assert export == repoint_dungeon_starting_items(export)
+    end
+
+    test "replaces temp ids with found or created item slugs" do
+      export = %{dungeon: %{state: %{"starting_equipment" => ["tmp_item_id_0", "tmp_item_id_0", "tmp_item_id_1"]}},
+                 items: %{"tmp_item_id_0" => %{slug: "thing"}, "tmp_item_id_1" => %{slug: "waffle"}}}
+
+      %{dungeon: %{state: %{"starting_equipment" => updated_starting_items}}} =
+        repoint_dungeon_starting_items(export)
+
+      assert ["thing", "thing", "waffle"] == updated_starting_items
+    end
   end
 
   describe "set_dungeon_overrides/3" do
+    setup do
+      export =
+        %{
+          tile_templates: "stubbed",
+          sounds: "stubbed",
+          items: "stubbed",
+          tiles: "stubbed",
+          dungeon: %{
+            description: "testing",
+            line_identifier: 1,
+            user_name: "Some User",
+            user_id: 999
+          }
+        }
+
+      %{export: export}
+    end
+
+    test "sets the line identifier, user_id, and importing", %{export: export} do
+      updated_export = set_dungeon_overrides(export, 123, "9")
+
+      assert Map.delete(updated_export, :dungeon) == Map.delete(export, :dungeon)
+
+      assert updated_export.dungeon.user_id == 123
+      assert updated_export.dungeon.line_identifier == "9"
+      assert updated_export.dungeon.importing
+      refute Map.has_key?(updated_export.dungeon, :user_name)
+    end
+
+    test "sets line identifier to nil if empty string", %{export: export} do
+      updated_export = set_dungeon_overrides(export, 123, "")
+      refute updated_export.dungeon.line_identifier
+
+      updated_export = set_dungeon_overrides(export, 123, nil)
+      refute updated_export.dungeon.line_identifier
+    end
   end
 
   describe "maybe_handle_previous_version/1" do
+    setup do
+      user = insert_user()
+      dungeon = insert_dungeon(%{line_identifier: 500, version: 9, active: true, user_id: user.id})
+
+      %{dungeon: dungeon, user: user}
+    end
+
+    test "nils line_identifier if no previous dungeon found", %{dungeon: dungeon, user: user} do
+      export = %{dungeon: %{line_identifier: -1, user_id: user.id}}
+      assert %{dungeon: %{line_identifier: nil}} = maybe_handle_previous_version(export)
+
+      # user_id in the export has been replaced with the user_id of the current user's id
+      # as this ID may be different on different installations
+      export = %{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id - 1}}
+      assert %{dungeon: %{line_identifier: nil}} = maybe_handle_previous_version(export)
+    end
+
+    test "if previous version is active, updates the dungeon attrs in the export", %{dungeon: dungeon, user: user} do
+      export = %{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id}}
+      %{dungeon: updated_dungeon_attrs} = maybe_handle_previous_version(export)
+
+      refute updated_dungeon_attrs.active
+      assert updated_dungeon_attrs.line_identifier == dungeon.line_identifier
+      assert updated_dungeon_attrs.previous_version_id == dungeon.id
+      assert updated_dungeon_attrs.version == dungeon.version + 1
+      assert Dungeons.get_dungeon(dungeon.id)
+    end
+
+    test "if previous version is not active, that dungeon is hard deleted", %{dungeon: dungeon, user: user} do
+      {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{active: false})
+      export = %{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id}}
+      %{dungeon: updated_dungeon_attrs} = maybe_handle_previous_version(export)
+
+      refute updated_dungeon_attrs.active
+      assert updated_dungeon_attrs.line_identifier == dungeon.line_identifier
+      assert updated_dungeon_attrs.previous_version_id == dungeon.previous_version_id
+      assert updated_dungeon_attrs.version == dungeon.version
+      refute Dungeons.get_dungeon(dungeon.id)
+    end
   end
 
   describe "create_dungeon/1" do
