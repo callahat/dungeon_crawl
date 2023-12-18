@@ -15,6 +15,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   alias DungeonCrawlWeb.ExportFixture
 
+  alias DungeonCrawl.Shipping.DungeonExports
+
   require DungeonCrawl.SharedTests
 
   # TODO: for each of these functions make sure to assert and check the significant changes to export;
@@ -27,7 +29,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     setup config do
       existing_asset = Map.get(ExportFixture.minimal_export(), config.asset_key)[config.key]
 
-      export = %DungeonCrawl.Shipping.DungeonExports{}
+      export = %DungeonExports{}
                |> Map.put(config.asset_key, %{
                     config.key => existing_asset
                   })
@@ -264,7 +266,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       }
 
       export_mock =
-      %{
+      %DungeonExports{
         tile_templates: %{
           "tmp_tt_id_0" => %{
             id: expected.rock_tt_id,
@@ -314,7 +316,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       # only changes the given asset
       assert Map.drop(updated_export, [:tiles]) == Map.drop(export, [:tiles])
 
-      %{
+      %DungeonExports{
         tiles: %{
           "rock_hash" => updated_rock,
           "thing_hash" => updated_thing
@@ -335,7 +337,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       # only changes the given asset
       assert Map.drop(updated_export, [:items]) == Map.drop(export, [:items])
 
-      %{
+      %DungeonExports{
         items: %{
           "tmp_item_id_1" => stone_item
         }
@@ -351,7 +353,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       # only changes the given asset
       assert Map.drop(updated_export, [:tile_templates]) == Map.drop(export, [:tile_templates])
 
-      %{
+      %DungeonExports{
         tile_templates: %{
           "tmp_tt_id_0" => rock_tt,
           "tmp_tt_id_1" => stone_tt
@@ -367,14 +369,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   describe "repoint_tile_template_id/2" do
     test "repoints the tile_template_id" do
-      export = %{tile_templates: %{"tmp_tt_id_0" => %{id: 500}}}
+      export = %DungeonExports{tile_templates: %{"tmp_tt_id_0" => %{id: 500}}}
       asset = %{tile_template_id: "tmp_tt_id_0"}
       updated_asset = repoint_tile_template_id(asset, export)
       assert updated_asset.tile_template_id == 500
     end
 
     test "does nothing if the asset does not have a tile_template_id" do
-      export = %{tile_templates: %{"tmp_tt_id_0" => %{id: 500}}}
+      export = %DungeonExports{tile_templates: %{"tmp_tt_id_0" => %{id: 500}}}
       asset = %{tile_template_id: nil}
       updated_asset = repoint_tile_template_id(asset, export)
       refute updated_asset.tile_template_id
@@ -384,7 +386,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   describe "swap_scripts_to_tmp_scripts/2" do
     # this function is only used for :tiles
     test "it puts the script into tmp_script" do
-      export = %{
+      export = %DungeonExports{
         tiles: %{ "tile_hash" => %{script: "#end\n:touch\nhey"}},
         items: %{"tmp_item_0" => %{script: "does nothing"}}
       }
@@ -398,13 +400,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   describe "repoint_dungeon_starting_items/1" do
     test "does nothing if no starting equipment" do
-      export = %{ dungeon: %{ state: %{} }, items: %{"tmp_item_id_0" => %{slug: "thing"}} }
+      export = %DungeonExports{ dungeon: %{ state: %{} }, items: %{"tmp_item_id_0" => %{slug: "thing"}} }
       assert export == repoint_dungeon_starting_items(export)
     end
 
     test "replaces temp ids with found or created item slugs" do
-      export = %{dungeon: %{state: %{"starting_equipment" => ["tmp_item_id_0", "tmp_item_id_0", "tmp_item_id_1"]}},
-                 items: %{"tmp_item_id_0" => %{slug: "thing"}, "tmp_item_id_1" => %{slug: "waffle"}}}
+      export = %DungeonExports{
+        dungeon: %{state: %{"starting_equipment" => ["tmp_item_id_0", "tmp_item_id_0", "tmp_item_id_1"]}},
+        items: %{"tmp_item_id_0" => %{slug: "thing"}, "tmp_item_id_1" => %{slug: "waffle"}}}
 
       %{dungeon: %{state: %{"starting_equipment" => updated_starting_items}}} =
         repoint_dungeon_starting_items(export)
@@ -416,7 +419,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   describe "set_dungeon_overrides/3" do
     setup do
       export =
-        %{
+        %DungeonExports{
           tile_templates: "stubbed",
           sounds: "stubbed",
           items: "stubbed",
@@ -461,17 +464,17 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     end
 
     test "nils line_identifier if no previous dungeon found", %{dungeon: dungeon, user: user} do
-      export = %{dungeon: %{line_identifier: -1, user_id: user.id}}
+      export = %DungeonExports{dungeon: %{line_identifier: -1, user_id: user.id}}
       assert %{dungeon: %{line_identifier: nil}} = maybe_handle_previous_version(export)
 
       # user_id in the export has been replaced with the user_id of the current user's id
       # as this ID may be different on different installations
-      export = %{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id - 1}}
+      export = %DungeonExports{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id - 1}}
       assert %{dungeon: %{line_identifier: nil}} = maybe_handle_previous_version(export)
     end
 
     test "if previous version is active, updates the dungeon attrs in the export", %{dungeon: dungeon, user: user} do
-      export = %{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id}}
+      export = %DungeonExports{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id}}
       %{dungeon: updated_dungeon_attrs} = maybe_handle_previous_version(export)
 
       refute updated_dungeon_attrs.active
@@ -483,7 +486,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
     test "if previous version is not active, that dungeon is hard deleted", %{dungeon: dungeon, user: user} do
       {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{active: false})
-      export = %{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id}}
+      export = %DungeonExports{dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id}}
       %{dungeon: updated_dungeon_attrs} = maybe_handle_previous_version(export)
 
       refute updated_dungeon_attrs.active
@@ -495,20 +498,195 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   end
 
   describe "create_dungeon/1" do
+    test "it creates the dungeon" do
+      user = insert_user()
+      item = insert_item()
+      export = %DungeonExports{
+        dungeon: %{
+          autogenerated: false,
+          default_map_height: 20,
+          default_map_width: 20,
+          description: "testing",
+          line_identifier: 999,
+          name: "Exporter",
+          state: %{"starting_equipment" => [item.slug], "test" => true},
+          title_number: 2,
+          user_id: user.id,
+          importing: true,
+          previous_version_id: nil
+        },
+      }
+
+      updated_export = create_dungeon(export)
+      expected_dungeon =  Map.merge(%Dungeons.Dungeon{importing: true}, Dungeons.copy_dungeon_fields(export.dungeon))
+
+      assert Map.drop(expected_dungeon, [:__meta__, :id, :inserted_at, :updated_at]) ==
+               Map.drop(updated_export.dungeon, [:__meta__, :id, :inserted_at, :updated_at])
+
+      assert is_integer(updated_export.dungeon.id)
+    end
   end
 
   describe "create_levels/1" do
-  end
+    setup do
+      dungeon = insert_dungeon()
+      floor = insert_tile_template(%{character: ".", state: %{"blocking" => false}, description: "a dirty floor", name: "Floor"})
+      rock = TileTemplateSeeder.rock_tile()
 
-  describe "create_levels/2" do
-  end
+      export = %DungeonExports{
+        dungeon: dungeon,
+        levels: %{
+          1  => %{
+            entrance: true,
+            height: 20,
+            name: "one",
+            number: 1,
+            number_east: nil,
+            number_north: 3,
+            number_south: nil,
+            number_west: nil,
+            state: %{},
+            tile_data: [
+              ["rock_hash", 0, 1, 0],
+              ["floor_hash", 0, 2, 0],
+              ["rock_hash", 0, 3, 0]
+            ],
+            width: 20
+          },
+          2 => %{
+            entrance: nil,
+            height: 20,
+            name: "Stubbed",
+            number: 2,
+            number_east: nil,
+            number_north: nil,
+            number_south: nil,
+            number_west: nil,
+            state: %{"visibility" => "fog"},
+            tile_data: [
+              ["rock_hash", 0, 1, 0],
+              ["floor_hash", 0, 2, 0],
+              ["floor_hash", 1, 1, 0],
+              ["lamp_hash", 1, 2, 1]
+            ],
+            width: 20
+          }
+        },
+        tiles: %{
+          "rock_hash" => %{
+            animate_background_colors: nil,
+            animate_characters: nil,
+            animate_colors: nil,
+            animate_period: nil,
+            animate_random: nil,
+            background_color: nil,
+            character: " ",
+            color: nil,
+            name: "Rock",
+            script: "",
+            state: %{"blocking" => true},
+            tile_template_id: rock.id
+          },
+          "lamp_hash" => %{
+            animate_background_colors: nil,
+            animate_characters: nil,
+            animate_colors: nil,
+            animate_period: nil,
+            animate_random: nil,
+            background_color: nil,
+            character: "i",
+            color: nil,
+            name: "Lamp",
+            script: "",
+            state: %{"light_source" => true},
+            tile_template_id: nil
+          },
+          "floor_hash" => %{
+            animate_background_colors: nil,
+            animate_characters: nil,
+            animate_colors: nil,
+            animate_period: nil,
+            animate_random: nil,
+            background_color: nil,
+            character: ".",
+            color: nil,
+            name: "Floor",
+            script: "",
+            state: %{"blocking" => false},
+            tile_template_id: floor.id
+          }
+        }
+      }
 
-  describe "create_tiles/3" do
+      %{export: export, dungeon: dungeon}
+    end
+
+    test "it creates the levels and their tiles", %{export: export, dungeon: dungeon} do
+      updated_export = create_levels(export)
+      dungeon_id = dungeon.id
+
+      # the tiles hash is not updated in the export
+      assert Map.drop(updated_export, [:levels]) == Map.drop(export, [:levels])
+      assert %{levels: updated_levels} = updated_export
+      %{1 => updated_level_1, 2 => updated_level_2} = updated_levels
+      assert Kernel.map_size(updated_levels) == 2
+      assert %Dungeons.Level{
+               dungeon_id: ^dungeon_id,
+               state: %{}
+             } = updated_level_1
+      assert %Dungeons.Level{
+               dungeon_id: ^dungeon_id,
+               state: %{"visibility" => "fog"}
+             } = updated_level_2
+
+      # but the tiles are created in the DB
+      [%{name: "Rock"}] = Dungeons.get_tiles(updated_level_1.id, 0, 1)
+      [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_1.id, 0, 2)
+      [%{name: "Rock"}] = Dungeons.get_tiles(updated_level_1.id, 0, 3)
+
+      [%{name: "Rock"}] = Dungeons.get_tiles(updated_level_2.id, 0, 1)
+      [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_2.id, 0, 2)
+      [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_2.id, 1, 1)
+      [%{name: "Lamp"}] = Dungeons.get_tiles(updated_level_2.id, 1, 2)
+    end
   end
 
   describe "create_spawn_locations/1" do
+    test "it creates the spawn locations" do
+      dungeon = insert_dungeon()
+      level_1 = insert_stubbed_level(%{dungeon_id: dungeon.id, number: 1})
+      level_2 = insert_stubbed_level(%{dungeon_id: dungeon.id, number: 2})
+
+      export = %DungeonExports{
+        dungeon: dungeon,
+        levels: %{1 => level_1, 2 => level_2},
+        spawn_locations: [[1, 0, 1], [1, 0, 3], [2, 1, 1]],
+      }
+
+      updated_export = create_spawn_locations(export)
+
+      # does not actually modify the export
+      assert updated_export == export
+
+      # creates the spawn location records
+      assert [{0, 1}, {0, 3}] = Repo.preload(level_1, :spawn_locations).spawn_locations
+                                |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
+                                |> Enum.sort()
+      assert [{1, 1}] = Repo.preload(level_2, :spawn_locations).spawn_locations
+                        |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
+    end
   end
 
   describe "complete_dungeon_import/1" do
+    test "it sets import to false" do
+      dungeon = insert_dungeon(%{importing: true})
+
+      export = %DungeonExports{dungeon: dungeon}
+
+      updated_export = complete_dungeon_import(export)
+
+      refute updated_export.dungeon.importing
+      refute Dungeons.get_dungeon(dungeon.id).importing
+    end
   end
 end
