@@ -255,29 +255,43 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 #      |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
 #      |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
 #      |> swap_scripts_to_tmp_scripts(:tiles)
+      user = insert_user()
+      rock_tt = insert_tile_template(%{
+        name: "Rock",
+        state: %{"blocking" => true},
+        public: true,
+        active: true
+      })
+      stone_tt = insert_tile_template(%{
+                     name: "Stone",
+                     script: "#end",
+                     public: true,
+                     active: true
+                   })
+                 |> Map.put(:script, "#end")
+                 |> Map.put(:tmp_script, "#end\n:touch\n#equip tmp_item_id_1, ?sender\n#die")
+      stone_item = insert_item(%{
+                       user_id: user.id,
+                       name: "Stone",
+                       script: "#end"
+                     })
+                   |> Map.put(:script, "#end")
+                   |> Map.put(:tmp_script, "#put direction: here, slug: tmp_tt_id_1, facing: @facing, thrown: true\n")
 
       expected = %{
         click_slug: "click",
-        rock_tt_id: 100,
+        rock_tt_id: rock_tt.id,
         rock_tt_slug: "rock",
-        stone_tt_slug: "stone",
-        stone_item_slug: "stone_456",
+        stone_tt_slug: stone_tt.slug,
+        stone_item_slug: stone_item.slug,
         thing_script: ""
       }
 
       export_mock =
       %DungeonExports{
         tile_templates: %{
-          "tmp_tt_id_0" => %{
-            id: expected.rock_tt_id,
-            slug: expected.rock_tt_slug
-          },
-          "tmp_tt_id_1" => %{
-            id: 101,
-            slug: expected.stone_tt_slug,
-            script: "#end",
-            tmp_script: "#end\n:touch\n#equip tmp_item_id_1, ?sender\n#die"
-          },
+          "tmp_tt_id_0" => rock_tt,
+          "tmp_tt_id_1" => stone_tt
         },
         sounds: %{
           "tmp_sound_id_0" => %{id: 900, slug: expected.click_slug},
@@ -285,14 +299,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
           "tmp_sound_id_2" => %{id: 999, slug: "shoot"}
         },
         items: %{
-          "tmp_item_id_1" => %{
-            id: 456,
-            # slugs can be the same for different assets, this is mainly to verify stone item slug
-            # is used rather than the stone tile template id for purposes of the tests
-            slug: expected.stone_item_slug,
-            script: "#end",
-            tmp_script: "#put direction: here, slug: tmp_tt_id_1, facing: @facing, thrown: true\n"
-          }
+          "tmp_item_id_1" => stone_item
         },
         tiles: %{
           "rock_hash" => %{
@@ -345,6 +352,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       assert stone_item.script ==
                "#put direction: here, slug: #{ expected.stone_tt_slug }, facing: @facing, thrown: true\n"
+      assert Repo.reload(stone_item).script == stone_item.script
     end
 
     test "repoints tile_templates", %{export: export, expected: expected} do
@@ -364,6 +372,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert rock_tt == export.tile_templates["tmp_tt_id_0"]
       # update stone script
       assert stone_tt.script == "#end\n:touch\n#equip #{ expected.stone_item_slug }, ?sender\n#die"
+      assert Repo.reload(stone_tt).script == stone_tt.script
     end
   end
 
@@ -387,7 +396,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     # this function is only used for :tiles
     test "it puts the script into tmp_script" do
       export = %DungeonExports{
-        tiles: %{ "tile_hash" => %{script: "#end\n:touch\nhey"}},
+        tiles: %{"tile_hash" => %{script: "#end\n:touch\nhey"}},
         items: %{"tmp_item_0" => %{script: "does nothing"}}
       }
 
