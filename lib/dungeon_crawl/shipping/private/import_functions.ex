@@ -8,7 +8,9 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Equipment
+  alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.TileTemplates
+  alias DungeonCrawl.TileTemplates.TileTemplate
   alias DungeonCrawl.Sound
 
   use DungeonCrawl.Shipping.SlugMatching
