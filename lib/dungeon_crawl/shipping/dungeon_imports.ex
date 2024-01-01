@@ -12,11 +12,16 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   alias DungeonCrawl.Shipping.DungeonExports
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.Sound
+  alias DungeonCrawl.Shipping.AssetImport
+
+  alias DungeonCrawl.Repo
 
   use DungeonCrawl.Shipping.SlugMatching
 
+  import Ecto.Query
   import DungeonCrawl.Shipping.Private.ImportFunctions
 
+  # is this struct used? doesnt seem so
   defstruct dungeon: nil,
             levels: %{},
             tiles: %{},
@@ -25,9 +30,11 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
             sounds: %{}
 
   def run(%DungeonExports{} = export, user_id, line_identifier \\ nil) do
+    # do something different if this import is in progress and there were ambiguous matches resolved
     export = find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
              |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
              |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
+    # at this point, bail if there are ambiguous matches that are unresolved
              |> swap_scripts_to_tmp_scripts(:tiles)
              |> repoint_ttids_and_slugs(:tiles)
              |> repoint_ttids_and_slugs(:items)
@@ -41,5 +48,64 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> complete_dungeon_import()
 
     export
+  end
+
+  @doc """
+  Attempt to lookup an existing asset import by either the temporary slug from the
+  import data.
+
+  ## Examples
+
+      iex> get_asset_import(import_id, "item", "tmp_item_id_0")
+      nil
+      iex> get_asset_import(import_id, "item", "tmp_item_id_1")
+      %AssetImport{}
+  """
+  def get_asset_import(import_id, type, tmp_slug) do
+    Repo.one(from ai in AssetImport, where: ai.dungeon_import_id == ^import_id and
+                                            ai.type == ^type and
+                                            ai.importing_slug == ^tmp_slug)
+  end
+
+  @doc """
+  Creates the asset import. Raises an exception if invalid.
+
+  ## Examples
+
+      iex> create_asset_import(%{dungeon_import_id: 123, type: "item", ...})
+      %AssetImport{}
+      iex> create_asset_import(%{dungeon_import_id: 123, type: "bad_item", ...})
+      ** (Ecto.InvalidChangesetError)
+  """
+  def create_asset_import!(import_id, type, tmp_slug, attrs) do
+    %AssetImport{}
+    |> AssetImport.changeset(%{
+         dungeon_import_id: import_id,
+         type: type,
+         importing_slug: tmp_slug,
+         attributes: attrs
+       })
+    |> Repo.insert!()
+  end
+
+  @doc """
+  Finds or creates an asset import. Since this is intended to be called
+  by the system any AssetImport validation error raises an exception.
+
+  ## Examples
+
+      iex> find_or_create_asset_import!(123, "item", "tmp_item_id_0")
+      %AssetImport{}
+      iex> find_or_create_asset_import!(123, "bad_type", "tmp_item_id_1")
+      ** (Ecto.InvalidChangesetError)
+  """
+  def find_or_create_asset_import!(import_id, type, tmp_slug, attrs) do
+    case get_asset_import(import_id, type, tmp_slug) do
+      nil ->
+        create_asset_import!(import_id, type, tmp_slug, attrs)
+
+      asset_import ->
+        asset_import
+    end
   end
 end

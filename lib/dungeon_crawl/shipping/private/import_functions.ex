@@ -29,6 +29,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
                attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
                asset when is_nil(asset) <- find_asset.(user_id, attrs),
                attrs = Map.put(attrs, :active, true) do
+            # at this point, the match on attributes failed
+            # this if/else will change
+            # 1. if there is no entry in the asset_import table, create one,
+            #    a. check if there is an existing asset with the original slug
+            # 2. if there is an entry with action that is not matched, skip
+            # 3. if a create or update action, do so, mark as resolved and updated resolved slug
+            # 4. if it is resolved, then return the asset
+            # some of this could probably be done in the with statement
             if Map.get(attrs, :script, "") != "" do
               create_asset.(Map.put(attrs, :script, "#end"))
               |> Map.put(:tmp_script, attrs.script)
@@ -102,7 +110,25 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     end)
   end
 
-  def repoint_ttids_and_slugs(export, asset_key) do
+  def resolve_ambiguous_slugs(export) do
+    # todo: if there are any unresolved ambiguous slugs, this will serve as the breaker,
+    # update the export status to :waiting, and update the
+  end
+
+  def swap_scripts_to_tmp_scripts(%{status: :running} = export, asset_key) do
+    assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
+      {
+        th,
+        Map.put(asset, :tmp_script, asset.script)
+      }
+    end)
+             |> Enum.into(%{})
+
+    %{ export | asset_key => assets }
+  end
+  def swap_scripts_to_tmp_scripts(export, _asset_key), do: export
+
+  def repoint_ttids_and_slugs(%{status: :running} = export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {
         th,
@@ -117,6 +143,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
     %{ export | asset_key => assets }
   end
+  def repoint_ttids_and_slugs(export, _asset_key), do: export
 
   def repoint_tile_template_id(%{tile_template_id: tile_template_id} = asset, export) do
     template = Map.get(export.tile_templates, tile_template_id, %{id: nil})
@@ -133,18 +160,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       referenced_asset = Map.fetch!(export, slug_type) |> Map.fetch!(tmp_slug)
       Map.put(asset, :tmp_script, String.replace(Map.fetch!(asset, :tmp_script), slug_kwarg, "#{left_side} #{referenced_asset.slug}"))
     end)
-  end
-
-  def swap_scripts_to_tmp_scripts(export, asset_key) do
-    assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
-      {
-        th,
-        Map.put(asset, :tmp_script, asset.script)
-      }
-    end)
-             |> Enum.into(%{})
-
-    %{ export | asset_key => assets }
   end
 
   defp swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
@@ -165,7 +180,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     asset
   end
 
-  def repoint_dungeon_starting_items(%{dungeon: dungeon} = export) do
+  def repoint_dungeon_starting_items(%{status: :running, dungeon: dungeon} = export) do
     case export.dungeon.state do
       %{"starting_equipment" => equipment} = dungeon_state ->
         starting_equipment =
@@ -179,18 +194,19 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
         export
     end
   end
+  def repoint_dungeon_starting_items(export), do: export
 
-  def set_dungeon_overrides(export, user_id, "") do
+  def set_dungeon_overrides(%{status: :running} = export, user_id, "") do
     set_dungeon_overrides(export, user_id, nil)
   end
-
-  def set_dungeon_overrides(%{dungeon: dungeon} = export, user_id, line_identifier) do
+  def set_dungeon_overrides(%{status: :running, dungeon: dungeon} = export, user_id, line_identifier) do
     dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier, importing: true})
               |> Map.delete(:user_name)
     %{ export | dungeon: dungeon }
   end
+  def set_dungeon_overrides(export, _user_id, _line_identifier), do: export
 
-  def maybe_handle_previous_version(%{dungeon: dungeon} = export) do
+  def maybe_handle_previous_version(%{status: :running, dungeon: dungeon} = export) do
     prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier, export.dungeon.user_id)
 
     cond do
@@ -207,16 +223,19 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
         %{ export | dungeon: Map.merge(dungeon, attrs) }
     end
   end
+  def maybe_handle_previous_version(export), do: export
 
-  def create_dungeon(%{dungeon: dungeon} = export) do
+  def create_dungeon(%{status: :running, dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.create_dungeon(dungeon)
     %{ export | dungeon: dungeon }
   end
+  def create_dungeon(export), do: export
 
-  def create_levels(%{levels: levels} = export) do
+  def create_levels(%{status: :running, levels: levels} = export) do
     Map.values(levels)
     |> create_levels(export)
   end
+  def create_levels(export), do: export
 
   defp create_levels([], export), do: export
   defp create_levels([level | levels], export) do
@@ -236,7 +255,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     create_tiles(tile_hashes, level_id, export)
   end
 
-  def create_spawn_locations(export) do
+  def create_spawn_locations(%{status: :running} = export) do
     export.spawn_locations
     |> Enum.group_by(fn [num, _row, _col] -> num end)
     |> Enum.each(fn {num, coords} ->
@@ -247,9 +266,11 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
     export
   end
+  def create_spawn_locations(export), do: export
 
-  def complete_dungeon_import(%{dungeon: dungeon} = export) do
+  def complete_dungeon_import(%{status: :running, dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{importing: false})
     %{ export | dungeon: dungeon }
   end
+  def complete_dungeon_import(export), do: export
 end

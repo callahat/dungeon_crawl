@@ -26,7 +26,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
             items: %{},
             tile_templates: %{},
             sounds: %{},
-            spawn_locations: []
+            spawn_locations: [],
+            status: :running
 
   def run(dungeon_id) do
     dungeon = Dungeons.get_dungeon!(dungeon_id)

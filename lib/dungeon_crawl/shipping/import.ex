@@ -11,7 +11,7 @@ defmodule DungeonCrawl.Shipping.Import do
     field :data, :string
     field :line_identifier, :integer
     field :file_name, :string
-    field :status, Ecto.Enum, values: [queued: 1, running: 2, completed: 3, failed: 4], default: :queued
+    field :status, Ecto.Enum, values: [queued: 1, running: 2, completed: 3, failed: 4, waiting: 5], default: :queued
     field :details, :string
     belongs_to :dungeon, Dungeon
     belongs_to :user, User
