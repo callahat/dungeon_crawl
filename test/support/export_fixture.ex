@@ -402,7 +402,8 @@ defmodule DungeonCrawlWeb.ExportFixture do
           state: %{"blocking" => true},
           tile_template_id: "tmp_tt_id_1"
         }
-      }
+      },
+      status: "running"
     }
   end
 
@@ -567,7 +568,8 @@ defmodule DungeonCrawlWeb.ExportFixture do
           zzfx_params: "[1.5,,100,,.05,.04,4,1.44,3,,,,,,,.1,,.3,.05]"
         }
       },
-      spawn_locations: []
+      spawn_locations: [],
+      status: "running"
     }
 
   end

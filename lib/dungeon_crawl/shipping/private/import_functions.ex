@@ -115,7 +115,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     # update the export status to :waiting, and update the
   end
 
-  def swap_scripts_to_tmp_scripts(%{status: :running} = export, asset_key) do
+  def swap_scripts_to_tmp_scripts(%{status: "running"} = export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {
         th,
@@ -128,7 +128,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
   def swap_scripts_to_tmp_scripts(export, _asset_key), do: export
 
-  def repoint_ttids_and_slugs(%{status: :running} = export, asset_key) do
+  def repoint_ttids_and_slugs(%{status: "running"} = export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->
       {
         th,
@@ -180,7 +180,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     asset
   end
 
-  def repoint_dungeon_starting_items(%{status: :running, dungeon: dungeon} = export) do
+  def repoint_dungeon_starting_items(%{status: "running", dungeon: dungeon} = export) do
     case export.dungeon.state do
       %{"starting_equipment" => equipment} = dungeon_state ->
         starting_equipment =
@@ -196,17 +196,17 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
   def repoint_dungeon_starting_items(export), do: export
 
-  def set_dungeon_overrides(%{status: :running} = export, user_id, "") do
+  def set_dungeon_overrides(%{status: "running"} = export, user_id, "") do
     set_dungeon_overrides(export, user_id, nil)
   end
-  def set_dungeon_overrides(%{status: :running, dungeon: dungeon} = export, user_id, line_identifier) do
+  def set_dungeon_overrides(%{status: "running", dungeon: dungeon} = export, user_id, line_identifier) do
     dungeon = Map.merge(dungeon, %{user_id: user_id, line_identifier: line_identifier, importing: true})
               |> Map.delete(:user_name)
     %{ export | dungeon: dungeon }
   end
   def set_dungeon_overrides(export, _user_id, _line_identifier), do: export
 
-  def maybe_handle_previous_version(%{status: :running, dungeon: dungeon} = export) do
+  def maybe_handle_previous_version(%{status: "running", dungeon: dungeon} = export) do
     prev_version = Dungeons.get_newest_dungeons_version(export.dungeon.line_identifier, export.dungeon.user_id)
 
     cond do
@@ -225,13 +225,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
   def maybe_handle_previous_version(export), do: export
 
-  def create_dungeon(%{status: :running, dungeon: dungeon} = export) do
+  def create_dungeon(%{status: "running", dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.create_dungeon(dungeon)
     %{ export | dungeon: dungeon }
   end
   def create_dungeon(export), do: export
 
-  def create_levels(%{status: :running, levels: levels} = export) do
+  def create_levels(%{status: "running", levels: levels} = export) do
     Map.values(levels)
     |> create_levels(export)
   end
@@ -255,7 +255,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     create_tiles(tile_hashes, level_id, export)
   end
 
-  def create_spawn_locations(%{status: :running} = export) do
+  def create_spawn_locations(%{status: "running"} = export) do
     export.spawn_locations
     |> Enum.group_by(fn [num, _row, _col] -> num end)
     |> Enum.each(fn {num, coords} ->
@@ -268,7 +268,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
   def create_spawn_locations(export), do: export
 
-  def complete_dungeon_import(%{status: :running, dungeon: dungeon} = export) do
+  def complete_dungeon_import(%{status: "running", dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{importing: false})
     %{ export | dungeon: dungeon }
   end

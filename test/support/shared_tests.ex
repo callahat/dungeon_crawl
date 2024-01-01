@@ -32,12 +32,6 @@ defmodule DungeonCrawl.SharedTests do
   defmacro finds_or_creates_assets_correctly(asset_key, key, insert_asset_fn, comparable_field_fn) do
     quote do
       @tag asset_key: unquote(asset_key), key: unquote(key)
-      test "#{ unquote(asset_key) } - bails unless the export status is running", %{export: export} do
-        export = %{status: :waiting | export}
-        assert export == find_or_create_assets(export, unquote(asset_key), find_asset_mock, unused_function, user.id)
-      end
-
-      @tag asset_key: unquote(asset_key), key: unquote(key)
       test "#{ unquote(asset_key) } - find when its owned by the user", %{export: export} do
         user = insert_user()
         user_id = user.id

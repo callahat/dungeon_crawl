@@ -69,7 +69,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
       data: DungeonExports.run(dungeon.id) |> Json.encode!(),
       user_id: user.id,
       file_name: "import.json",
-      line_identifier: dungeon.line_identifier
+      line_identifier: dungeon.line_identifier,
+      status: "running"
     })
 
     assert %Task{ref: ref} = DockWorker.import(dungeon_import)
