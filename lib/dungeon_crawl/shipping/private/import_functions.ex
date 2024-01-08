@@ -15,44 +15,87 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   use DungeonCrawl.Shipping.SlugMatching
 
+  @asset_functions %{
+    sounds: %{
+      find: &__MODULE__.find_effect/2,
+      create: &Sound.create_effect!/1,
+      find_by_slug: &Sound.get_effect/2
+    },
+    items: %{
+      find: &__MODULE__.find_item/2,
+      create: &Equipment.create_item!/1,
+      find_by_slug: &Equipment.get_item/2
+    },
+    tile_templates: %{
+      find: &__MODULE__.find_tile_template/2,
+      create: &TileTemplates.create_tile_template!/1,
+      find_by_slug: &TileTemplates.get_tile_template/2
+    }
+  }
+
   # the script will never match due to the slug; so the script will need to be a "fuzzy" match
   # the fuzzy search, when candidates are found the slug in the candidate will need to be checked
   # to see if its a usable match for the given user; if not then asset(s) not match so a new one
   # will need created.
-  def find_or_create_assets(export, asset_key, find_asset, create_asset, user_id) do
+  def find_or_create_assets(export, asset_key, user_id) do
     assets =
       Map.get(export, asset_key)
       |> Enum.map(fn {tmp_id, attrs} ->
-        asset =
-          with attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
-               asset when is_nil(asset) <- find_asset.(user_id, Map.delete(attrs, :user_id)),
-               attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
-               asset when is_nil(asset) <- find_asset.(user_id, attrs),
-               attrs = Map.put(attrs, :active, true) do
-            # at this point, the match on attributes failed
-            # this if/else will change
-            # 1. if there is no entry in the asset_import table, create one,
-            #    a. check if there is an existing asset with the original slug
-            # 2. if there is an entry with action that is not matched, skip
-            # 3. if a create or update action, do so, mark as resolved and updated resolved slug
-            # 4. if it is resolved, then return the asset
-            # some of this could probably be done in the with statement
-            if Map.get(attrs, :script, "") != "" do
-              create_asset.(Map.put(attrs, :script, "#end"))
-              |> Map.put(:tmp_script, attrs.script)
-            else
-              create_asset.(attrs)
-            end
-          else
-            asset ->
-              asset
-          end
+        asset = find_or_create_asset(export, asset_key, attrs, user_id)
 
         {tmp_id, asset}
       end)
       |> Enum.into(%{})
 
     %{ export | asset_key => assets }
+  end
+
+  # todo: how to get the dungeon_import_id in here, not currently in the export struct
+  # This will have a aside affect of creating an asset_import record potentially
+  defp find_or_create_asset(export, asset_key, attrs, user_id) do
+    with slug = attrs[:slug],
+         attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
+         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user_id, Map.delete(attrs, :user_id)),
+         attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
+         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user_id, attrs),
+         attrs = Map.put(attrs, :active, true) do
+#      existing_by_slug = find_asset
+
+      # at this point, the match on attributes failed
+      # this if/else will change
+      # 1. if there is no entry in the asset_import table, create one,
+      #    a. check if there is an existing asset with the original slug
+      # 2. if there is an entry with action that is not matched, skip
+      # 3. if a create or update action, do so, mark as resolved and updated resolved slug
+      # 4. if it is resolved, then return the asset
+      # some of this could probably be done in the with statement
+      if Map.get(attrs, :script, "") != "" do
+        @asset_functions[asset_key].create.(Map.put(attrs, :script, "#end"))
+        |> Map.put(:tmp_script, attrs.script)
+      else
+        @asset_functions[asset_key].create.(attrs)
+      end
+    else
+      asset ->
+        asset
+    end
+  end
+
+  # if theres a potentially useable slug, have the user pick what to do
+  defp check_by_slug(nil, find_asset, user_id), do: {:no_slug, nil}
+  defp check_by_slug(slug, find_asset, user_id) do
+# todo: have this function use the get_<thing> - equipment has a get_item function that takes an
+# identifer and a user struct and does some of this checking, so functions like that
+# will be useful for finding a matching asset thta the user may used based on the slug.
+# It might be worthwile to stop passing functions around, and just use a mapping
+# based on the asset key and function type since we need three different functions based on the asset
+# (find, create, and find by slug and check the user can use it
+#    with asset when is_nil(asset) <- find_asset.(user_id, Map.take(attrs, [:slug])),
+#         attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
+#                                                                                                                      asset when is_nil(asset) <- find_asset.(user_id, attrs) do
+#    else
+#
+#    end
   end
 
   def find_effect(_user_id, attrs) do
@@ -91,7 +134,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   end
 
   def all_slugs_useable?(script, user_id) do
-    all_slugs_useable?(script, user_id, &TileTemplates.get_tile_template_by_slug/1, @script_tt_slug)
+    all_slugs_useable?(script, user_id, &TileTemplates.get_tile_template/1, @script_tt_slug)
     && all_slugs_useable?(script, user_id, &Equipment.get_item/1, @script_item_slug)
     && all_slugs_useable?(script, user_id, &Sound.get_effect_by_slug/1, @script_sound_slug)
   end

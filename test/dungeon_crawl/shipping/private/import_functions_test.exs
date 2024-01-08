@@ -25,9 +25,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   # when they change data related to their operation (such as changing a temporary tile template id
   # from "tmp_..." to the record ID from the backing database.
 
-  describe "find_or_create_assets/5" do
+  describe "find_or_create_assets/3" do
     setup config do
       existing_asset = Map.get(ExportFixture.minimal_export(), config.asset_key)[config.key]
+
+      existing_asset = if config.asset_key == :items,
+                          # for these tests we don't care about matching on this
+                         do: Map.put(existing_asset, :script, "#end"),
+                         else: existing_asset
 
       export = %DungeonExports{}
                |> Map.put(config.asset_key, %{

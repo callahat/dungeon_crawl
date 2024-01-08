@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Sound do
   """
 
   import Ecto.Query, warn: false
+  import DungeonCrawl.Sluggable, only: [parse_identifier: 1]
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Sound.Effect
@@ -54,9 +55,12 @@ defmodule DungeonCrawl.Sound do
   end
 
   @doc """
-  Gets a single effect.
+  Gets a single effect, when given an id or a slug.
 
   Raises `Ecto.NoResultsError` if the Effect does not exist when using the ! form.
+
+  When given a user struct, only returns the effect if it may be used in a dungeon
+  authored by the user.
 
   ## Examples
 
@@ -66,9 +70,34 @@ defmodule DungeonCrawl.Sound do
       iex> get_effect!(456)
       ** (Ecto.NoResultsError)
 
+      iex> get_effect("slug_thing", %Account.User{is_admin: true})
+      %Effect{}
+
+      iex> get_effect("slug_thing", %Account.User{username: "someone else})
+      nil
   """
-  def get_effect(id), do: Repo.get(Effect, id)
-  def get_effect!(id), do: Repo.get!(Effect, id)
+  def get_effect(nil), do: nil
+  def get_effect(identifier), do: _get_effect(parse_identifier(identifier))
+  def get_effect!(identifier), do: _get_effect!(parse_identifier(identifier))
+
+  def _get_effect(id) when is_integer(id), do: Repo.get(Effect, id)
+  def _get_effect(slug), do: Repo.get_by(Effect, %{slug: slug})
+  def _get_effect!(id) when is_integer(id), do: Repo.get!(Effect, id)
+  def _get_effect!(slug), do: Repo.get_by!(Effect, %{slug: slug})
+
+  def get_effect(identifier, user) do
+    effect = get_effect(identifier)
+
+    if effect && (is_nil(user) ||
+                  is_nil(effect.user_id) ||
+                    effect.public ||
+                  user.is_admin ||
+                  user.id == effect.user_id) do
+      effect
+    else
+      nil
+    end
+  end
 
   @doc """
   Gets a single effect given the slug.

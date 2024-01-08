@@ -82,8 +82,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
       # assets created or found
       # tile templates
-      assert config.existing_tiles.rock == TileTemplates.get_tile_template_by_slug("rock")
-      assert config.existing_tiles.stone == TileTemplates.get_tile_template_by_slug("stone")
+      assert config.existing_tiles.rock == TileTemplates.get_tile_template("rock")
+      assert config.existing_tiles.stone == TileTemplates.get_tile_template("stone")
       assert floor = TileTemplates.find_tile_template(%{name: "Floor", user_id: user_id, public: false})
       assert closed_door = TileTemplates.find_tile_template(%{name: "Closed Door", user_id: user_id, public: false})
       assert open_door = TileTemplates.find_tile_template(%{name: "Open Door", user_id: user_id, public: false})

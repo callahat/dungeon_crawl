@@ -31,9 +31,9 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
   def run(%DungeonExports{} = export, user_id, line_identifier \\ nil) do
     # do something different if this import is in progress and there were ambiguous matches resolved
-    export = find_or_create_assets(export, :sounds, &find_effect/2, &Sound.create_effect!/1, user_id)
-             |> find_or_create_assets(:items, &find_item/2, &Equipment.create_item!/1, user_id)
-             |> find_or_create_assets(:tile_templates, &find_tile_template/2, &TileTemplates.create_tile_template!/1, user_id)
+    export = find_or_create_assets(export, :sounds, user_id)
+             |> find_or_create_assets(:items, user_id)
+             |> find_or_create_assets(:tile_templates, user_id)
     # at this point, bail if there are ambiguous matches that are unresolved
              |> swap_scripts_to_tmp_scripts(:tiles)
              |> repoint_ttids_and_slugs(:tiles)

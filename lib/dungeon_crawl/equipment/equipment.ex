@@ -4,6 +4,7 @@ defmodule DungeonCrawl.Equipment do
   """
 
   import Ecto.Query, warn: false
+  import DungeonCrawl.Sluggable, only: [parse_identifier: 1]
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.Equipment.Item
@@ -49,7 +50,8 @@ defmodule DungeonCrawl.Equipment do
   Returns nil if the Item does not exist.
 
   When given an author (%User{}), only returns the item if it may
-  be used given the author of the level.
+  be used given the author of the level. Mainly used to validate that
+  the item exists and may be used by the user.
 
   ## Examples
 
@@ -69,10 +71,13 @@ defmodule DungeonCrawl.Equipment do
       nil
   """
   def get_item(nil), do: nil
-  def get_item(id) when is_integer(id), do: Repo.get(Item, id)
-  def get_item(slug), do: Repo.get_by(Item, %{slug: slug})
-  def get_item!(id) when is_integer(id), do: Repo.get!(Item, id)
-  def get_item!(slug), do: Repo.get_by!(Item, %{slug: slug})
+  def get_item(identifier), do: _get_item(parse_identifier(identifier))
+  def get_item!(identifier), do: _get_item!(parse_identifier(identifier))
+
+  def _get_item(id) when is_integer(id), do: Repo.get(Item, id)
+  def _get_item(slug), do: Repo.get_by(Item, %{slug: slug})
+  def _get_item!(id) when is_integer(id), do: Repo.get!(Item, id)
+  def _get_item!(slug), do: Repo.get_by!(Item, %{slug: slug})
 
   def get_item(identifier, author) do
     item = get_item(identifier)

@@ -66,32 +66,50 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.get_tile_template(tile_template.id) == tile_template
     end
 
-    test "get_tile_template_by_slug/1 returns the tile_template with given slug" do
+    test "get_tile_template/1 returns the tile_template with given slug" do
       tile_template = tile_template_fixture(%{active: true})
-      assert TileTemplates.get_tile_template_by_slug(tile_template.slug) == tile_template
+      assert TileTemplates.get_tile_template(tile_template.slug) == tile_template
     end
 
-    test "get_tile_template_by_slug/1 returns nil on bad slug" do
-      refute TileTemplates.get_tile_template_by_slug("fake")
+    test "get_tile_template/1 returns nil on bad slug" do
+      refute TileTemplates.get_tile_template("fake")
     end
 
-    test "get_tile_template_by_slug/1 returns nil on slug with no active tile template" do
+    test "get_tile_template/1 returns nil on slug with no active tile template" do
       tile_template = tile_template_fixture(%{active: false})
-      refute TileTemplates.get_tile_template_by_slug(tile_template.slug)
+      refute TileTemplates.get_tile_template(tile_template.slug)
     end
 
-    test "get_tile_template_by_slug/2 returns slug even when no active tile template" do
+    test "get_tile_template/2 for validation returns template even when no active tile template" do
       tile_template = tile_template_fixture(%{active: false})
-      assert TileTemplates.get_tile_template_by_slug(tile_template.slug, :validation)
+      assert TileTemplates.get_tile_template(tile_template.slug, :validation)
     end
 
-    test "get_tile_template_by_slug!/1 returns the tile_template with given slug" do
+    test "get_tile_template/2 when given a user" do
+      user = insert_user()
+      admin = insert_user(%{is_admin: true})
+      public_tile = tile_template_fixture(%{active: false, is_public: true})
+      private_tile = tile_template_fixture(%{is_public: false, user_id: admin.id})
+      owned_tile = tile_template_fixture(%{active: false, is_public: false, user_id: user.id})
+
+      assert TileTemplates.get_tile_template(public_tile.slug, nil)
+
+      assert TileTemplates.get_tile_template(public_tile.slug, user)
+      refute TileTemplates.get_tile_template(private_tile.slug, user)
+      assert TileTemplates.get_tile_template(owned_tile.slug, user)
+
+      assert TileTemplates.get_tile_template(public_tile.slug, admin)
+      assert TileTemplates.get_tile_template(private_tile.slug, admin)
+      assert TileTemplates.get_tile_template(owned_tile.slug, admin)
+    end
+
+    test "get_tile_template!/1 returns the tile_template with given slug" do
       tile_template = tile_template_fixture(%{active: true})
-      assert TileTemplates.get_tile_template_by_slug(tile_template.slug) == tile_template
+      assert TileTemplates.get_tile_template(tile_template.slug) == tile_template
     end
 
-    test "get_tile_template_by_slug!/1 raises exception when not found" do
-      assert_raise Ecto.NoResultsError, fn -> TileTemplates.get_tile_template_by_slug!("cloud_chaser") end
+    test "get_tile_template!/1 raises exception when not found" do
+      assert_raise Ecto.NoResultsError, fn -> TileTemplates.get_tile_template!("cloud_chaser") end
     end
 
     test "next_version_exists?/1 is true if the tile_template has a next version" do

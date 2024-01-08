@@ -39,13 +39,7 @@ defmodule DungeonCrawl.SharedTests do
           Map.get(export, unquote(asset_key))[unquote(key)]
           |> Map.merge(%{user_id: user.id}))
 
-        find_asset_mock = fn
-          _, %{public: _} -> nil
-          ^user_id, %{user_id: ^user_id} -> asset
-        end
-        unused_function = fn _ -> raise "unexpected call for create asset" end
-
-        updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, unused_function, user.id)
+        updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
 
         # The other fields in the export are unchanged
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
@@ -61,13 +55,7 @@ defmodule DungeonCrawl.SharedTests do
           Map.get(export, unquote(asset_key))[unquote(key)]
           |> Map.merge(%{user_id: nil, public: true}))
 
-        find_asset_mock = fn
-          _, %{public: _} -> asset
-          user_id, %{user_id: _} -> nil
-        end
-        unused_function = fn _ -> raise "unexpected call for create asset" end
-
-        updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, unused_function, user.id)
+        updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
 
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
         assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
@@ -78,10 +66,7 @@ defmodule DungeonCrawl.SharedTests do
         user = insert_user()
         attrs = Map.get(export, unquote(asset_key))[unquote(key)]
 
-        find_asset_mock = fn _, _ -> nil end
-        create_asset_mock = fn attrs -> unquote(insert_asset_fn).(attrs) end
-
-        updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, create_asset_mock, user.id)
+        updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
 
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
         assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
@@ -109,10 +94,7 @@ defmodule DungeonCrawl.SharedTests do
           attrs = Map.merge(Map.get(export, unquote(asset_key))[unquote(key)], %{user_id: user.id, script: "test words"})
           export = %{ export | unquote(asset_key) => %{unquote(key) => attrs} }
 
-          find_asset_mock = fn _, _ -> nil end
-          create_asset_mock = fn attrs -> unquote(insert_asset_fn).(attrs) end
-
-          updated_export = find_or_create_assets(export, unquote(asset_key), find_asset_mock, create_asset_mock, user.id)
+          updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
 
           assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
 
