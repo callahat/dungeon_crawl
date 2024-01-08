@@ -34,12 +34,11 @@ defmodule DungeonCrawl.SharedTests do
       @tag asset_key: unquote(asset_key), key: unquote(key)
       test "#{ unquote(asset_key) } - find when its owned by the user", %{export: export} do
         user = insert_user()
-        user_id = user.id
         asset = unquote(insert_asset_fn).(
           Map.get(export, unquote(asset_key))[unquote(key)]
           |> Map.merge(%{user_id: user.id}))
 
-        updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
+        updated_export = find_or_create_assets(export, unquote(asset_key), user)
 
         # The other fields in the export are unchanged
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
@@ -55,7 +54,7 @@ defmodule DungeonCrawl.SharedTests do
           Map.get(export, unquote(asset_key))[unquote(key)]
           |> Map.merge(%{user_id: nil, public: true}))
 
-        updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
+        updated_export = find_or_create_assets(export, unquote(asset_key), user)
 
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
         assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
@@ -66,7 +65,7 @@ defmodule DungeonCrawl.SharedTests do
         user = insert_user()
         attrs = Map.get(export, unquote(asset_key))[unquote(key)]
 
-        updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
+        updated_export = find_or_create_assets(export, unquote(asset_key), user)
 
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
         assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
@@ -94,7 +93,7 @@ defmodule DungeonCrawl.SharedTests do
           attrs = Map.merge(Map.get(export, unquote(asset_key))[unquote(key)], %{user_id: user.id, script: "test words"})
           export = %{ export | unquote(asset_key) => %{unquote(key) => attrs} }
 
-          updated_export = find_or_create_assets(export, unquote(asset_key), user.id)
+          updated_export = find_or_create_assets(export, unquote(asset_key), user)
 
           assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
 

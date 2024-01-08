@@ -8,10 +8,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   to private and owned by the importing user.
   """
 
-  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Shipping.DungeonExports
-  alias DungeonCrawl.TileTemplates
-  alias DungeonCrawl.Sound
   alias DungeonCrawl.Shipping.AssetImport
 
   alias DungeonCrawl.Repo
@@ -29,18 +26,18 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
             tile_templates: %{},
             sounds: %{}
 
-  def run(%DungeonExports{} = export, user_id, line_identifier \\ nil) do
+  def run(%DungeonExports{} = export, user, line_identifier \\ nil) do
     # do something different if this import is in progress and there were ambiguous matches resolved
-    export = find_or_create_assets(export, :sounds, user_id)
-             |> find_or_create_assets(:items, user_id)
-             |> find_or_create_assets(:tile_templates, user_id)
+    export = find_or_create_assets(export, :sounds, user)
+             |> find_or_create_assets(:items, user)
+             |> find_or_create_assets(:tile_templates, user)
     # at this point, bail if there are ambiguous matches that are unresolved
              |> swap_scripts_to_tmp_scripts(:tiles)
              |> repoint_ttids_and_slugs(:tiles)
              |> repoint_ttids_and_slugs(:items)
              |> repoint_ttids_and_slugs(:tile_templates)
              |> repoint_dungeon_starting_items()
-             |> set_dungeon_overrides(user_id, line_identifier)
+             |> set_dungeon_overrides(user.id, line_identifier)
              |> maybe_handle_previous_version()
              |> create_dungeon()
              |> create_levels()

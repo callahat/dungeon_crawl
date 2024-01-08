@@ -37,11 +37,11 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   # the fuzzy search, when candidates are found the slug in the candidate will need to be checked
   # to see if its a usable match for the given user; if not then asset(s) not match so a new one
   # will need created.
-  def find_or_create_assets(export, asset_key, user_id) do
+  def find_or_create_assets(export, asset_key, user) do
     assets =
       Map.get(export, asset_key)
       |> Enum.map(fn {tmp_id, attrs} ->
-        asset = find_or_create_asset(export, asset_key, attrs, user_id)
+        asset = find_or_create_asset(export, asset_key, attrs, user)
 
         {tmp_id, asset}
       end)
@@ -52,14 +52,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   # todo: how to get the dungeon_import_id in here, not currently in the export struct
   # This will have a aside affect of creating an asset_import record potentially
-  defp find_or_create_asset(export, asset_key, attrs, user_id) do
+  defp find_or_create_asset(export, asset_key, attrs, user) do
     with slug = attrs[:slug],
          attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
-         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user_id, Map.delete(attrs, :user_id)),
-         attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
-         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user_id, attrs),
+         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user.id, Map.delete(attrs, :user_id)),
+         attrs = Map.put(attrs, :user_id, user.id) |> Map.delete(:public),
+         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user.id, attrs),
          attrs = Map.put(attrs, :active, true) do
-#      existing_by_slug = find_asset
+      existing_by_slug = @asset_functions[asset_key].find_by_slug.(slug, user)
 
       # at this point, the match on attributes failed
       # this if/else will change
@@ -79,23 +79,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       asset ->
         asset
     end
-  end
-
-  # if theres a potentially useable slug, have the user pick what to do
-  defp check_by_slug(nil, find_asset, user_id), do: {:no_slug, nil}
-  defp check_by_slug(slug, find_asset, user_id) do
-# todo: have this function use the get_<thing> - equipment has a get_item function that takes an
-# identifer and a user struct and does some of this checking, so functions like that
-# will be useful for finding a matching asset thta the user may used based on the slug.
-# It might be worthwile to stop passing functions around, and just use a mapping
-# based on the asset key and function type since we need three different functions based on the asset
-# (find, create, and find by slug and check the user can use it
-#    with asset when is_nil(asset) <- find_asset.(user_id, Map.take(attrs, [:slug])),
-#         attrs = Map.put(attrs, :user_id, user_id) |> Map.delete(:public),
-#                                                                                                                      asset when is_nil(asset) <- find_asset.(user_id, attrs) do
-#    else
-#
-#    end
   end
 
   def find_effect(_user_id, attrs) do

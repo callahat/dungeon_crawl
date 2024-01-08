@@ -56,7 +56,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     end
 
     test "run/2 the imported dungeon is to be a new dungeon and not a new version of one existing", config do
-      user_id = config.user.id
+      user = config.user
 
       tile_template_count = Enum.count(TileTemplates.list_tile_templates())
       sound_count = Enum.count(Sound.list_effects())
@@ -74,7 +74,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                tile_templates: tile_templates,
                tiles: tiles,
                levels: levels,
-             } = DungeonImports.run(config.export_hash, user_id)
+             } = DungeonImports.run(config.export_hash, user)
 
       assert 6 == Enum.count(TileTemplates.list_tile_templates()) - tile_template_count
       assert 3 == Enum.count(Sound.list_effects()) - sound_count
@@ -84,12 +84,12 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       # tile templates
       assert config.existing_tiles.rock == TileTemplates.get_tile_template("rock")
       assert config.existing_tiles.stone == TileTemplates.get_tile_template("stone")
-      assert floor = TileTemplates.find_tile_template(%{name: "Floor", user_id: user_id, public: false})
-      assert closed_door = TileTemplates.find_tile_template(%{name: "Closed Door", user_id: user_id, public: false})
-      assert open_door = TileTemplates.find_tile_template(%{name: "Open Door", user_id: user_id, public: false})
-      assert wall = TileTemplates.find_tile_template(%{name: "Wall", user_id: user_id, public: false})
-      assert fireball = TileTemplates.find_tile_template(%{name: "Fireball", user_id: user_id, public: false})
-      assert explosion = TileTemplates.find_tile_template(%{name: "Explosion", user_id: user_id, public: false})
+      assert floor = TileTemplates.find_tile_template(%{name: "Floor", user_id: user.id, public: false})
+      assert closed_door = TileTemplates.find_tile_template(%{name: "Closed Door", user_id: user.id, public: false})
+      assert open_door = TileTemplates.find_tile_template(%{name: "Open Door", user_id: user.id, public: false})
+      assert wall = TileTemplates.find_tile_template(%{name: "Wall", user_id: user.id, public: false})
+      assert fireball = TileTemplates.find_tile_template(%{name: "Fireball", user_id: user.id, public: false})
+      assert explosion = TileTemplates.find_tile_template(%{name: "Explosion", user_id: user.id, public: false})
 
       assert comp_tt_fields(floor)
              == comp_tt_fields(config.export_hash.tile_templates["tmp_tt_id_0"])
@@ -119,25 +119,25 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       assert explosion.active
 
       assert Map.take(floor, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "floor_#{ floor.id }", public: false}
+             == %{user_id: user.id, slug: "floor_#{ floor.id }", public: false}
       assert Map.take(closed_door, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "closed_door_#{ closed_door.id }", public: false}
+             == %{user_id: user.id, slug: "closed_door_#{ closed_door.id }", public: false}
       assert Map.take(open_door, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "open_door_#{ open_door.id }", public: false}
+             == %{user_id: user.id, slug: "open_door_#{ open_door.id }", public: false}
       assert Map.take(wall, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "wall_#{ wall.id }", public: false}
+             == %{user_id: user.id, slug: "wall_#{ wall.id }", public: false}
       assert Map.take(fireball, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "fireball_#{ fireball.id }", public: false}
+             == %{user_id: user.id, slug: "fireball_#{ fireball.id }", public: false}
       assert Map.take(explosion, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "explosion_#{ explosion.id }", public: false}
+             == %{user_id: user.id, slug: "explosion_#{ explosion.id }", public: false}
 
       # sounds effects
       assert config.sounds.alarm == Sound.get_effect_by_slug("alarm")
       assert config.sounds.pickup_blip == Sound.get_effect_by_slug("pickup_blip")
       assert config.sounds.shoot == Sound.get_effect_by_slug("shoot")
-      assert click = Sound.find_effect(%{name: "Click", user_id: user_id, public: false})
-      assert bomb = Sound.find_effect(%{name: "Bomb", user_id: user_id, public: false})
-      assert door = Sound.find_effect(%{name: "Door", user_id: user_id, public: false})
+      assert click = Sound.find_effect(%{name: "Click", user_id: user.id, public: false})
+      assert bomb = Sound.find_effect(%{name: "Bomb", user_id: user.id, public: false})
+      assert door = Sound.find_effect(%{name: "Door", user_id: user.id, public: false})
 
       assert comp_sound_fields(click)
              == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_2"])
@@ -147,19 +147,19 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
              == comp_sound_fields(config.export_hash.sounds["tmp_sound_id_3"])
 
       assert Map.take(click, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "click_#{ click.id }", public: false}
+             == %{user_id: user.id, slug: "click_#{ click.id }", public: false}
       assert Map.take(bomb, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "bomb_#{ bomb.id }", public: false}
+             == %{user_id: user.id, slug: "bomb_#{ bomb.id }", public: false}
       assert Map.take(door, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "door_#{ door.id }", public: false}
+             == %{user_id: user.id, slug: "door_#{ door.id }", public: false}
 
       # items
       assert config.items.gun == Equipment.get_item("gun")
       assert config.items.stone == Equipment.get_item("stone")
       # the seeded gun referenced a nonexistant slug, so the import created a new gun
       # if this happened, something was probably corrupted in the destination system.
-      assert gun = Equipment.find_item(%{name: "Gun", user_id: user_id, public: false})
-      assert wand = Equipment.find_item(%{name: "Fireball Wand", user_id: user_id, public: false})
+      assert gun = Equipment.find_item(%{name: "Gun", user_id: user.id, public: false})
+      assert wand = Equipment.find_item(%{name: "Fireball Wand", user_id: user.id, public: false})
 
       assert comp_item_fields(gun)
              == comp_item_fields(config.export_hash.items["tmp_item_id_0"])
@@ -167,9 +167,9 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
              == comp_item_fields(config.export_hash.items["tmp_item_id_2"])
 
       assert Map.take(gun, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "gun_#{ gun.id }", public: false}
+             == %{user_id: user.id, slug: "gun_#{ gun.id }", public: false}
       assert Map.take(wand, [:user_id, :slug, :public])
-             == %{user_id: user_id, slug: "fireball_wand_#{ wand.id }", public: false}
+             == %{user_id: user.id, slug: "fireball_wand_#{ wand.id }", public: false}
 
       # tiles
       assert {_floor_hash, floor_tile} = Enum.find(tiles, fn {_, tile} -> tile.name == "Floor" end)
@@ -253,6 +253,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       # verify dungeon record and its details
       line_identifier = dungeon.line_identifier
       dungeon_state = %{"test" => true, "starting_equipment" => [ gun.slug, wand.slug ]}
+      user_id = user.id
       assert %{
         autogenerated: false,
         default_map_height: 20,
@@ -361,7 +362,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       prev_dungeon = insert_dungeon(%{line_identifier: 101010, active: true, user_id: config.user.id})
       assert %DungeonExports{
                dungeon: dungeon,
-             } = DungeonImports.run(config.export_hash, config.user.id, prev_dungeon.line_identifier)
+             } = DungeonImports.run(config.export_hash, config.user, prev_dungeon.line_identifier)
       assert dungeon.line_identifier == prev_dungeon.line_identifier
       assert %{deleted_at: nil} = Dungeons.get_dungeon(prev_dungeon.id)
       assert dungeon.version == prev_dungeon.version + 1
@@ -372,7 +373,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false, user_id: config.user.id})
       assert %DungeonExports{
                dungeon: dungeon,
-             } = DungeonImports.run(config.export_hash, config.user.id, inactive_dungeon.line_identifier)
+             } = DungeonImports.run(config.export_hash, config.user, inactive_dungeon.line_identifier)
       assert dungeon.line_identifier == inactive_dungeon.line_identifier
       refute Dungeons.get_dungeon(inactive_dungeon.id)
       assert dungeon.version == inactive_dungeon.version
@@ -384,7 +385,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false, user_id: other_user.id})
       assert %DungeonExports{
                dungeon: dungeon,
-             } = DungeonImports.run(config.export_hash, config.user.id, inactive_dungeon.line_identifier)
+             } = DungeonImports.run(config.export_hash, config.user, inactive_dungeon.line_identifier)
       refute dungeon.line_identifier == inactive_dungeon.line_identifier
       assert Dungeons.get_dungeon(inactive_dungeon.id)
       assert dungeon.version == 1
