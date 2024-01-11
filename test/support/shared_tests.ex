@@ -31,14 +31,17 @@ defmodule DungeonCrawl.SharedTests do
   # which have been noted in comments.
   defmacro finds_or_creates_assets_correctly(asset_key, key, insert_asset_fn, comparable_field_fn) do
     quote do
+      alias DungeonCrawl.Shipping
+
       @tag asset_key: unquote(asset_key), key: unquote(key)
       test "#{ unquote(asset_key) } - find when its owned by the user", %{export: export} do
         user = insert_user()
         asset = unquote(insert_asset_fn).(
           Map.get(export, unquote(asset_key))[unquote(key)]
           |> Map.merge(%{user_id: user.id}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
 
-        updated_export = find_or_create_assets(export, unquote(asset_key), user)
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # The other fields in the export are unchanged
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
@@ -53,8 +56,9 @@ defmodule DungeonCrawl.SharedTests do
         asset = unquote(insert_asset_fn).(
           Map.get(export, unquote(asset_key))[unquote(key)]
           |> Map.merge(%{user_id: nil, public: true}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
 
-        updated_export = find_or_create_assets(export, unquote(asset_key), user)
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
         assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
@@ -64,8 +68,9 @@ defmodule DungeonCrawl.SharedTests do
       test "#{ unquote(asset_key) } - creates when one exists but is not public nor owned by user", %{export: export} do
         user = insert_user()
         attrs = Map.get(export, unquote(asset_key))[unquote(key)]
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
 
-        updated_export = find_or_create_assets(export, unquote(asset_key), user)
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
         assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
@@ -92,8 +97,9 @@ defmodule DungeonCrawl.SharedTests do
           user = insert_user()
           attrs = Map.merge(Map.get(export, unquote(asset_key))[unquote(key)], %{user_id: user.id, script: "test words"})
           export = %{ export | unquote(asset_key) => %{unquote(key) => attrs} }
+          dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
 
-          updated_export = find_or_create_assets(export, unquote(asset_key), user)
+          updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
           assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
 

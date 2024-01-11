@@ -89,6 +89,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
            == Map.take(Shipping.get_import!(dungeon_import.id),
                        [:dungeon_id, :status, :user_id, :file_name, :line_identifier])
     assert user.id == imported_dungeon.user_id
+    assert imported_dungeon.version == 2
     assert imported_dungeon.previous_version_id == dungeon.id
   end
 

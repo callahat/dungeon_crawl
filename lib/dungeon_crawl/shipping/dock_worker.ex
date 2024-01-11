@@ -55,7 +55,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     user = DungeonCrawl.Repo.preload(import, :user).user
 
     import_hash = Json.decode!(import.data)
-                  |> DungeonImports.run(user, import.line_identifier)
+                  |> DungeonImports.run(user, import.id, import.line_identifier)
 
     Shipping.update_import(import,
       %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil})

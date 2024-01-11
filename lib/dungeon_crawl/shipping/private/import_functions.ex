@@ -11,6 +11,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   alias DungeonCrawl.Equipment.Item
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
+  alias DungeonCrawl.Shipping.DungeonImports
   alias DungeonCrawl.Sound
 
   use DungeonCrawl.Shipping.SlugMatching
@@ -37,13 +38,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   # the fuzzy search, when candidates are found the slug in the candidate will need to be checked
   # to see if its a usable match for the given user; if not then asset(s) not match so a new one
   # will need created.
-  def find_or_create_assets(export, asset_key, user) do
+  def find_or_create_assets(export, import_id, asset_key, user) do
     assets =
       Map.get(export, asset_key)
-      |> Enum.map(fn {tmp_id, attrs} ->
-        asset = find_or_create_asset(export, asset_key, attrs, user)
+      |> Enum.map(fn {tmp_slug, attrs} ->
+        asset = find_or_create_asset(export, import_id, asset_key, attrs, tmp_slug, user)
 
-        {tmp_id, asset}
+        {tmp_slug, asset}
       end)
       |> Enum.into(%{})
 
@@ -52,14 +53,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   # todo: how to get the dungeon_import_id in here, not currently in the export struct
   # This will have a aside affect of creating an asset_import record potentially
-  defp find_or_create_asset(export, asset_key, attrs, user) do
+  defp find_or_create_asset(export, import_id, asset_key, attrs, tmp_slug, user) do
     with slug = attrs[:slug],
          attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
          asset when is_nil(asset) <- @asset_functions[asset_key].find.(user.id, Map.delete(attrs, :user_id)),
          attrs = Map.put(attrs, :user_id, user.id) |> Map.delete(:public),
          asset when is_nil(asset) <- @asset_functions[asset_key].find.(user.id, attrs),
          attrs = Map.put(attrs, :active, true) do
-      existing_by_slug = @asset_functions[asset_key].find_by_slug.(slug, user)
 
       # at this point, the match on attributes failed
       # this if/else will change

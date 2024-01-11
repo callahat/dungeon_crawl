@@ -10,7 +10,7 @@ defmodule DungeonCrawl.Shipping.AssetImport do
     field :importing_slug, :string
     field :existing_slug, :string
     field :resolved_slug, :string
-    field :type, Ecto.Enum, values: [item: 1, sound: 2, tile_template: 3]
+    field :type, Ecto.Enum, values: [items: 1, sounds: 2, tile_templates: 3]
     belongs_to :dungeon_import, Import
 
     timestamps()
@@ -20,6 +20,6 @@ defmodule DungeonCrawl.Shipping.AssetImport do
   def changeset(asset_import, attrs) do
     asset_import
     |> cast(attrs, [:dungeon_import_id, :type, :importing_slug, :existing_slug, :resolved_slug, :action, :attributes])
-    |> validate_required([:dungeon_import_id, :type, :importing_slug, :action])
+    |> validate_required([:dungeon_import_id, :type, :importing_slug, :existing_slug, :action])
   end
 end

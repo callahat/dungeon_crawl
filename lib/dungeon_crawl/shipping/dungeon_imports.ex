@@ -26,11 +26,11 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
             tile_templates: %{},
             sounds: %{}
 
-  def run(%DungeonExports{} = export, user, line_identifier \\ nil) do
+  def run(%DungeonExports{} = export, user, import_id, line_identifier) do
     # do something different if this import is in progress and there were ambiguous matches resolved
-    export = find_or_create_assets(export, :sounds, user)
-             |> find_or_create_assets(:items, user)
-             |> find_or_create_assets(:tile_templates, user)
+    export = find_or_create_assets(export, import_id, :sounds, user)
+             |> find_or_create_assets(import_id, :items, user)
+             |> find_or_create_assets(import_id, :tile_templates, user)
     # at this point, bail if there are ambiguous matches that are unresolved
              |> swap_scripts_to_tmp_scripts(:tiles)
              |> repoint_ttids_and_slugs(:tiles)
@@ -74,12 +74,13 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
       iex> create_asset_import(%{dungeon_import_id: 123, type: "bad_item", ...})
       ** (Ecto.InvalidChangesetError)
   """
-  def create_asset_import!(import_id, type, tmp_slug, attrs) do
+  def create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs) do
     %AssetImport{}
     |> AssetImport.changeset(%{
          dungeon_import_id: import_id,
          type: type,
          importing_slug: tmp_slug,
+         existing_slug: existing_slug,
          attributes: attrs
        })
     |> Repo.insert!()
@@ -96,10 +97,10 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
       iex> find_or_create_asset_import!(123, "bad_type", "tmp_item_id_1")
       ** (Ecto.InvalidChangesetError)
   """
-  def find_or_create_asset_import!(import_id, type, tmp_slug, attrs) do
+  def find_or_create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs) do
     case get_asset_import(import_id, type, tmp_slug) do
       nil ->
-        create_asset_import!(import_id, type, tmp_slug, attrs)
+        create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs)
 
       asset_import ->
         asset_import
