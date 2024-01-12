@@ -117,12 +117,9 @@ defmodule DungeonCrawl.TileTemplates do
   def _get_tile_template!(slug), do: Repo.one!(_by_slug_query(slug))
 
   def get_tile_template(nil, :validation), do: nil
-  def get_tile_template(slug, :validation) do
-    Repo.one(from tt in TileTemplate,
-             where: tt.slug == ^slug and is_nil(tt.deleted_at),
-             order_by: [desc: :id],
-             limit: 1)
-  end
+  def get_tile_template(slug, :validation), do: Repo.one(_by_slug_for_validation_query(slug))
+  def get_tile_template!(slug, :validation), do: Repo.one!(_by_slug_for_validation_query(slug))
+
   def get_tile_template(slug, user) when is_binary(slug) do
     tile_template = get_tile_template(slug, :validation)
 
@@ -140,6 +137,13 @@ defmodule DungeonCrawl.TileTemplates do
   defp _by_slug_query(slug) do
     from tt in TileTemplate,
          where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
+         order_by: [desc: :id],
+         limit: 1
+  end
+
+  defp _by_slug_for_validation_query(slug) do
+    from tt in TileTemplate,
+         where: tt.slug == ^slug and is_nil(tt.deleted_at),
          order_by: [desc: :id],
          limit: 1
   end

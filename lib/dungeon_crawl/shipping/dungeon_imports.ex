@@ -11,6 +11,10 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   alias DungeonCrawl.Shipping.DungeonExports
   alias DungeonCrawl.Shipping.AssetImport
 
+  alias DungeonCrawl.Equipment
+  alias DungeonCrawl.Sound
+  alias DungeonCrawl.TileTemplates
+
   alias DungeonCrawl.Repo
 
   use DungeonCrawl.Shipping.SlugMatching
@@ -105,5 +109,28 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
       asset_import ->
         asset_import
     end
+  end
+
+  @doc """
+  Gets the resolved asset.
+  """
+  def get_resolved_asset!(%{resolved_slug: nil}) do
+    raise __MODULE__.AssetImportNotResolved
+  end
+  def get_resolved_asset!(%AssetImport{action: :resolved, type: :items} = import) do
+    Equipment.get_item!(import.resolved_slug)
+  end
+  def get_resolved_asset!(%AssetImport{action: :resolved, type: :sounds} = import) do
+    Sound.get_effect!(import.resolved_slug)
+  end
+  def get_resolved_asset!(%AssetImport{action: :resolved, type: :tile_templates} = import) do
+    TileTemplates.get_tile_template!(import.resolved_slug, :validation)
+  end
+  def get_resolved_asset!(%{action: action}) do
+    raise __MODULE__.AssetImportNotResolved, "Cannot get resolved asset when action is #{ action }"
+  end
+
+  defmodule AssetImportNotResolved do
+    defexception message: "Cannot get resolved asset"
   end
 end

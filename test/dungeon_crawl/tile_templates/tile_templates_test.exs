@@ -85,6 +85,15 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert TileTemplates.get_tile_template(tile_template.slug, :validation)
     end
 
+    test "get_tile_template!/2 for validation returns template even when no active tile template" do
+      tile_template = tile_template_fixture(%{active: false})
+      assert TileTemplates.get_tile_template!(tile_template.slug, :validation)
+    end
+
+    test "get_tile_template!/2 when no matching tile template" do
+      assert_raise Ecto.NoResultsError, fn -> TileTemplates.get_tile_template!("quijibo", :validation) end
+    end
+
     test "get_tile_template/2 when given a user" do
       user = insert_user()
       admin = insert_user(%{is_admin: true})
