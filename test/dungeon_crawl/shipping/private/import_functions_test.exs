@@ -52,26 +52,26 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       :sounds, "tmp_sound_id_0", &insert_effect/1, &Sound.copy_fields/1)
   end
 
-  describe "find_effect/2" do
+  describe "find_asset/3 :sounds" do
     test "finds the effect, user id impacts nothing" do
       user_id = "not_used"
       click = SoundSeeder.click()
 
       attrs = Map.take(click, [:name, :public, :user_id, :zzfx_params, :slug])
 
-      assert click == find_effect(user_id, attrs)
-      assert find_effect(user_id, attrs) == find_effect(nil, attrs)
-      refute find_effect(user_id, %{ attrs | name: "different" <> click.name})
+      assert click == find_asset(:sounds, attrs, %{id: user_id})
+      assert find_asset(:sounds, attrs, %{id: user_id}) == find_asset(:sounds, attrs, %{id: nil})
+      refute find_asset(:sounds, %{ attrs | name: "different" <> click.name}, %{id: user_id})
     end
   end
 
-  describe "find_item/2" do
+  describe "find_asset/3 :items" do
     test "an existing public item can be used" do
       user = insert_user()
       potion = EquipmentSeeder.levitation_potion()
 
       attrs = Equipment.copy_fields(potion)
-      assert potion == find_item(user.id, attrs)
+      assert potion == find_asset(:items, attrs, user)
     end
 
     test "an existing private item owned by someone else" do
@@ -81,7 +81,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       attrs = Equipment.copy_fields(item)
       # right now, no checks happen to see if a slug belongs to someone else for a match
-      assert item == find_item(user.id, attrs)
+      assert item == find_asset(:items, attrs, user)
     end
 
     test "an existing item owned by importer" do
@@ -89,7 +89,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       tile = insert_item(%{user_id: user.id})
 
       attrs = Equipment.copy_fields(tile)
-      assert tile == find_item(user.id, attrs)
+      assert tile == find_asset(:items, attrs, user)
     end
 
     test "a nonexistant item" do
@@ -97,7 +97,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       attrs = %{name: "non existant", script: "HI"}
 
-      refute find_item(user.id, attrs)
+      refute find_asset(:items, attrs, user)
     end
 
     test "an item with a script referencing a nonexistant asset slug" do
@@ -105,11 +105,19 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       tile = insert_item(%{public: true, script: "#become slug: clay"})
 
       attrs = Equipment.copy_fields(tile)
-      refute find_item(user.id, attrs)
+      refute find_asset(:items, attrs, user)
+    end
+
+    test "with a slug, wraps the Equipment function" do
+      user = insert_user()
+      item = insert_item(%{user_id: user.id})
+      other_item = insert_item(%{name: "other thing", public: false, user_id: user.id})
+      assert find_asset(:items, item.slug, user) == item
+      refute find_asset(:items, other_item.slug, %{ user | id: user.id + 1})
     end
   end
 
-  describe "find_tile_template/2" do
+  describe "find_asset/3 :tile_templates" do
     test "an existing public template can be used" do
       user = insert_user()
       bandit = TileTemplateSeeder.bandit()
@@ -134,13 +142,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       # the actual tests
       attrs = TileTemplates.copy_fields(bandit)
-      assert bandit == find_tile_template(user.id, attrs)
+      assert bandit == find_asset(:tile_templates, attrs, user)
 
       # slightly different state causes a miss
       Ecto.Adapters.SQL.query!(DungeonCrawl.Repo,
         "UPDATE tile_templates SET state = '#{misorderd_state}, different: yes' WHERE id = #{bandit.id}", [])
 
-      refute find_tile_template(user.id, attrs)
+      refute find_asset(:tile_templates, attrs, user)
     end
 
     test "an existing template that is private and someone elses" do
@@ -150,7 +158,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       attrs = TileTemplates.copy_fields(tile)
       # right now, no checks happen to see if a slug belongs to someone else for a match
-      assert tile == find_tile_template(user.id, attrs)
+      assert tile == find_asset(:tile_templates, attrs, user)
     end
 
     test "an existing template owned by importer" do
@@ -158,7 +166,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       tile = insert_tile_template(%{user_id: user.id})
 
       attrs = TileTemplates.copy_fields(tile)
-      assert tile == find_tile_template(user.id, attrs)
+      assert tile == find_asset(:tile_templates, attrs, user)
     end
 
     test "a template that does not exist" do
@@ -174,7 +182,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         group_name: "custom"
       }
 
-      refute find_tile_template(user.id, attrs)
+      refute find_asset(:tile_templates, attrs, user)
     end
 
     test "a template with a script refering to a slug that does not exist" do
@@ -182,7 +190,25 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       tile = insert_tile_template(%{public: true, active: true, script: "#become slug: clay"})
 
       attrs = TileTemplates.copy_fields(tile)
-      refute find_tile_template(user.id, attrs)
+      refute find_asset(:tile_templates, attrs, user)
+    end
+
+    test "with a slug wraps the TileTemplates function" do
+      user = insert_user()
+      admin = insert_user(%{is_admin: true})
+      public_tile = insert_tile_template(%{active: false, is_public: true})
+      private_tile = insert_tile_template(%{is_public: false, user_id: admin.id})
+      owned_tile = insert_tile_template(%{active: false, is_public: false, user_id: user.id})
+
+      assert find_asset(:tile_templates, public_tile.slug, nil)
+
+      assert find_asset(:tile_templates, public_tile.slug, user)
+      refute find_asset(:tile_templates, private_tile.slug, user)
+      assert find_asset(:tile_templates, owned_tile.slug, user)
+
+      assert find_asset(:tile_templates, public_tile.slug, admin)
+      assert find_asset(:tile_templates, private_tile.slug, admin)
+      assert find_asset(:tile_templates, owned_tile.slug, admin)
     end
   end
 
@@ -249,6 +275,72 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       """
 
       refute all_slugs_useable?(script, 1)
+    end
+  end
+
+  describe "create_asset/2 :sounds" do
+    test "creates a sound effect" do
+      attrs = %{name: "bloop", zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"}
+      sound = create_asset(:sounds, attrs)
+      assert sound.name == attrs.name
+      assert sound.zzfx_params == attrs.zzfx_params
+      assert is_integer(sound.id)
+    end
+  end
+
+  describe "create_asset/2 :items" do
+    test "creates an item" do
+      attrs = %{name: "stick", script: "it does nothing"}
+      item = create_asset(:items, attrs)
+      assert item.name == attrs.name
+      assert item.script == "#end"
+      assert item.tmp_script == "it does nothing"
+      assert is_integer(item.id)
+    end
+  end
+
+  describe "create_asset/2 :tile_templates" do
+    test "creates a tile template" do
+      attrs = %{name: "stick", description: "it is a stick", script: "#end\n:touch\nyou pick it up"}
+      tile_template = create_asset(:tile_templates, attrs)
+      assert tile_template.name == attrs.name
+      assert tile_template.script == "#end"
+      assert tile_template.tmp_script == "#end\n:touch\nyou pick it up"
+      assert is_integer(tile_template.id)
+    end
+
+    test "creates a tile template without a script" do
+      attrs = %{name: "stick", description: "it is a stick"}
+      tile_template = create_asset(:tile_templates, attrs)
+      assert tile_template.name == attrs.name
+      assert tile_template.script == ""
+      refute Map.has_key?(tile_template, :tmp_script)
+      assert is_integer(tile_template.id)
+    end
+  end
+
+  describe "update_asset/3 :sounds" do
+    test "updates the sound" do
+      sound = insert_effect(%{name: "test", zzfx_params: "[,,,,,,,,,,,,,,,,,,]"})
+      updated_zzfx = "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"
+      assert %{zzfx_params: ^updated_zzfx} =
+               update_asset(:sounds, sound, %{zzfx_params: updated_zzfx})
+    end
+  end
+
+  describe "update_asset/3 :items" do
+    test "updates the item" do
+      item = insert_item(%{script: "old script"})
+      assert %{script: "#end", tmp_script: "new script"} =
+               update_asset(:items, item, %{script: "new script"})
+    end
+  end
+
+  describe "update_asset/3 :tile_templates" do
+    test "updates the tile template" do
+      tile_template = insert_tile_template(%{script: "old script"})
+      assert %{name: "new name", script: "#end", tmp_script: "new script"} =
+               update_asset(:tile_templates, tile_template, %{name: "new name", script: "new script"})
     end
   end
 

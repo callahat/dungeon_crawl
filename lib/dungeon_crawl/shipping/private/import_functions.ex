@@ -16,24 +16,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   use DungeonCrawl.Shipping.SlugMatching
 
-  @asset_functions %{
-    sounds: %{
-      find: &__MODULE__.find_effect/2,
-      create: &Sound.create_effect!/1,
-      find_by_slug: &Sound.get_effect/2
-    },
-    items: %{
-      find: &__MODULE__.find_item/2,
-      create: &Equipment.create_item!/1,
-      find_by_slug: &Equipment.get_item/2
-    },
-    tile_templates: %{
-      find: &__MODULE__.find_tile_template/2,
-      create: &TileTemplates.create_tile_template!/1,
-      find_by_slug: &TileTemplates.get_tile_template/2
-    }
-  }
-
   # the script will never match due to the slug; so the script will need to be a "fuzzy" match
   # the fuzzy search, when candidates are found the slug in the candidate will need to be checked
   # to see if its a usable match for the given user; if not then asset(s) not match so a new one
@@ -56,11 +38,10 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   defp find_or_create_asset(export, import_id, asset_key, attrs, tmp_slug, user) do
     with slug = attrs[:slug],
          attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
-         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user.id, Map.delete(attrs, :user_id)),
+         asset when is_nil(asset) <- find_asset(asset_key, Map.delete(attrs, :user_id), user),
          attrs = Map.put(attrs, :user_id, user.id) |> Map.delete(:public),
-         asset when is_nil(asset) <- @asset_functions[asset_key].find.(user.id, attrs),
+         asset when is_nil(asset) <- find_asset(asset_key, attrs, user),
          attrs = Map.put(attrs, :active, true) do
-
       # at this point, the match on attributes failed
       # this if/else will change
       # 1. if there is no entry in the asset_import table, create one,
@@ -69,11 +50,32 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       # 3. if a create or update action, do so, mark as resolved and updated resolved slug
       # 4. if it is resolved, then return the asset
       # some of this could probably be done in the with statement
-      if Map.get(attrs, :script, "") != "" do
-        @asset_functions[asset_key].create.(Map.put(attrs, :script, "#end"))
-        |> Map.put(:tmp_script, attrs.script)
+      asset_import = DungeonImports.get_asset_import(import_id, asset_key, tmp_slug)
+
+      if asset_import do
+        # todo: specs for this
+        # asset_import.status [waiting: 1, create_new: 2, update_existing: 3, resolved: 4]
+        # do stuff based on the status
+        case asset_import.status do
+          :waiting ->
+            nil
+          :create_new ->
+            create_asset(asset_key, attrs)
+          :update_existing ->
+            existing_by_slug = find_asset(asset_key, slug, user)
+            existing_by_slug &&
+              update_asset(:tile_templates, existing_by_slug, asset_import.attributes)
+          :resolved ->
+            find_asset(asset_key, asset_import.resolved_slug, user)
+        end
       else
-        @asset_functions[asset_key].create.(attrs)
+        existing_by_slug = find_asset(asset_key, slug, user)
+        if existing_by_slug do
+          # todo: specs for this
+          DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs)
+        else
+          create_asset(asset_key, attrs)
+        end
       end
     else
       asset ->
@@ -81,19 +83,33 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     end
   end
 
-  def find_effect(_user_id, attrs) do
+  # find by slug
+  def find_asset(:sounds, slug, user) when is_binary(slug) do
+    Sound.get_effect(slug, user)
+  end
+
+  def find_asset(:items, slug, user) when is_binary(slug) do
+    Equipment.get_item(slug, user)
+  end
+
+  def find_asset(:tile_templates, slug, user) when is_binary(slug) do
+    TileTemplates.get_tile_template(slug, user)
+  end
+
+  # find by attributes
+  def find_asset(:sounds, attrs, _user) do
     Sound.find_effect(attrs)
   end
 
-  def find_item(user_id, attrs) do
+  def find_asset(:items, attrs, user) do
     Equipment.find_items(Map.delete(attrs, :script))
-    |> useable_asset(attrs.script, user_id)
+    |> useable_asset(attrs.script, user.id)
   end
 
-  def find_tile_template(user_id, attrs) do
+  def find_asset(:tile_templates, attrs, user) do
     TileTemplates.find_tile_templates(Map.drop(attrs, [:state, :script]))
     |> Enum.filter(fn tt -> tt.state == attrs.state end)
-    |> useable_asset(attrs.script, user_id)
+    |> useable_asset(attrs.script, user.id)
   end
 
   defp useable_asset(assets, script, user_id) do
@@ -134,6 +150,54 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
         _asset -> true # asset.public || asset.user_id == user_id - maybe put this back if slug authorization is added
       end
     end)
+  end
+
+  def create_asset(:sounds, attrs) do
+    _create_and_maybe_inject_tmp_script(attrs, &Sound.create_effect!/1)
+  end
+
+  def create_asset(:items, attrs) do
+    _create_and_maybe_inject_tmp_script(attrs, &Equipment.create_item!/1)
+  end
+
+  def create_asset(:tile_templates, attrs) do
+    _create_and_maybe_inject_tmp_script(attrs, &TileTemplates.create_tile_template!/1)
+  end
+
+  # todo: add or use the ! func for these
+  def update_asset(:sounds, sound, attrs) do
+    _update_and_maybe_inject_tmp_script(sound, attrs, &Sound.update_effect/2)
+  end
+
+  def update_asset(:items, item, attrs) do
+    _update_and_maybe_inject_tmp_script(item, attrs, &Equipment.update_item/2)
+  end
+
+  def update_asset(:tile_templates, tt, attrs) do
+    _update_and_maybe_inject_tmp_script(tt, attrs, &TileTemplates.update_tile_template/2)
+  end
+
+  # todo: maybe if there are conflicts, all must be updated. As if the script changes,
+  # then there could be resolving of tmp slugs in the script that is being used to update
+  # the asset from the import, and using some as is but updating others could put things
+  # in a wierd state
+  defp _update_and_maybe_inject_tmp_script(asset, attrs, update_fn) do
+    if Map.get(attrs, :script, "") != "" do
+      {:ok, asset} = update_fn.(asset, Map.put(attrs, :script, "#end"))
+      Map.put(asset, :tmp_script, attrs.script)
+    else
+      {:ok, asset} = update_fn.(asset, attrs)
+      asset
+    end
+  end
+
+  defp _create_and_maybe_inject_tmp_script(attrs, create_fn) do
+    if Map.get(attrs, :script, "") != "" do
+      create_fn.(Map.put(attrs, :script, "#end"))
+      |> Map.put(:tmp_script, attrs.script)
+    else
+      create_fn.(attrs)
+    end
   end
 
   def resolve_ambiguous_slugs(export) do

@@ -112,6 +112,17 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   @doc """
+  Update the asset import record. Useful when resolving an asset import with a slug
+  to use, or clearing out a resolved status if something changes and goes wrong between
+  the time the asset was resolved and the import was continued.
+  """
+  def update_asset_import(%AssetImport{} = asset, attrs) do
+    asset
+    |> AssetImport.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
   Gets the resolved asset.
   """
   def get_resolved_asset!(%{resolved_slug: nil}) do
