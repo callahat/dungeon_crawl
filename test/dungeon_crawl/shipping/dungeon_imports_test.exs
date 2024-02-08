@@ -58,6 +58,12 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
         file_name: "imppport.json"
       })
 
+      # TODO: config to disable this to add a spec that verifies this is created and the import is halted (or just manually delete all asset imports
+      # Since the existing Gun item has a sound slug that does not exist,
+      # this test will treat it as something new to be created
+      DungeonImports.create_asset_import!(dungeon_import.id, :items, "tmp_item_id_0", "gun", export_hash.items["tmp_item_id_0"])
+      |> DungeonImports.update_asset_import!(%{action: :create_new})
+
       %{export_hash: export_hash, user: user, sounds: sounds, items: items, existing_tiles: existing_tiles, dungeon_import: dungeon_import}
     end
 
@@ -80,6 +86,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                tile_templates: tile_templates,
                tiles: tiles,
                levels: levels,
+               status: "done"
              } = DungeonImports.run(config.export_hash, user, config.dungeon_import.id, nil)
 
       assert 6 == Enum.count(TileTemplates.list_tile_templates()) - tile_template_count
@@ -377,8 +384,12 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
     test "run/4 latest dungeon of line is inactive", config do
       inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false, user_id: config.user.id})
+
+
+
       assert %DungeonExports{
                dungeon: dungeon,
+               status: "done",
              } = DungeonImports.run(config.export_hash, config.user, config.dungeon_import.id, inactive_dungeon.line_identifier)
       assert dungeon.line_identifier == inactive_dungeon.line_identifier
       refute Dungeons.get_dungeon(inactive_dungeon.id)

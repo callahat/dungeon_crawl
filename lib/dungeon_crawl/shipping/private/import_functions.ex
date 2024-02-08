@@ -24,7 +24,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     assets =
       Map.get(export, asset_key)
       |> Enum.map(fn {tmp_slug, attrs} ->
-        asset = find_or_create_asset(export, import_id, asset_key, attrs, tmp_slug, user)
+        asset = find_or_create_asset(import_id, asset_key, attrs, tmp_slug, user)
 
         {tmp_slug, asset}
       end)
@@ -33,9 +33,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     %{ export | asset_key => assets }
   end
 
-  # todo: how to get the dungeon_import_id in here, not currently in the export struct
   # This will have a aside affect of creating an asset_import record potentially
-  defp find_or_create_asset(export, import_id, asset_key, attrs, tmp_slug, user) do
+  defp find_or_create_asset(import_id, asset_key, attrs, tmp_slug, user) do
     with slug = attrs[:slug],
          attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
          asset when is_nil(asset) <- find_asset(asset_key, Map.delete(attrs, :user_id), user),
@@ -53,19 +52,27 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       asset_import = DungeonImports.get_asset_import(import_id, asset_key, tmp_slug)
 
       if asset_import do
-        # todo: specs for this
-        # asset_import.status [waiting: 1, create_new: 2, update_existing: 3, resolved: 4]
-        # do stuff based on the status
-        case asset_import.status do
+        case asset_import.action do
           :waiting ->
             nil
           :create_new ->
-            create_asset(asset_key, attrs)
+            asset = create_asset(asset_key, attrs)
+            DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: asset.slug})
+            asset
+          :use_existing ->
+            DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
+            find_asset(asset_key, slug, user)
           :update_existing ->
+            # todo: make sure user can only do this if owner of asset or admin, probably just need a spec
             existing_by_slug = find_asset(asset_key, slug, user)
-            existing_by_slug &&
-              update_asset(:tile_templates, existing_by_slug, asset_import.attributes)
+            attributes = Enum.map(asset_import.attributes, fn {k, v} -> {String.to_existing_atom(k), v} end)
+                         |> Enum.into(%{})
+            asset = existing_by_slug &&
+              update_asset(asset_key, existing_by_slug, attributes)
+            DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
+            asset
           :resolved ->
+            # this will likely not happen unless the asset is changed after resolution
             find_asset(asset_key, asset_import.resolved_slug, user)
         end
       else
@@ -73,6 +80,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
         if existing_by_slug do
           # todo: specs for this
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs)
+          nil
+
         else
           create_asset(asset_key, attrs)
         end
@@ -182,6 +191,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   # the asset from the import, and using some as is but updating others could put things
   # in a wierd state
   defp _update_and_maybe_inject_tmp_script(asset, attrs, update_fn) do
+    attrs = Map.drop(attrs, [:user_id])
+
     if Map.get(attrs, :script, "") != "" do
       {:ok, asset} = update_fn.(asset, Map.put(attrs, :script, "#end"))
       Map.put(asset, :tmp_script, attrs.script)
@@ -198,11 +209,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     else
       create_fn.(attrs)
     end
-  end
-
-  def resolve_ambiguous_slugs(export) do
-    # todo: if there are any unresolved ambiguous slugs, this will serve as the breaker,
-    # update the export status to :waiting, and update the
   end
 
   def swap_scripts_to_tmp_scripts(%{status: "running"} = export, asset_key) do
@@ -360,7 +366,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   def complete_dungeon_import(%{status: "running", dungeon: dungeon} = export) do
     {:ok, dungeon} = Dungeons.update_dungeon(dungeon, %{importing: false})
-    %{ export | dungeon: dungeon }
+    %{ export | dungeon: dungeon, status: "done" }
   end
   def complete_dungeon_import(export), do: export
 end

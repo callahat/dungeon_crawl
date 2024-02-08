@@ -107,14 +107,14 @@ defmodule DungeonCrawl.Equipment do
   """
   def create_item(attrs \\ %{}) do
     %Item{}
-    |> Item.changeset(attrs)
+    |> Item.new_changeset(attrs)
     |> Repo.insert()
     |> Item.add_slug()
   end
 
   def create_item!(attrs \\ %{}) do
     %Item{}
-    |> Item.changeset(attrs)
+    |> Item.new_changeset(attrs)
     |> Repo.insert!()
     |> Item.add_slug!()
   end

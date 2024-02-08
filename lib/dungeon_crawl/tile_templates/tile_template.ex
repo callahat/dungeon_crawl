@@ -50,32 +50,44 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
     @groups
   end
 
+  @changeable_attrs [
+    :name,
+    :character,
+    :description,
+    :color,
+    :background_color,
+    :script,
+    :version,
+    :active,
+    :public,
+    :previous_version_id,
+    :deleted_at,
+    :user_id,
+    :state_variables,
+    :state_values,
+    :state,
+    :unlisted,
+    :animate_random,
+    :animate_colors,
+    :animate_background_colors,
+    :animate_characters,
+    :animate_period,
+    :group_name
+  ]
+
+  @doc false
+  def new_changeset(tile_template, attrs) do
+    _changeset(tile_template, attrs, [:slug | @changeable_attrs])
+  end
+
   @doc false
   def changeset(tile_template, attrs) do
+    _changeset(tile_template, attrs, @changeable_attrs)
+  end
+
+  defp _changeset(tile_template, attrs, castables) do
     tile_template
-    |> cast(attrs, [:name,
-                    :character,
-                    :description,
-                    :color,
-                    :background_color,
-                    :script,
-                    :version,
-                    :active,
-                    :public,
-                    :previous_version_id,
-                    :deleted_at,
-                    :user_id,
-                    :state_variables,
-                    :state_values,
-                    :state,
-                    :unlisted,
-                    :animate_random,
-                    :animate_colors,
-                    :animate_background_colors,
-                    :animate_characters,
-                    :animate_period,
-                    :group_name],
-         empty_values: [""])
+    |> cast(attrs, castables, empty_values: [""])
     |> validate_required([:name, :description])
     |> validate_inclusion(:group_name, @groups)
     |> validate_animation_fields

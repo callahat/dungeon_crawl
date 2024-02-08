@@ -6,7 +6,7 @@ defmodule DungeonCrawl.EquipmentTest do
   describe "items" do
     alias DungeonCrawl.Equipment.Item
 
-    @valid_attrs %{name: "thing", description: "A thing", public: true, script: "#give gems, 1, @facing", slug: "some slug"}
+    @valid_attrs %{name: "thing", description: "A thing", public: true, script: "#give gems, 1, @facing"}
     @update_attrs %{name: "updated thing", description: "An updated thing", public: false, script: "#take gems, 1, @facing", slug: "some updated slug"}
     @invalid_attrs %{name: "Bob", script: "#fakecommand"}
 

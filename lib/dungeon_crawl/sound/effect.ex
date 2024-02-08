@@ -15,10 +15,21 @@ defmodule DungeonCrawl.Sound.Effect do
     timestamps()
   end
 
+  @changeable_attrs [:name, :zzfx_params, :public, :user_id]
+
+  @doc false
+  def new_changeset(effect, attrs) do
+    _changeset(effect, attrs, [:slug | @changeable_attrs])
+  end
+
   @doc false
   def changeset(effect, attrs) do
+    _changeset(effect, attrs, @changeable_attrs)
+  end
+
+  defp _changeset(effect, attrs, castables) do
     effect
-    |> cast(attrs, [:name, :zzfx_params, :public, :user_id])
+    |> cast(attrs, castables)
     |> validate_required([:name, :zzfx_params])
     |> _validate_zzfx_params()
     |> unique_constraint(:slug, name: :effects_slug_index, message: "Slug already exists")

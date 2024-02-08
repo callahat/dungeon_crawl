@@ -32,6 +32,12 @@ defmodule DungeonCrawl.SharedTests do
   defmacro finds_or_creates_assets_correctly(asset_key, key, insert_asset_fn, comparable_field_fn) do
     quote do
       alias DungeonCrawl.Shipping
+      alias DungeonCrawl.Shipping.DungeonImports
+
+      setup config do
+        user = insert_user()
+        Map.merge(config, %{user: user})
+      end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
       test "#{ unquote(asset_key) } - find when its owned by the user", %{export: export} do
@@ -88,6 +94,174 @@ defmodule DungeonCrawl.SharedTests do
           refute Map.has_key?(asset, :tmp_script)
         end
         assert asset.user_id == user.id
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when exists with old slug and attributes are different creates asset_import",
+           %{export: export, user: user} do
+#        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(asset_from_import
+                                         |> Map.merge(%{user_id: user.id, slug: asset_from_import.slug, name: "Updated - common field"}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        # An asset import is created with waiting action
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert %{unquote(asset_key) => %{unquote(key) => nil}} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        existing_slug = asset_from_import.slug
+        user_id = user.id
+        assert %{
+                 existing_slug: ^existing_slug,
+                 importing_slug: unquote(key),
+                 action: :waiting,
+               } = asset_import
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when an asset import exists but is waiting does nothing",
+           %{export: export} do
+        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(asset_from_import
+                                          |> Map.merge(%{user_id: user.id, slug: asset_from_import.slug, name: "Old - common field"}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+        attributes_with_string_keys = existing_import.attributes
+                                      |> Enum.map( fn {k, v} -> {to_string(k), v} end)
+                                      |> Enum.into(%{})
+        existing_import = %{ existing_import | attributes: attributes_with_string_keys }
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        # An asset import looked up and unchanged
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert %{unquote(asset_key) => %{unquote(key) => nil}} = updated_export
+        assert existing_import == DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when an asset import exists and should use existing",
+           %{export: export} do
+        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(Map.merge(asset_from_import, %{user_id: user.id, slug: asset_from_import.slug, name: "Use existing"}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+                          |> DungeonImports.update_asset_import!(%{action: :use_existing})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        # Other export details unchanged
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+
+        # gets the record and uses it in the map
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        assert asset_import.action == :resolved
+        assert asset_import.resolved_slug == asset.slug
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when an asset import exists and should update existing", %{export: export} do
+        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(asset_from_import
+                                          |> Map.merge(%{user_id: user.id, slug: asset_from_import.slug, name: "Old - common field"}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+                          |> DungeonImports.update_asset_import!(%{action: :update_existing})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        # Other export details unchanged
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+
+        # updates the record and sets it in the map
+        assert %{unquote(asset_key) => %{unquote(key) => updated_asset}} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        assert asset_import.action == :resolved
+        assert updated_asset.id == asset.id
+        assert updated_asset.name != asset.name # this was updated
+        assert updated_asset.name == asset_from_import.name
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when an asset import exists and should create new", %{export: export} do
+        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(asset_from_import
+                                          |> Map.merge(%{user_id: user.id, slug: asset_from_import.slug, name: "slightly different"}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+                          |> DungeonImports.update_asset_import!(%{action: :create_new})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        # Other export details unchanged
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+
+        # creates the record and sets it in the map
+        assert %{unquote(asset_key) => %{unquote(key) => new_asset}} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+
+        assert asset_import.action == :resolved
+        assert asset_import.resolved_slug =~ ~r/#{ asset.slug }_\d+/
+        assert new_asset.slug == asset_import.resolved_slug
+        assert new_asset.id != asset.id
+        assert new_asset.name == asset_from_import.name
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when an asset import exists and is resolved", %{export: export} do
+        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(Map.merge(asset_from_import, %{user_id: user.id}))
+
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+                          |> DungeonImports.update_asset_import!(%{action: :resolved, resolved_slug: asset.slug})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+
+        # updates the record and sets it in the map
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        assert asset_import.action == :resolved
+        assert asset_import.resolved_slug == asset.slug
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key)
+      test "#{ unquote(asset_key) } - when an asset import exists and is resolved but asset was changed", %{export: export} do
+        user = insert_user()
+        asset_from_import = Map.get(export, unquote(asset_key))[unquote(key)]
+        asset = unquote(insert_asset_fn).(Map.merge(asset_from_import, %{user_id: user.id, slug: asset_from_import.slug, name: "slightly different"}))
+
+        resolved_asset = unquote(insert_asset_fn).(Map.merge(asset_from_import, %{user_id: user.id, slug: "resolved_test", name: "resolved"}))
+        dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+                          |> DungeonImports.update_asset_import!(%{action: :resolved, resolved_slug: resolved_asset.slug})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        # Other export details unchanged
+        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+
+        # returns the asset matching the resolved slug
+        assert %{unquote(asset_key) => %{unquote(key) => found_asset}} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        assert asset_import.action == :resolved
+        assert found_asset == resolved_asset
+        assert asset_import.resolved_slug == resolved_asset.slug
       end
 
       # sounds do not have a script

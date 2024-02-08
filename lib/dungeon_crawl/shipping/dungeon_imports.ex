@@ -35,6 +35,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
     export = find_or_create_assets(export, import_id, :sounds, user)
              |> find_or_create_assets(import_id, :items, user)
              |> find_or_create_assets(import_id, :tile_templates, user)
+             |> _break_if_waiting_on_asset_imports(import_id)
     # at this point, bail if there are ambiguous matches that are unresolved
              |> swap_scripts_to_tmp_scripts(:tiles)
              |> repoint_ttids_and_slugs(:tiles)
@@ -49,6 +50,16 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> complete_dungeon_import()
 
     export
+  end
+
+  defp _break_if_waiting_on_asset_imports(export, import_id) do
+    if Repo.exists?(from ai in AssetImport,
+                    where: ai.dungeon_import_id == ^import_id and
+                           ai.action != :resolved) do
+      %{ export | status: "halt" }
+    else
+      export
+    end
   end
 
   @doc """
@@ -112,14 +123,12 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   @doc """
-  Update the asset import record. Useful when resolving an asset import with a slug
-  to use, or clearing out a resolved status if something changes and goes wrong between
-  the time the asset was resolved and the import was continued.
+  Update the asset import record.
   """
-  def update_asset_import(%AssetImport{} = asset, attrs) do
+  def update_asset_import!(%AssetImport{} = asset, attributes) do
     asset
-    |> AssetImport.changeset(attrs)
-    |> Repo.update()
+    |> AssetImport.update_changeset(attributes)
+    |> Repo.update!()
   end
 
   @doc """

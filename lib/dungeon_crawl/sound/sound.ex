@@ -130,13 +130,13 @@ defmodule DungeonCrawl.Sound do
   """
   def create_effect(attrs \\ %{}) do
     %Effect{}
-    |> Effect.changeset(attrs)
+    |> Effect.new_changeset(attrs)
     |> Repo.insert()
     |> Effect.add_slug()
   end
   def create_effect!(attrs \\ %{}) do
     %Effect{}
-    |> Effect.changeset(attrs)
+    |> Effect.new_changeset(attrs)
     |> Repo.insert!()
     |> Effect.add_slug!()
   end

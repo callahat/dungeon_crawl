@@ -6,7 +6,7 @@ defmodule DungeonCrawl.Shipping.AssetImport do
 
   schema "asset_imports" do
     field :attributes, :map
-    field :action, Ecto.Enum, values: [waiting: 1, create_new: 2, update_existing: 3, resolved: 4], default: :waiting
+    field :action, Ecto.Enum, values: [waiting: 1, create_new: 2, use_existing: 3, update_existing: 4, resolved: 5], default: :waiting
     field :importing_slug, :string
     field :existing_slug, :string
     field :resolved_slug, :string
@@ -21,5 +21,11 @@ defmodule DungeonCrawl.Shipping.AssetImport do
     asset_import
     |> cast(attrs, [:dungeon_import_id, :type, :importing_slug, :existing_slug, :resolved_slug, :action, :attributes])
     |> validate_required([:dungeon_import_id, :type, :importing_slug, :existing_slug, :action])
+  end
+
+  def update_changeset(asset_import, attrs) do
+    asset_import
+    |> cast(attrs, [:resolved_slug, :action])
+    |> validate_required([:action])
   end
 end

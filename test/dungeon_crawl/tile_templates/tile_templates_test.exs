@@ -153,10 +153,9 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert {:ok, %TileTemplate{} = tile_template_2} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :user_id, user.id))
       assert tile_template_2.slug == "a_big_x_#{tile_template_2.id}"
 
-      # slug cannot be explicitly set
+      # slug can be explicitly set
       assert {:ok, %TileTemplate{} = tile_template_3} = TileTemplates.create_tile_template(Map.put(@valid_attrs, :slug, "goober"))
-      refute tile_template_3.slug == "goober"
-      assert tile_template_3.slug == "a_big_x_#{tile_template_3.id}"
+      assert tile_template_3.slug == "goober"
     end
 
     test "create tile_template/1 with a normal user sets the slug" do

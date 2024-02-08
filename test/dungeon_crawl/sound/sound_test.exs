@@ -7,7 +7,7 @@ defmodule DungeonCrawl.SoundTest do
     alias DungeonCrawl.Sound.Effect
 
     @valid_attrs %{name: "Some Name", public: true, zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"}
-    @update_attrs %{name: "some updated name", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
+    @update_attrs %{name: "some updated name", slug: "not_updated", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
     @invalid_attrs %{name: "Derp", public: false, zzfx_params: ""}
     @other_zzfx_params "[3,,485,.02,.2,.2,4,.11,-3,.1,,,.05,1.1,,.4,,.57,.5]"
 
@@ -93,11 +93,10 @@ defmodule DungeonCrawl.SoundTest do
       assert {:ok, %Effect{} = effect} = Sound.create_effect(params)
       assert effect.slug == "some_name_#{effect.id}"
 
-      # slug cannot be explicitly set
+      # slug can be explicitly set
       params = Map.merge(@valid_attrs, %{user_id: user.id, slug: "goober"})
       assert {:ok, %Effect{} = effect} = Sound.create_effect(params)
-      refute effect.slug == "goober"
-      assert effect.slug == "some_name_#{effect.id}"
+      assert effect.slug == "goober"
     end
 
     test "create_effect/1 with valid data and normal user creates a effect and sets slug" do

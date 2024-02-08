@@ -177,13 +177,13 @@ defmodule DungeonCrawl.TileTemplates do
   """
   def create_tile_template(attrs \\ %{}) do
     %TileTemplate{}
-    |> TileTemplate.changeset(attrs)
+    |> TileTemplate.new_changeset(attrs)
     |> Repo.insert()
     |> TileTemplate.add_slug()
   end
   def create_tile_template!(attrs \\ %{}) do
     %TileTemplate{}
-    |> TileTemplate.changeset(attrs)
+    |> TileTemplate.new_changeset(attrs)
     |> Repo.insert!()
     |> TileTemplate.add_slug!()
   end

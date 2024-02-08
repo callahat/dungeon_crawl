@@ -20,10 +20,21 @@ defmodule DungeonCrawl.Equipment.Item do
     timestamps()
   end
 
+  @changeable_attrs [:name, :description, :script, :public, :user_id, :weapon, :consumable]
+
+  @doc false
+  def new_changeset(item, attrs) do
+    _changeset(item, attrs, [:slug | @changeable_attrs])
+  end
+
   @doc false
   def changeset(item, attrs) do
+    _changeset(item, attrs, @changeable_attrs)
+  end
+
+  defp _changeset(item, attrs, castables) do
     item
-    |> cast(attrs, [:name, :description, :script, :public, :user_id, :weapon, :consumable])
+    |> cast(attrs, castables)
     |> validate_required([:name, :script, :public])
     |> validate_script(item.user_id || attrs[:user_id])
     |> unique_constraint(:slug, name: :items_slug_index, message: "Slug already exists")
