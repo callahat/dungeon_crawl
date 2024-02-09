@@ -118,7 +118,6 @@ defmodule DungeonCrawl.TileTemplates do
 
   def get_tile_template(nil, :validation), do: nil
   def get_tile_template(slug, :validation), do: Repo.one(_by_slug_for_validation_query(slug))
-  def get_tile_template!(slug, :validation), do: Repo.one!(_by_slug_for_validation_query(slug))
 
   def get_tile_template(slug, user) when is_binary(slug) do
     tile_template = get_tile_template(slug, :validation)
@@ -133,6 +132,8 @@ defmodule DungeonCrawl.TileTemplates do
       nil
     end
   end
+
+  def get_tile_template!(slug, :validation), do: Repo.one!(_by_slug_for_validation_query(slug))
 
   defp _by_slug_query(slug) do
     from tt in TileTemplate,

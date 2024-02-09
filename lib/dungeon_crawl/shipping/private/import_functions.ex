@@ -78,7 +78,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       else
         existing_by_slug = find_asset(asset_key, slug, user)
         if existing_by_slug do
-          # todo: specs for this
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs)
           nil
 
@@ -186,10 +185,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     _update_and_maybe_inject_tmp_script(tt, attrs, &TileTemplates.update_tile_template/2)
   end
 
-  # todo: maybe if there are conflicts, all must be updated. As if the script changes,
-  # then there could be resolving of tmp slugs in the script that is being used to update
-  # the asset from the import, and using some as is but updating others could put things
-  # in a wierd state
   defp _update_and_maybe_inject_tmp_script(asset, attrs, update_fn) do
     attrs = Map.drop(attrs, [:user_id])
 
