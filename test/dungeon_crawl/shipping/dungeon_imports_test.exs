@@ -402,6 +402,21 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       assert DungeonImports.get_asset_import(config.dungeon_import.id, :items, "tmp_item_id_0")
     end
 
+    test "run/4 logs start and end time, as well as asset information", config do
+      assert %DungeonExports{
+               log: log,
+             } = DungeonImports.run(config.export_hash, config.user, config.dungeon_import.id, nil)
+
+      # newest log entry is at the head; so reverse the whole thing before appending to the saved record
+      [end_time_log | _] = log
+      [start_time_log | _] = Enum.reverse(log)
+
+      assert length(log) == 19 # start, end, and all the asset logging; this will change if new things are to be logged
+
+      assert start_time_log =~ ~r/Start: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/
+      assert end_time_log =~ ~r/End: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/
+    end
+
     test "run/4 latest dungeon of line is active", config do
       prev_dungeon = insert_dungeon(%{line_identifier: 101010, active: true, user_id: config.user.id})
       assert %DungeonExports{

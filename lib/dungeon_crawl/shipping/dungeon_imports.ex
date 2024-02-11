@@ -32,7 +32,8 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
   def run(%DungeonExports{} = export, user, import_id, line_identifier) do
     # do something different if this import is in progress and there were ambiguous matches resolved
-    export = find_or_create_assets(export, import_id, :sounds, user)
+    export = log_time(export, "Start: ")
+             |> find_or_create_assets(import_id, :sounds, user)
              |> find_or_create_assets(import_id, :items, user)
              |> find_or_create_assets(import_id, :tile_templates, user)
              |> _break_if_waiting_on_asset_imports(import_id)
@@ -48,6 +49,7 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> create_levels()
              |> create_spawn_locations()
              |> complete_dungeon_import()
+             |> log_time("End: ")
 
     export
   end

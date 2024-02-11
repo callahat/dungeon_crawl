@@ -50,10 +50,14 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # The other fields in the export are unchanged
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
         # The assets are updated by replacing the attribute hash with the asset's
         # database record as the value associated with the temporary id key
-        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}, log: log} = updated_export
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -66,8 +70,12 @@ defmodule DungeonCrawl.SharedTests do
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
-        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}, log: log} = updated_export
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -78,8 +86,8 @@ defmodule DungeonCrawl.SharedTests do
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
-        assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
+        assert %{unquote(asset_key) => %{unquote(key) => asset}, log: log} = updated_export
         assert Map.drop(unquote(comparable_field_fn).(asset), [:active, :public, :script, :slug, :user_id]) ==
                  Map.drop(unquote(comparable_field_fn).(attrs), [:active, :public, :script, :slug, :user_id])
 
@@ -94,6 +102,10 @@ defmodule DungeonCrawl.SharedTests do
           refute Map.has_key?(asset, :tmp_script)
         end
         assert asset.user_id == user.id
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ attrs.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -107,8 +119,8 @@ defmodule DungeonCrawl.SharedTests do
 
         # An asset import is created with waiting action
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
-        assert %{unquote(asset_key) => %{unquote(key) => nil}} = updated_export
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
+        assert %{unquote(asset_key) => %{unquote(key) => nil}, log: log} = updated_export
         assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
         existing_slug = asset_from_import.slug
         user_id = user.id
@@ -117,6 +129,10 @@ defmodule DungeonCrawl.SharedTests do
                  importing_slug: unquote(key),
                  action: :waiting,
                } = asset_import
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - asset exists by slug, creating asset import record for user action choice")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -137,9 +153,13 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # An asset import looked up and unchanged
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
-        assert %{unquote(asset_key) => %{unquote(key) => nil}} = updated_export
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
+        assert %{unquote(asset_key) => %{unquote(key) => nil}, log: log} = updated_export
         assert existing_import == DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - waiting on user decision")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -156,13 +176,17 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # Other export details unchanged
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
 
         # gets the record and uses it in the map
-        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}, log: log} = updated_export
         assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
         assert asset_import.action == :resolved
         assert asset_import.resolved_slug == asset.slug
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - use existing asset with id: #{ asset.id }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -179,15 +203,19 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # Other export details unchanged
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
 
         # updates the record and sets it in the map
-        assert %{unquote(asset_key) => %{unquote(key) => updated_asset}} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => updated_asset}, log: log} = updated_export
         assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
         assert asset_import.action == :resolved
         assert updated_asset.id == asset.id
         assert updated_asset.name != asset.name # this was updated
         assert updated_asset.name == asset_from_import.name
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - update existing asset with id: #{ asset.id }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -204,10 +232,10 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # Other export details unchanged
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
 
         # creates the record and sets it in the map
-        assert %{unquote(asset_key) => %{unquote(key) => new_asset}} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => new_asset}, log: log} = updated_export
         assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
 
         assert asset_import.action == :resolved
@@ -215,6 +243,10 @@ defmodule DungeonCrawl.SharedTests do
         assert new_asset.slug == asset_import.resolved_slug
         assert new_asset.id != asset.id
         assert new_asset.name == asset_from_import.name
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - created asset with id: #{ new_asset.id }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -230,13 +262,17 @@ defmodule DungeonCrawl.SharedTests do
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
 
         # updates the record and sets it in the map
-        assert %{unquote(asset_key) => %{unquote(key) => ^asset}} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}, log: log} = updated_export
         assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
         assert asset_import.action == :resolved
         assert asset_import.resolved_slug == asset.slug
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -254,14 +290,19 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         # Other export details unchanged
-        assert Map.delete(updated_export, unquote(asset_key)) == Map.delete(export, unquote(asset_key))
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
 
         # returns the asset matching the resolved slug
-        assert %{unquote(asset_key) => %{unquote(key) => found_asset}} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => found_asset}, log: log} = updated_export
         assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
         assert asset_import.action == :resolved
         assert found_asset == resolved_asset
         assert asset_import.resolved_slug == resolved_asset.slug
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "#{ log_prefix } - use resolved asset with id: #{ resolved_asset.id } " <>
+          "(expected it to have matched and not gotten here)")
       end
 
       # sounds do not have a script

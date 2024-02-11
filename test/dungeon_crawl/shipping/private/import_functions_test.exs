@@ -19,12 +19,6 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
   require DungeonCrawl.SharedTests
 
-  # TODO: for each of these functions make sure to assert and check the significant changes to export;
-  # some will change a whole node after looking up a record but that may not be significant
-  # as some functions, such as repoint, only care about the ID and new slug that was added
-  # when they change data related to their operation (such as changing a temporary tile template id
-  # from "tmp_..." to the record ID from the backing database.
-
   describe "find_or_create_assets/3" do
     setup config do
       existing_asset = Map.get(ExportFixture.minimal_export(), config.asset_key)[config.key]
@@ -793,6 +787,22 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       refute updated_export.dungeon.importing
       refute Dungeons.get_dungeon(dungeon.id).importing
+    end
+  end
+
+  describe "log/2" do
+    test "it adds to the front of the log array" do
+      assert %{log: ["and another thing", "test"]} =
+               log(%DungeonExports{}, "test")
+               |> log("and another thing")
+    end
+  end
+
+  describe "log_time/2" do
+    test "it adds to the front of the log array" do
+      assert %{log: [last_log, "test"]} =
+               log_time(%DungeonExports{log: ["test"]}, "Start: ")
+      assert last_log =~ ~r/Start: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/
     end
   end
 end

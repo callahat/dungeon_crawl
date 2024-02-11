@@ -21,22 +21,26 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   # to see if its a usable match for the given user; if not then asset(s) not match so a new one
   # will need created.
   def find_or_create_assets(export, import_id, asset_key, user) do
-    assets =
+    {logs, assets} =
       Map.get(export, asset_key)
       |> Enum.map(fn {tmp_slug, attrs} ->
-        asset = find_or_create_asset(import_id, asset_key, attrs, tmp_slug, user)
+        {asset, log} = find_or_create_asset(import_id, asset_key, attrs, tmp_slug, user)
 
-        {tmp_slug, asset}
+        {tmp_slug, asset, log}
       end)
-      |> Enum.into(%{})
+      |> Enum.reduce({[], %{}}, fn {tmp_slug, asset, log}, {logs, assets} ->
+        {[log | logs], Map.put(assets, tmp_slug, asset)}
+      end)
 
-    %{ export | asset_key => assets }
+    %{ export | asset_key => assets, log: logs ++ export.log }
   end
 
   # This will have a aside affect of creating an asset_import record potentially
   defp find_or_create_asset(import_id, asset_key, attrs, tmp_slug, user) do
-    with slug = attrs[:slug],
-         attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
+    slug = Map.get(attrs, :slug, nil)
+    log_prefix = "#{ tmp_slug } - #{ slug } - #{ asset_key }"
+
+    with attrs = Map.drop(attrs, [:slug, :temp_tt_id, :temp_sound_id, :temp_item_id]),
          asset when is_nil(asset) <- find_asset(asset_key, Map.delete(attrs, :user_id), user),
          attrs = Map.put(attrs, :user_id, user.id) |> Map.delete(:public),
          asset when is_nil(asset) <- find_asset(asset_key, attrs, user),
@@ -54,14 +58,15 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       if asset_import do
         case asset_import.action do
           :waiting ->
-            nil
+            {nil, "#{ log_prefix } - waiting on user decision"}
           :create_new ->
             asset = create_asset(asset_key, attrs)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: asset.slug})
-            asset
+            {asset, "#{ log_prefix } - created asset with id: #{ asset.id }"}
           :use_existing ->
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
-            find_asset(asset_key, slug, user)
+            asset = find_asset(asset_key, slug, user)
+            {asset, "#{ log_prefix } - use existing asset with id: #{ asset.id }"}
           :update_existing ->
             # todo: make sure user can only do this if owner of asset or admin, probably just need a spec
             existing_by_slug = find_asset(asset_key, slug, user)
@@ -70,24 +75,27 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
             asset = existing_by_slug &&
               update_asset(asset_key, existing_by_slug, attributes)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
-            asset
+            {asset, "#{ log_prefix } - update existing asset with id: #{ asset.id }"}
           :resolved ->
             # this will likely not happen unless the asset is changed after resolution
-            find_asset(asset_key, asset_import.resolved_slug, user)
+            asset = find_asset(asset_key, asset_import.resolved_slug, user)
+            {asset, "#{ log_prefix } - use resolved asset with id: #{ asset.id } " <>
+              "(expected it to have matched and not gotten here)"}
         end
       else
         existing_by_slug = find_asset(asset_key, slug, user)
         if existing_by_slug do
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs)
-          nil
+          {nil, "#{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
 
         else
-          create_asset(asset_key, attrs)
+          asset = create_asset(asset_key, attrs)
+          {asset, "#{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }"}
         end
       end
     else
       asset ->
-        asset
+        {asset, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }"}
     end
   end
 
@@ -364,4 +372,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     %{ export | dungeon: dungeon, status: "done" }
   end
   def complete_dungeon_import(export), do: export
+
+  def log(export, message) do
+    %{ export | log: [ message | export.log ]}
+  end
+
+  def log_time(export, prefix) do
+    log(export, Calendar.strftime(DateTime.now!("Etc/UTC"), "#{ prefix }%Y-%m-%d %H:%M:%S UTC"))
+  end
 end
