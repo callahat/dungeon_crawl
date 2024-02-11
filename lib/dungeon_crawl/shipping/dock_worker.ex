@@ -57,8 +57,13 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     import_hash = Json.decode!(import.data)
                   |> DungeonImports.run(user, import.id, import.line_identifier)
 
-    Shipping.update_import(import,
-      %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil})
+    import_log = import.log <> Enum.join(Enum.reverse(import_hash.log), "\n")
+
+    attrs = if import_hash.status == "done",
+               do: %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil, log: import_log},
+               else: %{status: :waiting, details: "waiting on user choices", log: import_log}
+
+    Shipping.update_import(import, attrs)
     _broadcast_status({:import, import})
 
     {:reply, :ok, state}

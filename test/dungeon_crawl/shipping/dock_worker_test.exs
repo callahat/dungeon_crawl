@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
   alias DungeonCrawl.Shipping.{DungeonExports, Json}
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
+  alias DungeonCrawl.TileTemplates
 
   setup do
     EquipmentSeeder.gun
@@ -91,6 +92,36 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     assert user.id == imported_dungeon.user_id
     assert imported_dungeon.version == 2
     assert imported_dungeon.previous_version_id == dungeon.id
+  end
+
+  test "import/1 when an asset needs resolution", %{user: user} do
+    tile_template = insert_tile_template(%{user_id: user.id})
+    item = insert_item(%{script: "#put direction: @facing, slug: #{ tile_template.slug }"})
+    dungeon = insert_dungeon(%{user_id: user.id, state: "starting_equipment: #{ item.slug }" })
+    data = DungeonExports.run(dungeon.id) |> Json.encode!()
+    TileTemplates.update_tile_template(tile_template, %{color: "blue"})
+    dungeon_import = Shipping.create_import!(%{
+      data: data,
+      user_id: user.id,
+      file_name: "import.json",
+      line_identifier: dungeon.line_identifier,
+      status: "running"
+    })
+
+    assert %Task{ref: ref} = DockWorker.import(dungeon_import)
+    assert_receive {^ref, :ok}
+
+    # the original, no new dungeon created
+    assert 1 == Enum.count(Dungeons.list_dungeons())
+
+    assert %{status: :waiting,
+             user_id: user.id,
+             file_name: "import.json",
+             line_identifier: dungeon.line_identifier}
+           == Map.take(Shipping.get_import!(dungeon_import.id),
+             [:status, :user_id, :file_name, :line_identifier])
+    assert %{log: log} = Shipping.get_import!(dungeon_import.id)
+    assert String.contains?(log, "tile_templates - asset exists by slug, creating asset import record")
   end
 
   @tag capture_log: true
