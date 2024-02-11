@@ -57,7 +57,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
+        assert Enum.member?(log, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -75,7 +75,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
+        assert Enum.member?(log, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -105,7 +105,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ attrs.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }")
+        assert Enum.member?(log, "+ #{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -132,7 +132,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - asset exists by slug, creating asset import record for user action choice")
+        assert Enum.member?(log, "? #{ log_prefix } - asset exists by slug, creating asset import record for user action choice")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -159,7 +159,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - waiting on user decision")
+        assert Enum.member?(log, "? #{ log_prefix } - waiting on user decision")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -186,7 +186,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - use existing asset with id: #{ asset.id }")
+        assert Enum.member?(log, ". #{ log_prefix } - use existing asset with id: #{ asset.id }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -215,7 +215,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - update existing asset with id: #{ asset.id }")
+        assert Enum.member?(log, "u #{ log_prefix } - update existing asset with id: #{ asset.id }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -246,7 +246,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - created asset with id: #{ new_asset.id }")
+        assert Enum.member?(log, "+ #{ log_prefix } - created asset with id: #{ new_asset.id }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -272,7 +272,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
+        assert Enum.member?(log, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key)
@@ -301,7 +301,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "#{ log_prefix } - use resolved asset with id: #{ resolved_asset.id } " <>
+        assert Enum.member?(log, "r #{ log_prefix } - use resolved asset with id: #{ resolved_asset.id } " <>
           "(expected it to have matched and not gotten here)")
       end
 

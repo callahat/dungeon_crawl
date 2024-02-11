@@ -13,6 +13,7 @@ defmodule DungeonCrawl.Shipping.Import do
     field :file_name, :string
     field :status, Ecto.Enum, values: [queued: 1, running: 2, completed: 3, failed: 4, waiting: 5], default: :queued
     field :details, :string
+    field :log, :string, default: ""
     belongs_to :dungeon, Dungeon
     belongs_to :user, User
 
@@ -22,7 +23,7 @@ defmodule DungeonCrawl.Shipping.Import do
   @doc false
   def changeset(import, attrs) do
     import
-    |> cast(attrs, [:dungeon_id, :user_id, :status, :details, :data, :line_identifier, :file_name])
+    |> cast(attrs, [:dungeon_id, :user_id, :status, :details, :data, :line_identifier, :file_name, :log])
     |> validate_required([:user_id, :status, :data, :file_name])
     |> _validate_not_already_queued()
     |> _validate_line_identifier()

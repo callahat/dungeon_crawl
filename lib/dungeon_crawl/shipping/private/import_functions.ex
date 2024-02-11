@@ -58,15 +58,15 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       if asset_import do
         case asset_import.action do
           :waiting ->
-            {nil, "#{ log_prefix } - waiting on user decision"}
+            {nil, "? #{ log_prefix } - waiting on user decision"}
           :create_new ->
             asset = create_asset(asset_key, attrs)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: asset.slug})
-            {asset, "#{ log_prefix } - created asset with id: #{ asset.id }"}
+            {asset, "+ #{ log_prefix } - created asset with id: #{ asset.id }"}
           :use_existing ->
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
             asset = find_asset(asset_key, slug, user)
-            {asset, "#{ log_prefix } - use existing asset with id: #{ asset.id }"}
+            {asset, ". #{ log_prefix } - use existing asset with id: #{ asset.id }"}
           :update_existing ->
             # todo: make sure user can only do this if owner of asset or admin, probably just need a spec
             existing_by_slug = find_asset(asset_key, slug, user)
@@ -75,27 +75,27 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
             asset = existing_by_slug &&
               update_asset(asset_key, existing_by_slug, attributes)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
-            {asset, "#{ log_prefix } - update existing asset with id: #{ asset.id }"}
+            {asset, "u #{ log_prefix } - update existing asset with id: #{ asset.id }"}
           :resolved ->
             # this will likely not happen unless the asset is changed after resolution
             asset = find_asset(asset_key, asset_import.resolved_slug, user)
-            {asset, "#{ log_prefix } - use resolved asset with id: #{ asset.id } " <>
+            {asset, "r #{ log_prefix } - use resolved asset with id: #{ asset.id } " <>
               "(expected it to have matched and not gotten here)"}
         end
       else
         existing_by_slug = find_asset(asset_key, slug, user)
         if existing_by_slug do
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs)
-          {nil, "#{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
+          {nil, "? #{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
 
         else
           asset = create_asset(asset_key, attrs)
-          {asset, "#{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }"}
+          {asset, "+ #{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }"}
         end
       end
     else
       asset ->
-        {asset, "#{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }"}
+        {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }"}
     end
   end
 
