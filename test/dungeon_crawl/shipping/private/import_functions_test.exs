@@ -20,6 +20,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   require DungeonCrawl.SharedTests
 
   describe "find_or_create_assets/3" do
+    alias DungeonCrawl.Shipping
+
     setup config do
       existing_asset = Map.get(ExportFixture.minimal_export(), config.asset_key)[config.key]
 
@@ -33,7 +35,24 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
                     config.key => existing_asset
                   })
 
-      %{export: export}
+      user = insert_user()
+      dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
+      asset_from_import = Map.get(export, config.asset_key)[config.key]
+
+      attrs = cond do
+        config[:user_asset] -> %{user_id: user.id}
+        config[:public_asset] -> %{user_id: nil, public: true}
+        config[:existing_asset] -> %{user_id: user.id, slug: asset_from_import.slug, name: "Common field"}
+        config[:script_asset] -> %{user_id: user.id, script: "test words"}
+        true -> %{}
+      end
+      attrs = Map.merge(asset_from_import, attrs)
+
+      asset = if config[:no_existing_asset],
+                 do: nil,
+                 else: config[:insert_asset_fn].(Map.merge(asset_from_import, attrs))
+
+      %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, attrs: attrs}
     end
 
     DungeonCrawl.SharedTests.finds_or_creates_assets_correctly(

@@ -58,9 +58,6 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
         file_name: "imppport.json"
       })
 
-      # TODO: config to disable this to add a spec that verifies this is created and the import is halted (or just manually delete all asset imports
-      # Since the existing Gun item has a sound slug that does not exist,
-      # this test will treat it as something new to be created
       if !config[:skip_asset_import] do
         DungeonImports.create_asset_import!(dungeon_import.id, :items, "tmp_item_id_0", "gun", export_hash.items["tmp_item_id_0"])
         |> DungeonImports.update_asset_import!(%{action: :create_new})
