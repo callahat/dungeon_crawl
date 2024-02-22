@@ -323,6 +323,12 @@ defmodule DungeonCrawl.TileTemplates do
     |> Repo.update()
   end
 
+  def update_tile_template!(%TileTemplate{} = tile_template, attrs) do
+    tile_template
+    |> TileTemplate.changeset(attrs)
+    |> Repo.update!()
+  end
+
   @doc """
   Deletes a TileTemplate. The delete is a soft delete so as to not break anything
   that may currently be referecing this tile tempalte, including MapTiles

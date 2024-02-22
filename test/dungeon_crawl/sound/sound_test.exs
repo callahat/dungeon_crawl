@@ -132,6 +132,22 @@ defmodule DungeonCrawl.SoundTest do
       assert effect == Sound.get_effect!(effect.id)
     end
 
+    test "update_effect!/2 with valid data updates the effect" do
+      effect = effect_fixture()
+      assert %Effect{} = effect = Sound.update_effect!(effect, @update_attrs)
+      assert effect.name == "some updated name"
+      assert effect.public == false
+      assert effect.zzfx_params == @update_attrs.zzfx_params
+    end
+
+    test "update_effect!/2 with invalid data returns error changeset" do
+      effect = effect_fixture()
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        Sound.update_effect!(effect, @invalid_attrs)
+      end
+      assert effect == Sound.get_effect!(effect.id)
+    end
+
     test "find_effect/1" do
       {:ok, %Effect{} = existing_effect} = Sound.create_effect(@valid_attrs)
 

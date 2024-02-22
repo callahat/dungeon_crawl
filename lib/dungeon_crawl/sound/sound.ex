@@ -159,6 +159,12 @@ defmodule DungeonCrawl.Sound do
     |> Repo.update()
   end
 
+  def update_effect!(%Effect{} = effect, attrs) do
+    effect
+    |> Effect.changeset(attrs)
+    |> Repo.update!()
+  end
+
   # TODO: consolidate the find or create/update or create, seems like a lot of repeated functionality, using either Sluggable to another module
   @doc """
   Finds an effect that matches all the given fields.

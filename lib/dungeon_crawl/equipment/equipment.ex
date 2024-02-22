@@ -137,6 +137,12 @@ defmodule DungeonCrawl.Equipment do
     |> Repo.update()
   end
 
+  def update_item!(%Item{} = item, attrs) do
+    item
+    |> Item.changeset(attrs)
+    |> Repo.update!()
+  end
+
   @doc """
   Finds an item that matches all the given fields.
 

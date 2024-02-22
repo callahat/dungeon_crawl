@@ -307,6 +307,21 @@ defmodule DungeonCrawl.TileTemplatesTest do
       assert tile_template == TileTemplates.get_tile_template!(tile_template.id)
     end
 
+    test "update_tile_template!/2 with valid data updates the tile_template" do
+      tile_template = tile_template_fixture()
+      assert tile_template = TileTemplates.update_tile_template!(tile_template, @update_attrs)
+      assert %TileTemplate{} = tile_template
+      assert tile_template.color == "puce"
+    end
+
+    test "update_tile_template!/2 with invalid data returns error changeset" do
+      tile_template = tile_template_fixture()
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        TileTemplates.update_tile_template!(tile_template, @invalid_attrs)
+      end
+      assert tile_template == TileTemplates.get_tile_template!(tile_template.id)
+    end
+
     test "delete_tile_template/1 soft deletes the tile_template" do
       tile_template = tile_template_fixture()
       assert {:ok, %TileTemplate{}} = TileTemplates.delete_tile_template(tile_template)

@@ -182,26 +182,25 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   # todo: add or use the ! func for these
   def update_asset(:sounds, sound, attrs) do
-    _update_and_maybe_inject_tmp_script(sound, attrs, &Sound.update_effect/2)
+    _update_and_maybe_inject_tmp_script(sound, attrs, &Sound.update_effect!/2)
   end
 
   def update_asset(:items, item, attrs) do
-    _update_and_maybe_inject_tmp_script(item, attrs, &Equipment.update_item/2)
+    _update_and_maybe_inject_tmp_script(item, attrs, &Equipment.update_item!/2)
   end
 
   def update_asset(:tile_templates, tt, attrs) do
-    _update_and_maybe_inject_tmp_script(tt, attrs, &TileTemplates.update_tile_template/2)
+    _update_and_maybe_inject_tmp_script(tt, attrs, &TileTemplates.update_tile_template!/2)
   end
 
-  defp _update_and_maybe_inject_tmp_script(asset, attrs, update_fn) do
+  defp _update_and_maybe_inject_tmp_script(asset, attrs, update_fn!) do
     attrs = Map.drop(attrs, [:user_id])
 
     if Map.get(attrs, :script, "") != "" do
-      {:ok, asset} = update_fn.(asset, Map.put(attrs, :script, "#end"))
+      asset = update_fn!.(asset, Map.put(attrs, :script, "#end"))
       Map.put(asset, :tmp_script, attrs.script)
     else
-      {:ok, asset} = update_fn.(asset, attrs)
-      asset
+      update_fn!.(asset, attrs)
     end
   end
 

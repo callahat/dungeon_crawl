@@ -339,6 +339,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert %{zzfx_params: ^updated_zzfx} =
                update_asset(:sounds, sound, %{zzfx_params: updated_zzfx})
     end
+
+    test "invalid update" do
+      sound = insert_effect(%{name: "test", zzfx_params: "[,,,,,,,,,,,,,,,,,,]"})
+      updated_zzfx = ""
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        update_asset(:sounds, sound, %{zzfx_params: updated_zzfx})
+      end
+    end
   end
 
   describe "update_asset/3 :items" do
@@ -347,6 +355,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert %{script: "#end", tmp_script: "new script"} =
                update_asset(:items, item, %{script: "new script"})
     end
+
+    test "invalid update" do
+      item = insert_item(%{script: "old script"})
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        update_asset(:items, item, %{script: ""})
+      end
+    end
   end
 
   describe "update_asset/3 :tile_templates" do
@@ -354,6 +369,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       tile_template = insert_tile_template(%{script: "old script"})
       assert %{name: "new name", script: "#end", tmp_script: "new script"} =
                update_asset(:tile_templates, tile_template, %{name: "new name", script: "new script"})
+    end
+
+    test "invalid update" do
+      tile_template = insert_tile_template(%{script: "old script"})
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        update_asset(:tile_templates, tile_template, %{name: "", script: ""})
+      end
     end
   end
 

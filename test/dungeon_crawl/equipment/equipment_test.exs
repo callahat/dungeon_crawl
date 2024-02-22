@@ -181,6 +181,23 @@ defmodule DungeonCrawl.EquipmentTest do
       assert item == Equipment.get_item(item.id)
     end
 
+    test "update_item!/2 with valid data updates the item" do
+      item = item_fixture()
+      assert %Item{} = item = Equipment.update_item!(item, @update_attrs)
+      assert item.name == "updated thing"
+      assert item.public == false
+      assert item.script == @update_attrs.script
+      assert item.slug == "thing"
+    end
+
+    test "update_item!/2 with invalid data raises" do
+      item = item_fixture()
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        Equipment.update_item!(item, @invalid_attrs)
+      end
+      assert item == Equipment.get_item(item.id)
+    end
+
     test "delete_item/1 deletes the item" do
       item = item_fixture()
       assert {:ok, %Item{}} = Equipment.delete_item(item)
