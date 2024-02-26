@@ -1,0 +1,16 @@
+<h2>Dungeon Import</h2>
+<p><b>Status: </b><%= @dungeon_import.status %></p>
+<p><b>Details: </b><%= @dungeon_import.details %></p>
+
+<%= if @asset_imports != [] do %>
+<h3>Asset Imports</h3>
+<p>The following slugs exist in the system but did not match exactly. Choose how to proceed with each.</p>
+  <%= for asset_import <- @asset_imports do %>
+  <p><%= asset_import.importing_slug %> - <%= asset_import.existing_slug %></p>
+  <% end %>
+<% end %>
+
+<h3>Log</h3>
+<pre>
+<%= @dungeon_import.log %>
+</pre>

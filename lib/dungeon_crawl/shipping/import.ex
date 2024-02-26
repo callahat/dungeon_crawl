@@ -17,6 +17,10 @@ defmodule DungeonCrawl.Shipping.Import do
     belongs_to :dungeon, Dungeon
     belongs_to :user, User
 
+    # todo: might be better to create a specialized function to load the imports as well as matches,
+    # as these will be used on the reconciliation page
+    has_many :asset_imports, DungeonCrawl.Shipping.AssetImport, foreign_key: :dungeon_import_id
+
     timestamps()
   end
 
