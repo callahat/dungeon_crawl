@@ -506,6 +506,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert stone_tt.script == "#end\n:touch\n#equip #{ expected.stone_item_slug }, ?sender\n#die"
       assert Repo.reload(stone_tt).script == stone_tt.script
     end
+
+    test "noop when status is not running", %{export: export} do
+      export = %{ export | status: "halt" }
+
+      assert export == repoint_ttids_and_slugs(export, :tiles)
+      assert export == repoint_ttids_and_slugs(export, :items)
+      assert export == repoint_ttids_and_slugs(export, :tile_templates)
+    end
   end
 
   describe "repoint_tile_template_id/2" do
@@ -537,6 +545,16 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert %{script: "#end\n:touch\nhey",
                tmp_script: "#end\n:touch\nhey"} = updated_export.tiles["tile_hash"]
     end
+
+    test "noop when status is not running" do
+      export = %DungeonExports{
+        tiles: %{"tile_hash" => %{script: "#end\n:touch\nhey"}},
+        items: %{"tmp_item_0" => %{script: "does nothing"}},
+        status: "halt"
+      }
+
+      assert export == swap_scripts_to_tmp_scripts(export, :tiles)
+    end
   end
 
   describe "repoint_dungeon_starting_items/1" do
@@ -554,6 +572,15 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         repoint_dungeon_starting_items(export)
 
       assert ["thing", "thing", "waffle"] == updated_starting_items
+    end
+
+    test "noop when status is not running" do
+      export = %DungeonExports{
+        dungeon: %{state: %{"starting_equipment" => ["tmp_item_id_0", "tmp_item_id_0", "tmp_item_id_1"]}},
+        items: %{"tmp_item_id_0" => %{slug: "thing"}, "tmp_item_id_1" => %{slug: "waffle"}},
+        status: "halt"}
+
+      assert export == repoint_dungeon_starting_items(export)
     end
   end
 
@@ -593,6 +620,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       updated_export = set_dungeon_overrides(export, 123, nil)
       refute updated_export.dungeon.line_identifier
+    end
+
+    test "noop when status is not running", %{export: export} do
+      export = %{ export | status: "halt" }
+
+      assert export == set_dungeon_overrides(export, 123, "9")
     end
   end
 
@@ -636,10 +669,19 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert updated_dungeon_attrs.version == dungeon.version
       refute Dungeons.get_dungeon(dungeon.id)
     end
+
+    test "noop when status is not running", %{dungeon: dungeon, user: user} do
+      export = %DungeonExports{
+        dungeon: %{line_identifier: dungeon.line_identifier, user_id: user.id},
+        status: "halt"
+      }
+
+      assert export == maybe_handle_previous_version(export)
+    end
   end
 
   describe "create_dungeon/1" do
-    test "it creates the dungeon" do
+    setup do
       user = insert_user()
       item = insert_item()
       export = %DungeonExports{
@@ -658,6 +700,10 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         },
       }
 
+      %{export: export}
+    end
+
+    test "it creates the dungeon", %{export: export} do
       updated_export = create_dungeon(export)
       expected_dungeon =  Map.merge(%Dungeons.Dungeon{importing: true}, Dungeons.copy_dungeon_fields(export.dungeon))
 
@@ -665,6 +711,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
                Map.drop(updated_export.dungeon, [:__meta__, :id, :inserted_at, :updated_at])
 
       assert is_integer(updated_export.dungeon.id)
+    end
+
+    test "noop when status is not running", %{export: export} do
+      export = %{ export | status: "halt" }
+
+      assert export == create_dungeon(export)
+      assert [] == DungeonCrawl.Repo.all(Dungeons.Dungeon)
     end
   end
 
@@ -790,10 +843,17 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_2.id, 1, 1)
       [%{name: "Lamp"}] = Dungeons.get_tiles(updated_level_2.id, 1, 2)
     end
+
+    test "noop when status is not running", %{export: export} do
+      export = %{ export | status: "halt" }
+
+      assert export == create_levels(export)
+      assert [] == DungeonCrawl.Repo.all(Dungeons.Level)
+    end
   end
 
   describe "create_spawn_locations/1" do
-    test "it creates the spawn locations" do
+    setup do
       dungeon = insert_dungeon()
       level_1 = insert_stubbed_level(%{dungeon_id: dungeon.id, number: 1})
       level_2 = insert_stubbed_level(%{dungeon_id: dungeon.id, number: 2})
@@ -804,6 +864,10 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         spawn_locations: [[1, 0, 1], [1, 0, 3], [2, 1, 1]],
       }
 
+      %{export: export, level_1: level_1, level_2: level_2}
+    end
+
+    test "it creates the spawn locations", %{export: export, level_1: level_1, level_2: level_2} do
       updated_export = create_spawn_locations(export)
 
       # does not actually modify the export
@@ -815,6 +879,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
                                 |> Enum.sort()
       assert [{1, 1}] = Repo.preload(level_2, :spawn_locations).spawn_locations
                         |> Enum.map(fn(sl) -> {sl.row, sl.col} end)
+    end
+
+    test "noop when the status is not running", %{export: export} do
+      export = %{ export | status: "halt" }
+
+      assert export == create_spawn_locations(export)
+      assert [] == Repo.all(Dungeons.SpawnLocation)
     end
   end
 
@@ -828,6 +899,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
 
       refute updated_export.dungeon.importing
       refute Dungeons.get_dungeon(dungeon.id).importing
+    end
+
+    test "noop when status is not running" do
+      export = %DungeonExports{dungeon: %{}, status: "halt"}
+
+      assert export == complete_dungeon_import(export)
     end
   end
 
