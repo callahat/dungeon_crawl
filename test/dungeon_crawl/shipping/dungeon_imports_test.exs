@@ -59,7 +59,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       })
 
       if !config[:skip_asset_import] do
-        DungeonImports.create_asset_import!(dungeon_import.id, :items, "tmp_item_id_0", "gun", export_hash.items["tmp_item_id_0"])
+        DungeonImports.create_asset_import!(dungeon_import.id, :items, "tmp_item_id_0", "gun", export_hash.items["tmp_item_id_0"], %{"name" => "different"})
         |> DungeonImports.update_asset_import!(%{action: :create_new})
       end
 
@@ -428,8 +428,6 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     test "run/4 latest dungeon of line is inactive", config do
       inactive_dungeon = insert_dungeon(%{line_identifier: 90210, active: false, user_id: config.user.id})
 
-
-
       assert %DungeonExports{
                dungeon: dungeon,
                status: "done",
@@ -518,7 +516,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                :items,
                "tmp_1",
                "i_exist",
-               %{"color" => "blue"})
+               %{"color" => "blue"},
+               %{"color" => "existing_blue"})
     end
 
     test "raises an exception if invalid", config do
@@ -528,7 +527,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
           "bob",
           "tmp_1",
           "i_exist",
-          %{"color" => "blue"}
+          %{"color" => "blue"},
+          %{"color" => "existing_blue"}
         )
       end
       # test the unique constraint on import, type, and slug
@@ -538,7 +538,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
           "items",
           config.existing_asset_import.importing_slug,
           "i_still_exist",
-          %{"color" => "blue"}
+          %{"color" => "blue"},
+          %{"color" => "existing_blue"}
         )
       end
     end
@@ -554,7 +555,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
           config.existing_asset_import.type,
           config.existing_asset_import.importing_slug,
           "not_used_in_lookup",
-          %{"this" => "param will be ignored"}
+          %{"this" => "param will be ignored"},
+          %{"existing" => "asset attributes"}
         )
     end
 
@@ -565,7 +567,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                  config.existing_asset_import.type,
                  "different" <> config.existing_asset_import.importing_slug,
                  "existing_slug",
-                 %{"this" => "param will be ignored"}
+                 %{"this" => "param will be ignored"},
+                 %{"existing" => "asset attrs"}
                )
 
       refute different_asset_import == config.existing_asset_import
@@ -589,6 +592,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                          existing_slug: "asdf",
                          resolved_slug: asset.slug,
                          attributes: %{"name" => "testing"},
+                         existing_attributes: %{"name" => "original name"},
                          action: :resolved
                        })
                      |> Repo.insert!()
@@ -636,7 +640,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                                 type: "items",
                                 importing_slug: "temp_slug_1",
                                 existing_slug: "not_used_for_lookup",
-                                attributes: %{"name" => "testing"}})
+                                attributes: %{"name" => "testing"},
+                                existing_attributes: %{"name" => "old_name"}})
                             |> Repo.insert!()
 
     %{dungeon_import: dungeon_import, existing_asset_import: existing_asset_import}

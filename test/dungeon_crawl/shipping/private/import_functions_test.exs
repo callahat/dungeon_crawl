@@ -48,11 +48,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       end
       attrs = Map.merge(asset_from_import, attrs)
 
+      existing_asset_attrs = Map.merge(asset_from_import, attrs)
       asset = if config[:no_existing_asset],
                  do: nil,
-                 else: config[:insert_asset_fn].(Map.merge(asset_from_import, attrs))
+                 else: config[:insert_asset_fn].(existing_asset_attrs)
 
-      %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, attrs: attrs}
+      %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, attrs: attrs, existing_attrs: existing_asset_attrs}
     end
 
     DungeonCrawl.SharedTests.finds_or_creates_assets_correctly(

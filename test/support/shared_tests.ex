@@ -113,12 +113,15 @@ defmodule DungeonCrawl.SharedTests do
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
       test "#{ unquote(asset_key) } - when an asset import exists but is waiting does nothing",
-           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset} do
-        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
         attributes_with_string_keys = existing_import.attributes
                                       |> Enum.map( fn {k, v} -> {to_string(k), v} end)
                                       |> Enum.into(%{})
-        existing_import = %{ existing_import | attributes: attributes_with_string_keys }
+        existing_attrs_with_string_keys = existing_import.existing_attributes
+                                      |> Enum.map( fn {k, v} -> {to_string(k), v} end)
+                                      |> Enum.into(%{})
+        existing_import = %{ existing_import | attributes: attributes_with_string_keys, existing_attributes: existing_attrs_with_string_keys}
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
@@ -134,8 +137,8 @@ defmodule DungeonCrawl.SharedTests do
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
       test "#{ unquote(asset_key) } - when an asset import exists and should use existing",
-           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset} do
-        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
                           |> DungeonImports.update_asset_import!(%{action: :use_existing})
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
@@ -156,8 +159,8 @@ defmodule DungeonCrawl.SharedTests do
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
       test "#{ unquote(asset_key) } - when an asset import exists and should update existing",
-           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset} do
-        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
                           |> DungeonImports.update_asset_import!(%{action: :update_existing})
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
@@ -180,8 +183,8 @@ defmodule DungeonCrawl.SharedTests do
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
       test "#{ unquote(asset_key) } - when an asset import exists and should create new",
-           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset} do
-        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
                           |> DungeonImports.update_asset_import!(%{action: :create_new})
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
@@ -206,8 +209,8 @@ defmodule DungeonCrawl.SharedTests do
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), user_asset: true
       test "#{ unquote(asset_key) } - when an asset import exists and is resolved",
-           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset} do
-        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
                           |> DungeonImports.update_asset_import!(%{action: :resolved, resolved_slug: asset.slug})
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
@@ -227,8 +230,8 @@ defmodule DungeonCrawl.SharedTests do
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
       test "#{ unquote(asset_key) } - when an asset import exists and is resolved but asset was changed",
-           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset} do
-        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import)
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
                           |> DungeonImports.update_asset_import!(%{action: :resolved, resolved_slug: asset.slug})
 
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)

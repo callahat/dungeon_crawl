@@ -85,7 +85,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       else
         existing_by_slug = find_asset(asset_key, slug, user)
         if existing_by_slug do
-          DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs)
+          attrs_existing = asset_attrs(asset_key, existing_by_slug)
+          DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs, attrs_existing)
           {nil, "? #{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
 
         else
@@ -131,6 +132,19 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   defp useable_asset(assets, script, user_id) do
     Enum.filter(assets, fn asset -> script_fuzzer(asset.script) == script_fuzzer(script) end)
     |> Enum.find(fn asset -> all_slugs_useable?(asset.script, user_id) end)
+  end
+
+  # extract attributes
+  defp asset_attrs(:sounds, sound) do
+    Sound.copy_fields(sound)
+  end
+
+  defp asset_attrs(:items, item) do
+    Equipment.copy_fields(item)
+  end
+
+  defp asset_attrs(:tile_templates, tile_template) do
+    TileTemplates.copy_fields(tile_template)
   end
 
   def script_fuzzer(script) do

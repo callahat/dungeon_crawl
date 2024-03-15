@@ -82,23 +82,31 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
   end
 
   @doc """
+  Returns a list of the asset imports for the given dungeon import id.
+  Includes the existing slug match record.
+  """
+  def get_asset_imports(import_id) do
+    Repo.all(from ai in AssetImport,
+             where: ai.dungeon_import_id == ^import_id)
+  end
+
+  @doc """
   Creates the asset import. Raises an exception if invalid.
 
   ## Examples
 
-      iex> create_asset_import(%{dungeon_import_id: 123, type: "item", ...})
+      iex> create_asset_import(123, "item", "tmp_item_1", "box", %{}, %{})
       %AssetImport{}
-      iex> create_asset_import(%{dungeon_import_id: 123, type: "bad_item", ...})
-      ** (Ecto.InvalidChangesetError)
   """
-  def create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs) do
+  def create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs, existing_attrs) do
     %AssetImport{}
     |> AssetImport.changeset(%{
          dungeon_import_id: import_id,
          type: type,
          importing_slug: tmp_slug,
          existing_slug: existing_slug,
-         attributes: attrs
+         attributes: attrs,
+         existing_attributes: existing_attrs
        })
     |> Repo.insert!()
   end
@@ -109,15 +117,15 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
 
   ## Examples
 
-      iex> find_or_create_asset_import!(123, "item", "tmp_item_id_0")
+      iex> find_or_create_asset_import!(123, "item", "tmp_item_id_0", "item_123", %{}, %{})
       %AssetImport{}
-      iex> find_or_create_asset_import!(123, "bad_type", "tmp_item_id_1")
+      iex> find_or_create_asset_import!(123, "bad_type", "tmp_item_id_1", "item_123", %{}, %{})
       ** (Ecto.InvalidChangesetError)
   """
-  def find_or_create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs) do
+  def find_or_create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs, existing_attrs) do
     case get_asset_import(import_id, type, tmp_slug) do
       nil ->
-        create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs)
+        create_asset_import!(import_id, type, tmp_slug, existing_slug, attrs, existing_attrs)
 
       asset_import ->
         asset_import
