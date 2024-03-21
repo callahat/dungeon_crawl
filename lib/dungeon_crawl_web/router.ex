@@ -41,6 +41,7 @@ defmodule DungeonCrawlWeb.Router do
       get "/dungeons/export", DungeonController, :dungeon_export_list, as: :dungeon_export
       get "/dungeons/export/:id", DungeonController, :download_dungeon_export, as: :dungeon_export
       get "/dungeons/import", DungeonController, :dungeon_import, as: :dungeon_import
+      get "/dungeons/import/:id", DungeonController, :dungeon_import_show, as: :dungeon_import_show
 
       scope "/dungeons" do
         resources "/", DungeonController do

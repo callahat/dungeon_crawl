@@ -93,7 +93,7 @@ defmodule DungeonCrawl.DungeonProcesses.Cache do
 
   @impl true
   def handle_call({:get_tile_template, {slug, author}}, _from, %Cache{} = state) do
-    _cache(state, :tile_templates, slug, author, &TileTemplates.get_tile_template_by_slug/1)
+    _cache(state, :tile_templates, slug, author, &TileTemplates.get_tile_template/1)
   end
 
   @impl true
