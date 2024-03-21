@@ -41,4 +41,15 @@ defmodule DungeonCrawl.Dungeons.AssetImportTest do
     assert Enum.all?(record.attributes, fn {k, _} -> is_atom(k) end)
     assert Enum.all?(record.existing_attributes, fn {k, _} -> is_atom(k) end)
   end
+
+  test "errors when non existing atom keys given in attributes" do
+    assert_raise ArgumentError,
+                 ~r|not an already existing atom|,
+                 fn ->
+                   AssetImport.changeset(
+                     %AssetImport{},
+                     %{attributes: %{"not_a_valid_existing_atom" => "derp"}}
+                   )
+                 end
+  end
 end
