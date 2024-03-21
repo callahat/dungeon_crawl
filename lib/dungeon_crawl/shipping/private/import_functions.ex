@@ -70,10 +70,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
           :update_existing ->
             # todo: make sure user can only do this if owner of asset or admin, probably just need a spec
             existing_by_slug = find_asset(asset_key, slug, user)
-            attributes = Enum.map(asset_import.attributes, fn {k, v} -> {String.to_existing_atom(k), v} end)
-                         |> Enum.into(%{})
             asset = existing_by_slug &&
-              update_asset(asset_key, existing_by_slug, attributes)
+              update_asset(asset_key, existing_by_slug, asset_import.attributes)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
             {asset, "u #{ log_prefix } - update existing asset with id: #{ asset.id }"}
           :resolved ->

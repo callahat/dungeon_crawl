@@ -45,7 +45,9 @@ defmodule DungeonCrawl.EctoAtomMap do
 
   defp _atomize_keys(data) do
     data
-    |> Enum.map(fn {k,v} -> {String.to_existing_atom(k), v} end)
+    |> Enum.map(fn {k,v} when is_binary(k) -> {String.to_existing_atom(k), v}
+                   key_value -> key_value
+                end)
     |> Enum.into(%{})
   end
 end
