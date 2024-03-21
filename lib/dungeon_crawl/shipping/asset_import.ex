@@ -5,10 +5,10 @@ defmodule DungeonCrawl.Shipping.AssetImport do
   alias DungeonCrawl.Shipping.Import
 
   schema "asset_imports" do
-    field :attributes, :map
+    field :attributes, DungeonCrawl.EctoAtomMap
     field :action, Ecto.Enum, values: [waiting: 1, create_new: 2, use_existing: 3, update_existing: 4, resolved: 5], default: :waiting
     field :importing_slug, :string
-    field :existing_attributes, :map
+    field :existing_attributes, DungeonCrawl.EctoAtomMap
     field :existing_slug, :string
     field :resolved_slug, :string
     field :type, Ecto.Enum, values: [items: 1, sounds: 2, tile_templates: 3]
