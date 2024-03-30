@@ -1,0 +1,105 @@
+<div class="container">
+  <div class="row">
+    <div class="col-2"></div>
+    <div class="col">
+      <strong>Existing</strong>
+    </div>
+    <div class="col">
+      <strong>Importing</strong>
+    </div>
+  </div>
+  <%= import_field_row(
+        "Character",
+        DungeonCrawlWeb.SharedView.tile_and_style(@asset_import.existing_attributes, :safe),
+        DungeonCrawlWeb.SharedView.tile_and_style(@asset_import.attributes, :safe)) %>
+
+  <%= import_field_row(
+        "Color",
+        @asset_import.existing_attributes.color,
+        @asset_import.attributes.color) %>
+
+  <%= import_field_row(
+        "Background Color",
+        @asset_import.existing_attributes.background_color,
+        @asset_import.attributes.background_color) %>
+
+  <%= import_field_row(
+        "Animate Period",
+        @asset_import.existing_attributes.animate_period,
+        @asset_import.attributes.animate_period) %>
+
+  <%= import_field_row(
+        "Animate Random",
+        @asset_import.existing_attributes.animate_random,
+        @asset_import.attributes.animate_random) %>
+
+  <%= import_field_row(
+        "Animate Characters",
+        @asset_import.existing_attributes.animate_characters,
+        @asset_import.attributes.animate_characters) %>
+
+  <%= import_field_row(
+        "Animate Colors",
+        @asset_import.existing_attributes.animate_colors,
+        @asset_import.attributes.animate_colors) %>
+
+  <%= import_field_row(
+        "Animate Colors",
+        @asset_import.existing_attributes.animate_background_colors,
+        @asset_import.attributes.animate_background_colors) %>
+
+  <%= import_field_row(
+        "Name",
+        @asset_import.existing_attributes.name,
+        @asset_import.attributes.name) %>
+
+  <%= import_field_row(
+        "Description",
+        @asset_import.existing_attributes.description,
+        @asset_import.attributes.description) %>
+
+  <%= import_field_row(
+        "Group",
+        @asset_import.existing_attributes.group_name,
+        @asset_import.attributes.group_name) %>
+
+  <%= import_field_row(
+        "Unlisted",
+        if(@asset_import.existing_attributes.unlisted, do: "Yes", else: "No"),
+        if(@asset_import.attributes.unlisted, do: "Yes", else: "No")) %>
+
+  <%= if @asset_import.existing_attributes.state != @asset_import.attributes.state do %>
+  <div class="row">
+    <div class="col-2">
+    </div>
+    <div class="col">
+      <%= render SharedView, "show_state_fields.html", state: @asset_import.existing_attributes.state %>
+    </div>
+    <div class="col">
+      <%= render SharedView, "show_state_fields.html", state: @asset_import.attributes.state %>
+    </div>
+  </div>
+  <% end %>
+
+  <%= if @asset_import.existing_attributes.script != @asset_import.attributes.script do %>
+  <div class="row">
+    <div class="col-2">
+      <strong>Script:</strong>
+    </div>
+    <div class="col-10">
+      <textarea id="scriptExisting"><%= @asset_import.existing_attributes.script %></textarea>
+      <textarea id="scriptImported"><%= @asset_import.attributes.script %></textarea>
+      <div id="scriptAnchor"></div>
+    </div>
+  </div>
+  <% end %>
+
+  <div class="row">
+
+  </div>
+  <div class="row">
+    <div class="col">
+      <div id="scriptAnchor"></div>
+    </div>
+  </div>
+</div>

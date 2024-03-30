@@ -84,6 +84,10 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
         existing_by_slug = find_asset(asset_key, slug, user)
         if existing_by_slug do
           attrs_existing = asset_attrs(asset_key, existing_by_slug)
+
+          attrs = %{ attrs | script: script_fuzzer(attrs.script)}
+          attrs_existing = %{ attrs_existing | script: script_fuzzer(attrs_existing.script)}
+
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs, attrs_existing)
           {nil, "? #{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
 

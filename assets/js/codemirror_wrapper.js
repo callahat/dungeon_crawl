@@ -5,6 +5,9 @@ import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 import {StreamLanguage, syntaxHighlighting, HighlightStyle} from "@codemirror/language"
 import {tags} from "@lezer/highlight"
 import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
+import {basicSetup} from "codemirror";
+import {EditorState} from "@codemirror/state";
+import {MergeView} from "@codemirror/merge";
 
 const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.link, color: "#00C", textDecoration: "underline"},
@@ -78,6 +81,38 @@ const CodemirrorWrapper = {
         this.codemirror.state.update({changes: {from: 0, to: this.codemirror.state.doc.length, insert: textAreaEl.value}})
       )
     }
+  },
+  initDiff(textAreaEl, textAreaLeftEl, textAreaRightEl) {
+    if(!textAreaEl || !textAreaLeftEl || !textAreaRightEl) { return }
+
+    this.codemirror = new MergeView({
+      a: {
+        doc: textAreaLeftEl.value,
+        extensions: [
+          lineNumbers(),
+          EditorView.editable.of(false),
+          EditorState.readOnly.of(true),
+          syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
+          StreamLanguage.define(dscript)
+        ]
+      },
+      b: {
+        doc: textAreaRightEl.value,
+        extensions: [
+          lineNumbers(),
+          EditorView.editable.of(false),
+          EditorState.readOnly.of(true),
+          syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
+          StreamLanguage.define(dscript)
+        ]
+      },
+      parent: document.body
+    })
+
+    textAreaEl.parentNode.insertBefore(this.codemirror.dom, textAreaEl)
+    textAreaLeftEl.hidden = true
+    textAreaRightEl.hidden = true
+
   },
   save(textAreaEl) {
     textAreaEl.value = this.codemirror.state.doc.toString()

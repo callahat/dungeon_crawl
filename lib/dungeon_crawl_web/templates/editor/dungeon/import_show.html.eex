@@ -7,6 +7,7 @@
 <p>The following slugs exist in the system but did not match exactly. Choose how to proceed with each.</p>
   <%= for asset_import <- @asset_imports do %>
   <p><%= asset_import.importing_slug %> - <%= asset_import.existing_slug %></p>
+<%= render "import_asset_tile_template_diff.html", asset_import: asset_import %>
   <% end %>
 <% end %>
 

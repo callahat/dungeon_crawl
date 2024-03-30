@@ -43,4 +43,34 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
     """
     }
   end
+
+  def diff_label(attr_key, asset_import) do
+    label_text =  String.capitalize(Atom.to_string(attr_key))
+
+    if Map.get(asset_import.attributes, attr_key) !=
+         Map.get(asset_import.existing_attributes, attr_key) do
+      {:safe, "<strong class=\"diff\">#{ label_text }:</strong>"}
+    else
+      {:safe, "<strong>#{ label_text }:</strong>"}
+    end
+  end
+
+  def import_field_row(label, existing, import) when existing != import do
+    {:safe,
+      """
+      <div class="row">
+        <div class="col-2">
+          <strong>#{ label }:</strong>
+        </div>
+        <div class="col">
+          #{ existing }
+        </div>
+        <div class="col">
+          #{ import }
+        </div>
+      </div>
+      """
+    }
+  end
+  def import_field_row(_,_,_), do: ""
 end
