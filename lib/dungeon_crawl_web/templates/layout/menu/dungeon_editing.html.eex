@@ -1,11 +1,11 @@
 <%= if user_can_edit_dungeons(@current_user) do %>
 <li class="nav-item">
   <div class="dropdown">
-    <a class="nav-link dropdown-toggle" href="#" id="adminMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <a class="nav-link dropdown-toggle" href="#" id="editMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
       Editors
     </a>
 
-    <div class="bg-dark dropdown-menu" aria-labelledby="adminMenuLink">
+    <div class="bg-dark dropdown-menu" aria-labelledby="editMenuLink">
       <%= link "Edit Dungeons", to: Routes.edit_dungeon_path(@conn, :index), class: "nav-link" %>
       <%= link "Items", to: Routes.edit_equipment_path(@conn, :index), class: "nav-link" %>
       <%= link "Tile Templates", to: Routes.edit_tile_template_path(@conn, :index), class: "nav-link" %>

@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.DockWorker
+  alias DungeonCrawl.Shipping.DungeonImports
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
@@ -15,7 +16,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
-  plug :assign_dungeon_import when action in [:dungeon_import_show]
+  plug :assign_dungeon_import when action in [:dungeon_import_show, :dungeon_import_update]
   plug :assign_dungeon_export when action in [:download_dungeon_export]
   plug :validate_updateable when action in [:edit, :update]
 
@@ -96,6 +97,24 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     |> render("import_show.html")
   end
 
+  def dungeon_import_update(conn, %{"id" => _id, "action" => action}) do
+    dungeon_import = conn.assigns.dungeon_import
+    # todo: test that it noops if its not waiting
+    if dungeon_import.status == :waiting do
+      IO.puts "action"
+      IO.inspect action
+      Enum.each(action, fn {asset_import_id, action} ->
+        DungeonImports.get_asset_import(dungeon_import.id, asset_import_id)
+        |> DungeonImports.update_asset_import!(%{action: action})
+      end)
+
+      DockWorker.import(dungeon_import)
+    end
+
+    conn
+    |> _redirect_to_dungeon_import_list()
+  end
+
   def dungeon_export(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
 
@@ -120,6 +139,10 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
   defp _redirect_to_dungeon_export_list(conn) do
     redirect(conn, to: Routes.edit_dungeon_export_path(conn, :dungeon_export_list))
+  end
+
+  defp _redirect_to_dungeon_import_list(conn) do
+    redirect(conn, to: Routes.edit_dungeon_import_path(conn, :dungeon_import))
   end
 
   def download_dungeon_export(conn, %{"id" => _id}) do

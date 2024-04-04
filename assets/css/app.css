@@ -200,6 +200,10 @@ input#tile_template_character {
   max-width: 700px
 }
 
+.modal-dialog.modal-diff {
+  max-width: 80%;
+}
+
 #play_effect:hover {
   background-color: #fafdff;
 }

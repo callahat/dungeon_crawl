@@ -7,7 +7,7 @@ import {tags} from "@lezer/highlight"
 import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
 import {basicSetup} from "codemirror";
 import {EditorState} from "@codemirror/state";
-import {MergeView} from "@codemirror/merge";
+import {MergeView, Chunk} from "@codemirror/merge";
 
 const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.link, color: "#00C", textDecoration: "underline"},
@@ -81,6 +81,76 @@ const CodemirrorWrapper = {
         this.codemirror.state.update({changes: {from: 0, to: this.codemirror.state.doc.length, insert: textAreaEl.value}})
       )
     }
+  },
+  initDiff2(divEl) {
+    if(!divEl) { return }
+
+    this.codemirror = {}
+
+    $("#assetImportDiffList").find(".modal.asset-import-diff").each((_index, el) => {
+      $(`#assetImportDiff${ el.dataset.id }Link`).on("click", () => {
+        $(`#assetImportDiff${ el.dataset.id }`).modal({show: true})
+      })
+
+      $(el).on("click", ".btn.action", (event) => {
+        console.log("clicekd action close button")
+        console.log(event.target.dataset.action)
+        $(`[name="action[${ el.dataset.id }]"]`).val(event.target.dataset.action)
+      })
+
+      $(el).on('hidden.bs.modal', (event, second) => {
+        console.log("hidden " + el.id)
+        console.log(el)
+        console.log(el.dataset.id)
+        console.log(event)
+        // if(this.codemirror) { this.codemirror.destroy() }
+      })
+      $(el).on('show.bs.modal', () => {
+        if(!this.codemirror[el.dataset.id]) {
+          console.log("shown " + el.id)
+          console.log(el)
+          console.log(el.dataset.id)
+
+          let left= $(`#scriptExisting${ el.dataset.id }`),
+              right = $(`#scriptImported${ el.dataset.id }`),
+              scriptAnchor = $(`#scriptAnchor${ el.dataset.id }`)
+
+
+          this.codemirror[el.dataset.id] = new MergeView({
+            a: {
+              doc: left.val(),
+              extensions: [
+                lineNumbers(),
+                EditorView.editable.of(false),
+                EditorState.readOnly.of(true),
+                syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
+                StreamLanguage.define(dscript)
+              ]
+            },
+            b: {
+              doc: right.val(),
+              extensions: [
+                lineNumbers(),
+                EditorView.editable.of(false),
+                EditorState.readOnly.of(true),
+                syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
+                StreamLanguage.define(dscript)
+              ]
+            },
+            parent: document.body
+          })
+
+          console.log("I have shown your marvelous things")
+          console.log(left)
+          console.log(right)
+          console.log(scriptAnchor)
+
+          left.hide()
+          right.hide()
+          scriptAnchor.append(this.codemirror[el.dataset.id].dom)
+        }
+      })
+    })
   },
   initDiff(textAreaEl, textAreaLeftEl, textAreaRightEl) {
     if(!textAreaEl || !textAreaLeftEl || !textAreaRightEl) { return }

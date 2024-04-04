@@ -22,10 +22,15 @@ defmodule DungeonCrawl.EctoAtomMap do
 
   # change from the DB representation
   def load(data) do
-    if is_map(data) do
-      {:ok, _atomize_keys(data)}
-    else
-      :error
+    cond do
+      is_nil(data) ->
+        {:ok, %{}}
+
+      is_map(data) ->
+        {:ok, _atomize_keys(data)}
+
+      true ->
+        :error
     end
   end
 

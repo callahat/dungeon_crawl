@@ -55,6 +55,11 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
     end
   end
 
+  def import_character_row({:safe, existing}, {:safe, import}) do
+    existing = ~s|<pre class="tile_template_preview">#{ existing }</pre>|
+    import = ~s|<pre class="tile_template_preview">#{ import }</pre>|
+    import_field_row("Character", existing, import)
+  end
   def import_field_row(label, existing, import) when existing != import do
     {:safe,
       """
@@ -63,14 +68,32 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
           <strong>#{ label }:</strong>
         </div>
         <div class="col">
-          #{ existing }
+          <div style="width: fit-content">#{ existing }</div>
         </div>
         <div class="col">
-          #{ import }
+          <div style="width: fit-content">#{ import }</div>
         </div>
       </div>
       """
     }
   end
   def import_field_row(_,_,_), do: ""
+
+  def import_script_field_row(existing_script, import_script) when existing_script != import_script do
+    {:safe,
+      """
+      <div class="row">
+        <div class="col-2">
+          <strong>Script:</strong>
+        </div>
+        <div class="col-10">
+          <textarea id="scriptExisting">#{ existing_script }</textarea>
+          <textarea id="scriptImported">#{ import_script }</textarea>
+          <div id="scriptAnchor"></div>
+        </div>
+      </div>
+      """
+    }
+  end
+  def import_script_field_row(_, _), do: ""
 end

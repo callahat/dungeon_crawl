@@ -45,6 +45,7 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
       })
 
       DockWorker.import(dungeon_import)
+      # todo: this broadcast seems already handled by theimport function above
       _broadcast_status(dungeon_import.user_id)
 
       {:ok, "junk"}
