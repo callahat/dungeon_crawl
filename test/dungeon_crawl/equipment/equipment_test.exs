@@ -173,6 +173,7 @@ defmodule DungeonCrawl.EquipmentTest do
       assert item.public == false
       assert item.script == @update_attrs.script
       assert item.slug == "thing"
+      refute item.slug == @update_attrs.slug
     end
 
     test "update_item/2 with invalid data returns error changeset" do

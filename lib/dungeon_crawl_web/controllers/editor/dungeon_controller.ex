@@ -101,8 +101,6 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     dungeon_import = conn.assigns.dungeon_import
     # todo: test that it noops if its not waiting
     if dungeon_import.status == :waiting do
-      IO.puts "action"
-      IO.inspect action
       Enum.each(action, fn {asset_import_id, action} ->
         DungeonImports.get_asset_import(dungeon_import.id, asset_import_id)
         |> DungeonImports.update_asset_import!(%{action: action})

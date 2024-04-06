@@ -1,8 +1,6 @@
 defmodule DungeonCrawl.Dungeons.AssetImportTest do
   use DungeonCrawl.DataCase
 
-  require DungeonCrawl.SharedTests
-
   alias DungeonCrawl.Shipping.AssetImport
 
   import DungeonCrawl.ShippingFixtures
@@ -31,6 +29,20 @@ defmodule DungeonCrawl.Dungeons.AssetImportTest do
 
   test "changeset with invalid attributes" do
     changeset = AssetImport.changeset(%AssetImport{}, @invalid_attrs)
+    refute changeset.valid?
+  end
+
+  test "update_changeset with valid attrs" do
+    valid_attrs = Map.merge(@valid_attrs, %{action: :create_new, resolved_slug: "testslug"})
+    changeset = AssetImport.update_changeset(%AssetImport{}, valid_attrs)
+    refute Map.drop(changeset.changes, [:action, :resolved_slug])
+           == Map.drop(valid_attrs, [:action, :resolved_slug])
+    assert changeset.changes.action == :create_new
+    assert changeset.changes.resolved_slug == valid_attrs.resolved_slug
+  end
+
+  test "update_changeset with invalid attributes" do
+    changeset = AssetImport.update_changeset(%AssetImport{}, %{action: "bob"})
     refute changeset.valid?
   end
 
