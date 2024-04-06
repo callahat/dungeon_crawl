@@ -160,12 +160,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     })
 
     log = ExUnit.CaptureLog.capture_log(fn ->
-            try do
-                assert %Task{ref: ref} = DockWorker.import(dungeon_import, 1)
-                assert_receive {^ref, :ok}
-            rescue
-              _ -> nil
-            end
+            assert %Task{ref: ref} = DockWorker.import(dungeon_import, 1)
+            assert_receive {^ref, :ok}
           end)
 
     # Its possible that assets will still be created on a timeout.
