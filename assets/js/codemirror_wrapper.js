@@ -22,7 +22,6 @@ const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.operator, color: "black"},
 ]);
 
-
 const CodemirrorWrapper = {
   initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
     $(triggerEl).on("shown.bs.tab", () => {
@@ -82,7 +81,7 @@ const CodemirrorWrapper = {
       )
     }
   },
-  initDiff2(divEl) {
+  initDiff(divEl) {
     if(!divEl) { return }
 
     this.codemirror = {}
@@ -93,28 +92,14 @@ const CodemirrorWrapper = {
       })
 
       $(el).on("click", ".btn.action", (event) => {
-        console.log("clicekd action close button")
-        console.log(event.target.dataset.action)
         $(`[name="action[${ el.dataset.id }]"]`).val(event.target.dataset.action)
       })
 
-      $(el).on('hidden.bs.modal', (event, second) => {
-        console.log("hidden " + el.id)
-        console.log(el)
-        console.log(el.dataset.id)
-        console.log(event)
-        // if(this.codemirror) { this.codemirror.destroy() }
-      })
       $(el).on('show.bs.modal', () => {
         if(!this.codemirror[el.dataset.id]) {
-          console.log("shown " + el.id)
-          console.log(el)
-          console.log(el.dataset.id)
-
           let left= $(`#scriptExisting${ el.dataset.id }`),
               right = $(`#scriptImported${ el.dataset.id }`),
               scriptAnchor = $(`#scriptAnchor${ el.dataset.id }`)
-
 
           this.codemirror[el.dataset.id] = new MergeView({
             a: {
@@ -140,49 +125,12 @@ const CodemirrorWrapper = {
             parent: document.body
           })
 
-          console.log("I have shown your marvelous things")
-          console.log(left)
-          console.log(right)
-          console.log(scriptAnchor)
-
           left.hide()
           right.hide()
           scriptAnchor.append(this.codemirror[el.dataset.id].dom)
         }
       })
     })
-  },
-  initDiff(textAreaEl, textAreaLeftEl, textAreaRightEl) {
-    if(!textAreaEl || !textAreaLeftEl || !textAreaRightEl) { return }
-
-    this.codemirror = new MergeView({
-      a: {
-        doc: textAreaLeftEl.value,
-        extensions: [
-          lineNumbers(),
-          EditorView.editable.of(false),
-          EditorState.readOnly.of(true),
-          syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
-          StreamLanguage.define(dscript)
-        ]
-      },
-      b: {
-        doc: textAreaRightEl.value,
-        extensions: [
-          lineNumbers(),
-          EditorView.editable.of(false),
-          EditorState.readOnly.of(true),
-          syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
-          StreamLanguage.define(dscript)
-        ]
-      },
-      parent: document.body
-    })
-
-    textAreaEl.parentNode.insertBefore(this.codemirror.dom, textAreaEl)
-    textAreaLeftEl.hidden = true
-    textAreaRightEl.hidden = true
-
   },
   save(textAreaEl) {
     textAreaEl.value = this.codemirror.state.doc.toString()
