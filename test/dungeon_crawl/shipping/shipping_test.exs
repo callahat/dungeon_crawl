@@ -68,6 +68,17 @@ defmodule DungeonCrawl.ShippingTest do
       export = export_fixture()
       assert %Ecto.Changeset{} = Shipping.change_export(export)
     end
+
+    test "already_exporting?/2" do
+      user = insert_user()
+
+      expected_results = [{:queued, true}, {:running, true}, {:completed, false}, {:failed, false}]
+
+      assert Enum.map(expected_results, fn {status, _expected_result} ->
+               export = export_fixture(%{status: status, user_id: user.id, file_name: "#{status}.json"})
+               {status, Shipping.already_exporting?(export.dungeon_id, export.user_id)}
+             end) == expected_results
+    end
   end
 
   describe "dungeon_imports" do
@@ -140,6 +151,17 @@ defmodule DungeonCrawl.ShippingTest do
     test "change_import/1 returns a import changeset" do
       import = import_fixture()
       assert %Ecto.Changeset{} = Shipping.change_import(import)
+    end
+
+    test "already_importing?/2" do
+      user = insert_user()
+
+      expected_results = [{:queued, true}, {:running, true}, {:completed, false}, {:failed, false}, {:waiting, true}]
+
+      assert Enum.map(expected_results, fn {status, _expected_result} ->
+               import = import_fixture(%{status: status, user_id: user.id, file_name: "#{status}.json"})
+               {status, Shipping.already_importing?(import.file_name, import.user_id)}
+             end) == expected_results
     end
   end
 end

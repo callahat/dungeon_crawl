@@ -78,7 +78,6 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
       %AssetImport{}
   """
   def get_asset_import(import_id, asset_import_id) do
-    # todo: spec for this
     Repo.one(from ai in AssetImport, where: ai.dungeon_import_id == ^import_id and
                                             ai.id == ^asset_import_id)
   end

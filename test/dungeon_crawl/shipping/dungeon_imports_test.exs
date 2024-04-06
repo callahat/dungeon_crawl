@@ -481,6 +481,30 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     end
   end
 
+  describe "get_asset_import/2" do
+    setup [:existing_import_setup]
+
+    test "gets the asset import", config do
+      %{
+        dungeon_import_id: import_id,
+        id: asset_import_id
+      } = config.existing_asset_import
+
+      assert config.existing_asset_import ==
+               DungeonImports.get_asset_import(import_id, asset_import_id)
+    end
+
+    test "returns nil if the asset not found", config do
+      %{
+        dungeon_import_id: import_id,
+        id: asset_import_id
+      } = config.existing_asset_import
+
+      refute DungeonImports.get_asset_import(import_id, -1)
+      refute DungeonImports.get_asset_import(-1, asset_import_id)
+    end
+  end
+
   describe "get_asset_import/3" do
     setup [:existing_import_setup]
 
@@ -504,6 +528,16 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
 
       refute DungeonImports.get_asset_import(import_id, type, "_bad_slug")
       refute DungeonImports.get_asset_import(-1, type, importing_slug)
+    end
+  end
+
+  describe "get_asset_imports/1" do
+    setup [:existing_import_setup]
+
+    test "gets the asset imports", config do
+      assert [config.existing_asset_import] ==
+               DungeonImports.get_asset_imports(config.dungeon_import.id)
+      assert [] == DungeonImports.get_asset_imports(-1)
     end
   end
 
