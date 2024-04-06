@@ -14,12 +14,12 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     GenServer.start_link(__MODULE__, nil)
   end
 
-  def export(%Export{} = dungeon_export) do
-    _pool_wrapper({:export, dungeon_export})
+  def export(%Export{} = dungeon_export, worker_timeout \\ @timeout) do
+    _pool_wrapper({:export, dungeon_export}, worker_timeout)
   end
 
-  def import(%Import{} = dungeon_import) do
-    _pool_wrapper({:import, dungeon_import})
+  def import(%Import{} = dungeon_import, worker_timeout \\ @timeout) do
+    _pool_wrapper({:import, dungeon_import}, worker_timeout)
   end
 
   ## Callbacks
@@ -57,7 +57,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     import_hash = Json.decode!(import.data)
                   |> DungeonImports.run(user, import.id, import.line_identifier)
 
-    import_log = import.log <> Enum.join(Enum.reverse(import_hash.log), "\n")
+    import_log = Enum.join(Enum.reverse(import_hash.log), "\n") <> "\n---------------\n" <> import.log
 
     attrs = if import_hash.status == "done",
                do: %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil, log: import_log},
@@ -79,14 +79,14 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
   end
 
-  defp _pool_wrapper({_, record} = params) do
+  defp _pool_wrapper({_, record} = params, worker_timeout) do
     Task.async(fn ->
       :poolboy.transaction(
         :dock_worker,
         fn dock_worker ->
           Logger.info("*** Starting worker for: #{ inspect params }")
           try do
-            GenServer.call(dock_worker, params, @timeout)
+            GenServer.call(dock_worker, params, worker_timeout)
             Logger.info("*** Worker done for: #{ inspect params }")
           catch
             code, error ->
