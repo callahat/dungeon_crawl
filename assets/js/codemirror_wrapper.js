@@ -5,7 +5,6 @@ import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 import {StreamLanguage, syntaxHighlighting, HighlightStyle} from "@codemirror/language"
 import {tags} from "@lezer/highlight"
 import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
-import {basicSetup} from "codemirror";
 import {EditorState} from "@codemirror/state";
 import {MergeView, Chunk} from "@codemirror/merge";
 
