@@ -19,6 +19,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   plug :assign_dungeon_import when action in [:dungeon_import_show, :dungeon_import_update]
   plug :assign_dungeon_export when action in [:download_dungeon_export]
   plug :validate_updateable when action in [:edit, :update]
+  plug :validate_import_updateable when action in [:dungeon_import_update]
 
   def index(conn, _params) do
     dungeons = Dungeons.list_dungeons(conn.assigns.current_user)
@@ -41,7 +42,6 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       {:ok, dungeon} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-
         |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
@@ -99,17 +99,16 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
   def dungeon_import_update(conn, %{"id" => _id, "action" => action}) do
     dungeon_import = conn.assigns.dungeon_import
-    # todo: test that it noops if its not waiting
-    if dungeon_import.status == :waiting do
-      Enum.each(action, fn {asset_import_id, action} ->
-        DungeonImports.get_asset_import(dungeon_import.id, asset_import_id)
-        |> DungeonImports.update_asset_import!(%{action: action})
-      end)
 
-      DockWorker.import(dungeon_import)
-    end
+    Enum.each(action, fn {asset_import_id, action} ->
+      asset_import = DungeonImports.get_asset_import(dungeon_import.id, asset_import_id)
+      if asset_import, do: DungeonImports.update_asset_import!(asset_import, %{action: action})
+    end)
+
+    DockWorker.import(dungeon_import)
 
     conn
+    |> put_flash(:info, "Continuing import")
     |> _redirect_to_dungeon_import_list()
   end
 
@@ -287,6 +286,17 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       conn
       |> put_flash(:error, "Cannot edit an active dungeon")
       |> redirect(to: Routes.edit_dungeon_path(conn, :index))
+      |> halt()
+    end
+  end
+
+  defp validate_import_updateable(conn, _opts) do
+    if conn.assigns.dungeon_import.status == :waiting do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Cannot continue with that dungeon import")
+      |> _redirect_to_dungeon_import_list()
       |> halt()
     end
   end

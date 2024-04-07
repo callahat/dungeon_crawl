@@ -11,13 +11,20 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
   alias DungeonCrawl.Shipping
+  alias DungeonCrawl.Shipping.DungeonImports
   @create_attrs %{name: "some name"}
   @update_attrs %{name: "new name"}
   @invalid_attrs %{name: "", state_variables: ["flag", "starting_equipment"], state_values: ["true", "baditem"]}
 
+  @create_import_attrs %{data: "{}", file_name: "import.json"}
+
   def fixture(:dungeon, user_id) do
     {:ok, dungeon} = Dungeons.create_dungeon(Map.merge(@create_attrs, %{user_id: user_id, state: %{"banner" => "hark"}}))
     dungeon
+  end
+
+  def fixture(:dungeon_import, user_id, dungeon_id \\ nil) do
+    Shipping.create_import!(Map.merge(@create_import_attrs, %{user_id: user_id, dungeon_id: dungeon_id}))
   end
 
   # Without registered user
@@ -72,6 +79,22 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
   describe "import dungeon GET without a registered user" do
     test "redirects", %{conn: conn} do
       conn = get conn, edit_dungeon_import_path(conn, :dungeon_import)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "import dungeon show GET without a registered user" do
+    test "redirects", %{conn: conn} do
+      conn = get conn, edit_dungeon_import_path(conn, :dungeon_import_show, 1)
+      assert redirected_to(conn) == page_path(conn, :index)
+    end
+  end
+
+  describe "import dungeon update without a registered user" do
+    setup [:create_dungeon_import]
+
+    test "redirects", %{conn: conn, dungeon_import: dungeon_import} do
+      conn = post conn, edit_dungeon_import_path(conn, :dungeon_import_update, dungeon_import.id)
       assert redirected_to(conn) == page_path(conn, :index)
     end
   end
@@ -252,6 +275,47 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       conn = get conn, edit_dungeon_import_path(conn, :dungeon_import)
       assert html_response(conn, 200) =~ "Import dungeon"
       assert html_response(conn, 200) =~ "Filename"
+    end
+  end
+
+  describe "import dungeon show GET with a registered user" do
+    setup [:create_user, :create_dungeon_import, :link_dock_worker]
+
+    test "shows the import", %{conn: conn, dungeon_import: dungeon_import} do
+      conn = get conn, edit_dungeon_import_path(conn, :dungeon_import_show, dungeon_import.id)
+      assert html_response(conn, 200) =~ "Dungeon Import"
+      assert html_response(conn, 200) =~ "Log"
+    end
+  end
+
+  describe "import dungeon update with a registered user" do
+    setup [:create_user, :create_dungeon_import]
+
+    test "redirects and shows error when import not waiting",
+         %{conn: conn, dungeon_import: dungeon_import} do
+      conn = post conn, edit_dungeon_import_path(conn, :dungeon_import_update, dungeon_import.id), %{"action" => %{"26" => "use_existing"}}
+      assert redirected_to(conn) == edit_dungeon_import_path(conn, :dungeon_import)
+      assert Flash.get(conn.assigns.flash, :error) == "Cannot continue with that dungeon import"
+    end
+
+    test "invalid action updates are ignored",
+         %{conn: conn, dungeon_import: dungeon_import} do
+      {:ok, _import} = Shipping.update_import(dungeon_import, %{status: :waiting})
+      conn = post conn, edit_dungeon_import_path(conn, :dungeon_import_update, dungeon_import.id), %{"action" => %{"1" => "create_new"}}
+      assert redirected_to(conn) == edit_dungeon_import_path(conn, :dungeon_import)
+      assert Flash.get(conn.assigns.flash, :info) == "Continuing import"
+      assert [] == DungeonImports.get_asset_imports(dungeon_import.id)
+    end
+
+    test "continues the import when waiting",
+         %{conn: conn, dungeon_import: dungeon_import} do
+      {:ok, _import} = Shipping.update_import(dungeon_import, %{status: :waiting})
+      asset_import = DungeonImports.create_asset_import!(dungeon_import.id, :sounds, "tmp_sound", "beep", %{}, %{})
+      conn = post conn, edit_dungeon_import_path(conn, :dungeon_import_update, dungeon_import.id), %{"action" => %{asset_import.id => "create_new"}}
+      assert redirected_to(conn) == edit_dungeon_import_path(conn, :dungeon_import)
+      assert Flash.get(conn.assigns.flash, :info) == "Continuing import"
+      assert [asset_import] = DungeonImports.get_asset_imports(dungeon_import.id)
+      assert asset_import.action == :create_new
     end
   end
 
@@ -465,6 +529,20 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
   defp create_dungeon(opts) do
     dungeon = fixture(:dungeon, (opts.conn.assigns[:current_user] || insert_user(%{username: "CSwaggins"})).id )
     {:ok, conn: opts.conn, dungeon: dungeon}
+  end
+
+  defp create_dungeon_import(opts) do
+    dungeon_import = fixture(:dungeon_import, (opts.conn.assigns[:current_user] || insert_user(%{username: "CSwaggins"})).id )
+
+    {:ok, conn: opts.conn, dungeon_import: dungeon_import}
+  end
+
+  defp link_dock_worker(opts) do
+    # to ensure the dock worker is killed when the test is done; reduces error noise
+    # that doesn't actually fail the test
+    {:ok, _dock_worker} = GenServer.start_link(DungeonCrawl.Shipping.DockWorker, %{})
+
+    {:ok, conn: opts.conn}
   end
 
   defp create_user(_) do
