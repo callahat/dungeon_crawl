@@ -27,9 +27,11 @@ defmodule DungeonCrawl.TileTemplatesTest do
       user = insert_user()
       different_user = insert_user()
       tile_template = tile_template_fixture(%{user_id: user.id})
+      tile_template_userless = tile_template_fixture(%{user_id: nil})
       tile_template_fixture(%{user_id: different_user.id})
       deleted_tile_template_fixture()
       assert TileTemplates.list_tile_templates(user) == [tile_template]
+      assert TileTemplates.list_tile_templates(:nouser) == [tile_template_userless]
     end
 
     test "list_tile_templates/0 returns all tile_templates" do
