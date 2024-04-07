@@ -52,23 +52,33 @@ defmodule DungeonCrawl.SoundTest do
       assert Sound.get_effect(effect.id) == effect
       assert Sound.get_effect("#{effect.id}") == effect
       refute Sound.get_effect(effect.id + 1)
+      refute Sound.get_effect(nil)
+      assert Sound.get_effect(effect.slug) == effect
     end
 
     test "get_effect!/1" do
       effect = effect_fixture()
       assert Sound.get_effect!(effect.id) == effect
       assert Sound.get_effect!("#{effect.id}") == effect
+      assert Sound.get_effect!(effect.slug) == effect
     end
 
-    test "get_effect_by_slug/1" do
-      effect = effect_fixture()
-      assert Sound.get_effect_by_slug(effect.slug) == effect
-      refute Sound.get_effect_by_slug("fakeslug")
-    end
+    test "get_effect/2 when given a user" do
+      user = insert_user()
+      admin = insert_user(%{is_admin: true})
+      public_effect = effect_fixture(%{public: true})
+      private_effect = effect_fixture(%{public: false, user_id: admin.id})
+      owned_effect = effect_fixture(%{public: false, user_id: user.id})
 
-    test "get_effect_by_slug!/1" do
-      effect = effect_fixture()
-      assert Sound.get_effect_by_slug!(effect.slug) == effect
+      assert Sound.get_effect(public_effect.slug, nil)
+
+      assert Sound.get_effect(public_effect.slug, user)
+      refute Sound.get_effect(private_effect.slug, user)
+      assert Sound.get_effect(owned_effect.slug, user)
+
+      assert Sound.get_effect(public_effect.slug, admin)
+      assert Sound.get_effect(private_effect.slug, admin)
+      assert Sound.get_effect(owned_effect.slug, admin)
     end
 
     # tests around setting the slug may be redundant since this is tested in sluggable

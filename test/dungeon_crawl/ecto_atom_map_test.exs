@@ -1,4 +1,4 @@
-defmodule DungeonCrawl.EctoStateValueMapTest do
+defmodule DungeonCrawl.EctoAtomMapTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.EctoAtomMap

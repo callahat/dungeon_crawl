@@ -85,8 +85,12 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
         if existing_by_slug do
           attrs_existing = asset_attrs(asset_key, existing_by_slug)
 
-          attrs = %{ attrs | script: script_fuzzer(attrs.script)}
-          attrs_existing = %{ attrs_existing | script: script_fuzzer(attrs_existing.script)}
+          attrs = if Map.has_key?(attrs, :script),
+                     do: %{ attrs | script: script_fuzzer(attrs.script)},
+                     else: attrs
+          attrs_existing = if Map.has_key?(attrs_existing, :script),
+                              do: %{ attrs_existing | script: script_fuzzer(attrs_existing.script)},
+                              else: attrs_existing
 
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs, attrs_existing)
           {nil, "? #{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
@@ -167,7 +171,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
   def all_slugs_useable?(script, user_id) do
     all_slugs_useable?(script, user_id, &TileTemplates.get_tile_template/1, @script_tt_slug)
     && all_slugs_useable?(script, user_id, &Equipment.get_item/1, @script_item_slug)
-    && all_slugs_useable?(script, user_id, &Sound.get_effect_by_slug/1, @script_sound_slug)
+    && all_slugs_useable?(script, user_id, &Sound.get_effect/1, @script_sound_slug)
   end
 
   defp all_slugs_useable?(nil, _user_id, _slug_lookup, _slug_pattern), do: true

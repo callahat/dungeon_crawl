@@ -97,9 +97,9 @@ defmodule DungeonCrawl.TileTemplatesTest do
     test "get_tile_template/2 when given a user" do
       user = insert_user()
       admin = insert_user(%{is_admin: true})
-      public_tile = tile_template_fixture(%{active: false, is_public: true})
-      private_tile = tile_template_fixture(%{is_public: false, user_id: admin.id})
-      owned_tile = tile_template_fixture(%{active: false, is_public: false, user_id: user.id})
+      public_tile = tile_template_fixture(%{active: false, public: true})
+      private_tile = tile_template_fixture(%{public: false, user_id: admin.id})
+      owned_tile = tile_template_fixture(%{active: false, public: false, user_id: user.id})
 
       assert TileTemplates.get_tile_template(public_tile.slug, nil)
 

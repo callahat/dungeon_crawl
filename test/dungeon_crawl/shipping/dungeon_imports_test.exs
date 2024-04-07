@@ -144,9 +144,9 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
              == %{user_id: user.id, slug: "explosion_#{ explosion.id }", public: false}
 
       # sounds effects
-      assert config.sounds.alarm == Sound.get_effect_by_slug("alarm")
-      assert config.sounds.pickup_blip == Sound.get_effect_by_slug("pickup_blip")
-      assert config.sounds.shoot == Sound.get_effect_by_slug("shoot")
+      assert config.sounds.alarm == Sound.get_effect("alarm")
+      assert config.sounds.pickup_blip == Sound.get_effect("pickup_blip")
+      assert config.sounds.shoot == Sound.get_effect("shoot")
       assert click = Sound.find_effect(%{name: "Click", user_id: user.id, public: false})
       assert bomb = Sound.find_effect(%{name: "Bomb", user_id: user.id, public: false})
       assert door = Sound.find_effect(%{name: "Door", user_id: user.id, public: false})

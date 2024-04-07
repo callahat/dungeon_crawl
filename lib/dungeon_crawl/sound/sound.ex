@@ -85,6 +85,7 @@ defmodule DungeonCrawl.Sound do
   def _get_effect!(id) when is_integer(id), do: Repo.get!(Effect, id)
   def _get_effect!(slug), do: Repo.get_by!(Effect, %{slug: slug})
 
+  # this might not be needed
   def get_effect(identifier, user) do
     effect = get_effect(identifier)
 
@@ -98,23 +99,6 @@ defmodule DungeonCrawl.Sound do
       nil
     end
   end
-
-  @doc """
-  Gets a single effect given the slug.
-
-  Raises `Ecto.NoResultsError` if the Effect does not exist when using the ! form.
-
-  ## Examples
-
-      iex> get_effect_by_slug!("thing")
-      %Effect{}
-
-      iex> get_effect_by_slug!("other_thing_12")
-      ** (Ecto.NoResultsError)
-
-  """
-  def get_effect_by_slug(slug), do: Repo.get_by(Effect, %{slug: slug})
-  def get_effect_by_slug!(slug), do: Repo.get_by!(Effect, %{slug: slug})
 
   @doc """
   Creates a effect.

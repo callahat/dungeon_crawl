@@ -152,7 +152,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.sounds, slug) do
       export
     else
-      sound = Sound.get_effect_by_slug!(slug)
+      sound = Sound.get_effect!(slug)
       sound = Sound.copy_fields(sound)
               |> Map.put(:id, sound.id)
 

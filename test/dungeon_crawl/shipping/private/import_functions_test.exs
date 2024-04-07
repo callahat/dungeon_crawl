@@ -210,9 +210,9 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     test "with a slug wraps the TileTemplates function" do
       user = insert_user()
       admin = insert_user(%{is_admin: true})
-      public_tile = insert_tile_template(%{active: false, is_public: true})
-      private_tile = insert_tile_template(%{is_public: false, user_id: admin.id})
-      owned_tile = insert_tile_template(%{active: false, is_public: false, user_id: user.id})
+      public_tile = insert_tile_template(%{active: false, public: true})
+      private_tile = insert_tile_template(%{public: false, user_id: admin.id})
+      owned_tile = insert_tile_template(%{active: false, public: false, user_id: user.id})
 
       assert find_asset(:tile_templates, public_tile.slug, nil)
 

@@ -103,7 +103,7 @@ defmodule DungeonCrawl.DungeonProcesses.Cache do
 
   @impl true
   def handle_call({:get_sound_effect, {slug, author}}, _from, %Cache{} = state) do
-    _cache(state, :sound_effects, slug, author, &Sound.get_effect_by_slug/1)
+    _cache(state, :sound_effects, slug, author, &Sound.get_effect/1)
   end
 
   ## Defining useful helper functions
