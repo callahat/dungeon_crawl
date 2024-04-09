@@ -233,7 +233,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     dungeon =  Dungeons.get_dungeon!(conn.params["id"] || conn.params["dungeon_id"])
 
     cond do
-      dungeon.user_id != conn.assigns.current_user.id ->
+      dungeon.user_id != conn.assigns.current_user.id && !conn.assigns.current_user.is_admin ->
         conn
         |> put_flash(:error, "You do not have access to that")
         |> redirect(to: Routes.edit_dungeon_path(conn, :index))
@@ -252,11 +252,11 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   end
 
   defp assign_dungeon_import(conn, _opts) do
-    export =  Shipping.get_import!(conn.params["id"])
+    import =  Shipping.get_import!(conn.params["id"])
 
-    if export.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+    if import.user_id == conn.assigns.current_user.id || conn.assigns.current_user.is_admin do
       conn
-      |> assign(:dungeon_import, export)
+      |> assign(:dungeon_import, import)
     else
       conn
       |> put_flash(:error, "You do not have access to that")
@@ -268,7 +268,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   defp assign_dungeon_export(conn, _opts) do
     export =  Shipping.get_export!(conn.params["id"])
 
-    if export.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+    if export.user_id == conn.assigns.current_user.id || conn.assigns.current_user.is_admin do
       conn
       |> assign(:dungeon_export, export)
     else

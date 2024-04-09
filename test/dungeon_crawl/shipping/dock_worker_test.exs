@@ -20,6 +20,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
 
     user = insert_user()
 
+    on_exit(fn -> Process.exit(dock_worker, :kill) end)
+
     %{dock_worker: dock_worker, user: user}
   end
 
