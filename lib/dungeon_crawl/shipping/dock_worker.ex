@@ -49,7 +49,7 @@ defmodule DungeonCrawl.Shipping.DockWorker do
   @impl true
   def handle_call({:import, import}, _from, state) do
     # import the dungeon, return the created id
-    {:ok, _} = Shipping.update_import(import, %{status: :running,  details: nil})
+    {:ok, import} = Shipping.update_import(import, %{status: :running,  details: nil})
     _broadcast_status({:import, import})
 
     user = DungeonCrawl.Repo.preload(import, :user).user

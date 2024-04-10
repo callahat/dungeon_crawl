@@ -58,7 +58,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       if asset_import do
         case asset_import.action do
           :waiting ->
-            {nil, "? #{ log_prefix } - waiting on user decision"}
+            {nil, "? #{ log_prefix } - still waiting on user decision"}
           :create_new ->
             asset = create_asset(asset_key, attrs)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: asset.slug})

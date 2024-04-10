@@ -10,8 +10,8 @@
   </div>
 
   <%= import_character_row(
-        DungeonCrawlWeb.SharedView.tile_and_style(@existing_attributes, :safe),
-        DungeonCrawlWeb.SharedView.tile_and_style(@attributes, :safe)) %>
+        DungeonCrawlWeb.SharedView.tile_and_style(@existing_attributes),
+        DungeonCrawlWeb.SharedView.tile_and_style(@attributes)) %>
 
   <%= import_field_row(
         "Color",

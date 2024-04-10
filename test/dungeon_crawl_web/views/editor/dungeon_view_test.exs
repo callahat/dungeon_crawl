@@ -54,4 +54,41 @@ defmodule DungeonCrawlWeb.Editor.DungeonViewTest do
     assert {:safe, "<td title=\"Oof\">failed*</td>\n"} ==
              DungeonView.td_status(%{status: "failed", details: "Oof"})
   end
+
+  test "import_character_row/2" do
+    assert {:safe,
+      """
+      <div class="row">
+        <div class="col-2">
+          <strong>Character:</strong>
+        </div>
+        <div class="col">
+          <div style="width: fit-content"><pre class="tile_template_preview">A</pre></div>
+        </div>
+        <div class="col">
+          <div style="width: fit-content"><pre class="tile_template_preview">B</pre></div>
+        </div>
+      </div>
+      """
+    } == DungeonView.import_character_row("A", "B")
+  end
+
+  test "import_field_row/3" do
+    assert "" == DungeonView.import_field_row("Field Name", "A", "A")
+    assert {:safe,
+      """
+      <div class="row">
+        <div class="col-2">
+          <strong>Field Name:</strong>
+        </div>
+        <div class="col">
+          <div style="width: fit-content">A</div>
+        </div>
+        <div class="col">
+          <div style="width: fit-content">B</div>
+        </div>
+      </div>
+      """
+    } == DungeonView.import_field_row("Field Name", "A", "B")
+  end
 end

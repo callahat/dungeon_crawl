@@ -125,7 +125,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "? #{ log_prefix } - waiting on user decision")
+        assert Enum.member?(log, "? #{ log_prefix } - still waiting on user decision")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
