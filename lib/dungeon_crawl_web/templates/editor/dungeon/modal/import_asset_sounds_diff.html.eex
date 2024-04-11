@@ -1,0 +1,21 @@
+<div class="container">
+  <div class="row">
+    <div class="col-2"></div>
+    <div class="col">
+      <strong>Existing</strong>
+    </div>
+    <div class="col">
+      <strong>Importing</strong>
+    </div>
+  </div>
+
+  <%= import_field_row(
+        "Name",
+        @existing_attributes.name,
+        @attributes.name) %>
+
+  <%= import_sound_effect_row(
+        @existing_attributes.zzfx_params,
+        @attributes.zzfx_params) %>
+
+</div>

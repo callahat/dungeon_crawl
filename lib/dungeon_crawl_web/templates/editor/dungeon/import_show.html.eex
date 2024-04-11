@@ -20,6 +20,7 @@
       Action
     </div>
   </div>
+  <div id="sound_effect_previews">
   <%= for asset_import <- @asset_imports do %>
     <div class="row">
       <div class="col col-lg-1">
@@ -39,6 +40,7 @@
       </div>
     </div>
   <% end %>
+  </div>
   <div class="row">
     <div class="col col-lg-8">
       <div class="form-group">

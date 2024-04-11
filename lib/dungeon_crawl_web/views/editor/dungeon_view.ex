@@ -50,6 +50,28 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
     import_field_row("Character", existing, import)
   end
 
+  def import_sound_effect_row(existing, import) do
+    existing =
+      """
+      <div class="input-group">
+        <div class="input-group-prepend user-select-none">
+          <span class="input-group-text play-effect smaller" title="Click to preview the sound effect">▶</span>
+        </div>
+        <input type="text" class="form-control smaller" disabled=true value="#{ existing }"></input>
+      </div>
+      """
+    import =
+      """
+      <div class="input-group">
+        <div class="input-group-prepend user-select-none">
+          <span class="input-group-text play-effect smaller" title="Click to preview the sound effect">▶</span>
+        </div>
+        <input type="text" class="form-control smaller" disabled=true value="#{ import }"></input>
+      </div>
+      """
+    import_field_row("Zzfx Params", existing, import)
+  end
+
   def import_field_row(label, existing, import) when existing != import do
     {:safe,
       """
@@ -58,10 +80,10 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
           <strong>#{ label }:</strong>
         </div>
         <div class="col">
-          <div style="width: fit-content">#{ existing }</div>
+          <div style="width: 100%">#{ existing }</div>
         </div>
         <div class="col">
-          <div style="width: fit-content">#{ import }</div>
+          <div style="width: 100%">#{ import }</div>
         </div>
       </div>
       """
