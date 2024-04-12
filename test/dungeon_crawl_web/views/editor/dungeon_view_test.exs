@@ -63,14 +63,44 @@ defmodule DungeonCrawlWeb.Editor.DungeonViewTest do
           <strong>Character:</strong>
         </div>
         <div class="col">
-          <div style="width: fit-content"><pre class="tile_template_preview">A</pre></div>
+          <div style="width: 100%"><pre class="tile_template_preview">A</pre></div>
         </div>
         <div class="col">
-          <div style="width: fit-content"><pre class="tile_template_preview">B</pre></div>
+          <div style="width: 100%"><pre class="tile_template_preview">B</pre></div>
         </div>
       </div>
       """
     } == DungeonView.import_character_row("A", "B")
+  end
+
+  test "import_sound_effect_row/2" do
+    assert {:safe,
+             """
+             <div class="row">
+               <div class="col-2">
+                 <strong>Zzfx Params:</strong>
+               </div>
+               <div class="col">
+                 <div style="width: 100%"><div class="input-group">
+               <div class="input-group-prepend user-select-none">
+                 <span class="input-group-text play-effect smaller" title="Click to preview the sound effect">▶</span>
+               </div>
+               <input type="text" class="form-control smaller" disabled=true value="A"></input>
+             </div>
+             </div>
+               </div>
+               <div class="col">
+                 <div style="width: 100%"><div class="input-group">
+               <div class="input-group-prepend user-select-none">
+                 <span class="input-group-text play-effect smaller" title="Click to preview the sound effect">▶</span>
+               </div>
+               <input type="text" class="form-control smaller" disabled=true value="B"></input>
+             </div>
+             </div>
+               </div>
+             </div>
+             """
+           } == DungeonView.import_sound_effect_row("A", "B")
   end
 
   test "import_field_row/3" do
@@ -82,10 +112,10 @@ defmodule DungeonCrawlWeb.Editor.DungeonViewTest do
           <strong>Field Name:</strong>
         </div>
         <div class="col">
-          <div style="width: fit-content">A</div>
+          <div style="width: 100%">A</div>
         </div>
         <div class="col">
-          <div style="width: fit-content">B</div>
+          <div style="width: 100%">B</div>
         </div>
       </div>
       """
