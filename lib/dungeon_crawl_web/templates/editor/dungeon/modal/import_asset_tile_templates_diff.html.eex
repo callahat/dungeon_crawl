@@ -9,9 +9,24 @@
     </div>
   </div>
 
+  <%= import_field_row(
+        "Name",
+        @existing_attributes.name,
+        @attributes.name) %>
+
+  <%= import_field_row(
+        "Description",
+        @existing_attributes.description,
+        @attributes.description) %>
+
   <%= import_character_row(
         DungeonCrawlWeb.SharedView.tile_and_style(@existing_attributes),
         DungeonCrawlWeb.SharedView.tile_and_style(@attributes)) %>
+
+  <%= import_field_row(
+        "Character",
+        @existing_attributes.character,
+        @attributes.character) %>
 
   <%= import_field_row(
         "Color",
@@ -47,16 +62,6 @@
         "Animate Background Colors",
         @existing_attributes.animate_background_colors,
         @attributes.animate_background_colors) %>
-
-  <%= import_field_row(
-        "Name",
-        @existing_attributes.name,
-        @attributes.name) %>
-
-  <%= import_field_row(
-        "Description",
-        @existing_attributes.description,
-        @attributes.description) %>
 
   <%= import_field_row(
         "Group",
