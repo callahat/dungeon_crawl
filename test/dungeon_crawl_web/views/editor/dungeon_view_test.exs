@@ -121,4 +121,20 @@ defmodule DungeonCrawlWeb.Editor.DungeonViewTest do
       """
     } == DungeonView.import_field_row("Field Name", "A", "B")
   end
+
+  test "waiting_or_dungeon_link/2", %{conn: conn} do
+    # with a dungeon
+    import = %{dungeon_id: 123, dungeon: %{name: "Test"}}
+    assert "<a href=\"/editor/dungeons/123\">Test</a>" ==
+             Phoenix.HTML.safe_to_string(DungeonView.waiting_or_dungeon_link(conn, import))
+
+    # when waiting
+    import = %{dungeon_id: nil, id: 1, status: :waiting}
+    assert "<a class=\"btn btn-info btn-sm\" href=\"/editor/dungeons/import/1\">Update</a>" ==
+             Phoenix.HTML.safe_to_string(DungeonView.waiting_or_dungeon_link(conn, import))
+
+    # when failed
+    import = %{dungeon_id: nil, status: :failed}
+    assert ""  == DungeonView.waiting_or_dungeon_link(conn, import)
+  end
 end

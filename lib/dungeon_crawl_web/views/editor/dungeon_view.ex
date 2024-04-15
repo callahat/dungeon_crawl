@@ -92,8 +92,6 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
   def import_field_row(_,_,_), do: ""
 
   def waiting_or_dungeon_link(socket, import) do
-    import = DungeonCrawl.Repo.preload(import, :dungeon)
-
     cond do
       import.dungeon_id ->
         link(import.dungeon.name, to: Routes.edit_dungeon_path(socket, :show, import.dungeon_id))
