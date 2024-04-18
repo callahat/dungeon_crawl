@@ -27,6 +27,7 @@
         <span id="assetImportDiff<%= asset_import.id %>Link" class="btn btn-info btn-sm">View</span>
         <%= render "modal/modal_wrapper.html",
               template: "modal/import_asset_#{ asset_import.type }_diff.html",
+              user: @user,
               asset_import: asset_import %>
       </div>
       <div class="col col-lg-3">

@@ -36,12 +36,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
                   })
 
       user = insert_user()
+      other_user = insert_user()
       dungeon_import = Shipping.create_import!(%{data: "{}", user_id: user.id, file_name: "x.json"})
       asset_from_import = Map.get(export, config.asset_key)[config.key]
 
       attrs = cond do
         config[:user_asset] -> %{user_id: user.id}
         config[:public_asset] -> %{user_id: nil, public: true}
+        config[:others_existing_asset] -> %{user_id: other_user.id, slug: asset_from_import.slug, name: "Common field"}
         config[:existing_asset] -> %{user_id: user.id, slug: asset_from_import.slug, name: "Common field"}
         config[:script_asset] -> %{user_id: user.id, script: "test words"}
         true -> %{}

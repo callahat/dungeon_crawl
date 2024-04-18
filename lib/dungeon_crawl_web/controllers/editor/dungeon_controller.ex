@@ -94,6 +94,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
     assign(conn, :dungeon_import, dungeon_import)
     |> assign(:asset_imports, asset_imports)
+    |> assign(:user, conn.assigns.current_user)
     |> render("import_show.html")
   end
 

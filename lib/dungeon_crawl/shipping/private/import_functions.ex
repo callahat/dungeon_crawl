@@ -71,9 +71,15 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
             # todo: make sure user can only do this if owner of asset or admin, probably just need a spec
             existing_by_slug = find_asset(asset_key, slug, user)
             asset = existing_by_slug &&
+              (existing_by_slug.user_id == user.id || user.is_admin) &&
               update_asset(asset_key, existing_by_slug, asset_import.attributes)
-            DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
-            {asset, "u #{ log_prefix } - update existing asset with id: #{ asset.id }"}
+            if asset do
+              DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
+              {asset, "u #{ log_prefix } - update existing asset with id: #{ asset.id }"}
+            else
+              DungeonImports.update_asset_import!(asset_import, %{action: :waiting})
+              {nil, "x #{ log_prefix } - cannot update asset, insufficient priviledges"}
+            end
           :resolved ->
             # this will likely not happen unless the asset is changed after resolution
             asset = find_asset(asset_key, asset_import.resolved_slug, user)
