@@ -229,12 +229,13 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   end
 
   describe "script_fuzzer/1" do
-    test "replaces slugs with <FUZZ> for equivalent comparision purposes" do
+    test "replaces slugs with <FUZZ> for equivalent comparision purposes" <>
+         "and normalizes line endings" do
       script = """
-      #become character: X, slug: tmp_tt_id_1
-      #become slug: tmp_tt_id_1, color: mauve
+      #become character: X, slug: tmp_tt_id_1\r
+      #become slug: tmp_tt_id_1, color: mauve\r
       #equip bacon, ?sender
-      #unequip rocks, ?sender, label
+      \r#unequip rocks, ?sender, label
       #sound boom
       """
 

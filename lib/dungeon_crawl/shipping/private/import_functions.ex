@@ -163,6 +163,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     fuzz_script_slugs(script, @script_tt_slug)
     |> fuzz_script_slugs(@script_item_slug)
     |> fuzz_script_slugs(@script_sound_slug)
+    |> normalize_line_endings()
   end
 
   defp fuzz_script_slugs(script, slug_pattern) do
@@ -172,6 +173,10 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       [left_side, _slug] = String.split(slug_kwarg)
       String.replace(script, slug_kwarg, "#{left_side} <FUZZ>")
     end)
+  end
+
+  defp normalize_line_endings(script) do
+    Regex.replace(~r/(?:\r\n|\n\r|\n|\r)/, script, "\n")
   end
 
   def all_slugs_useable?(script, user_id) do
