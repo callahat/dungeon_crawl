@@ -5,12 +5,13 @@ defmodule DungeonCrawl.Dungeons.TileTest do
 
   alias DungeonCrawl.Dungeons.Tile
 
-  @valid_attrs %{row: 42, col: 42, tile_template_id: 2, level_id: 1}
+  @valid_attrs %{row: 42, col: 42, tile_template_id: 2, level_id: 1, state: nil}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
     changeset = Tile.changeset(%Tile{}, @valid_attrs)
     assert changeset.valid?
+    refute Map.has_key?(changeset.changes, :state)
   end
 
   test "changeset with valid state values" do

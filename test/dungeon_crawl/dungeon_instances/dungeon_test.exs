@@ -18,4 +18,15 @@ defmodule DungeonCrawl.DungeonInstances.DungeonTest do
     changeset = Dungeon.changeset(%Dungeon{}, %{name: "test", dungeon_id: 1})
     assert changeset.changes.passcode =~ ~r/^\w{8}$/
   end
+
+  test "valid changeset safely handles state" do
+    changeset = Dungeon.changeset(%Dungeon{}, %{name: "test", dungeon_id: 1, state: nil})
+    refute Map.has_key?(changeset.changes, :state)
+
+    changeset = Dungeon.changeset(%Dungeon{}, %{name: "test", dungeon_id: 1})
+    refute Map.has_key?(changeset.changes, :state)
+
+    changeset = Dungeon.changeset(%Dungeon{}, %{name: "test", dungeon_id: 1, state: %{ one: "two"}})
+    assert changeset.changes.state == %{one: "two"}
+  end
 end

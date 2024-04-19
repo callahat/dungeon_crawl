@@ -5,12 +5,13 @@ defmodule DungeonCrawl.Dungeons.DungeonTest do
 
   alias DungeonCrawl.Dungeons.Dungeon
 
-  @valid_attrs %{name: "BobDungeon", version: 1}
+  @valid_attrs %{name: "BobDungeon", version: 1, state: nil}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
     changeset = Dungeon.changeset(%Dungeon{}, @valid_attrs)
     assert changeset.valid?
+    refute Map.has_key?(changeset.changes, :state)
   end
 
   test "changeset with valid state values" do

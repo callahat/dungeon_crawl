@@ -166,5 +166,8 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
   def validate_state_values(%{changes: %{state_values: _}} = changeset) do
     add_error(changeset, :state_variables, "must be present and have same number of elements as state_values")
   end
+  def validate_state_values(%{changes: %{state: nil}} = changeset) do
+    put_change(changeset, :state, %{})
+  end
   def validate_state_values(changeset), do: changeset
 end
