@@ -56,19 +56,21 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       asset_import = DungeonImports.get_asset_import(import_id, asset_key, tmp_slug)
 
       if asset_import do
-        case asset_import.action do
-          :waiting ->
-            {nil, "? #{ log_prefix } - still waiting on user decision"}
-          :create_new ->
+        cond do
+          asset_import.resolved_slug -> # action should also be resolved
+            asset = find_asset(asset_key, asset_import.resolved_slug, user)
+            DungeonImports.update_asset_import!(asset_import, %{action: :resolved})
+            {asset, "r #{ log_prefix } - use resolved asset with id: #{ asset.id } " <>
+                    "(expected it to have matched and not gotten here)"}
+          asset_import.action == :create_new ->
             asset = create_asset(asset_key, attrs)
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: asset.slug})
             {asset, "+ #{ log_prefix } - created asset with id: #{ asset.id }"}
-          :use_existing ->
+          asset_import.action == :use_existing ->
             DungeonImports.update_asset_import!(asset_import, %{action: :resolved, resolved_slug: slug})
             asset = find_asset(asset_key, slug, user)
             {asset, ". #{ log_prefix } - use existing asset with id: #{ asset.id }"}
-          :update_existing ->
-            # todo: make sure user can only do this if owner of asset or admin, probably just need a spec
+          asset_import.action == :update_existing ->
             existing_by_slug = find_asset(asset_key, slug, user)
             asset = existing_by_slug &&
               (existing_by_slug.user_id == user.id || user.is_admin) &&
@@ -80,11 +82,9 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
               DungeonImports.update_asset_import!(asset_import, %{action: :waiting})
               {nil, "x #{ log_prefix } - cannot update asset, insufficient priviledges"}
             end
-          :resolved ->
-            # this will likely not happen unless the asset is changed after resolution
-            asset = find_asset(asset_key, asset_import.resolved_slug, user)
-            {asset, "r #{ log_prefix } - use resolved asset with id: #{ asset.id } " <>
-              "(expected it to have matched and not gotten here)"}
+          true -> # waiting, or some other invalid action that we can't make use of
+            DungeonImports.update_asset_import!(asset_import, %{action: :waiting})
+            {nil, "? #{ log_prefix } - still waiting on user decision"}
         end
       else
         existing_by_slug = find_asset(asset_key, slug, user)
@@ -108,7 +108,14 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       end
     else
       asset ->
-        {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }"}
+        asset_import = DungeonImports.get_asset_import(import_id, asset_key, tmp_slug)
+
+        if asset_import do
+          DungeonImports.update_asset_import!(asset_import, %{action: :resolved})
+          {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug } which was created or updated during this import"}
+        else
+          {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }"}
+        end
     end
   end
 
@@ -137,7 +144,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
   def find_asset(:tile_templates, attrs, user) do
     TileTemplates.find_tile_templates(Map.drop(attrs, [:state, :script]))
-    |> Enum.filter(fn tt -> tt.state == attrs.state end)
+    |> Enum.filter(fn tt -> tt.state == (attrs.state || %{}) end)
     |> useable_asset(attrs.script, user.id)
   end
 

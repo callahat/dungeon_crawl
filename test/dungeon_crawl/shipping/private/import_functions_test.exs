@@ -226,6 +226,15 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert find_asset(:tile_templates, private_tile.slug, admin)
       assert find_asset(:tile_templates, owned_tile.slug, admin)
     end
+
+    test "a template with nil state in the import and no state set on the record" do
+      user = insert_user()
+      tile = insert_tile_template(%{public: true, active: true, state: %{}})
+
+      attrs = TileTemplates.copy_fields(tile)
+              |> Map.put(:state, nil)
+      assert find_asset(:tile_templates, attrs, user)
+    end
   end
 
   describe "script_fuzzer/1" do

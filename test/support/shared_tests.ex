@@ -239,7 +239,50 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }")
+        assert Enum.member?(log, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug } which was created or updated during this import")
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), user_asset: true
+      test "#{ unquote(asset_key) } - when an asset import exists and is resolved via create or update, but action was changed",
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
+                          |> DungeonImports.update_asset_import!(%{action: :create_new, resolved_slug: asset.slug})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
+
+        # updates the record and sets it in the map
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}, log: log} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        assert asset_import.action == :resolved
+        assert asset_import.resolved_slug == asset.slug
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug } which was created or updated during this import")
+      end
+
+      @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
+      test "#{ unquote(asset_key) } - when an asset import exists and is resolved via use_existing, but action was changed",
+           %{export: export, user: user, dungeon_import: dungeon_import, asset_from_import: asset_from_import, asset: asset, existing_attrs: existing_attrs} do
+        existing_import = DungeonImports.create_asset_import!(dungeon_import.id, unquote(asset_key), unquote(key), asset.slug, asset_from_import, existing_attrs)
+                          |> DungeonImports.update_asset_import!(%{action: :create_new, resolved_slug: asset.slug})
+
+        updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+
+        assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
+
+        # updates the asset import record to resolved, logs, and does not use the action
+        assert %{unquote(asset_key) => %{unquote(key) => ^asset}, log: log} = updated_export
+        assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+        assert asset_import.action == :resolved
+        assert asset_import.resolved_slug == asset.slug
+
+        # it logs
+        log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
+        assert Enum.member?(log, "r #{ log_prefix } - use resolved asset with id: #{ asset.id } " <>
+                                 "(expected it to have matched and not gotten here)")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
