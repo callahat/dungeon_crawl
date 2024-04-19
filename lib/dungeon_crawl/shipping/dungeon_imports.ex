@@ -97,6 +97,12 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              where: ai.dungeon_import_id == ^import_id)
   end
 
+  def get_asset_imports(import_id, :unresolved) do
+    Repo.all(from ai in AssetImport,
+             where: ai.dungeon_import_id == ^import_id and
+                    ai.action != :resolved)
+  end
+
   @doc """
   Creates the asset import. Raises an exception if invalid.
 

@@ -286,6 +286,23 @@ defmodule DungeonCrawlWeb.Editor.DungeonControllerTest do
       assert html_response(conn, 200) =~ "Dungeon Import"
       assert html_response(conn, 200) =~ "Log"
     end
+
+    test "renders show only displaying unresolved asset imports",
+         %{conn: conn, dungeon_import: dungeon_import} do
+      asset_import_waiting = DungeonImports.create_asset_import!(dungeon_import.id, :sounds, "tmp_sound_1", "beep", %{name: "x"}, %{})
+      asset_import_resolved = DungeonImports.create_asset_import!(dungeon_import.id, :sounds, "tmp_sound_2", "beep", %{name: "x"}, %{})
+                              |> DungeonImports.update_asset_import!(%{action: :resolved})
+
+
+      conn = get conn, edit_dungeon_import_path(conn, :dungeon_import_show, dungeon_import.id)
+      assert html_response(conn, 200) =~ "Dungeon Import"
+      assert html_response(conn, 200) =~ "Log"
+
+      assert html_response(conn, 200) =~
+               "<span id=\"assetImportDiff#{asset_import_waiting.id}Link\""
+      refute html_response(conn, 200) =~
+               "<span id=\"assetImportDiff#{asset_import_resolved.id}Link\""
+    end
   end
 
   describe "import dungeon update with a registered user" do

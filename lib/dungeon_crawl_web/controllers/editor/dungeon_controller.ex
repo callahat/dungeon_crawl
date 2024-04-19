@@ -90,7 +90,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
   def dungeon_import_show(conn, %{"id" => _id}) do
     dungeon_import = conn.assigns.dungeon_import
-    asset_imports = DungeonCrawl.Repo.preload(dungeon_import, :asset_imports).asset_imports
+    asset_imports = DungeonImports.get_asset_imports(dungeon_import.id, :unresolved)
 
     assign(conn, :dungeon_import, dungeon_import)
     |> assign(:asset_imports, asset_imports)

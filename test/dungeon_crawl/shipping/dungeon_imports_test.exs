@@ -535,9 +535,19 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
     setup [:existing_import_setup]
 
     test "gets the asset imports", config do
-      assert [config.existing_asset_import] ==
+      assert [config.existing_asset_import, config.resolved_asset_import] ==
                DungeonImports.get_asset_imports(config.dungeon_import.id)
       assert [] == DungeonImports.get_asset_imports(-1)
+    end
+  end
+
+  describe "get_asset_imports/2" do
+    setup [:existing_import_setup]
+
+    test "gets the unresolved asset imports", config do
+      assert [config.existing_asset_import] ==
+               DungeonImports.get_asset_imports(config.dungeon_import.id, :unresolved)
+      assert [] == DungeonImports.get_asset_imports(-1, :unresolved)
     end
   end
 
@@ -678,7 +688,19 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
                                 existing_attributes: %{"name" => "old_name"}})
                             |> Repo.insert!()
 
-    %{dungeon_import: dungeon_import, existing_asset_import: existing_asset_import}
+    resolved_asset_import = %AssetImport{}
+                            |> AssetImport.changeset(%{
+                                dungeon_import_id: dungeon_import.id,
+                                type: "items",
+                                importing_slug: "temp_slug_2",
+                                existing_slug: "not_used_for_lookup",
+                                resolved_slug: "resolved",
+                                attributes: %{"name" => "also testing"},
+                                action: :resolved,
+                                existing_attributes: %{"name" => "prev_name"}})
+                            |> Repo.insert!()
+
+    %{dungeon_import: dungeon_import, existing_asset_import: existing_asset_import, resolved_asset_import: resolved_asset_import}
   end
 
   def stubbed_dungeon_import do

@@ -11,11 +11,11 @@
 
   <%= import_field_row(
         "Name",
-        @existing_attributes.name,
-        @attributes.name) %>
+        @existing_attributes[:name],
+        @attributes[:name]) %>
 
   <%= import_sound_effect_row(
-        @existing_attributes.zzfx_params,
-        @attributes.zzfx_params) %>
+        @existing_attributes[:zzfx_params],
+        @attributes[:zzfx_params]) %>
 
 </div>
