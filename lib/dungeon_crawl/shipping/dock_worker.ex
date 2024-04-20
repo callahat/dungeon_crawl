@@ -46,6 +46,16 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     {:reply, :ok, state}
   end
 
+  @log_order %{
+    "?" => 1,
+    "x" => 2,
+    "u" => 3,
+    "+" => 4,
+    "." => 5,
+    "r" => 8,
+    "=" => 9
+  }
+
   @impl true
   def handle_call({:import, import}, _from, state) do
     # import the dungeon, return the created id
@@ -57,7 +67,17 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     import_hash = Json.decode!(import.data)
                   |> DungeonImports.run(user, import.id, import.line_identifier)
 
-    import_log = Enum.join(Enum.reverse(import_hash.log), "\n") <> "\n---------------\n" <> import.log
+    [end_line | log] = import_hash.log
+    [start_line | log] = Enum.reverse(log)
+    log = Enum.sort(log, fn a,b ->
+            (@log_order[String.at(a,0)] || 0) <
+              (@log_order[String.at(b,0)] || 0)
+          end)
+
+    import_log = Enum.join([start_line | log], "\n") <>
+                 "\n#{ end_line }" <>
+                 "\n---------------\n" <>
+                 import.log
 
     attrs = if import_hash.status == "done",
                do: %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil, log: import_log},

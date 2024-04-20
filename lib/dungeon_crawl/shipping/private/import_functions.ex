@@ -112,7 +112,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
 
         if asset_import do
           DungeonImports.update_asset_import!(asset_import, %{action: :resolved})
-          {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug } which was created or updated during this import"}
+          {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug } " <>
+                  "which was created or updated during this import"}
         else
           {asset, "= #{ log_prefix } - attributes matched asset with id: #{ asset.id }, slug: #{ asset.slug }"}
         end
