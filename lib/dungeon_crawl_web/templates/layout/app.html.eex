@@ -40,8 +40,10 @@
     <div class="container-fluid">
       <div class="row">
         <main class="<%= main_tag_class(assigns) %>" role="main">
-          <%= if Phoenix.Flash.get(@flash, :info) do %><p class="alert alert-info <%= alert_class(@conn) %>" role="alert"><%= Phoenix.Flash.get(@flash, :info) %></p><% end %>
-          <%= if Phoenix.Flash.get(@flash, :error) do %><p class="alert alert-danger <%= alert_class(@conn) %>" role="alert"><%= Phoenix.Flash.get(@flash, :error) %></p><% end %>
+          <% unless hide_standard_flash(@conn) do %>
+          <%= {:safe, alert_p(@conn, Phoenix.Flash.get(@flash, :info), "info")} %>
+          <%= {:safe, alert_p(@conn, Phoenix.Flash.get(@flash, :error), "danger")} %>
+          <% end %>
 
           <%= @inner_content %>
         </main>
