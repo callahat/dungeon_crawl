@@ -40,7 +40,7 @@
     <div class="container-fluid">
       <div class="row">
         <main class="<%= main_tag_class(assigns) %>" role="main">
-          <% unless hide_standard_flash(@conn) do %>
+          <%= unless hide_standard_flash(@conn) do %>
           <%= {:safe, alert_p(@conn, Phoenix.Flash.get(@flash, :info), "info")} %>
           <%= {:safe, alert_p(@conn, Phoenix.Flash.get(@flash, :error), "danger")} %>
           <% end %>

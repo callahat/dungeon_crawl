@@ -11,7 +11,7 @@ defmodule DungeonCrawlWeb.LayoutView do
     end
   end
 
-  def alert_p(conn, nil, _alert_type), do: ""
+  def alert_p(_conn, nil, _alert_type), do: ""
   def alert_p(conn, flash, type),
       do: ~s|<p class="alert alert-#{type} #{ alert_class(conn) } %>" role="alert">#{ flash }</p>|
 
