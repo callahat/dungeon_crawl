@@ -101,4 +101,20 @@ defmodule DungeonCrawl.SluggableTest do
     end
   end
 
+  describe "parse_identifer/1" do
+    import DungeonCrawl.Sluggable, only: [parse_identifier: 1]
+
+    test "an integer in string form becomes an integer" do
+      assert 1234 == parse_identifier("1234")
+    end
+
+    test "an integer stays an integer" do
+      assert 1234 == parse_identifier(1234)
+    end
+
+    test "a slug stays a string" do
+      assert "slug_123" == parse_identifier("slug_123")
+      assert "slug" == parse_identifier("slug")
+    end
+  end
 end

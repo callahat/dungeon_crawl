@@ -1,0 +1,61 @@
+<h2>Dungeon Import</h2>
+<p><b>Status: </b><%= @dungeon_import.status %></p>
+<p><b>Details: </b><%= @dungeon_import.details %></p>
+
+<%= if @asset_imports != [] do %>
+<%= form_for @conn, Routes.edit_dungeon_import_path(@conn, :dungeon_import_show, @dungeon_import.id), fn f -> %>
+<h3>Asset Imports</h3>
+<p>The following slugs exist in the system but did not match exactly. Choose how to proceed with each.</p>
+<div class="container" id="assetImportDiffList">
+  <div class="row">
+    <div class="col col-lg-1">
+    </div>
+    <div class="col col-lg-3">
+      Importing Slug
+    </div>
+    <div class="col col-lg-3">
+      Existing Slug
+    </div>
+    <div class="col col-lg-1">
+      Action
+    </div>
+  </div>
+  <div id="sound_effect_previews">
+  <%= for asset_import <- @asset_imports do %>
+    <div class="row">
+      <div class="col col-lg-1">
+        <span id="assetImportDiff<%= asset_import.id %>Link" class="btn btn-info btn-sm">View</span>
+        <%= render "modal/modal_wrapper.html",
+              template: "modal/import_asset_#{ asset_import.type }_diff.html",
+              user: @user,
+              asset_import: asset_import %>
+      </div>
+      <div class="col col-lg-3">
+        <%= asset_import.importing_slug %>
+      </div>
+      <div class="col col-lg-3">
+        <%= asset_import.existing_slug %>
+      </div>
+      <div class="col col-lg-1">
+        <%= text_input f, :action, name: "action[#{ asset_import.id }]", value: asset_import.action, readonly: true %>
+      </div>
+    </div>
+  <% end %>
+  </div>
+  <div class="row">
+    <div class="col col-lg-7"></div>
+    <div class="col col-lg-5">
+      <div class="btn btn-link">
+        <%= link "Back", to: Routes.edit_dungeon_import_path(@conn, :dungeon_import) %>
+      </div>
+      <%= submit "Submit", class: "btn btn-primary" %>
+    </div>
+  </div>
+</div>
+<% end %>
+<% end %>
+
+<h3>Log</h3>
+<pre>
+<%= @dungeon_import.log %>
+</pre>

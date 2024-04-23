@@ -26,7 +26,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
             items: %{},
             tile_templates: %{},
             sounds: %{},
-            spawn_locations: []
+            spawn_locations: [],
+            status: "running",
+            log: []
 
   def run(dungeon_id) do
     dungeon = Dungeons.get_dungeon!(dungeon_id)
@@ -115,7 +117,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end
   end
   defp sto_tile_template(export, slug) when is_binary(slug) do
-    sto_tile_template(export, TileTemplates.get_tile_template_by_slug!(slug))
+    sto_tile_template(export, TileTemplates.get_tile_template!(slug, :validation))
   end
   defp sto_tile_template(export, tile_template_id) do
     sto_tile_template(export, TileTemplates.get_tile_template!(tile_template_id))
@@ -150,7 +152,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     if Map.has_key?(export.sounds, slug) do
       export
     else
-      sound = Sound.get_effect_by_slug!(slug)
+      sound = Sound.get_effect!(slug)
       sound = Sound.copy_fields(sound)
               |> Map.put(:id, sound.id)
 

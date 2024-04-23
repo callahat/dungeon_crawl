@@ -45,7 +45,6 @@ defmodule DungeonCrawlWeb.ImportStatusLive do
       })
 
       DockWorker.import(dungeon_import)
-      _broadcast_status(dungeon_import.user_id)
 
       {:ok, "junk"}
     end)

@@ -6,12 +6,13 @@ defmodule DungeonCrawl.Dungeons.LevelTest do
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons.Level
 
-  @valid_attrs %{name: "BobDungeon", width: 42, height: 40, dungeon_id: 1}
+  @valid_attrs %{name: "BobDungeon", width: 42, height: 40, dungeon_id: 1, state: nil}
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
     changeset = Level.changeset(%Level{}, @valid_attrs)
     assert changeset.valid?
+    refute Map.has_key?(changeset.changes, :state)
   end
 
   test "changeset with valid state values" do

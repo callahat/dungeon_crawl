@@ -14,12 +14,12 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     GenServer.start_link(__MODULE__, nil)
   end
 
-  def export(%Export{} = dungeon_export) do
-    _pool_wrapper({:export, dungeon_export})
+  def export(%Export{} = dungeon_export, worker_timeout \\ @timeout) do
+    _pool_wrapper({:export, dungeon_export}, worker_timeout)
   end
 
-  def import(%Import{} = dungeon_import) do
-    _pool_wrapper({:import, dungeon_import})
+  def import(%Import{} = dungeon_import, worker_timeout \\ @timeout) do
+    _pool_wrapper({:import, dungeon_import}, worker_timeout)
   end
 
   ## Callbacks
@@ -46,17 +46,44 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     {:reply, :ok, state}
   end
 
+  @log_order %{
+    "?" => 1,
+    "x" => 2,
+    "u" => 3,
+    "+" => 4,
+    "." => 5,
+    "r" => 8,
+    "=" => 9
+  }
+
   @impl true
   def handle_call({:import, import}, _from, state) do
     # import the dungeon, return the created id
-    {:ok, _} = Shipping.update_import(import, %{status: :running})
+    {:ok, import} = Shipping.update_import(import, %{status: :running,  details: nil})
     _broadcast_status({:import, import})
 
-    import_hash = Json.decode!(import.data)
-                  |> DungeonImports.run(import.user_id, import.line_identifier)
+    user = DungeonCrawl.Repo.preload(import, :user).user
 
-    Shipping.update_import(import,
-      %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil})
+    import_hash = Json.decode!(import.data)
+                  |> DungeonImports.run(user, import.id, import.line_identifier)
+
+    [end_line | log] = import_hash.log
+    [start_line | log] = Enum.reverse(log)
+    log = Enum.sort(log, fn a,b ->
+            (@log_order[String.at(a,0)] || 0) <
+              (@log_order[String.at(b,0)] || 0)
+          end)
+
+    import_log = Enum.join([start_line | log], "\n") <>
+                 "\n#{ end_line }" <>
+                 "\n---------------\n" <>
+                 import.log
+
+    attrs = if import_hash.status == "done",
+               do: %{dungeon_id: import_hash.dungeon.id, status: :completed, details: nil, log: import_log},
+               else: %{status: :waiting, details: "waiting on user choices", log: import_log}
+
+    Shipping.update_import(import, attrs)
     _broadcast_status({:import, import})
 
     {:reply, :ok, state}
@@ -72,14 +99,14 @@ defmodule DungeonCrawl.Shipping.DockWorker do
     String.replace("#{dungeon.name}_v_#{version}#{extra}.json", ~r/\s+/, "_")
   end
 
-  defp _pool_wrapper({_, record} = params) do
+  defp _pool_wrapper({_, record} = params, worker_timeout) do
     Task.async(fn ->
       :poolboy.transaction(
         :dock_worker,
         fn dock_worker ->
           Logger.info("*** Starting worker for: #{ inspect params }")
           try do
-            GenServer.call(dock_worker, params, @timeout)
+            GenServer.call(dock_worker, params, worker_timeout)
             Logger.info("*** Worker done for: #{ inspect params }")
           catch
             code, error ->

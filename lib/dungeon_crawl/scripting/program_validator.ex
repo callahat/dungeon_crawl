@@ -447,7 +447,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
   end
 
   defp _validate_slug(command, line_no, params, errors, user) do
-    tt = TileTemplates.get_tile_template_by_slug(params["slug"], :validation)
+    tt = TileTemplates.get_tile_template(params["slug"], :validation)
     cond do
       is_nil(params["slug"]) || is_nil(user) || params["slug"] == "stubbed_slug" ->
         errors

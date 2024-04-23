@@ -5,6 +5,8 @@ import {defaultKeymap, history, historyKeymap} from "@codemirror/commands"
 import {StreamLanguage, syntaxHighlighting, HighlightStyle} from "@codemirror/language"
 import {tags} from "@lezer/highlight"
 import { simpleMode } from "@codemirror/legacy-modes/mode/simple-mode"
+import {EditorState} from "@codemirror/state";
+import {MergeView, Chunk} from "@codemirror/merge";
 
 const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.link, color: "#00C", textDecoration: "underline"},
@@ -18,7 +20,6 @@ const dscriptHighlightStyle = HighlightStyle.define([
   {tag: tags.number, color: "#164"},
   {tag: tags.operator, color: "black"},
 ]);
-
 
 const CodemirrorWrapper = {
   initOnTab(textAreaEl, triggerEl){ if(!textAreaEl || !triggerEl){ return }
@@ -78,6 +79,57 @@ const CodemirrorWrapper = {
         this.codemirror.state.update({changes: {from: 0, to: this.codemirror.state.doc.length, insert: textAreaEl.value}})
       )
     }
+  },
+  initDiff(divEl) {
+    if(!divEl) { return }
+
+    this.codemirror = {}
+
+    $("#assetImportDiffList").find(".modal.asset-import-diff").each((_index, el) => {
+      $(`#assetImportDiff${ el.dataset.id }Link`).on("click", () => {
+        $(`#assetImportDiff${ el.dataset.id }`).modal({show: true})
+      })
+
+      $(el).on("click", ".btn.action", (event) => {
+        $(`[name="action[${ el.dataset.id }]"]`).val(event.target.dataset.action)
+      })
+
+      $(el).on('show.bs.modal', () => {
+        if(!this.codemirror[el.dataset.id]) {
+          let left= $(`#scriptExisting${ el.dataset.id }`),
+              right = $(`#scriptImported${ el.dataset.id }`),
+              scriptAnchor = $(`#scriptAnchor${ el.dataset.id }`)
+
+          this.codemirror[el.dataset.id] = new MergeView({
+            a: {
+              doc: left.val(),
+              extensions: [
+                lineNumbers(),
+                EditorView.editable.of(false),
+                EditorState.readOnly.of(true),
+                syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
+                StreamLanguage.define(dscript)
+              ]
+            },
+            b: {
+              doc: right.val(),
+              extensions: [
+                lineNumbers(),
+                EditorView.editable.of(false),
+                EditorState.readOnly.of(true),
+                syntaxHighlighting(dscriptHighlightStyle, {fallback: false}),
+                StreamLanguage.define(dscript)
+              ]
+            },
+            parent: document.body
+          })
+
+          left.hide()
+          right.hide()
+          scriptAnchor.append(this.codemirror[el.dataset.id].dom)
+        }
+      })
+    })
   },
   save(textAreaEl) {
     textAreaEl.value = this.codemirror.state.doc.toString()

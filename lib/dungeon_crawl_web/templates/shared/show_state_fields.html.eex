@@ -1,6 +1,7 @@
 <div class="mb-2">
   <b>State:</b>
   <br/>
+  <%= if @state do %>
   <span>
     <%= for {variable, value} <- @state
                                  |> Map.to_list()
@@ -8,5 +9,8 @@
       <pre class="script" style="display: inline"><%= variable %>: <%= stringify_state_value(value) %></pre>
     <% end %>
   </span>
+  <% else %>
+  <span>nil</span>
+  <% end %>
 </div>
 

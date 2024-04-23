@@ -8,6 +8,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   alias DungeonCrawl.Player
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.DockWorker
+  alias DungeonCrawl.Shipping.DungeonImports
 
   import DungeonCrawlWeb.Crawler, only: [join_and_broadcast: 4, leave_and_broadcast: 1]
 
@@ -15,8 +16,10 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
   plug :validate_edit_dungeon_available
   plug :assign_player_location when action in [:show, :index, :test_crawl]
   plug :assign_dungeon when action in [:show, :edit, :update, :delete, :activate, :new_version, :test_crawl, :dungeon_export]
+  plug :assign_dungeon_import when action in [:dungeon_import_show, :dungeon_import_update]
   plug :assign_dungeon_export when action in [:download_dungeon_export]
   plug :validate_updateable when action in [:edit, :update]
+  plug :validate_import_updateable when action in [:dungeon_import_update]
 
   def index(conn, _params) do
     dungeons = Dungeons.list_dungeons(conn.assigns.current_user)
@@ -39,7 +42,6 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       {:ok, dungeon} ->
         conn
         |> put_flash(:info, "Dungeon created successfully.")
-
         |> redirect(to: Routes.edit_dungeon_path(conn, :show, dungeon))
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, max_dimensions: _max_dimensions())
@@ -86,6 +88,31 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     |> render("import.html")
   end
 
+  def dungeon_import_show(conn, %{"id" => _id}) do
+    dungeon_import = conn.assigns.dungeon_import
+    asset_imports = DungeonImports.get_asset_imports(dungeon_import.id, :unresolved)
+
+    assign(conn, :dungeon_import, dungeon_import)
+    |> assign(:asset_imports, asset_imports)
+    |> assign(:user, conn.assigns.current_user)
+    |> render("import_show.html")
+  end
+
+  def dungeon_import_update(conn, %{"id" => _id, "action" => action}) do
+    dungeon_import = conn.assigns.dungeon_import
+
+    Enum.each(action, fn {asset_import_id, action} ->
+      asset_import = DungeonImports.get_asset_import(dungeon_import.id, asset_import_id)
+      if asset_import, do: DungeonImports.update_asset_import!(asset_import, %{action: action})
+    end)
+
+    DockWorker.import(dungeon_import)
+
+    conn
+    |> put_flash(:info, "Continuing import")
+    |> _redirect_to_dungeon_import_list()
+  end
+
   def dungeon_export(conn, %{"id" => _id}) do
     dungeon = conn.assigns.dungeon
 
@@ -110,6 +137,10 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
 
   defp _redirect_to_dungeon_export_list(conn) do
     redirect(conn, to: Routes.edit_dungeon_export_path(conn, :dungeon_export_list))
+  end
+
+  defp _redirect_to_dungeon_import_list(conn) do
+    redirect(conn, to: Routes.edit_dungeon_import_path(conn, :dungeon_import))
   end
 
   def download_dungeon_export(conn, %{"id" => _id}) do
@@ -203,7 +234,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     dungeon =  Dungeons.get_dungeon!(conn.params["id"] || conn.params["dungeon_id"])
 
     cond do
-      dungeon.user_id != conn.assigns.current_user.id ->
+      dungeon.user_id != conn.assigns.current_user.id && !conn.assigns.current_user.is_admin ->
         conn
         |> put_flash(:error, "You do not have access to that")
         |> redirect(to: Routes.edit_dungeon_path(conn, :index))
@@ -221,10 +252,24 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
     end
   end
 
+  defp assign_dungeon_import(conn, _opts) do
+    import =  Shipping.get_import!(conn.params["id"])
+
+    if import.user_id == conn.assigns.current_user.id || conn.assigns.current_user.is_admin do
+      conn
+      |> assign(:dungeon_import, import)
+    else
+      conn
+      |> put_flash(:error, "You do not have access to that")
+      |> redirect(to: Routes.edit_dungeon_import_path(conn, :dungeon_import))
+      |> halt()
+    end
+  end
+
   defp assign_dungeon_export(conn, _opts) do
     export =  Shipping.get_export!(conn.params["id"])
 
-    if export.user_id == conn.assigns.current_user.id do #|| conn.assigns.current_user.is_admin
+    if export.user_id == conn.assigns.current_user.id || conn.assigns.current_user.is_admin do
       conn
       |> assign(:dungeon_export, export)
     else
@@ -242,6 +287,17 @@ defmodule DungeonCrawlWeb.Editor.DungeonController do
       conn
       |> put_flash(:error, "Cannot edit an active dungeon")
       |> redirect(to: Routes.edit_dungeon_path(conn, :index))
+      |> halt()
+    end
+  end
+
+  defp validate_import_updateable(conn, _opts) do
+    if conn.assigns.dungeon_import.status == :waiting do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Cannot continue with that dungeon import")
+      |> _redirect_to_dungeon_import_list()
       |> halt()
     end
   end

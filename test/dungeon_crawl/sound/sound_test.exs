@@ -7,7 +7,7 @@ defmodule DungeonCrawl.SoundTest do
     alias DungeonCrawl.Sound.Effect
 
     @valid_attrs %{name: "Some Name", public: true, zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]"}
-    @update_attrs %{name: "some updated name", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
+    @update_attrs %{name: "some updated name", slug: "not_updated", public: false, zzfx_params: "1.94,-0.4,257,.01,,.13,,.42,,,,.07,,,,,.05,.96,.02,.05"}
     @invalid_attrs %{name: "Derp", public: false, zzfx_params: ""}
     @other_zzfx_params "[3,,485,.02,.2,.2,4,.11,-3,.1,,,.05,1.1,,.4,,.57,.5]"
 
@@ -52,23 +52,33 @@ defmodule DungeonCrawl.SoundTest do
       assert Sound.get_effect(effect.id) == effect
       assert Sound.get_effect("#{effect.id}") == effect
       refute Sound.get_effect(effect.id + 1)
+      refute Sound.get_effect(nil)
+      assert Sound.get_effect(effect.slug) == effect
     end
 
     test "get_effect!/1" do
       effect = effect_fixture()
       assert Sound.get_effect!(effect.id) == effect
       assert Sound.get_effect!("#{effect.id}") == effect
+      assert Sound.get_effect!(effect.slug) == effect
     end
 
-    test "get_effect_by_slug/1" do
-      effect = effect_fixture()
-      assert Sound.get_effect_by_slug(effect.slug) == effect
-      refute Sound.get_effect_by_slug("fakeslug")
-    end
+    test "get_effect/2 when given a user" do
+      user = insert_user()
+      admin = insert_user(%{is_admin: true})
+      public_effect = effect_fixture(%{public: true})
+      private_effect = effect_fixture(%{public: false, user_id: admin.id})
+      owned_effect = effect_fixture(%{public: false, user_id: user.id})
 
-    test "get_effect_by_slug!/1" do
-      effect = effect_fixture()
-      assert Sound.get_effect_by_slug!(effect.slug) == effect
+      assert Sound.get_effect(public_effect.slug, nil)
+
+      assert Sound.get_effect(public_effect.slug, user)
+      refute Sound.get_effect(private_effect.slug, user)
+      assert Sound.get_effect(owned_effect.slug, user)
+
+      assert Sound.get_effect(public_effect.slug, admin)
+      assert Sound.get_effect(private_effect.slug, admin)
+      assert Sound.get_effect(owned_effect.slug, admin)
     end
 
     # tests around setting the slug may be redundant since this is tested in sluggable
@@ -93,11 +103,10 @@ defmodule DungeonCrawl.SoundTest do
       assert {:ok, %Effect{} = effect} = Sound.create_effect(params)
       assert effect.slug == "some_name_#{effect.id}"
 
-      # slug cannot be explicitly set
+      # slug can be explicitly set
       params = Map.merge(@valid_attrs, %{user_id: user.id, slug: "goober"})
       assert {:ok, %Effect{} = effect} = Sound.create_effect(params)
-      refute effect.slug == "goober"
-      assert effect.slug == "some_name_#{effect.id}"
+      assert effect.slug == "goober"
     end
 
     test "create_effect/1 with valid data and normal user creates a effect and sets slug" do
@@ -130,6 +139,22 @@ defmodule DungeonCrawl.SoundTest do
     test "update_effect/2 with invalid data returns error changeset" do
       effect = effect_fixture()
       assert {:error, %Ecto.Changeset{}} = Sound.update_effect(effect, @invalid_attrs)
+      assert effect == Sound.get_effect!(effect.id)
+    end
+
+    test "update_effect!/2 with valid data updates the effect" do
+      effect = effect_fixture()
+      assert %Effect{} = effect = Sound.update_effect!(effect, @update_attrs)
+      assert effect.name == "some updated name"
+      assert effect.public == false
+      assert effect.zzfx_params == @update_attrs.zzfx_params
+    end
+
+    test "update_effect!/2 with invalid data returns error changeset" do
+      effect = effect_fixture()
+      assert_raise Ecto.InvalidChangesetError, fn ->
+        Sound.update_effect!(effect, @invalid_attrs)
+      end
       assert effect == Sound.get_effect!(effect.id)
     end
 

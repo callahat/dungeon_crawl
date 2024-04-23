@@ -1,0 +1,101 @@
+<div class="container">
+  <div class="row">
+    <div class="col-2"></div>
+    <div class="col">
+      <strong>Existing</strong>
+    </div>
+    <div class="col">
+      <strong>Importing</strong>
+    </div>
+  </div>
+
+  <%= import_field_row(
+        "Name",
+        @existing_attributes[:name],
+        @attributes[:name]) %>
+
+  <%= import_field_row(
+        "Description",
+        @existing_attributes[:description],
+        @attributes[:description]) %>
+
+  <%= import_character_row(
+        DungeonCrawlWeb.SharedView.tile_and_style(@existing_attributes),
+        DungeonCrawlWeb.SharedView.tile_and_style(@attributes)) %>
+
+  <%= import_field_row(
+        "Character",
+        @existing_attributes[:character],
+        @attributes[:character]) %>
+
+  <%= import_field_row(
+        "Color",
+        @existing_attributes[:color],
+        @attributes[:color]) %>
+
+  <%= import_field_row(
+        "Background Color",
+        @existing_attributes[:background_color],
+        @attributes[:background_color]) %>
+
+  <%= import_field_row(
+        "Animate Period",
+        @existing_attributes[:animate_period],
+        @attributes[:animate_period]) %>
+
+  <%= import_field_row(
+        "Animate Random",
+        @existing_attributes[:animate_random],
+        @attributes[:animate_random]) %>
+
+  <%= import_field_row(
+        "Animate Characters",
+        @existing_attributes[:animate_characters],
+        @attributes[:animate_characters]) %>
+
+  <%= import_field_row(
+        "Animate Colors",
+        @existing_attributes[:animate_colors],
+        @attributes[:animate_colors]) %>
+
+  <%= import_field_row(
+        "Animate Background Colors",
+        @existing_attributes[:animate_background_colors],
+        @attributes[:animate_background_colors]) %>
+
+  <%= import_field_row(
+        "Group",
+        @existing_attributes[:group_name],
+        @attributes[:group_name]) %>
+
+  <%= import_field_row(
+        "Unlisted",
+        if(@existing_attributes[:unlisted], do: "Yes", else: "No"),
+        if(@attributes[:unlisted], do: "Yes", else: "No")) %>
+
+  <%= if @existing_attributes[:state] != @attributes[:state] do %>
+  <div class="row">
+    <div class="col-2">
+    </div>
+    <div class="col">
+      <%= render SharedView, "show_state_fields.html", state: @existing_attributes[:state] || %{} %>
+    </div>
+    <div class="col">
+      <%= render SharedView, "show_state_fields.html", state: @attributes[:state] || %{} %>
+    </div>
+  </div>
+  <% end %>
+
+  <%= if @existing_attributes[:script] != @attributes[:script] do %>
+  <div class="row">
+    <div class="col-2">
+      <strong>Script:</strong>
+    </div>
+    <div class="col-10">
+      <textarea id="scriptExisting<%= @asset_import_id %>"><%= @existing_attributes[:script] %></textarea>
+      <textarea id="scriptImported<%= @asset_import_id %>"><%= @attributes[:script] %></textarea>
+      <div id="scriptAnchor<%= @asset_import_id %>"></div>
+    </div>
+  </div>
+  <% end %>
+</div>

@@ -219,7 +219,7 @@ defmodule DungeonCrawl.Shipping do
     Repo.exists?(from imp in Import,
                  where: imp.file_name == ^file_name and
                         imp.user_id == ^user_id and
-                        imp.status in [:queued, :running])
+                        imp.status in [:queued, :running, :waiting])
   end
 
   @doc """

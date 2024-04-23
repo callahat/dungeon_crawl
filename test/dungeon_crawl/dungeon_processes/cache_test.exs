@@ -49,6 +49,12 @@ defmodule DungeonCrawl.DungeonProcesses.CacheTest do
     TileTemplates.update_tile_template(bullet, %{user_id: insert_user().id})
     assert {nil, :not_found} = Cache.get_tile_template(cache_process, "bullet", author)
     assert %Cache{} == Cache.get_state(cache_process)
+
+    # with a nil author
+    assert {bullet, :created} = Cache.get_tile_template(cache_process, "bullet", nil)
+    assert bullet.name == "Bullet"
+    state = Cache.get_state(cache_process)
+    assert state.tile_templates["bullet"] == bullet
   end
 
   test "get_item/3" do
@@ -87,6 +93,10 @@ defmodule DungeonCrawl.DungeonProcesses.CacheTest do
     Equipment.update_item(item, %{user_id: insert_user().id, public: false})
     assert {nil, :not_found} = Cache.get_item(cache_process, "gun", author)
     assert %Cache{} == Cache.get_state(cache_process)
+
+    # nothing in cache
+    assert Cache.get_item(cache_process, nil, author) == {nil, :nothing_equipped}
+    assert Cache.get_item(cache_process, "", author) == {nil, :nothing_equipped}
   end
 
   test "get_sound_effect/3" do

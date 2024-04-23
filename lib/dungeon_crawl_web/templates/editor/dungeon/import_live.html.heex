@@ -46,7 +46,7 @@
           <td><%= import.file_name %></td>
           <td><%= import.inserted_at %></td>
           <%= td_status(import) %>
-          <td><%= if import.dungeon_id, do: link(DungeonCrawl.Repo.preload(import, :dungeon).dungeon.name, to: Routes.edit_dungeon_path(@socket, :show, import.dungeon_id)) %></td>
+          <td><%= waiting_or_dungeon_link(@socket, DungeonCrawl.Repo.preload(import, :dungeon)) %></td>
           <td><%= link "Delete", to: "#", phx_click: "delete#{import.id}", data: [confirm: "Are you sure?"], class: "btn btn-danger btn-sm" %></td>
         </tr>
       <% end %>

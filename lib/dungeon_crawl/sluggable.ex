@@ -55,4 +55,14 @@ defmodule DungeonCrawl.Sluggable do
 
     end
   end
+
+  @doc """
+  A convenience function to turn a id into an integer, and leave it
+  as a string when its really a slug.
+  """
+  def parse_identifier(identifier) do
+    if is_binary(identifier) and String.match?(identifier, ~r|\A\d+\z|),
+       do: String.to_integer(identifier),
+       else: identifier
+  end
 end

@@ -11,6 +11,10 @@ defmodule DungeonCrawlWeb.LayoutView do
     end
   end
 
+  def alert_p(_conn, nil, _alert_type), do: ""
+  def alert_p(conn, flash, type),
+      do: ~s|<p class="alert alert-#{type} #{ alert_class(conn) } %>" role="alert">#{ flash }</p>|
+
   def alert_class(conn) do
     case Map.get(conn, :request_path) do
       "/dungeons" -> "alert-margin-l-3"
@@ -24,5 +28,10 @@ defmodule DungeonCrawlWeb.LayoutView do
 
   def in_crawler_controller?(conn) do
     controller_module(conn) == Elixir.DungeonCrawlWeb.CrawlerController
+  end
+
+  def hide_standard_flash(conn) do
+    Map.get(conn, :request_path) == "/editor/dungeons/import" ||
+      Map.get(conn, :request_path) == "/editor/dungeons/export"
   end
 end

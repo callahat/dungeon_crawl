@@ -8,6 +8,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
   alias DungeonCrawl.Shipping.{DungeonExports, Json}
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
+  alias DungeonCrawl.TileTemplates
 
   setup do
     EquipmentSeeder.gun
@@ -18,6 +19,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     {:ok, dock_worker} = GenServer.start_link(DockWorker, %{})
 
     user = insert_user()
+
+    on_exit(fn -> Process.exit(dock_worker, :kill) end)
 
     %{dock_worker: dock_worker, user: user}
   end
@@ -69,7 +72,10 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
       data: DungeonExports.run(dungeon.id) |> Json.encode!(),
       user_id: user.id,
       file_name: "import.json",
-      line_identifier: dungeon.line_identifier
+      line_identifier: dungeon.line_identifier,
+      status: "running",
+      details: "leftover details from something",
+      log: "first log data"
     })
 
     assert %Task{ref: ref} = DockWorker.import(dungeon_import)
@@ -80,15 +86,50 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
 
     imported_dungeon = Dungeons.list_dungeons() |> Enum.at(1)
 
+    dungeon_import = Shipping.get_import!(dungeon_import.id)
     assert %{dungeon_id: imported_dungeon.id,
              status: :completed,
              user_id: user.id,
              file_name: "import.json",
+             line_identifier: dungeon.line_identifier,
+             details: nil}
+           == Map.take(dungeon_import,
+                       [:dungeon_id, :status, :user_id, :file_name, :line_identifier, :details])
+    assert user.id == imported_dungeon.user_id
+    assert imported_dungeon.version == 2
+    assert imported_dungeon.previous_version_id == dungeon.id
+    assert dungeon_import.log =~ ~r/Start:/
+    assert dungeon_import.log =~ ~r/first log data\z/
+  end
+
+  test "import/1 when an asset needs resolution", %{user: user} do
+    tile_template = insert_tile_template(%{user_id: user.id})
+    item = insert_item(%{script: "#put direction: @facing, slug: #{ tile_template.slug }"})
+    dungeon = insert_dungeon(%{user_id: user.id, state: "starting_equipment: #{ item.slug }" })
+    data = DungeonExports.run(dungeon.id) |> Json.encode!()
+    TileTemplates.update_tile_template(tile_template, %{color: "blue"})
+    dungeon_import = Shipping.create_import!(%{
+      data: data,
+      user_id: user.id,
+      file_name: "import.json",
+      line_identifier: dungeon.line_identifier,
+      status: "running"
+    })
+
+    assert %Task{ref: ref} = DockWorker.import(dungeon_import)
+    assert_receive {^ref, :ok}
+
+    # the original, no new dungeon created
+    assert 1 == Enum.count(Dungeons.list_dungeons())
+
+    assert %{status: :waiting,
+             user_id: user.id,
+             file_name: "import.json",
              line_identifier: dungeon.line_identifier}
            == Map.take(Shipping.get_import!(dungeon_import.id),
-                       [:dungeon_id, :status, :user_id, :file_name, :line_identifier])
-    assert user.id == imported_dungeon.user_id
-    assert imported_dungeon.previous_version_id == dungeon.id
+             [:status, :user_id, :file_name, :line_identifier])
+    assert %{log: log} = Shipping.get_import!(dungeon_import.id)
+    assert String.contains?(log, "tile_templates - asset exists by slug, creating asset import record")
   end
 
   @tag capture_log: true
@@ -110,5 +151,23 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     assert dungeon_import.details == "error parsing JSON"
 
     assert log =~ "poolboy transaction caught error: :exit, {{%Jason.DecodeError"
+  end
+
+  @tag capture_log: true
+  test "import/1 but the genserver timesout", %{user: user} do
+    dungeon_import = Shipping.create_import!(%{
+      data: DungeonCrawlWeb.ExportFixture.minimal_export() |> Jason.encode!(),
+      user_id: user.id,
+      file_name: "imppport.json"
+    })
+
+    log = ExUnit.CaptureLog.capture_log(fn ->
+            assert %Task{ref: ref} = DockWorker.import(dungeon_import, 1)
+            assert_receive {^ref, :ok}
+          end)
+
+    # Its possible that assets will still be created on a timeout.
+
+    assert log =~ "poolboy transaction caught error: :exit, {:timeout, {GenServer"
   end
 end

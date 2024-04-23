@@ -1,0 +1,31 @@
+<!-- Modal -->
+<div class="modal fade asset-import-diff" tabindex="-1" role="dialog" id="assetImportDiff<%= @asset_import.id %>" aria-labelledby="assetImportDiff<%= @asset_import.id %>Label" data-id="<%= @asset_import.id %>" aria-hidden="true">
+  <div class="modal-dialog modal-diff" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assetImportDiff<%= @asset_import.id %>Label">
+          <%= @asset_import.importing_slug %> - <%= @asset_import.existing_slug %>
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body text-left">
+        <%= render @template,
+              asset_import_id: @asset_import.id,
+              existing_attributes: @asset_import.existing_attributes,
+              attributes: @asset_import.attributes%>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn action" data-dismiss="modal" data-asset="<%= @asset_import.id %>" data-action="create_new" title="Create new asset from the imported. Choose this if you do not want to change nor use the asset with matching slug that currently exists.">Create New</button>
+        <button type="button" class="btn action" data-dismiss="modal" data-asset="<%= @asset_import.id %>" data-action="use_existing" title="Use the existing asset. Use this if the existing asset is desired (for example, your import is old and the equivalent asset had been updated since the dungeon was last exported)">Use Existing</button>
+        <%= if @asset_import.existing_attributes[:user_id] == @user.id || @user.is_admin do %>
+        <button type="button" class="btn action" data-dismiss="modal" data-asset="<%= @asset_import.id %>" data-action="update_existing" title="Update the existing asset with the values from the import. Use this if the existing asset is out of date, and the imported asset has changes that should be used to update the asset that exists.">Update Existing</button>
+        <% end %>
+
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

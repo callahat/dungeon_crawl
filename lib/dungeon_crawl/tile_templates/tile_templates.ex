@@ -4,6 +4,7 @@ defmodule DungeonCrawl.TileTemplates do
   """
 
   import Ecto.Query, warn: false
+  import DungeonCrawl.Sluggable, only: [parse_identifier: 1]
   alias DungeonCrawl.Repo
 
   alias DungeonCrawl.TileTemplates.TileTemplate
@@ -85,6 +86,13 @@ defmodule DungeonCrawl.TileTemplates do
 
   Raises `Ecto.NoResultsError` if the Tile template does not exist.
 
+  Using :validation as the second param is for program validation purposes, where inactive
+  tile templates may be provided. However, the tile template must be active for it to actually
+  be used in a running script.
+
+  When given a user struct as the second parameter, only returns the tile template if
+  it may be used in a dungeon authored by the user.
+
   ## Examples
 
       iex> get_tile_template!(123)
@@ -92,47 +100,53 @@ defmodule DungeonCrawl.TileTemplates do
 
       iex> get_tile_template!(456)
       ** (Ecto.NoResultsError)
-  """
-  def get_tile_template(nil),  do: %TileTemplate{}
-  def get_tile_template(id),  do: Repo.get(TileTemplate, id)
-  def get_tile_template!(id), do: Repo.get!(TileTemplate, id)
 
-  @doc """
-  Gets the most recent active non deleted tile_template for the given slug.
-  Using :validation as the second param is for program validation purposes, where inactive
-  tile templates may be provided. However, the tile template must be active for it to actually
-  be used in a running script.
-
-  Returns `nil` if none found.
-
-  ## Examples
-
-      iex> get_tile_template_by_slug("banana")
+      iex> get_tile_template("wall", %Account.User{is_admin: true})
       %TileTemplate{}
 
-      iex> get_tile_template_by_slug("nonehere")
+      iex> get_tile_template("amphora", %Account.User{username: "someone else})
       nil
   """
-  def get_tile_template_by_slug(slug) when is_binary(slug) do
-    Repo.one(from tt in TileTemplate,
-             where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
-             order_by: [desc: :id],
-             limit: 1)
-  end
-  def get_tile_template_by_slug(_), do: nil
-  def get_tile_template_by_slug(slug, :validation) when is_binary(slug) do
-    Repo.one(from tt in TileTemplate,
-             where: tt.slug == ^slug and is_nil(tt.deleted_at),
-             order_by: [desc: :id],
-             limit: 1)
-  end
-  def get_tile_template_by_slug(_, _), do: nil
+  def get_tile_template(nil), do: %TileTemplate{}
+  def get_tile_template(identifier), do: _get_tile_template(parse_identifier(identifier))
+  def get_tile_template!(identifier), do: _get_tile_template!(parse_identifier(identifier))
 
-  def get_tile_template_by_slug!(slug) when is_binary(slug) do
-    Repo.one!(from tt in TileTemplate,
-              where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
-              order_by: [desc: :id],
-              limit: 1)
+  def _get_tile_template(id) when is_integer(id),  do: Repo.get(TileTemplate, id)
+  def _get_tile_template(slug), do: Repo.one(_by_slug_query(slug))
+  def _get_tile_template!(id) when is_integer(id), do: Repo.get!(TileTemplate, id)
+  def _get_tile_template!(slug), do: Repo.one!(_by_slug_query(slug))
+
+  def get_tile_template(nil, :validation), do: nil
+  def get_tile_template(slug, :validation), do: Repo.one(_by_slug_for_validation_query(slug))
+
+  def get_tile_template(slug, user) when is_binary(slug) do
+    tile_template = get_tile_template(slug, :validation)
+
+    if tile_template && (is_nil(user) ||
+                           is_nil(tile_template.user_id) ||
+                           tile_template.public ||
+                           user.is_admin ||
+                           user.id == tile_template.user_id) do
+      tile_template
+    else
+      nil
+    end
+  end
+
+  def get_tile_template!(slug, :validation), do: Repo.one!(_by_slug_for_validation_query(slug))
+
+  defp _by_slug_query(slug) do
+    from tt in TileTemplate,
+         where: tt.slug == ^slug and tt.active and is_nil(tt.deleted_at),
+         order_by: [desc: :id],
+         limit: 1
+  end
+
+  defp _by_slug_for_validation_query(slug) do
+    from tt in TileTemplate,
+         where: tt.slug == ^slug and is_nil(tt.deleted_at),
+         order_by: [desc: :id],
+         limit: 1
   end
 
   @doc """
@@ -164,13 +178,13 @@ defmodule DungeonCrawl.TileTemplates do
   """
   def create_tile_template(attrs \\ %{}) do
     %TileTemplate{}
-    |> TileTemplate.changeset(attrs)
+    |> TileTemplate.new_changeset(attrs)
     |> Repo.insert()
     |> TileTemplate.add_slug()
   end
   def create_tile_template!(attrs \\ %{}) do
     %TileTemplate{}
-    |> TileTemplate.changeset(attrs)
+    |> TileTemplate.new_changeset(attrs)
     |> Repo.insert!()
     |> TileTemplate.add_slug!()
   end
@@ -307,6 +321,12 @@ defmodule DungeonCrawl.TileTemplates do
     tile_template
     |> TileTemplate.changeset(attrs)
     |> Repo.update()
+  end
+
+  def update_tile_template!(%TileTemplate{} = tile_template, attrs) do
+    tile_template
+    |> TileTemplate.changeset(attrs)
+    |> Repo.update!()
   end
 
   @doc """

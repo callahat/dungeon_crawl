@@ -1,0 +1,44 @@
+<div class="container">
+  <div class="row">
+    <div class="col-2"></div>
+    <div class="col">
+      <strong>Existing</strong>
+    </div>
+    <div class="col">
+      <strong>Importing</strong>
+    </div>
+  </div>
+
+  <%= import_field_row(
+        "Name",
+        @existing_attributes[:name],
+        @attributes[:name]) %>
+
+  <%= import_field_row(
+        "Description",
+        @existing_attributes[:description],
+        @attributes[:description]) %>
+
+  <%= import_field_row(
+        "Weapon",
+        @existing_attributes[:weapon],
+        @attributes[:weapon]) %>
+
+  <%= import_field_row(
+        "Consumable",
+        @existing_attributes[:consumable],
+        @attributes[:consumable]) %>
+
+  <%= if @existing_attributes[:script] != @attributes[:script] do %>
+  <div class="row">
+    <div class="col-2">
+      <strong>Script:</strong>
+    </div>
+    <div class="col-10">
+      <textarea id="scriptExisting<%= @asset_import_id %>"><%= @existing_attributes[:script] %></textarea>
+      <textarea id="scriptImported<%= @asset_import_id %>"><%= @attributes[:script] %></textarea>
+      <div id="scriptAnchor<%= @asset_import_id %>"></div>
+    </div>
+  </div>
+  <% end %>
+</div>
