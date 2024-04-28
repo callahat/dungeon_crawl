@@ -45,6 +45,7 @@ import AvatarPreview from "./avatar_preview"
 import Sound from "./sound"
 import StateVariableSubform from "./state_variable_subform"
 import InviteLink from "./invite_link"
+import ConfirmationModal from "./confirmation_modal"
 
 Sound.init(zzfx)
 StateVariableSubform.init(document.getElementById("dungeon_state_variables"))
@@ -63,4 +64,5 @@ CharacterPicker.init(document.getElementById("show_character_picker"))
 CodemirrorWrapper.initOnTab(document.getElementById("tile_template_script"), document.getElementById("script-tab"))
 CodemirrorWrapper.init(document.getElementById("item_script"))
 CodemirrorWrapper.initDiff(document.getElementById("assetImportDiffList"))
+ConfirmationModal.init(document, document.getElementById("confirmationModal"))
 TileAnimation.init()
