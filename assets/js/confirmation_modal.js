@@ -3,26 +3,24 @@ let ConfirmationModal = {
 
     this.$modal = $(modalEl)
     this.$body = this.$modal.find("#confirmationModalBody")
-    this.$confirmButton = this.$modal.find(".action.btn")
 
     $(document).on("click", "[data-confirm]", (event) => {
       event.preventDefault()
 
       this.$body.text(event.target.dataset["confirm"])
-      this.$confirmButton.attr("data-csrf", event.target.dataset["csrf"])
-      this.$confirmButton.attr("data-method", event.target.dataset["method"])
-      this.$confirmButton.attr("data-to", event.target.dataset["to"])
+      this.confirmationTarget = event.target
+
       this.$modal.modal({show: true})
     })
 
     this.$modal.on("click", ".btn.action", (event) => {
-      if(event.target.dataset["method"] === "delete"){
-        $.delete(event.target.dataset["to"],
-          {_csrf_token: event.target.dataset["csrf"]})
-      } else {
-        $.post(event.target.dataset["to"],
-          {_csrf_token: event.target.dataset["csrf"]})
-      }
+      // Dirty way of using the already listening UJS listener
+      // to do its thing; Simply copying the data attributes
+      // to the modal confirm button did not work, and it did
+      // not seem worthwhile to try and reimplement the handling
+      // of a data spiced link here
+      this.confirmationTarget.removeAttribute("data-confirm")
+      this.confirmationTarget.click()
     })
 
     this.$modal.on('hide.bs.modal', () => {
@@ -31,13 +29,11 @@ let ConfirmationModal = {
   },
   resetModal() {
     this.$body.text("")
-    this.$confirmButton.attr("data-csrf", "")
-    this.$confirmButton.attr("data-method", "")
-    this.$confirmButton.attr("data-to", "")
+    this.confirmationTarget = null
   },
   $modal: null,
   $body: null,
-  $confirmButton: null
+  confirmationTarget: null
 }
 
 export default ConfirmationModal

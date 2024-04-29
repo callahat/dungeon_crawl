@@ -6,8 +6,8 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn action btn-primary" data-dismiss="modal">Confirm</button>
+        <a type="button" class="btn btn-secondary" data-dismiss="modal" rel="nofollow">Cancel</a>
+        <a type="button" class="btn action btn-primary" data-dismiss="modal" rel="nofollow">Confirm</a>
       </div>
     </div>
   </div>
