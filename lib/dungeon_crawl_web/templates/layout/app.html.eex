@@ -50,6 +50,8 @@
       </div>
     </div>
 
+    <%= render("confirmation_modal.html", conn: @conn) %>
+
   </body>
   <script>window.logSocketMessages=<%= Mix.env() != :prod %></script>
   <script>window.userToken = "<%= assigns[:user_token] %>"</script>
