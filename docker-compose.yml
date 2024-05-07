@@ -1,0 +1,65 @@
+---
+version: "3.3"
+
+services:
+  app: &app
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        UBUNTU_VERSION: '20.04'
+    image: dcrawl:1.0.0
+    environment: &env
+      DATABASE_HOSTNAME: localhost
+      DATABASE_USERNAME: elixir
+      DATABASE_PASSWORD: elixir
+    tmpfs:
+      - /tmp
+      - /app/tmp/pids
+    volumes:
+      - .:/app:cached
+      - asdf:/root/.asdf
+      - build:/app/_build
+      - static:/app/priv/static
+      - deps:/app/deps
+      - node:/app/assets/node
+#      - .docker/.irb_history:/root/.irb_history
+#      - .docker/.bash_history:/root/.bash_history
+#      - .docker/.byebug_history:/app/.byebug_history
+
+  assets:
+    <<: *app
+    command: ['npm', 'install']
+    working_dir: '/app/assets'
+
+  deps:
+    <<: *app
+    command: ['mix', 'deps.get']
+
+  dcrawl:
+    <<: *app
+    command:
+      - mix
+      - phx.server
+    ports:
+      - "4000:4000"
+    depends_on:
+      - assets
+      - deps
+      - postgres
+
+  postgres:
+    image: "postgres:12"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      <<: *env
+    ports:
+      - 5432
+
+volumes:
+  build:
+  deps:
+  node:
+  postgres:
+  static:
