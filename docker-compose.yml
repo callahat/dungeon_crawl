@@ -6,16 +6,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.local
-      args:
-        UBUNTU_VERSION: '20.04'
     image: dcrawl:1.0.0
     environment: &env
-      DATABASE_HOSTNAME: localhost
+      DATABASE_HOSTNAME: postgres
       DATABASE_USERNAME: elixir
       DATABASE_PASSWORD: elixir
-    tmpfs:
-      - /tmp
-      - /app/tmp/pids
     volumes:
       - .:/app:cached
       - asdf:/root/.asdf
@@ -27,14 +22,9 @@ services:
 #      - .docker/.bash_history:/root/.bash_history
 #      - .docker/.byebug_history:/app/.byebug_history
 
-  assets:
+  init:
     <<: *app
-    command: ['npm', 'install']
-    working_dir: '/app/assets'
-
-  deps:
-    <<: *app
-    command: ['mix', 'deps.get']
+    entrypoint: '.docker/init.sh'
 
   dcrawl:
     <<: *app
@@ -44,8 +34,7 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      - assets
-      - deps
+      - init
       - postgres
 
   postgres:
@@ -53,11 +42,13 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     environment:
-      <<: *env
+      POSTGRES_USER: elixir
+      POSTGRES_PASSWORD: elixir
     ports:
       - 5432
 
 volumes:
+  asdf:
   build:
   deps:
   node:
