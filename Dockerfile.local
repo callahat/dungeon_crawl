@@ -15,6 +15,7 @@ RUN apt-get update -qq \
     libxml2-utils \
     libwxgtk3.0-gtk3-dev \
     libwxgtk-webview3.0-gtk3-dev \
+    inotify-tools \
     m4 \
     postgresql-client \
     openjdk-11-jdk \

@@ -782,7 +782,7 @@ defmodule DungeonCrawl.Dungeons do
     Multi.new
     |> Multi.insert(:level, Level.changeset(%Level{}, attrs))
     |> Multi.run(:tiles, fn(_repo, %{level: level}) ->
-        result = Repo.insert_all(Tile, _generate_level_tiles(level, level_generator, for_solo && level.number))
+        result = Repo.insert_all(Tile, _generate_level_tiles(level, level_generator, for_solo && level.number || nil))
         {:ok, result}
       end)
     |> Repo.transaction()

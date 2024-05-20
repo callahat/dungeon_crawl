@@ -1,5 +1,5 @@
 ---
-version: "3.3"
+version: "3.7"
 
 services:
   app: &app
@@ -18,6 +18,8 @@ services:
       - static:/app/priv/static
       - deps:/app/deps
       - node:/app/assets/node
+      - tmp:/app/tmp
+
 #      - .docker/.irb_history:/root/.irb_history
 #      - .docker/.bash_history:/root/.bash_history
 #      - .docker/.byebug_history:/app/.byebug_history
@@ -25,17 +27,20 @@ services:
   init:
     <<: *app
     entrypoint: '.docker/init.sh'
+    depends_on:
+      postgres:
+        condition: service_started
 
   dcrawl:
     <<: *app
-    command:
-      - mix
-      - phx.server
+    entrypoint: '.docker/dcrawl.sh'
     ports:
       - "4000:4000"
     depends_on:
-      - init
-      - postgres
+      init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
 
   postgres:
     image: "postgres:12"
@@ -54,3 +59,4 @@ volumes:
   node:
   postgres:
   static:
+  tmp:
