@@ -5,7 +5,7 @@ defmodule DungeonCrawlWeb.DungeonLive do
   alias DungeonCrawl.Account
   alias DungeonCrawl.Repo
   alias DungeonCrawl.Dungeons
-  alias DungeonCrawl.Dungeons.Metadata
+  alias DungeonCrawl.Dungeons.{Dungeon, Metadata}
   alias DungeonCrawl.Games
   alias DungeonCrawl.Scores
 
@@ -116,11 +116,10 @@ defmodule DungeonCrawlWeb.DungeonLive do
 
   defp _assign_focused_dungeon(socket, nil), do: assign(socket, :dungeon, nil)
 
-  defp _assign_focused_dungeon(socket, %{id: dungeon_id}), do: _assign_focused_dungeon(socket, dungeon_id)
+  defp _assign_focused_dungeon(socket, %Dungeon{} = dungeon) do
+    dungeon = Repo.preload(dungeon, [:user, :levels, [public_dungeon_instances: :locations]])
 
-  defp _assign_focused_dungeon(socket, dungeon_id) do
-    dungeon = Dungeons.get_dungeon(dungeon_id)
-              |> Repo.preload([:user, :levels, [public_dungeon_instances: :locations]])
+
     author_name = if dungeon.user_id, do: dungeon.user.name, else: "<None>"
     saves = Repo.preload(dungeon, :saves).saves
             |> Enum.filter(fn(save) -> save.user_id_hash == socket.assigns.user_id_hash end)
@@ -131,6 +130,12 @@ defmodule DungeonCrawlWeb.DungeonLive do
     |> assign(:author_name, author_name)
     |> assign(:dungeon, dungeon)
     |> assign(:saves, saves)
+  end
+
+  defp _assign_focused_dungeon(socket, dungeon_id) do
+    dungeon = Dungeons.get_dungeon(dungeon_id)
+
+    _assign_focused_dungeon(socket, dungeon)
   end
 
   defp _assign_changeset(socket) do
