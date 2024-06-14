@@ -22,7 +22,7 @@ defmodule DungeonCrawl.DungeonGeneration.EntitiesTest do
 
   describe "treasures/0" do
     test "it returns a list of treasure characters" do
-      assert 'ä$♦♥' == Entities.treasures
+      assert ~c"ä$♦♥" == Entities.treasures
     end
   end
 end

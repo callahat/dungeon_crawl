@@ -7,7 +7,7 @@
          href="#group-<%= group_name %>"
          role="tab"
          aria-controls="group-<%= group_name %>"
-         aria-selected="<%= !! group_name == 'terrain' %>">
+         aria-selected="<%= !! group_name == "terrain" %>">
         <%= group_name %>
       </a>
     </li>

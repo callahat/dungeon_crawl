@@ -97,7 +97,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonView do
         link(import.dungeon.name, to: Routes.edit_dungeon_path(socket, :show, import.dungeon_id))
 
       import.status == :waiting ->
-        link('Update', to: Routes.edit_dungeon_import_path(socket, :dungeon_import_show, import.id), class: "btn btn-info btn-sm")
+        link("Update", to: Routes.edit_dungeon_import_path(socket, :dungeon_import_show, import.id), class: "btn btn-info btn-sm")
 
       true-> ""
     end

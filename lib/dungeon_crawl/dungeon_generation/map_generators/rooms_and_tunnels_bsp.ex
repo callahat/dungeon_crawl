@@ -5,15 +5,15 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.RoomsAndTunnelsBsp do
   @cave_height     40
   @cave_width      80
 
-  @doors           '+\''
+  @doors           ~c"+'"
   @wall            ?#
   @corridor_floor  ?,
   @floor           ?.
   @rock            ?\s
   @stairs_up       ?▟
 
-  @rock_or_wall      '# '
-  @floor_or_corridor '.,'
+  @rock_or_wall      ~c"# "
+  @floor_or_corridor ~c".,"
 
   @debug_horiz     ?-
   @debug_vert      ?|
