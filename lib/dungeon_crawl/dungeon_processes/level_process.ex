@@ -229,6 +229,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
 
   @impl true
   def init(:ok) do
+    Process.set_label("LevelProcess - Starting")
     {:ok, %Levels{}}
   end
 
@@ -296,6 +297,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
 
   @impl true
   def handle_cast({:set_number, {number}}, %Levels{} = state) do
+    Process.set_label("LevelProcess - ##{ number }")
     {:noreply, %{ state | number: number }}
   end
 

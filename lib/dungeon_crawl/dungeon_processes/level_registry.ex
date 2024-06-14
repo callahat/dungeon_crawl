@@ -141,6 +141,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
   @impl true
   def init(map_set_process) do
     Process.flag(:trap_exit, true)
+    Process.set_label("LevelRegistry")
     {:ok, cache_process} = Cache.start_link([])
     {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
     level_registry = %LevelRegistry{map_set_process: map_set_process,

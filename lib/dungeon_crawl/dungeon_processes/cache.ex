@@ -78,6 +78,7 @@ defmodule DungeonCrawl.DungeonProcesses.Cache do
 
   @impl true
   def init(:ok) do
+    Process.set_label("Cache")
     {:ok, %Cache{}}
   end
 
