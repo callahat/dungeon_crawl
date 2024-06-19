@@ -23,10 +23,9 @@ let Sound = {
     }
   },
   playEffect(params, volumeModifier = 1){
-    let soundEffect = [...params]
     // first param (position 0) is the volume, defaults to 1
-    soundEffect[0] = soundEffect[0] ? (soundEffect[0] * volumeModifier) : volumeModifier
-    this.zzfx(...soundEffect)
+    params[0] = params[0] ? (params[0] * volumeModifier) : volumeModifier
+    this.zzfx(...params)
   },
   paramsRegex: /-?\d*\.?\d*(?:,-?\d*\.?\d*){13,19}/, // up to 20 parameters
   zzfx: null
