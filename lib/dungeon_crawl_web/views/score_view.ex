@@ -48,5 +48,5 @@ defmodule DungeonCrawlWeb.ScoreView do
     "#{days} days, #{pad(hours)}:#{pad(minutes)}:#{pad(seconds)}"
   end
 
-  defp pad(number), do: :io_lib.format('~2..0B', [number])
+  defp pad(number), do: :io_lib.format(~c"~2..0B", [number])
 end

@@ -4,7 +4,7 @@ defmodule DungeonCrawl.Mixfile do
   def project do
     [app: :dungeon_crawl,
      version: "0.0.1",
-     elixir: "~> 1.15",
+     elixir: "~> 1.17",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: Mix.compilers,
      build_embedded: Mix.env == :prod,

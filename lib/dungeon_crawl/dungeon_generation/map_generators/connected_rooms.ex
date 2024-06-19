@@ -8,7 +8,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.ConnectedRooms do
   @cave_height     40
   @cave_width      80
 
-  @doors           '+\''
+  @doors           ~c"+'"
   @corner          ?%
   @wall            ?#
   @floor           ?.
