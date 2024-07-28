@@ -347,9 +347,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
   end
 
   test "update_tile_state/3", %{state: state} do
+    state = %{state | rerender_coords: %{}}
     tile = Levels.get_tile(state, %{id: 999, row: 1, col: 2})
     assert {tile, state} = Levels.update_tile_state(state, tile, %{"hamburders" => 4})
     assert tile.state["hamburders"] == 4
+    assert state.rerender_coords == %{}
 
     assert {tile, _state} = Levels.update_tile_state(state, tile, %{"coffee" => 2})
     assert tile.state["hamburders"] == 4
@@ -359,6 +361,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert {tile, updated_state} = Levels.update_tile_state(state, tile, %{"light_source" => true})
     assert tile.state["light_source"] == true
     assert updated_state.light_sources[tile.id] == true
+    assert updated_state.rerender_coords == %{}
 
     assert {tile, updated_state} = Levels.update_tile_state(updated_state, tile, %{"other" => false})
     assert tile.state["light_source"] == true
@@ -449,6 +452,28 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
              status: :wait,
              wait_cycles: 0
            } = program
+  end
+
+  test "update_tile/3 does not flag the coordinate for rerender on nonvisible change", %{state: state} do
+    state = %{state | rerender_coords: %{}}
+    tile = Levels.get_tile(state, %{id: 999, row: 1, col: 2})
+    tile_id = tile.id
+    assert {updated_tile, state} = Levels.update_tile(state, tile, %{"script" => "#end", "name" => "none"})
+    assert %Tile{id: ^tile_id, script: "#end", name: "none"} = updated_tile
+    assert state.rerender_coords == %{}
+
+    assert {updated_tile, state} = Levels.update_tile(state, tile, %{"color" => tile.color})
+    assert updated_tile.color == tile.color
+    assert state.rerender_coords == %{}
+
+    assert {updated_tile, updated_state} = Levels.update_tile(state, tile, %{"color" => "light#{inspect tile.color}"})
+    assert updated_tile.color == "light#{inspect tile.color}"
+    assert updated_state.rerender_coords == %{%{row: 1, col: 2} => true}
+
+    assert {_, updated_state} = Levels.update_tile(state, tile, %{"row" => 10, "col" => 12})
+    assert updated_state.rerender_coords == %{
+             %{row: 1, col: 2} => true,
+             %{row: 10, col: 12} => true}
   end
 
   test "delete_player_tile/2 deletes the tile and unregisters player location", %{state: state} do
