@@ -205,7 +205,7 @@ let Level = {
     }
 
     this.levelChannel.push(action, payload)
-      .receive("moved", (_) => this.sound.playEffect(this.soundFootstep, this.soundEffectVolume / 100))
+      .receive("moved", (_) => this.sound.playEffect([...this.soundFootstep], this.soundEffectVolume / 100))
       .receive("error", e => console.log(e))
   },
   open(direction, shift = false){
