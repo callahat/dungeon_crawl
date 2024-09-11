@@ -367,21 +367,22 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
 
     script_changed = !!new_attributes["script"]
 
-    updated_tile = by_id[tile_id]
+    old_tile = by_id[tile_id]
+    updated_tile = old_tile
                    |> Map.merge(new_changeset.changes)
-
-    old_tile_coords = Map.take(by_id[tile_id], [:row, :col, :z_index])
-    updated_tile_coords = Map.take(updated_tile, [:row, :col, :z_index])
 
     by_id = Map.put(by_id, tile_id, updated_tile)
     dirty_ids = Map.put(state.dirty_ids, tile_id, new_changeset)
-    rerender_coords = Map.put_new(state.rerender_coords, Map.take(updated_tile, [:row, :col]), true)
-                      |> Map.put_new(Map.take(old_tile_coords, [:row, :col]), true)
 
-    if updated_tile_coords != old_tile_coords do
-      z_index_map = by_coords[{updated_tile_coords.row, updated_tile_coords.col}] || %{}
+    rerender_coords = if _rerender_needed(updated_tile, old_tile),
+                         do: Map.put_new(state.rerender_coords, Map.take(updated_tile, [:row, :col]), true)
+                             |> Map.put_new(Map.take(old_tile, [:row, :col]), true),
+                         else: state.rerender_coords
 
-      if Map.has_key?(z_index_map, updated_tile_coords.z_index) do
+    if _coords_changed(updated_tile, old_tile) do
+      z_index_map = by_coords[{updated_tile.row, updated_tile.col}] || %{}
+
+      if Map.has_key?(z_index_map, updated_tile.z_index) do
         # invalid update, just throw it away (or maybe raise an error instead of silently doing nothing)
         {nil, state}
       else
@@ -389,8 +390,8 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
                                do: %{},
                                else: state.players_los_coords
 
-        by_coords = _remove_coord(by_coords, Map.take(old_tile_coords, [:row, :col, :z_index]))
-                    |> _put_coord(Map.take(updated_tile_coords, [:row, :col, :z_index]), tile_id)
+        by_coords = _remove_coord(by_coords, Map.take(old_tile, [:row, :col, :z_index]))
+                    |> _put_coord(Map.take(updated_tile, [:row, :col, :z_index]), tile_id)
         {updated_tile, %Levels{ state | map_by_ids: by_id,
                                         map_by_coords: by_coords,
                                         dirty_ids: dirty_ids,
@@ -402,6 +403,31 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
       {updated_tile, %Levels{ state | map_by_ids: by_id, dirty_ids: dirty_ids, rerender_coords: rerender_coords }}
       |> _update_program(script_changed)
     end
+  end
+
+  @rerenderables [
+    :row,
+    :col,
+    :z_index,
+    :character,
+    :color,
+    :background_color,
+    :animate_random,
+    :animate_colors,
+    :animate_background_colors,
+    :animate_characters,
+    :animate_period
+  ]
+
+  defp _coords_changed(updated_tile, old_tile) do
+    Map.take(updated_tile, [:row, :col, :z_index]) !=
+      Map.take(old_tile, [:row, :col, :z_index])
+  end
+
+  defp _rerender_needed(updated_tile, old_tile) do
+    _coords_changed(updated_tile, old_tile) ||
+    Map.take(updated_tile, @rerenderables) !=
+      Map.take(old_tile, @rerenderables)
   end
 
   defp _update_program({tile, %Levels{} = state}, false), do: {tile, state}

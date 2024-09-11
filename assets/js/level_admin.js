@@ -34,6 +34,11 @@ let LevelAdmin = {
     this.levelAdminChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the dungeon admin channel!")
+
+        // rerender, as the first page load might be stale at this point, so tile updates
+        // may cause wierd artifacts
+        this.levelAdminChannel.push("rerender", {})
+          .receive("ok", resp => document.getElementById("level_admin").innerHTML = resp)
       })
       .receive("error", resp => console.log("join failed", resp))
 

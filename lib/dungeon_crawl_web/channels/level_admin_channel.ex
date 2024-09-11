@@ -2,6 +2,7 @@ defmodule DungeonCrawlWeb.LevelAdminChannel do
   use DungeonCrawl.Web, :channel
 
   alias DungeonCrawl.Account
+  alias DungeonCrawl.DungeonProcesses.LevelProcess
   alias DungeonCrawl.DungeonProcesses.LevelRegistry
   alias DungeonCrawl.DungeonProcesses.Registrar
 
@@ -28,6 +29,25 @@ defmodule DungeonCrawlWeb.LevelAdminChannel do
     {:reply, {:ok, payload}, socket}
   end
 
+  def handle_in("rerender", _, socket) do
+    {:ok, instance} = _get_instance_process(socket.assigns)
+
+    level_table =
+      LevelProcess.run_with(instance, fn (instance_state) ->
+        %{"rows" => height, "cols" => width} = instance_state.state_values
+        level_table = DungeonCrawlWeb.SharedView.level_as_table(instance_state, height, width)
+
+        {level_table, instance_state}
+      end)
+
+    {:reply, {:ok, level_table}, socket}
+  end
+
   defp _to_integer(""), do: nil
   defp _to_integer(str) when is_binary(str), do: String.to_integer(str)
+
+  defp _get_instance_process(%{instance_registry: registry, level_number: number, level_owner_id: owner_id}) do
+    {:ok, {_instance_id, process}} = LevelRegistry.lookup_or_create(registry, number, owner_id)
+    {:ok, process}
+  end
 end

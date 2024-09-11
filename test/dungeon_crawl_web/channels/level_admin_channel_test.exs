@@ -50,6 +50,20 @@ defmodule DungeonCrawl.LevelAdminChannelTest do
     assert_reply ref, :ok, %{"hello" => "there"}
   end
 
+  test "rerender replies with a rerender", %{dungeon_instance: dungeon_instance, level_instance: level_instance} do
+    user = insert_user(%{is_admin: true, user_id_hash: "user_id_hash"})
+
+    {:ok, _, socket} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: user.user_id_hash})
+      |> subscribe_and_join(LevelAdminChannel, _admin_channel(dungeon_instance.id, level_instance))
+
+    ref = push socket, "rerender", %{}
+
+    level_table = DungeonCrawlWeb.SharedView.level_as_table(level_instance, level_instance.height, level_instance.width)
+
+    assert_reply ref, :ok, ^level_table
+  end
+
   defp _admin_channel(dungeon_instance_id, level_instance) do
     "level_admin:#{dungeon_instance_id}:#{level_instance.number}:#{level_instance.player_location_id}"
   end
