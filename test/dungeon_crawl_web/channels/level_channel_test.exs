@@ -248,11 +248,9 @@ defmodule DungeonCrawl.LevelChannelTest do
   end
 
   @tag up_tile: "#"
-  test "move broadcasts refresh of the player if its not a valid move", %{socket: socket, player_location: player_location} do
+  test "move broadcasts nothing if its not a valid move", %{socket: socket} do
     push socket, "move", %{"direction" => "up"}
-    col = player_location.tile.col
-    row = player_location.tile.row
-    assert_broadcast "tile_changes", %{tiles: [%{col: ^col, rendering: "<div>@</div>", row: ^row}]}
+    refute_broadcast "tile_changes", _anything_really
   end
 
   @tag up_tile: "#"
