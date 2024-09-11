@@ -60,20 +60,35 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
 
   test "get_tile/2 gets the top tile at the given coordinates", %{state: state} do
     assert %{id: 999} = Levels.get_tile(state, %{row: 1, col: 2})
+    assert %{id: 999} = Levels.get_tile(state, %{"row" => 1, "col" => 2})
+  end
+
+  test "get_tile/2 with junk returns nil" do
+    refute Levels.get_tile(%{}, %{})
   end
 
   test "get_tile/3 gets the top tile in the given direction", %{state: state} do
     assert %{id: 997} = Levels.get_tile(state, %{row: 1, col: 2}, "east")
+    assert %{id: 997} = Levels.get_tile(state, %{"row" => 1, "col" => 2}, "east")
+    refute Levels.get_tile(%{}, %{}, "north")
+  end
+
+  test "get_tiles/2 gets the top tile at the given coordinates", %{state: state} do
+    assert [tile_1] = Levels.get_tiles(state, %{row: 1, col: 2})
+    assert %{id: 999} = tile_1
+    assert [tile_1] == Levels.get_tiles(state, %{"row" => 1, "col" => 2})
   end
 
   test "get_tiles/3 gets the tiles in the given direction", %{state: state} do
     assert [tile_1, tile_2] = Levels.get_tiles(state, %{row: 1, col: 2}, "east")
     assert %{id: 997} = tile_1
     assert %{id: 998} = tile_2
+    assert [tile_1, tile_2] == Levels.get_tiles(state, %{"row" => 1, "col" => 2}, "east")
   end
 
   test "get_tiles/3 gets empty array in the given direction", %{state: state} do
     assert [] == Levels.get_tiles(state, %{row: 1, col: 2}, "north")
+    assert [] == Levels.get_tiles(state, %{"row" => 1, "col" => 2}, "north")
   end
 
   test "get_tile_by_id/2 gets the tile for the id", %{state: state} do
