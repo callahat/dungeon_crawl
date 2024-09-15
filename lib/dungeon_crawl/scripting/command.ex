@@ -1504,17 +1504,10 @@ defmodule DungeonCrawl.Scripting.Command do
                       |> Enum.map(fn { {row, col}, _tile } -> %{row: row, col: col} end)
                       |> Enum.reduce(state.rerender_coords, fn coords, rerender_coords -> Map.put(rerender_coords, coords, true) end)
 
-    rerender_ids = Enum.map(tile_changes, fn {_coord, tile} -> tile.id end)
-
-    shifted_tile_ids = shiftables
-                       |> Enum.map(fn {tile, _dest} -> {tile.id, true} end)
-                       |> Enum.reject(fn {tile_id, _} -> !Enum.member?(rerender_ids, tile_id) end)
-                       |> Enum.into(%{})
-
     %Runner{ runner_state |
              state: %{ runner_state.state |
                rerender_coords: rerender_coords,
-               shifted_ids: Map.merge(runner_state.state.shifted_ids, shifted_tile_ids) }, # TODO: move shifted IDS to runner struct
+               shifted_ids: Map.merge(runner_state.state.shifted_ids, _shifted_tile_id_map(shiftables, tile_changes)) },
              program: %{program |
                         status: :wait,
                         wait_cycles: object.state["wait_cycles"] || 5 } }
@@ -1564,6 +1557,15 @@ defmodule DungeonCrawl.Scripting.Command do
     [last | front_tail] = Enum.reverse(adj)
     shifted = [ last | Enum.reverse(front_tail) ]
     Enum.zip(adj, shifted)
+  end
+
+  defp _shifted_tile_id_map(shiftables, tile_changes) do
+    rerender_ids = Enum.map(tile_changes, fn {_coord, tile} -> tile.id end)
+
+    shiftables
+    |> Enum.map(fn {tile, _dest} -> {tile.id, true} end)
+    |> Enum.reject(fn {tile_id, _} -> !Enum.member?(rerender_ids, tile_id) end)
+    |> Enum.into(%{})
   end
 
   @doc """
