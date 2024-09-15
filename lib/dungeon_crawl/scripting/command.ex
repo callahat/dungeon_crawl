@@ -1493,7 +1493,7 @@ defmodule DungeonCrawl.Scripting.Command do
                       { Levels.get_tile(state, %{row: object.row + row_d, col: object.col + col_d}),
                         Levels.get_tile(state, %{row: object.row + dest_row_d, col: object.col + dest_col_d}) }
                     end)
-                 |> Enum.filter(fn({tile, _dest_tile}) -> tile && tile.state["pushable"] end)
+                 |> Enum.filter(fn({tile, _dest_tile}) -> tile && tile.state["pushable"] && !state.shifted_ids[tile.id] end)
                  |> Enum.reject(fn({_tile, dest_tile}) -> !dest_tile || dest_tile.state["blocking"] && !dest_tile.state["pushable"] end)
 
     {runner_state, _, tile_changes} = _shifting(runner_state, shiftables, %{})
@@ -1504,8 +1504,17 @@ defmodule DungeonCrawl.Scripting.Command do
                       |> Enum.map(fn { {row, col}, _tile } -> %{row: row, col: col} end)
                       |> Enum.reduce(state.rerender_coords, fn coords, rerender_coords -> Map.put(rerender_coords, coords, true) end)
 
+    rerender_ids = Enum.map(tile_changes, fn {_coord, tile} -> tile.id end)
+
+    shifted_tile_ids = shiftables
+                       |> Enum.map(fn {tile, _dest} -> {tile.id, true} end)
+                       |> Enum.reject(fn {tile_id, _} -> !Enum.member?(rerender_ids, tile_id) end)
+                       |> Enum.into(%{})
+
     %Runner{ runner_state |
-             state: %{ runner_state.state | rerender_coords: rerender_coords },
+             state: %{ runner_state.state |
+               rerender_coords: rerender_coords,
+               shifted_ids: Map.merge(runner_state.state.shifted_ids, shifted_tile_ids) }, # TODO: move shifted IDS to runner struct
              program: %{program |
                         status: :wait,
                         wait_cycles: object.state["wait_cycles"] || 5 } }
