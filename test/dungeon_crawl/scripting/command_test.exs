@@ -1814,6 +1814,9 @@ defmodule DungeonCrawl.Scripting.CommandTest do
   end
 
   test "SHIFT" do
+    # o.#
+    #  /o
+    # .o.
     state = %Levels{}
     {_, state}   = Levels.create_tile(state, %Tile{id: 123,  character: ".", row: 1, col: 1, z_index: 0})
     {_, state}   = Levels.create_tile(state, %Tile{id: 601,  character: "o", row: 1, col: 1, z_index: 1, state: %{"blocking" => true, "pushable" => true}})
@@ -1861,7 +1864,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert obj_128 == Levels.get_tile_by_id(updated_state, %{id: 128})
     assert obj_129 == Levels.get_tile_by_id(updated_state, %{id: 129})
 
+    # .o#
+    #  /.
+    # o.o
+    updated_state = %{ updated_state | shifted_ids: %{}}
     %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["clockwise"])
+    assert %{602 => true} == updated_state.shifted_ids
     assert %{id: 601, row: 1, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 601})
     assert %{id: 602, row: 3, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 602})
     assert %{id: 603, row: 3, col: 1, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 603})
@@ -1873,8 +1881,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 3}
     assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 3}
 
-    updated_state = %{ updated_state | rerender_coords: %{} }
+    # .o#
+    #  /.
+    # oo.
+    updated_state = %{ updated_state | shifted_ids: %{}, rerender_coords: %{} }
     %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["clockwise"])
+    assert %{} == updated_state.shifted_ids
     assert %{id: 601, row: 1, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 601})
     assert %{id: 602, row: 3, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 602})
     assert %{id: 603, row: 3, col: 1, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 603})
@@ -1884,7 +1896,10 @@ defmodule DungeonCrawl.Scripting.CommandTest do
            } = program
     assert updated_state.rerender_coords == %{}
 
+    # no balls moved, so inital map looks like the one above
+    updated_state = %{ updated_state | shifted_ids: %{}}
     %Runner{state: updated_state, program: program} = Command.shift(%Runner{state: updated_state, object_id: obj.id}, ["counterclockwise"])
+    assert %{601 => true, 602 => true, 603 => true} == updated_state.shifted_ids
     assert %{id: 601, row: 1, col: 1, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 601})
     assert %{id: 602, row: 3, col: 3, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 602})
     assert %{id: 603, row: 3, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 603})
@@ -1898,6 +1913,41 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert Map.has_key? updated_state.rerender_coords, %{col: 1, row: 3}
     assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 3}
     assert Map.has_key? updated_state.rerender_coords, %{col: 3, row: 3}
+  end
+
+  test "SHIFT commands will only move an object once per cycle" do
+    # Shift only impacts an object once per cycle
+    # o..
+    # //
+    state = %Levels{}
+    {_, state}   = Levels.create_tile(state, %Tile{id: 123,  character: ".", row: 1, col: 1, z_index: 0})
+    {_, state}   = Levels.create_tile(state, %Tile{id: 601,  character: "o", row: 1, col: 1, z_index: 1, state: %{"blocking" => true, "pushable" => true}})
+    {_, state}   = Levels.create_tile(state, %Tile{id: 124,  character: ".", row: 1, col: 2, z_index: 0})
+    {_, state}   = Levels.create_tile(state, %Tile{id: 125,  character: ".", row: 1, col: 3, z_index: 0})
+    {obj1, state} = Levels.create_tile(state, %Tile{id: 1337, character: "/", row: 2, col: 1, z_index: 0})
+    {obj2, state} = Levels.create_tile(state, %Tile{id: 1338, character: "/", row: 2, col: 2, z_index: 0})
+
+    state = %{ state | rerender_coords: %{} }
+
+    obj_123 = Levels.get_tile_by_id(state, %{id: 123})
+    obj_124 = Levels.get_tile_by_id(state, %{id: 124})
+    obj_125 = Levels.get_tile_by_id(state, %{id: 125})
+
+    %Runner{state: updated_state} = Command.shift(%Runner{state: state, object_id: obj1.id}, ["clockwise"])
+    assert %{601 => true} == updated_state.shifted_ids
+    assert %{id: 601, row: 1, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 601})
+
+    %Runner{state: updated_state} = Command.shift(%Runner{state: state, object_id: obj2.id}, ["clockwise"])
+    assert %{601 => true} == updated_state.shifted_ids
+    assert %{id: 601, row: 1, col: 2, z_index: 1} = Levels.get_tile_by_id(updated_state, %{id: 601})
+    assert Map.has_key? updated_state.rerender_coords, %{col: 1, row: 1}
+    assert Map.has_key? updated_state.rerender_coords, %{col: 2, row: 1}
+
+    assert obj_123 == Levels.get_tile_by_id(updated_state, %{id: 123})
+    assert obj_124 == Levels.get_tile_by_id(updated_state, %{id: 124})
+    assert obj_125 == Levels.get_tile_by_id(updated_state, %{id: 125})
+    assert obj1 == Levels.get_tile_by_id(updated_state, %{id: 1337})
+    assert obj2 == Levels.get_tile_by_id(updated_state, %{id: 1338})
   end
 
   test "SHOOT" do
