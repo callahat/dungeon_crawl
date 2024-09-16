@@ -76,7 +76,10 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
                                   debug: debug}
 
     nethack_style = _generate(nethack_style)
+                    |> _resize_touching_rooms()
                     |> _puts_map_debugging()
+
+    IO.inspect nethack_style.room_coords |> Enum.sort
 
 #    map =
 #    _tunnel_midpoints(rooms_and_tunnels)
@@ -90,7 +93,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 #
 #    # for console debugging purposes only
 #    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map, cave_width)
-    map
+    nethack_style.map
   end
 
   defp _generate(%NethackStyle{iterations: 0} = nethack_style), do: nethack_style
@@ -106,6 +109,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     case _try_generating_room_coordinates(nethack_style, rectangle) do
       {:good_room, coords} ->
         _plop_room(nethack_style, coords)
+        |> Map.put(:room_coords, [ coords | nethack_style.room_coords ])
         |> _update_available_rectangles(rectangle, coords)
         |> _generate()
       {:bad_room} ->
@@ -162,7 +166,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     _walls(nethack_style, wall_coords)
     |> _floors(floor_coords)
-    |> Map.put(:room_coords, [ coords | nethack_style.room_coords ])
   end
 
   defp _walls(%NethackStyle{} = nethack_style, []), do: nethack_style
@@ -239,16 +242,115 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     ]
   end
 
-  defp _invalid_rectangle_size?(%Rectangle{top_left_col: tlc,
-                                           top_left_row: tlr,
-                                           bottom_right_col: brc,
-                                           bottom_right_row: brr}) do
+  defp _invalid_rectangle_size?(%{top_left_col: tlc,
+                                  top_left_row: tlr,
+                                  bottom_right_col: brc,
+                                  bottom_right_row: brr}) do
     height = brr - tlr
     width = brc - tlc
 
     height < @room_min_height || width < @room_min_width
   end
-  
+
+  defp _resize_touching_rooms(%NethackStyle{map: map, room_coords: room_coords} = nh) do
+    _resize_touching_rooms(%{ nh | room_coords: [] }, room_coords)
+    |> _puts_map_debugging()
+  end
+  defp _resize_touching_rooms(nethack_style, []), do: nethack_style
+  defp _resize_touching_rooms(
+         %NethackStyle{map: map, cave_height: h, cave_width: w} = nethack_style,
+         [room_coord | room_coords]) do
+    %{top_left_col: tlc,
+      top_left_row: tlr,
+      bottom_right_col: brc,
+      bottom_right_row: brr} = room_coord
+
+    dtlc = tlc - 1
+    dtlr = tlr - 1
+    dbrc = brc + 1
+    dbrr = brr + 1
+
+    new_room_coord = \
+    [
+      { {1,0,0,0}, dtlc..dbrc, dtlr..dtlr }, # top row
+      { {0,1,0,0}, dtlc..dbrc, dbrr..dbrr }, # bottom row
+      { {0,0,1,0}, dtlc..dtlc, dtlr..dbrr }, # left column
+      { {0,0,0,1}, dbrc..dbrc, dtlr..dbrr }, # right column
+    ]
+    |> _check_adjacent(room_coord, nethack_style)
+    |> _maybe_shrink_room_on_map(room_coord, nethack_style)
+    |> _resize_touching_rooms(room_coords)
+
+  end
+  defp _check_adjacent([], room_coord, _nethack_style), do: room_coord
+  defp _check_adjacent([{ scalar, col_range, row_range} | adjacent], room_coord, %{map: map} = nh) do
+    adj_coords = for(col <- Enum.to_list(col_range),
+                     row <- Enum.to_list(row_range),
+                     do: {row, col})
+                 |> Enum.reject( fn {row, col} ->
+                       row < 0 || col < 0 || row > nh.cave_height - 1 || col > nh.cave_width - 1
+                     end)
+    _puts_map_debugging(nh, adj_coords, :check_adjacent)
+
+    if Enum.any?(adj_coords, fn {row, col} ->
+                                tile = _tile_at(map, col, row)
+                                tile && tile != @rock
+                              end) do
+      _check_adjacent(adjacent, _shrink_room_coord(scalar, room_coord), nh)
+    else
+      _check_adjacent(adjacent, room_coord, nh)
+    end
+  end
+
+  defp _shrink_room_coord(
+         {trd, brd, lcd, rcd},
+         %{top_left_col: tlc,
+           top_left_row: tlr,
+           bottom_right_col: brc,
+           bottom_right_row: brr}) do
+    %{top_left_col: tlc + lcd,
+      top_left_row: tlr + trd,
+      bottom_right_col: brc - rcd,
+      bottom_right_row: brr - brd}
+  end
+
+  defp _maybe_shrink_room_on_map(new, original, %NethackStyle{} = nethack_style) when original == new do
+    %{ nethack_style | room_coords: [ original | nethack_style.room_coords ] }
+  end
+  defp _maybe_shrink_room_on_map(
+         %{top_left_col: ntlc, top_left_row: ntlr, bottom_right_col: nbrc, bottom_right_row: nbrr} = new,
+         %{top_left_col: otlc, top_left_row: otlr, bottom_right_col: obrc, bottom_right_row: obrr} = old,
+         %NethackStyle{} = nethack_style) do
+
+    old_room_coords = for col <- Enum.to_list(otlc..obrc), row <- Enum.to_list(otlr..obrr), do: {row, col}
+
+    if _rand_range(1,3) == 3 || _invalid_rectangle_size?(new) do
+      # 33% chance we just remove the room even if it has valid dimensions
+      nh = _rocks(nethack_style, old_room_coords)
+      IO.puts "Dropping Room, dimensions valid? #{ _invalid_rectangle_size?(new) }"
+      nh
+    else
+      room_coords = for col <- Enum.to_list(ntlc..nbrc), row <- Enum.to_list(ntlr..nbrr), do: {row, col}
+      floor_coords = for col <- Enum.to_list((ntlc + 1)..(nbrc - 1)),
+                         row <- Enum.to_list((ntlr + 1)..(nbrr - 1)),
+                         do: {row, col}
+
+      wall_coords = room_coords -- floor_coords
+      rock_coords = old_room_coords -- room_coords
+
+      _walls(nethack_style, wall_coords)
+      |> _rocks(rock_coords)
+      |> Map.put(:room_coords, [ new | nethack_style.room_coords ])
+    end
+  end
+
+  defp _rocks(%NethackStyle{} = nethack_style, []), do: nethack_style
+  defp _rocks(%NethackStyle{} = nethack_style, [ {row, col} | rock_coords]) do
+    _replace_tile_at(nethack_style, col, row, @rock)
+    |> _rocks(rock_coords)
+  end
+
+  # utility functions
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
 
   defp _tile_at(map, col, row) do
@@ -286,8 +388,20 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     end)
     map_with_room_attempt = _map_with_rectangles(rectangles, nh, nil)
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_room_attempt, cave_width)
-    IO.puts "iterations left: #{iterations}, rectangles left: #{length rectangles}"
+    IO.puts "rectangles left: #{length rectangles}, iterations left: #{iterations}"
     :timer.sleep 250
+
+    nh
+  end
+  defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, coord_list, :check_adjacent) do
+    map_with_check = Enum.reduce(coord_list, map, fn({row, col}, map) ->
+      char = if _tile_at(map, col, row) == @rock, do: ??, else: @debug_bad
+      Map.put map, {row, col}, char
+    end)
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
+    IO.puts "Checking for touching rooms"
+    :timer.sleep 250
+
     nh
   end
   defp _puts_map_debugging(nh, :full), do: nh # temporar
