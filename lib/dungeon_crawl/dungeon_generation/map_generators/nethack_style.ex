@@ -16,6 +16,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   @rock_or_wall      ~c"# "
   @floor_or_corridor ~c".,"
+  @corridor_or_rock  ~c" ,"
 
   @debug_horiz     ?-
   @debug_vert      ?|
@@ -30,6 +31,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
             iterations: 100,
             rectangles: [],
             room_coords: [],
+            connected_rooms: %{},
+            corridors: [],
             debug: false
 
   defmodule Rectangle do
@@ -77,9 +80,14 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nethack_style = _generate(nethack_style)
                     |> _resize_touching_rooms()
+#                    |> _puts_map_debugging()
+                    |> _sort_room_coords()
+                    |> _puts_map_debugging(:sorted)
+                    |> _make_corridors()
                     |> _puts_map_debugging()
 
-    IO.inspect nethack_style.room_coords |> Enum.sort
+#    IO.inspect nethack_style.room_coords
+#    IO.inspect nethack_style.room_coords |> Enum.sort
 
 #    map =
 #    _tunnel_midpoints(rooms_and_tunnels)
@@ -131,11 +139,11 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     bottom_right_col = top_left_col + w
     bottom_right_row = top_left_row + h
 
-    _puts_map_debugging(ns,
-      %{top_left_col: top_left_col,
-        top_left_row: top_left_row,
-        bottom_right_col: bottom_right_col,
-        bottom_right_row: bottom_right_row})
+#    _puts_map_debugging(ns,
+#      %{top_left_col: top_left_col,
+#        top_left_row: top_left_row,
+#        bottom_right_col: bottom_right_col,
+#        bottom_right_row: bottom_right_row})
 
     if(bottom_right_col > rectangle.bottom_right_col ||
        bottom_right_row > rectangle.bottom_right_row) do
@@ -150,7 +158,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   defp _plop_room(%NethackStyle{} = nethack_style, coords) do
     _walls_floors(nethack_style, coords)
-    |> _puts_map_debugging()
+#    |> _puts_map_debugging()
   end
 
   defp _walls_floors(%NethackStyle{} = nethack_style, coords = %{top_left_col: tlc,
@@ -290,7 +298,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
                  |> Enum.reject( fn {row, col} ->
                        row < 0 || col < 0 || row > nh.cave_height - 1 || col > nh.cave_width - 1
                      end)
-    _puts_map_debugging(nh, adj_coords, :check_adjacent)
+#    _puts_map_debugging(nh, adj_coords, :check_adjacent)
 
     if Enum.any?(adj_coords, fn {row, col} ->
                                 tile = _tile_at(map, col, row)
@@ -326,9 +334,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     if _rand_range(1,3) == 3 || _invalid_rectangle_size?(new) do
       # 33% chance we just remove the room even if it has valid dimensions
-      nh = _rocks(nethack_style, old_room_coords)
-      IO.puts "Dropping Room, dimensions valid? #{ _invalid_rectangle_size?(new) }"
-      nh
+      _rocks(nethack_style, old_room_coords)
     else
       room_coords = for col <- Enum.to_list(ntlc..nbrc), row <- Enum.to_list(ntlr..nbrr), do: {row, col}
       floor_coords = for col <- Enum.to_list((ntlc + 1)..(nbrc - 1)),
@@ -350,6 +356,257 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     |> _rocks(rock_coords)
   end
 
+  defp _sort_room_coords(%NethackStyle{room_coords: coords, connected_rooms: cr, cave_width: cw} = nethack_style) do
+    connected_rooms = for(i <- Enum.to_list(0..length(coords)-1), do: {i, i})
+                      |> Enum.into(%{})
+    %{ nethack_style |
+      room_coords: Enum.sort_by(coords, fn a -> {a.top_left_row, a.top_left_col} end),
+      connected_rooms: connected_rooms}
+  end
+
+  # corridors
+  defp _make_corridors(%NethackStyle{room_coords: coords} = nethack_style) when length(coords) < 2,
+       do: nethack_style
+  defp _make_corridors(%NethackStyle{room_coords: coords, connected_rooms: cr} = nethack_style) do
+    # put current door, then if making the corridor is successful, put the target door, otherwise
+    # the corridor will dead end.
+    nethack_style
+    |> _make_corridors_first_pass(Map.size(cr) - 1)
+    |> _make_corridors_second_pass(Map.size(cr) - 2)
+    |> _make_corridors_third_pass()
+    |> _commit_corridors()
+  end
+  defp _make_corridors_first_pass(nethack_style, offset) when offset < 1, do: nethack_style
+  defp _make_corridors_first_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style, offset) do
+    next_offset = if :rand.uniform(50) == 1, do: 0, else: offset - 1
+
+    _join(offset, offset - 1, nethack_style)
+    |> _make_corridors_first_pass(next_offset)
+  end
+  defp _make_corridors_second_pass(nethack_style, offset) when offset < 2, do: nethack_style
+  defp _make_corridors_second_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style, offset) do
+    _join(offset, offset - 2, nethack_style)
+    |> _make_corridors_second_pass(offset - 1)
+  end
+  defp _make_corridors_third_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style) do
+    unconnected_room_pair = \
+    for(a <- 0..(Map.size(cr) - 1), b <- 0..(Map.size(cr) - 1), do: {a, b})
+    |> Enum.find(fn {a, b} ->
+      Map.fetch(cr, a) != Map.fetch(cr, b)
+    end)
+
+    if unconnected_room_pair do
+      {a, b} = unconnected_room_pair
+      _join(a, b, nethack_style)
+    else
+      nethack_style
+    end
+  end
+
+  defp _commit_corridors(%{corridors: corridors, map: map} = nethack_style) do
+    %{nethack_style | map: _commit_corridors(corridors, map)}
+  end
+
+  defp _commit_corridors([], map), do: map
+  defp _commit_corridors([corridor | corridors], map) do
+    map_with_doors = Enum.reduce(
+      [corridor.starting_door_coord,
+        corridor.target_door_coord], map, fn({row, col}, map) ->
+          # todo: add secret doors, and randomize open/closedness of doors
+          Map.put map, {row, col}, ?+
+        end)
+    map_with_halls = Enum.reduce(corridor.coords, map_with_doors, fn({row, col}, map) ->
+      Map.put map, {row, col}, ?.
+    end)
+
+    _commit_corridors(corridors, map_with_halls)
+  end
+
+  defp _join(current_room_index, target_room_index, %{room_coords: coords, connected_rooms: cr} = nh) do
+    if Map.fetch(cr, current_room_index) == Map.fetch(cr,target_room_index) do
+      nh
+    else
+      room_number = Enum.max([Map.fetch(cr, target_room_index), Map.fetch(cr, current_room_index)])
+      connected_rooms = %{ cr | target_room_index => room_number, current_room_index => room_number}
+      _join(connected_rooms, Enum.at(coords, target_room_index), Enum.at(coords, current_room_index), nh)
+    end
+  end
+
+  defp _join(updated_connected_rooms,
+         %{top_left_col: ctlc, top_left_row: ctlr, bottom_right_col: cbrc, bottom_right_row: cbrr},
+         %{top_left_col: ttlc, top_left_row: ttlr, bottom_right_col: tbrc, bottom_right_row: tbrr},
+         %{room_coords: coords, connected_rooms: cr, map: map} = nethack_style) do
+    # It might be better to collect candidate walls, as rooms could be left and up,
+    # and a left and a bottom wall could connect, when the left and right might be too
+    # close but far above and below and not have a good path.
+    corridor_details = \
+    cond do
+      # target room is to the right of current room
+      ttlc > cbrc ->
+        %{drow: 0,
+          dcol: 1,
+          starting_door_coord: _door_coord(map, cbrc, ctlr+1, cbrc, cbrr-1),
+          target_door_coord: _door_coord(map, ttlc, ttlr+1, ttlc, tbrr-1)}
+      # target room is below current room
+      ttlr > cbrr ->
+        %{drow: 1,
+          dcol: 0,
+          starting_door_coord: _door_coord(map, ctlc+1, cbrr, cbrc-1, cbrr),
+          target_door_coord: _door_coord(map, ttlc+1, ttlr, tbrc-1, ttlr)}
+      # target room is to the left of current room
+      tbrc < ctlc ->
+        %{drow: 0,
+          dcol: -1,
+          starting_door_coord: _door_coord(map, ctlc, ctlr+1, ctlc, cbrr-1),
+          target_door_coord: _door_coord(map, tbrc, ttlr+1, tbrc, tbrr-1)}
+      # target must be above current room
+      true ->
+        %{drow: -1,
+          dcol: 0,
+          starting_door_coord: _door_coord(map, ctlc+1, ctlr, cbrc-1, ctlr),
+          target_door_coord: _door_coord(map, ttlc+1, tbrr, tbrc-1, tbrr)}
+    end
+
+    case _start_digging(nethack_style, corridor_details) do
+      {:done, corridor_details} ->
+        %{ nethack_style |
+          connected_rooms: updated_connected_rooms,
+          corridors: [corridor_details | nethack_style.corridors]
+        }
+
+      _ ->
+        nethack_style
+    end
+  end
+
+  defp _door_coord(map, tlc, tlr, brc, brr) do
+    row = _rand_range(tlr, brr)
+    col = _rand_range(tlc, brc)
+
+    if _ok_door(map, row, col) do
+      {row, col}
+    else
+      [&_ok_door/3,
+        fn map, row, col -> Enum.member?(@doors, _tile_at(map, col, row)) end]
+      |> Enum.reduce(nil, fn func,acc ->
+        acc || Enum.find(for(r <- 2..2, c <- 0..0, do: {r,c}), fn {r,c} -> func.(map, c, r) end)
+      end)
+    end
+  end
+
+  defp _ok_door(map, row, col) do
+    _tile_at(map, col, row) == @wall && !_by_door(map, row, col)
+  end
+
+  defp _by_door(map, row, col) do
+    [{1,0}, {-1,0}, {0,1}, {0,-1}]
+    |> Enum.any?(fn {dr, dc} -> Enum.member?(@doors, _tile_at(map, col, row)) end)
+  end
+
+  # A starting and target door will never start on the same square, they will always be at least one
+  # square away at this point. Start the corridor a square away from the starting door. Add that coordinate
+  # to the current corridor coords, calculate the next.
+  defp _start_digging(%NethackStyle{} = nh, corridor_details) do
+    %{drow: dr,
+      dcol: dc,
+      starting_door_coord: {cr, cc},
+      target_door_coord: {tr, tc}
+    } = corridor_details
+
+    corridor_details = \
+      Map.merge(corridor_details, %{current_coord: {cr+dr, cc+dc}, target_coord: {tr-dr, tc-dc}, coords: []})
+    _dig_corridor(nh, corridor_details, 500)
+  end
+
+  defp _dig_corridor(_nh, corridor_details, 0), do: {:failed, corridor_details}
+  defp _dig_corridor(_nh, %{current_coord: current, target_coord: target} = corridor_details, _cnt)
+       when current == target do
+    {:done, %{ corridor_details | coords: Enum.uniq([target | corridor_details.coords])}}
+  end
+
+  defp _dig_corridor(
+         %{cave_height: height, cave_width: width, map: map} = nh,
+         %{drow: dr, dcol: dc, current_coord: {cr, cc}, target_coord: {tr, tc}} = corridor_details,
+         cnt) do
+
+    cond do
+      cr < 0 || cc < 0 || tr < 0 || tc < 0 ||
+        cr > height - 1 || cc > width - 1 || tr > height - 1 || tc > width - 1 ->
+           {:failed, corridor_details}
+
+      _tile_at(map, cc, cr) == @rock ->
+        # if rock, can corridor here
+        corridor_details = %{ corridor_details | coords: [{cr, cc} | corridor_details.coords] }
+                           |> _next_delta_and_coord(nh)
+
+        _puts_map_debugging(nh, corridor_details,  :corridor_planning)
+
+        _dig_corridor(nh, corridor_details, cnt - 1)
+
+      true ->
+        {:failed, corridor_details}
+    end
+  end
+
+  defp _next_delta_and_coord(
+         %{drow: dr, dcol: dc, current_coord: {cr, cc}, target_coord: {tr, tc}} = corridor_details,
+         %{map: map} = nh
+       ) do
+    row_index = abs(tr - cr)
+    col_index = abs(tc - cc)
+
+    # The further in one vector the target is, the less likely the short vector will
+    # be chosen as the prefereable direction, but theres still a chance
+    {row_index, col_index} = \
+    cond do
+      row_index > col_index && :rand.uniform(row_index - col_index + 1) == 1 ->
+        {0, col_index}
+      col_index > row_index && :rand.uniform(col_index - row_index + 1) == 1 ->
+        {row_index, 0}
+      true ->
+        {row_index, col_index}
+    end
+
+    {drow, dcol} = \
+    cond do
+      # shall direction be changed?
+      dr && col_index > row_index ->
+        ddc = if cc > tc, do: -1, else: 1
+        if _ok_corridor_coord(map, cc + ddc, cr, corridor_details),
+           do: {0, ddc},
+           else: {dr, dc}
+      dc && row_index > col_index ->
+        ddr = if cr > tr, do: -1, else: 1
+        if _ok_corridor_coord(map, cc, cr + ddr, corridor_details),
+           do: {ddr, 0},
+           else: {dr, dc}
+
+      # can continue in current direction?
+      _ok_corridor_coord(map, cc + dc, cr + dr, corridor_details) ->
+        IO.puts "continuing in current direction"
+        {dr, dc}
+
+      # try to change direction anyway as current direction is blocked
+      true ->
+        IO.puts "try to change directoin anyway, we blocked"
+        {dr, dc} = cond do
+          dr -> if cc > tc, do: {0, -1}, else: {0, 1}
+          true -> if cr > tr, do: {-1, 0}, else: {1, 0}
+        end
+        if _ok_corridor_coord(map, cc + dc, cr + dr, corridor_details),
+           do: {dr, dc},
+           else: {-dr, -dc}
+    end
+
+    %{ corridor_details | drow: drow, dcol: dcol, current_coord: {cr + drow, cc + dcol}}
+  end
+
+  defp _ok_corridor_coord(map, col, row, %{coords: coords}) do
+    Enum.member?(@corridor_or_rock, _tile_at(map, col, row)) &&
+      (!Enum.member?(coords, {row, col}) || :rand.uniform(10) == 1)
+  end
+
+
   # utility functions
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
 
@@ -367,7 +624,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   # coveralls-ignore-start
   defp _puts_map_debugging(%{debug: false} = nethack_style), do: nethack_style
   defp _puts_map_debugging(%{map: map, cave_width: cave_width, rectangles: rectangles} = nh) do
-    map_with_rectangles = _map_with_rectangles(rectangles, nh, nil)
+    map_with_rectangles = _map_with_rectangles(rectangles, nh, [@rock])
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_rectangles, cave_width)
     IO.puts "rectangles left: #{length(rectangles)}"
     :timer.sleep 250
@@ -379,17 +636,23 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
            top_left_row: tlr,
            bottom_right_col: brc,
            bottom_right_row: brr}) do
-
     floor_coords = for col <- Enum.to_list(tlc..brc), row <- Enum.to_list(tlr..brr), do: {row, col}
-
-    map_with_room_attempt = Enum.reduce(floor_coords, map, fn({row, col}, map) ->
+    map_with_room_attempt = _map_with_rectangles(rectangles, nh, [@rock])
+    map_with_room_attempt = Enum.reduce(floor_coords, map_with_room_attempt, fn({row, col}, map) ->
       char = if _tile_at(map, col, row) == @rock, do: @debug_ok, else: @debug_bad
       Map.put map, {row, col}, char
     end)
-    map_with_room_attempt = _map_with_rectangles(rectangles, nh, nil)
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_room_attempt, cave_width)
     IO.puts "rectangles left: #{length rectangles}, iterations left: #{iterations}"
     :timer.sleep 250
+
+    nh
+  end
+  defp _puts_map_debugging(%{map: map, cave_width: cave_width, room_coords: room_coords} = nh, :sorted) do
+    map_with_numbered_rooms = _map_with_rectangles(room_coords, nh, [@rock, @floor])
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_numbered_rooms, cave_width)
+    IO.puts "Numbered rooms: #{ length room_coords }"
+    :timer.sleep 500
 
     nh
   end
@@ -404,26 +667,47 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nh
   end
+  defp _puts_map_debugging(%{map: map, cave_width: cw} = nh, corridor_details, :corridor_planning) do
+    map_with_doors = Enum.reduce(
+      [corridor_details.starting_door_coord,
+        corridor_details.target_door_coord], map, fn({row, col}, map) ->
+      Map.put map, {row, col}, ?+
+    end)
+    map_with_halls = Enum.reduce(corridor_details.coords, map_with_doors, fn({row, col}, map) ->
+      Map.put map, {row, col}, ?,
+    end)
+    dir_char = cond do
+        corridor_details.drow > 0 -> ?v
+        corridor_details.drow < 0 -> ?^
+        corridor_details.dcol > 0 -> ?>
+        corridor_details.dcol < 0 -> ?<
+        true -> ?X
+      end
+    map_with_direction = Map.put(map_with_halls, corridor_details.current_coord, dir_char)
+
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_direction, cw)
+    IO.puts "Corridor"
+    :timer.sleep 100
+
+    nh
+  end
   defp _puts_map_debugging(nh, :full), do: nh # temporar
   defp _puts_map_debugging(_, _), do: nil # ignore the puts debug statement
 
-  defp _map_with_rectangles(rectangles, %NethackStyle{map: map}, conflict_char \\ @debug_bad) do
+  defp _map_with_rectangles(rectangles, %NethackStyle{map: map}, numberable \\ [@rock]) do
     rectangles
     |> Enum.with_index(fn %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}, i ->
       for col <- Enum.to_list(tlc..brc), row <- Enum.to_list(tlr..brr), do: {row, col, 48 + Integer.mod(i, 10)}
     end)
     |> Enum.reduce(map, fn floor_coords, map_acc ->
       Enum.reduce(floor_coords, map_acc, fn({row, col, char}, map_acc) ->
-        char = _map_with_rectangles_char(_tile_at(map_acc, col, row), char, conflict_char)
+        char = _map_with_rectangles_char(_tile_at(map_acc, col, row), char, numberable)
         Map.put map_acc, {row, col}, char
       end)
     end)
   end
-  defp _map_with_rectangles_char(tile, char, nil) do
-    if tile == @rock, do: char, else: tile
-  end
-  defp _map_with_rectangles_char(tile, char, conflict_char) do
-    if tile == @rock, do: char, else: conflict_char
+  defp _map_with_rectangles_char(tile, char, numberable) do
+    if Enum.member?(numberable, tile), do: char, else: tile
   end
   # coveralls-ignore-stop
 end
