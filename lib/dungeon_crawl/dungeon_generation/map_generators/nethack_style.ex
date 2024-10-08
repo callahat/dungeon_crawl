@@ -7,19 +7,17 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   @cave_height     40
   @cave_width      80
 
-  @doors           ~c"+'"
+  @doors           ~c"+'s"
+  @random_door     ~c"+'"
+  @secret_door     ?s
   @wall            ?#
   @corridor_floor  ?,
   @floor           ?.
   @rock            ?\s
   @stairs_up       ?▟
 
-  @rock_or_wall      ~c"# "
-  @floor_or_corridor ~c".,"
   @corridor_or_rock  ~c" ,"
 
-  @debug_horiz     ?-
-  @debug_vert      ?|
   @debug_ok        ??
   @debug_bad       ?x
 
@@ -32,7 +30,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
             rectangles: [],
             room_coords: [],
             connected_rooms: %{},
-            corridors: [],
             debug: false
 
   defmodule Rectangle do
@@ -80,11 +77,11 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nethack_style = _generate(nethack_style)
                     |> _resize_touching_rooms()
-#                    |> _puts_map_debugging()
+                    |> _puts_map_debugging()
                     |> _sort_room_coords()
                     |> _puts_map_debugging(:sorted)
                     |> _make_corridors()
-                    |> _puts_map_debugging()
+                    |> _corridors_to_floors()
 
 #    IO.inspect nethack_style.room_coords
 #    IO.inspect nethack_style.room_coords |> Enum.sort
@@ -139,11 +136,11 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     bottom_right_col = top_left_col + w
     bottom_right_row = top_left_row + h
 
-#    _puts_map_debugging(ns,
-#      %{top_left_col: top_left_col,
-#        top_left_row: top_left_row,
-#        bottom_right_col: bottom_right_col,
-#        bottom_right_row: bottom_right_row})
+    _puts_map_debugging(ns,
+      %{top_left_col: top_left_col,
+        top_left_row: top_left_row,
+        bottom_right_col: bottom_right_col,
+        bottom_right_row: bottom_right_row})
 
     if(bottom_right_col > rectangle.bottom_right_col ||
        bottom_right_row > rectangle.bottom_right_row) do
@@ -158,7 +155,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   defp _plop_room(%NethackStyle{} = nethack_style, coords) do
     _walls_floors(nethack_style, coords)
-#    |> _puts_map_debugging()
+    |> _puts_map_debugging()
   end
 
   defp _walls_floors(%NethackStyle{} = nethack_style, coords = %{top_left_col: tlc,
@@ -298,7 +295,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
                  |> Enum.reject( fn {row, col} ->
                        row < 0 || col < 0 || row > nh.cave_height - 1 || col > nh.cave_width - 1
                      end)
-#    _puts_map_debugging(nh, adj_coords, :check_adjacent)
+    _puts_map_debugging(nh, adj_coords, :check_adjacent)
 
     if Enum.any?(adj_coords, fn {row, col} ->
                                 tile = _tile_at(map, col, row)
@@ -374,7 +371,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     |> _make_corridors_first_pass(Map.size(cr) - 1)
     |> _make_corridors_second_pass(Map.size(cr) - 2)
     |> _make_corridors_third_pass()
-    |> _commit_corridors()
   end
   defp _make_corridors_first_pass(nethack_style, offset) when offset < 1, do: nethack_style
   defp _make_corridors_first_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style, offset) do
@@ -403,23 +399,16 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     end
   end
 
-  defp _commit_corridors(%{corridors: corridors, map: map} = nethack_style) do
-    %{nethack_style | map: _commit_corridors(corridors, map)}
-  end
-
-  defp _commit_corridors([], map), do: map
-  defp _commit_corridors([corridor | corridors], map) do
+  defp _commit_corridor(corridor, map) do
+    door_type = if :rand.uniform(5) == 1, do: [@secret_door], else: @random_door
     map_with_doors = Enum.reduce(
       [corridor.starting_door_coord,
         corridor.target_door_coord], map, fn({row, col}, map) ->
-          # todo: add secret doors, and randomize open/closedness of doors
-          Map.put map, {row, col}, ?+
-        end)
-    map_with_halls = Enum.reduce(corridor.coords, map_with_doors, fn({row, col}, map) ->
-      Map.put map, {row, col}, ?.
+        Map.put map, {row, col}, Enum.random(door_type)
+      end)
+    Enum.reduce(corridor.coords, map_with_doors, fn({row, col}, map) ->
+      Map.put map, {row, col}, ?,
     end)
-
-    _commit_corridors(corridors, map_with_halls)
   end
 
   defp _join(current_room_index, target_room_index, %{room_coords: coords, connected_rooms: cr} = nh) do
@@ -469,10 +458,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     case _start_digging(nethack_style, corridor_details) do
       {:done, corridor_details} ->
-        %{ nethack_style |
-          connected_rooms: updated_connected_rooms,
-          corridors: [corridor_details | nethack_style.corridors]
-        }
+        %{ nethack_style | map: _commit_corridor(corridor_details, map) }
 
       _ ->
         nethack_style
@@ -489,7 +475,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
       [&_ok_door/3,
         fn map, row, col -> Enum.member?(@doors, _tile_at(map, col, row)) end]
       |> Enum.reduce(nil, fn func,acc ->
-        acc || Enum.find(for(r <- 2..2, c <- 0..0, do: {r,c}), fn {r,c} -> func.(map, c, r) end)
+        acc || Enum.find(for(r <- tlr..brr, c <- tlc..brc, do: {r,c}), fn {r,c} -> func.(map, c, r) end)
       end)
     end
   end
@@ -500,12 +486,14 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   defp _by_door(map, row, col) do
     [{1,0}, {-1,0}, {0,1}, {0,-1}]
-    |> Enum.any?(fn {dr, dc} -> Enum.member?(@doors, _tile_at(map, col, row)) end)
+    |> Enum.any?(fn {dr, dc} -> Enum.member?(@doors, _tile_at(map, col + dc, row + dr)) end)
   end
 
   # A starting and target door will never start on the same square, they will always be at least one
   # square away at this point. Start the corridor a square away from the starting door. Add that coordinate
   # to the current corridor coords, calculate the next.
+  defp _start_digging(_, %{starting_door_coord: s, target_door_coord: t} = corridor_details)
+       when is_nil(s) or is_nil(t), do: {:failed, corridor_details}
   defp _start_digging(%NethackStyle{} = nh, corridor_details) do
     %{drow: dr,
       dcol: dc,
@@ -534,8 +522,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
         cr > height - 1 || cc > width - 1 || tr > height - 1 || tc > width - 1 ->
            {:failed, corridor_details}
 
-      _tile_at(map, cc, cr) == @rock ->
-        # if rock, can corridor here
+       Enum.member?(@corridor_or_rock, _tile_at(map, cc, cr)) ->
+        # if rock or existing corridor, can corridor here
         corridor_details = %{ corridor_details | coords: [{cr, cc} | corridor_details.coords] }
                            |> _next_delta_and_coord(nh)
 
@@ -583,12 +571,10 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
       # can continue in current direction?
       _ok_corridor_coord(map, cc + dc, cr + dr, corridor_details) ->
-        IO.puts "continuing in current direction"
         {dr, dc}
 
       # try to change direction anyway as current direction is blocked
       true ->
-        IO.puts "try to change directoin anyway, we blocked"
         {dr, dc} = cond do
           dr -> if cc > tc, do: {0, -1}, else: {0, 1}
           true -> if cr > tr, do: {-1, 0}, else: {1, 0}
@@ -606,6 +592,18 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
       (!Enum.member?(coords, {row, col}) || :rand.uniform(10) == 1)
   end
 
+  defp _corridors_to_floors(%NethackStyle{map: map} = nethack_style) do
+    map =
+      Map.keys(map)
+      |> Enum.reduce(map, fn({row, col}, map) ->
+        if map[{row, col}] == @corridor_floor,
+           do: _replace_tile_at(map, col, row, @floor),
+           else: map
+      end)
+
+    %{ nethack_style | map: map }
+    |> _puts_map_debugging()
+  end
 
   # utility functions
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
