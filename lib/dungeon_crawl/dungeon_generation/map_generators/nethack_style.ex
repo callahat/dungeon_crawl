@@ -9,6 +9,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   @doors           ~c"+'s"
   @random_door     ~c"+'"
+  @closed_door     ?+
   @secret_door     ?s
   @wall            ?#
   @corridor_floor  ?,
@@ -82,6 +83,11 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
                     |> _puts_map_debugging(:sorted)
                     |> _make_corridors()
                     |> _corridors_to_floors()
+                    |> _add_closets()
+#                    |> _mineralize()
+#                    |> _puts_staircases()
+#                    |> _add_entities()
+                    |> _puts_map_debugging()
 
 #    IO.inspect nethack_style.room_coords
 #    IO.inspect nethack_style.room_coords |> Enum.sort
@@ -605,6 +611,51 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     |> _puts_map_debugging()
   end
 
+  defp _add_closets(%NethackStyle{room_coords: coords} = nethack_style) do
+    closets = _rand_range(0, trunc(length(coords) / 2) + 1)
+
+    _add_closets(nethack_style, closets)
+  end
+
+  defp _add_closets(%NethackStyle{} = nethack_style, 0), do: nethack_style
+  defp _add_closets(%NethackStyle{room_coords: coords} = nethack_style, count) do
+    %{top_left_col: tlc,
+      top_left_row: tlr,
+      bottom_right_col: brc,
+      bottom_right_row: brr} = Enum.random(coords)
+
+    wall_coords = for(r <- tlr..brr, do: [{0, -1, r, tlc}, {0, 1, r, brc}]) ++
+                  for(c <- tlc..brc, do: [{-1, 0, tlr, c}, {1, 0, brr, c}])
+                  |> Enum.flat_map(&(&1))
+                  |> Enum.shuffle()
+                  |> Enum.take(8)
+    |> dbg
+
+    # try to add a closet up to  times
+    _add_closet(wall_coords, nethack_style)
+  end
+
+  defp _add_closet([], %NethackStyle{} = nethack_style), do: nethack_style
+  defp _add_closet([{drow, dcol, row, col} | wall_coords], %NethackStyle{map: map} = nethack_style) do
+    _puts_map_debugging(nethack_style, {row, col}, {row + drow, col + dcol}, :check_closet)
+    if _ok_door(map, row, col) && _ok_closet(map, row + drow, col + dcol) do
+      map = _replace_tile_at(map, col, row, @closed_door)
+            |> _replace_tile_at(col + dcol, row + drow, @floor)
+      %{ nethack_style | map: map }
+    else
+      _add_closet(wall_coords, nethack_style)
+    end
+  end
+
+  defp _ok_closet(map, row, col) do
+    _tile_at(map, col, row) == @rock &&
+    [_tile_at(map, col - 1, row),
+     _tile_at(map, col + 1, row),
+     _tile_at(map, col, row - 1),
+     _tile_at(map, col, row + 1)]
+    |> Enum.all?(fn i -> i == @rock || i == @wall end)
+  end
+
   # utility functions
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
 
@@ -661,6 +712,15 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     end)
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
     IO.puts "Checking for touching rooms"
+    :timer.sleep 250
+
+    nh
+  end
+  defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, {dr, dc}, {cr, cc}, :check_closet) do
+    map_with_check = Map.put(map, {dr, dc}, ??)
+                     |> Map.put({cr, cc}, ??)
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
+    IO.puts "Checking closet placement"
     :timer.sleep 250
 
     nh
