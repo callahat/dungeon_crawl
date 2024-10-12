@@ -76,35 +76,24 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
                                   rectangles: [rectangle],
                                   debug: debug}
 
-    nethack_style = _generate(nethack_style)
-                    |> _resize_touching_rooms()
-                    |> _puts_map_debugging()
-                    |> _sort_room_coords()
-                    |> _puts_map_debugging(:sorted)
-                    |> _make_corridors()
-                    |> _corridors_to_floors()
-                    |> _add_closets()
-#                    |> _mineralize()
-                    |> _stairs_up()
-                    |> _add_entities()
-                    |> _puts_map_debugging()
+    map =
+    _generate(nethack_style)
+    |> _resize_touching_rooms()
+    |> _puts_map_debugging()
+    |> _sort_room_coords()
+    |> _puts_map_debugging(:sorted)
+    |> _make_corridors()
+    |> _corridors_to_floors()
+    |> _add_closets()
+    |> _stairs_up()
+    |> _add_entities()
+    |> _mineralize()
+    |> _puts_map_debugging()
+    |> Map.fetch!(:map)
 
-#    IO.inspect nethack_style.room_coords
-#    IO.inspect nethack_style.room_coords |> Enum.sort
-
-#    map =
-#    _tunnel_midpoints(rooms_and_tunnels)
-#    |> _place_rooms()
-#    |> _annex_adjacent_corridors()
-#    |> _wallify()
-#    |> _place_doors()
-#    |> _stairs_up()
-#    |> _convert_corridor_floors()
-#    |> Map.fetch!(:map)
-#
-#    # for console debugging purposes only
-#    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map, cave_width)
-    nethack_style.map
+    # for console debugging purposes only
+    if debug, do: IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map, cave_width)
+    map
   end
 
   defp _generate(%NethackStyle{iterations: 0} = nethack_style), do: nethack_style
@@ -780,6 +769,43 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     end
   end
 
+  # mineralize
+
+  defp _mineralize(%NethackStyle{solo_level: nil} = nethack_style) do
+    nethack_style
+  end
+  defp _mineralize(%NethackStyle{solo_level: solo_level,
+    cave_height: cave_height,
+    cave_width: cave_width} = nethack_style) do
+    max_minerals = Enum.min [solo_level * 2, round(cave_height * cave_width * 0.20)]
+    min_minerals = Enum.min [trunc(solo_level / 2), max_minerals]
+    mineral_count = _rand_range(min_minerals, max_minerals)
+
+    _mineralize(nethack_style, mineral_count)
+  end
+  defp _mineralize(%NethackStyle{} = nethack_style, 0), do: nethack_style
+  defp _mineralize(%NethackStyle{
+      map: map,
+      cave_height: cave_height,
+      cave_width: cave_width} = nethack_style, count) do
+    col = _rand_range(1, cave_width - 2)
+    row = _rand_range(1, cave_height - 2)
+
+    _puts_map_debugging(nethack_style, row, col, :mineralize)
+
+    if _valid_mineral_location(map, row, col) do # make sure to put the entity on an empty space
+      _replace_tile_at(nethack_style, col, row, Enum.random(Entities.minerals()))
+      |> _mineralize(count - 1)
+    else
+      _mineralize(nethack_style, count - 1)
+    end
+  end
+
+  defp _valid_mineral_location(map, row, col) do
+    for(dr <- -1..1, dc <- -1..1, do: {row + dr, col + dc})
+    |> Enum.all?(fn {r, c} -> _tile_at(map, c, r) == @rock end)
+  end
+
   # utility functions
   defp _rand_range(min, max), do: :rand.uniform(max - min + 1) + min - 1
 
@@ -873,7 +899,19 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nh
   end
-  defp _puts_map_debugging(nh, :full), do: nh # temporar
+  defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, row, col, :mineralize) do
+    coords = for(dr <- -1..1, dc <- -1..1, do: {row + dr, col + dc})
+    map_with_check = Enum.reduce(coords, map, fn({row, col}, map) ->
+      char = if _tile_at(map, col, row) == @rock, do: ??, else: @debug_bad
+      Map.put map, {row, col}, char
+    end)
+
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
+    IO.puts "Checking mineral placement"
+    :timer.sleep 250
+
+    nh
+  end
   defp _puts_map_debugging(_, _), do: nil # ignore the puts debug statement
 
   defp _map_with_rectangles(rectangles, %NethackStyle{map: map}, numberable \\ [@rock]) do
