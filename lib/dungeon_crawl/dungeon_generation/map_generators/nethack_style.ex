@@ -85,8 +85,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
                     |> _corridors_to_floors()
                     |> _add_closets()
 #                    |> _mineralize()
-#                    |> _puts_staircases()
-#                    |> _add_entities()
+                    |> _stairs_up()
+                    |> _add_entities()
                     |> _puts_map_debugging()
 
 #    IO.inspect nethack_style.room_coords
@@ -421,7 +421,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     if Map.fetch(cr, current_room_index) == Map.fetch(cr,target_room_index) do
       nh
     else
-      room_number = Enum.max([Map.fetch(cr, target_room_index), Map.fetch(cr, current_room_index)])
+      room_number = Enum.min([Map.get(cr, target_room_index), Map.get(cr, current_room_index)])
+
       connected_rooms = %{ cr | target_room_index => room_number, current_room_index => room_number}
       _join(connected_rooms, Enum.at(coords, target_room_index), Enum.at(coords, current_room_index), nh)
     end
@@ -464,7 +465,9 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     case _start_digging(nethack_style, corridor_details) do
       {:done, corridor_details} ->
-        %{ nethack_style | map: _commit_corridor(corridor_details, map) }
+        %{ nethack_style |
+          map: _commit_corridor(corridor_details, map),
+          connected_rooms: updated_connected_rooms }
 
       _ ->
         nethack_style
@@ -624,15 +627,15 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
       bottom_right_col: brc,
       bottom_right_row: brr} = Enum.random(coords)
 
-    wall_coords = for(r <- tlr..brr, do: [{0, -1, r, tlc}, {0, 1, r, brc}]) ++
-                  for(c <- tlc..brc, do: [{-1, 0, tlr, c}, {1, 0, brr, c}])
+    wall_coords = for(r <- (tlr + 1)..(brr - 1), do: [{0, -1, r, tlc}, {0, 1, r, brc}]) ++
+                  for(c <- (tlc + 1)..(brc - 1), do: [{-1, 0, tlr, c}, {1, 0, brr, c}])
                   |> Enum.flat_map(&(&1))
                   |> Enum.shuffle()
                   |> Enum.take(8)
-    |> dbg
 
     # try to add a closet up to  times
     _add_closet(wall_coords, nethack_style)
+    |> _add_closets(count - 1)
   end
 
   defp _add_closet([], %NethackStyle{} = nethack_style), do: nethack_style
@@ -654,6 +657,127 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
      _tile_at(map, col, row - 1),
      _tile_at(map, col, row + 1)]
     |> Enum.all?(fn i -> i == @rock || i == @wall end)
+  end
+
+  # stairs
+  defp _stairs_up(%NethackStyle{solo_level: nil} = nethack_style), do: nethack_style
+  defp _stairs_up(%NethackStyle{
+      connected_rooms: connected_rooms,
+      room_coords: room_coords} = nethack_style) do
+    room_groups = \
+    connected_rooms
+    |> Enum.reduce(%{},
+       fn {room_index, connected_to}, acc ->
+         room_coord = Enum.at(room_coords, room_index)
+         Map.put(acc, connected_to, [ room_coord | Map.get(acc, connected_to, []) ])
+       end)
+    |> Enum.map(fn {_room_index, rooms} -> rooms end)
+
+    _stairs_up(nethack_style, room_groups)
+  end
+
+  defp _stairs_up(%NethackStyle{map: map} = nethack_style, []), do: nethack_style
+  defp _stairs_up(%NethackStyle{map: map} = nethack_style, [room_group | room_groups]) do
+    %{top_left_col: tlc,
+      top_left_row: tlr,
+      bottom_right_col: brc,
+      bottom_right_row: brr} = Enum.random(room_group)
+
+    row = _rand_range(tlr+1, brr-1)
+    col = _rand_range(tlc+1, brc-1)
+
+    if _valid_stair_placement(map, row, col) do
+      _replace_tile_at(nethack_style, col, row, @stairs_up)
+      |> _stairs_up(room_groups)
+    else
+      _stairs_up(nethack_style, [room_group | room_groups])
+    end
+  end
+
+  defp _valid_stair_placement(map, row, col) do
+    map[{row, col}] == @floor && _valid_stair_neighbors(map, row, col)
+  end
+
+  defp _valid_stair_neighbors(map, row, col) do
+    adjacent_doors =
+      [ map[{row+1, col}],
+        map[{row-1, col}],
+        map[{row, col+1}],
+        map[{row, col-1}] ]
+      |> Enum.filter(fn char -> Enum.member?(@doors, char) end)
+
+    adjacent_doors == []
+  end
+
+  # entities
+
+  defp _add_entities(%NethackStyle{solo_level: nil} = nethack_style) do
+    nethack_style
+  end
+  defp _add_entities(%NethackStyle{solo_level: solo_level,
+    cave_height: cave_height,
+    cave_width: cave_width} = nethack_style) do
+    max_entities = Enum.min [solo_level * 3, round(cave_height * cave_width * 0.15)]
+    min_entities = Enum.min [solo_level + 5, max_entities]
+    entities = Entities.randomize(_rand_range(min_entities, max_entities))
+
+    nethack_style
+    |> _maybe_fill_vaults()
+    |> _add_entities(entities)
+  end
+  defp _add_entities(%NethackStyle{} = nethack_style, []), do: nethack_style
+  defp _add_entities(%NethackStyle{map: map,
+    cave_height: cave_height,
+    cave_width: cave_width} = nethack_style,
+         [entity | entities]) do
+    col = _rand_range(2, cave_width - 3)
+    row = _rand_range(2, cave_height - 3)
+
+    if map[{row, col}] == ?. do # make sure to put the entity on an empty space
+      _replace_tile_at(nethack_style, col, row, entity)
+      |> _add_entities(entities)
+    else
+      _add_entities(nethack_style, entities)
+    end
+  end
+
+  defp _maybe_fill_vaults(%NethackStyle{connected_rooms: connected_rooms, room_coords: rooms} = nethack_style)
+    when map_size(connected_rooms) > 1 do
+    lone_rooms =
+      connected_rooms
+      |> Enum.reduce(%{},
+           fn {_, connected_to}, acc ->
+             Map.put(acc, connected_to, Map.get(acc, connected_to, 0) + 1)
+           end)
+      |> Enum.reject(fn {_, connections} -> connections > 1 end) # it only connects to itself
+
+    # 10% chance if we have a room that did not connect to anything else, and we had other
+    # rooms, that its getting filled with loot
+    if length(lone_rooms) > 0 && :rand.uniform(10) == 1 do
+      {index, _} = Enum.random(lone_rooms)
+
+      room = Enum.at(rooms, index)
+
+      _treasure_room(nethack_style, room)
+    else
+      nethack_style
+    end
+  end
+  defp _maybe_fill_vaults(%NethackStyle{} = nethack_style), do: nethack_style
+
+  defp _treasure_room(%NethackStyle{} = nethack_style,
+        %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}) do
+    coords = for col <- Enum.to_list(tlc..brc), row <- Enum.to_list(tlr..brr), do: {row, col}
+    _fill_room(nethack_style, coords, Entities.treasures)
+  end
+
+  defp _fill_room(%NethackStyle{} = nethack_style, [], _entities), do: nethack_style
+  defp _fill_room(%NethackStyle{map: map} = nethack_style, [{row, col} | coords], entities) do
+    if _tile_at(map, col, row) == @floor do
+      _fill_room(_replace_tile_at(nethack_style, col, row, Enum.random(entities)), coords, entities)
+    else
+      _fill_room(nethack_style, coords, entities)
+    end
   end
 
   # utility functions
