@@ -405,6 +405,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
             |> Render.rerender_tiles_for_admin()
             |> Sound.broadcast_sound_effects()
             |> Map.put(:rerender_coords, %{})
+            |> Map.put(:shifted_ids, %{})
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
