@@ -7,7 +7,8 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
   alias DungeonCrawl.TileShortlists
   alias DungeonCrawl.TileTemplates
   alias DungeonCrawl.TileTemplates.TileTemplate
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{ConnectedRooms, Empty, Labrynth, DrunkardsWalk, RoomsAndTunnelsBsp,
+    NethackStyle}
   alias DungeonCrawl.StateValue.Parser
 
   plug :authenticate_user
@@ -19,7 +20,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
   plug :set_sidebar_col when action in [:edit, :update]
 
   @level_generator Application.compile_env(:dungeon_crawl, :generator) || ConnectedRooms
-  @selectable_generators ["Rooms", "Rooms and Tunnels", "Labrynth", "Drunkards Walk", "Empty Map"]
+  @selectable_generators ["Rooms", "Rooms and Tunnels", "Labrynth", "Drunkards Walk", "Nethack Style", "Empty Map"]
 
   def new(conn, _params) do
     changeset = Dungeons.change_level(%Level{}, %{height: conn.assigns.dungeon.default_map_height, width: conn.assigns.dungeon.default_map_width})
@@ -33,6 +34,7 @@ defmodule DungeonCrawlWeb.Editor.LevelController do
                   "Rooms and Tunnels" -> RoomsAndTunnelsBsp
                   "Labrynth"          -> Labrynth
                   "Drunkards Walk"    -> DrunkardsWalk
+                  "Nethack Style"     -> NethackStyle
                   _                   -> Empty
                 end
     dungeon = conn.assigns.dungeon

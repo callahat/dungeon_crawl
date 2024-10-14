@@ -76,6 +76,7 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder do
 
     # passageways
     passage()
+    secret_door()
     stairs_up()
     stairs_down()
     teleporters()
