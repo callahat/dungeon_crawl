@@ -99,12 +99,12 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   defp _generate(%NethackStyle{iterations: 0} = nethack_style), do: nethack_style
   defp _generate(%NethackStyle{rectangles: []} = nethack_style), do: nethack_style
   defp _generate(%NethackStyle{rectangles: rectangles, iterations: i} = nethack_style) do
-    {[rectangle], rectangles} = rectangles |> Enum.shuffle |> Enum.split(1)
+    rectangle = Enum.random(rectangles)
 
     _generate(%{nethack_style | iterations: i - 1}, rectangle, 20)
   end
 
-  defp _generate(%NethackStyle{} = nethack_style, rectangle, 0), do: nethack_style
+  defp _generate(%NethackStyle{} = nethack_style, _rectangle, 0), do: nethack_style
   defp _generate(%NethackStyle{} = nethack_style, rectangle, tries) do
     case _try_generating_room_coordinates(nethack_style, rectangle) do
       {:good_room, coords} ->
@@ -117,7 +117,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     end
   end
 
-  def _try_generating_room_coordinates(%NethackStyle{map: map} = ns, rectangle) do
+  def _try_generating_room_coordinates(%NethackStyle{} = ns, rectangle) do
     max_width = Enum.min([@room_max_width, rectangle.bottom_right_col - rectangle.top_left_col])
     max_height = Enum.min([@room_max_height, rectangle.bottom_right_row - rectangle.top_left_row])
 
@@ -153,7 +153,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     |> _puts_map_debugging()
   end
 
-  defp _walls_floors(%NethackStyle{} = nethack_style, coords = %{top_left_col: tlc,
+  defp _walls_floors(%NethackStyle{} = nethack_style, %{top_left_col: tlc,
     top_left_row: tlr,
     bottom_right_col: brc,
     bottom_right_row: brr}) do
@@ -252,14 +252,12 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     height < @room_min_height || width < @room_min_width
   end
 
-  defp _resize_touching_rooms(%NethackStyle{map: map, room_coords: room_coords} = nh) do
+  defp _resize_touching_rooms(%NethackStyle{room_coords: room_coords} = nh) do
     _resize_touching_rooms(%{ nh | room_coords: [] }, room_coords)
     |> _puts_map_debugging()
   end
   defp _resize_touching_rooms(nethack_style, []), do: nethack_style
-  defp _resize_touching_rooms(
-         %NethackStyle{map: map, cave_height: h, cave_width: w} = nethack_style,
-         [room_coord | room_coords]) do
+  defp _resize_touching_rooms(%NethackStyle{} = nethack_style, [room_coord | room_coords]) do
     %{top_left_col: tlc,
       top_left_row: tlr,
       bottom_right_col: brc,
@@ -270,7 +268,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     dbrc = brc + 1
     dbrr = brr + 1
 
-    new_room_coord = \
     [
       { {1,0,0,0}, dtlc..dbrc, dtlr..dtlr }, # top row
       { {0,1,0,0}, dtlc..dbrc, dbrr..dbrr }, # bottom row
@@ -280,7 +277,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     |> _check_adjacent(room_coord, nethack_style)
     |> _maybe_shrink_room_on_map(room_coord, nethack_style)
     |> _resize_touching_rooms(room_coords)
-
   end
   defp _check_adjacent([], room_coord, _nethack_style), do: room_coord
   defp _check_adjacent([{ scalar, col_range, row_range} | adjacent], room_coord, %{map: map} = nh) do
@@ -319,7 +315,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   end
   defp _maybe_shrink_room_on_map(
          %{top_left_col: ntlc, top_left_row: ntlr, bottom_right_col: nbrc, bottom_right_row: nbrr} = new,
-         %{top_left_col: otlc, top_left_row: otlr, bottom_right_col: obrc, bottom_right_row: obrr} = old,
+         %{top_left_col: otlc, top_left_row: otlr, bottom_right_col: obrc, bottom_right_row: obrr} = _old,
          %NethackStyle{} = nethack_style) do
 
     old_room_coords = for col <- Enum.to_list(otlc..obrc), row <- Enum.to_list(otlr..obrr), do: {row, col}
@@ -348,7 +344,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     |> _rocks(rock_coords)
   end
 
-  defp _sort_room_coords(%NethackStyle{room_coords: coords, connected_rooms: cr, cave_width: cw} = nethack_style) do
+  defp _sort_room_coords(%NethackStyle{room_coords: coords} = nethack_style) do
     connected_rooms = for(i <- Enum.to_list(0..length(coords)-1), do: {i, i})
                       |> Enum.into(%{})
     %{ nethack_style |
@@ -359,29 +355,29 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   # corridors
   defp _make_corridors(%NethackStyle{room_coords: coords} = nethack_style) when length(coords) < 2,
        do: nethack_style
-  defp _make_corridors(%NethackStyle{room_coords: coords, connected_rooms: cr} = nethack_style) do
+  defp _make_corridors(%NethackStyle{connected_rooms: cr} = nethack_style) do
     # put current door, then if making the corridor is successful, put the target door, otherwise
     # the corridor will dead end.
     nethack_style
-    |> _make_corridors_first_pass(Map.size(cr) - 1)
-    |> _make_corridors_second_pass(Map.size(cr) - 2)
+    |> _make_corridors_first_pass(map_size(cr) - 1)
+    |> _make_corridors_second_pass(map_size(cr) - 2)
     |> _make_corridors_third_pass()
   end
   defp _make_corridors_first_pass(nethack_style, offset) when offset < 1, do: nethack_style
-  defp _make_corridors_first_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style, offset) do
+  defp _make_corridors_first_pass(%{} = nethack_style, offset) do
     next_offset = if :rand.uniform(50) == 1, do: 0, else: offset - 1
 
     _join(offset, offset - 1, nethack_style)
     |> _make_corridors_first_pass(next_offset)
   end
   defp _make_corridors_second_pass(nethack_style, offset) when offset < 2, do: nethack_style
-  defp _make_corridors_second_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style, offset) do
+  defp _make_corridors_second_pass(%{} = nethack_style, offset) do
     _join(offset, offset - 2, nethack_style)
     |> _make_corridors_second_pass(offset - 1)
   end
-  defp _make_corridors_third_pass(%{room_coords: coords, connected_rooms: cr} = nethack_style) do
+  defp _make_corridors_third_pass(%{connected_rooms: cr} = nethack_style) do
     unconnected_room_pair = \
-    for(a <- 0..(Map.size(cr) - 1), b <- 0..(Map.size(cr) - 1), do: {a, b})
+    for(a <- 0..(map_size(cr) - 1), b <- 0..(map_size(cr) - 1), do: {a, b})
     |> Enum.find(fn {a, b} ->
       Map.fetch(cr, a) != Map.fetch(cr, b)
     end)
@@ -420,7 +416,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   defp _join(updated_connected_rooms,
          %{top_left_col: ctlc, top_left_row: ctlr, bottom_right_col: cbrc, bottom_right_row: cbrr},
          %{top_left_col: ttlc, top_left_row: ttlr, bottom_right_col: tbrc, bottom_right_row: tbrr},
-         %{room_coords: coords, connected_rooms: cr, map: map} = nethack_style) do
+         %{map: map} = nethack_style) do
     # It might be better to collect candidate walls, as rooms could be left and up,
     # and a left and a bottom wall could connect, when the left and right might be too
     # close but far above and below and not have a good path.
@@ -512,7 +508,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   defp _dig_corridor(
          %{cave_height: height, cave_width: width, map: map} = nh,
-         %{drow: dr, dcol: dc, current_coord: {cr, cc}, target_coord: {tr, tc}} = corridor_details,
+         %{current_coord: {cr, cc}, target_coord: {tr, tc}} = corridor_details,
          cnt) do
 
     cond do
@@ -536,7 +532,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   defp _next_delta_and_coord(
          %{drow: dr, dcol: dc, current_coord: {cr, cc}, target_coord: {tr, tc}} = corridor_details,
-         %{map: map} = nh
+         %{map: map}
        ) do
     row_index = abs(tr - cr)
     col_index = abs(tc - cc)
@@ -665,7 +661,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     _stairs_up(nethack_style, room_groups)
   end
 
-  defp _stairs_up(%NethackStyle{map: map} = nethack_style, []), do: nethack_style
+  defp _stairs_up(%NethackStyle{} = nethack_style, []), do: nethack_style
   defp _stairs_up(%NethackStyle{map: map} = nethack_style, [room_group | room_groups]) do
     %{top_left_col: tlc,
       top_left_row: tlr,
@@ -822,7 +818,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
   # coveralls-ignore-start
   defp _puts_map_debugging(%{debug: false} = nethack_style), do: nethack_style
-  defp _puts_map_debugging(%{map: map, cave_width: cave_width, rectangles: rectangles} = nh) do
+  defp _puts_map_debugging(%{cave_width: cave_width, rectangles: rectangles} = nh) do
     map_with_rectangles = _map_with_rectangles(rectangles, nh, [@rock])
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_rectangles, cave_width)
     IO.puts "rectangles left: #{length(rectangles)}"
@@ -830,7 +826,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     nh
   end
   defp _puts_map_debugging(%{debug: false} = nethack_style, _), do: nethack_style
-  defp _puts_map_debugging(%{map: map, cave_width: cave_width, iterations: iterations, rectangles: rectangles} = nh,
+  defp _puts_map_debugging(%{cave_width: cave_width, iterations: iterations, rectangles: rectangles} = nh,
          %{top_left_col: tlc,
            top_left_row: tlr,
            bottom_right_col: brc,
@@ -847,7 +843,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nh
   end
-  defp _puts_map_debugging(%{map: map, cave_width: cave_width, room_coords: room_coords} = nh, :sorted) do
+  defp _puts_map_debugging(%{cave_width: cave_width, room_coords: room_coords} = nh, :sorted) do
     map_with_numbered_rooms = _map_with_rectangles(room_coords, nh, [@rock, @floor])
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_numbered_rooms, cave_width)
     IO.puts "Numbered rooms: #{ length room_coords }"
@@ -855,6 +851,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nh
   end
+  defp _puts_map_debugging(%{debug: false} = nethack_style, _, _), do: nethack_style
   defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, coord_list, :check_adjacent) do
     map_with_check = Enum.reduce(coord_list, map, fn({row, col}, map) ->
       char = if _tile_at(map, col, row) == @rock, do: ??, else: @debug_bad
@@ -862,15 +859,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     end)
     IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
     IO.puts "Checking for touching rooms"
-    :timer.sleep 250
-
-    nh
-  end
-  defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, {dr, dc}, {cr, cc}, :check_closet) do
-    map_with_check = Map.put(map, {dr, dc}, ??)
-                     |> Map.put({cr, cc}, ??)
-    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
-    IO.puts "Checking closet placement"
     :timer.sleep 250
 
     nh
@@ -899,6 +887,16 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nh
   end
+  defp _puts_map_debugging(%{debug: false} = nethack_style, _, _, _), do: nethack_style
+  defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, {dr, dc}, {cr, cc}, :check_closet) do
+    map_with_check = Map.put(map, {dr, dc}, ??)
+                     |> Map.put({cr, cc}, ??)
+    IO.puts DungeonCrawl.DungeonGeneration.Utils.stringify_with_border(map_with_check, cave_width)
+    IO.puts "Checking closet placement"
+    :timer.sleep 250
+
+    nh
+  end
   defp _puts_map_debugging(%{map: map, cave_width: cave_width} = nh, row, col, :mineralize) do
     coords = for(dr <- -1..1, dc <- -1..1, do: {row + dr, col + dc})
     map_with_check = Enum.reduce(coords, map, fn({row, col}, map) ->
@@ -912,9 +910,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
 
     nh
   end
-  defp _puts_map_debugging(_, _), do: nil # ignore the puts debug statement
 
-  defp _map_with_rectangles(rectangles, %NethackStyle{map: map}, numberable \\ [@rock]) do
+  defp _map_with_rectangles(rectangles, %NethackStyle{map: map}, numberable) do
     rectangles
     |> Enum.with_index(fn %{top_left_col: tlc, top_left_row: tlr, bottom_right_col: brc, bottom_right_row: brr}, i ->
       for col <- Enum.to_list(tlc..brc), row <- Enum.to_list(tlr..brr), do: {row, col, 48 + Integer.mod(i, 10)}
