@@ -22,7 +22,6 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   @debug_ok        ??
   @debug_bad       ?x
 
-
   defstruct map: %{},
             cave_height: nil,
             cave_width: nil,
@@ -45,7 +44,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
   alias DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle.Rectangle
 
   @doc """
-  Generates a level using the binary space partition method.
+  Generates a level similar to how nethack generates a normal level.
 
   Returns a Map containing a {row, col} tuple and a value. The value will be one of several
   single character codes indicating what is at that coordinate.
@@ -79,16 +78,13 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     map =
     _generate(nethack_style)
     |> _resize_touching_rooms()
-    |> _puts_map_debugging()
     |> _sort_room_coords()
-    |> _puts_map_debugging(:sorted)
     |> _make_corridors()
     |> _corridors_to_floors()
     |> _add_closets()
     |> _stairs_up()
     |> _add_entities()
     |> _mineralize()
-    |> _puts_map_debugging()
     |> Map.fetch!(:map)
 
     # for console debugging purposes only
@@ -350,6 +346,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     %{ nethack_style |
       room_coords: Enum.sort_by(coords, fn a -> {a.top_left_row, a.top_left_col} end),
       connected_rooms: connected_rooms}
+    |> _puts_map_debugging(:sorted)
   end
 
   # corridors
@@ -778,6 +775,7 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     mineral_count = _rand_range(min_minerals, max_minerals)
 
     _mineralize(nethack_style, mineral_count)
+    |> _puts_map_debugging()
   end
   defp _mineralize(%NethackStyle{} = nethack_style, 0), do: nethack_style
   defp _mineralize(%NethackStyle{
