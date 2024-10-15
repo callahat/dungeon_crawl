@@ -21,6 +21,7 @@ defmodule DungeonCrawl.Sound.SeederTest do
       {"Slide Down", :slide_down},
       {"Slide Up", :slide_up},
       {"Rumble", :rumble},
+      {"Secret Door", :secret_door},
       {"Shoot", :shoot},
       {"Star Fire", :star_fire},
       {"Trudge", :trudge},
@@ -35,11 +36,11 @@ defmodule DungeonCrawl.Sound.SeederTest do
     initial_count = Repo.one(from i in Effect, select: count(i.id))
     Seeder.seed_all()
     seeded_count = Repo.one(from i in Effect, select: count(i.id))
-    assert seeded_count - initial_count == 18
+    assert seeded_count - initial_count == 19
 
     # does not add the seeds again
     Seeder.seed_all()
     seeded_count2 = Repo.one(from i in Effect, select: count(i.id))
-    assert seeded_count2 - initial_count == 18
+    assert seeded_count2 - initial_count == 19
   end
 end

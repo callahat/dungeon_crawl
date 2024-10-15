@@ -15,6 +15,7 @@ defmodule DungeonCrawl.Sound.Seeder do
     open_locked_door()
     pickup_blip()
     rumble()
+    secret_door()
     shoot()
     slide_down()
     slide_up()

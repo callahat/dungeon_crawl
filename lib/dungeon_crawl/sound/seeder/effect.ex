@@ -118,6 +118,15 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       })
   end
 
+  def secret_door do
+    Sound.update_or_create_effect!(
+      "secret_door",
+      %{name: "Secret Door",
+        public: true,
+        zzfx_params: "zzfx(...[.5,,207,,.09,.19,3,.6,4,1,,,,,,,,.58,.14,.06,-1406])"
+      })
+  end
+
   def shoot do
     Sound.update_or_create_effect!(
       "shoot",
@@ -179,6 +188,7 @@ defmodule DungeonCrawl.Sound.Seeder.Effect do
       def open_locked_door(), do: unquote(__MODULE__).open_locked_door()
       def pickup_blip(), do: unquote(__MODULE__).pickup_blip()
       def rumble(), do: unquote(__MODULE__).rumble()
+      def secret_door(), do: unquote(__MODULE__).secret_door()
       def shoot(), do: unquote(__MODULE__).shoot()
       def slide_down(), do: unquote(__MODULE__).slide_down()
       def slide_up(), do: unquote(__MODULE__).slide_up()

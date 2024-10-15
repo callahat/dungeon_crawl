@@ -98,8 +98,9 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
         script: """
         #END
         :OPEN
+        #SOUND secret_door
         A secret door slides open!
-        #BECOME slug: basic_door, color: @color, background_color: @background_color
+        #BECOME slug: basic_door, color: @color, background_color: @background_color, blocking: false, open: true, character: '
         """
       })
   end
