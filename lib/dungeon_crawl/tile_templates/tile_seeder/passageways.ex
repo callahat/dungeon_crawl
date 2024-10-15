@@ -84,9 +84,31 @@ defmodule DungeonCrawl.TileTemplates.TileSeeder.Passageways do
       end)
   end
 
+  def secret_door do
+    TileTemplates.update_or_create_tile_template!(
+      "secret_door",
+      %{character: "#",
+        name: "Secret Door",
+        description: "A secret door that blends in with the wall",
+        state: %{blocking: true},
+        color: "black",
+        public: true,
+        active: true,
+        group_name: "doors",
+        script: """
+        #END
+        :OPEN
+        #SOUND secret_door
+        A secret door slides open!
+        #BECOME slug: basic_door, color: @color, background_color: @background_color, blocking: false, open: true, character: '
+        """
+      })
+  end
+
   defmacro __using__(_params) do
     quote do
       def passage(), do: unquote(__MODULE__).passage()
+      def secret_door(), do: unquote(__MODULE__).secret_door()
       def stairs_up(), do: unquote(__MODULE__).stairs_up()
       def stairs_down(), do: unquote(__MODULE__).stairs_down()
       def teleporters(), do: unquote(__MODULE__).teleporters()

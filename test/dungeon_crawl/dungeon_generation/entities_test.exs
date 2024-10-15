@@ -25,5 +25,11 @@ defmodule DungeonCrawl.DungeonGeneration.EntitiesTest do
       assert ~c"ä$♦♥" == Entities.treasures
     end
   end
+
+  describe "minerals/0" do
+    test "it returns a list of mineral characters" do
+      assert ~c"♦" == Entities.minerals
+    end
+  end
 end
 

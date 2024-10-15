@@ -4,7 +4,7 @@ defmodule DungeonCrawl.DungeonsTest do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Dungeons.Metadata
   alias DungeonCrawl.DungeonInstances
-  alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty, DrunkardsWalk, RoomsAndTunnelsBsp}
+  alias DungeonCrawl.DungeonGeneration.MapGenerators.{TestRooms, ConnectedRooms, Labrynth, Empty, DrunkardsWalk, RoomsAndTunnelsBsp, NethackStyle}
   alias DungeonCrawl.Scores
 
   describe "dungeons" do
@@ -516,6 +516,8 @@ defmodule DungeonCrawl.DungeonsTest do
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(DrunkardsWalk, attrs.(), 1)
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(RoomsAndTunnelsBsp, attrs.())
       assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(RoomsAndTunnelsBsp, attrs.(), 1)
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(NethackStyle, attrs.())
+      assert {:ok, %{level: %Level{} = _level}} = Dungeons.generate_level(NethackStyle, attrs.(), 1)
     end
 
     test "update_level/2 with valid data updates the level" do

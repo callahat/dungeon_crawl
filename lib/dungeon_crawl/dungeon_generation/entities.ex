@@ -51,5 +51,12 @@ defmodule DungeonCrawl.DungeonGeneration.Entities do
   def treasures() do
     ~c"ä$♦♥"
   end
+
+  @doc """
+  Returns a list of minerals
+  """
+  def minerals() do
+    ~c"♦"
+  end
 end
 
