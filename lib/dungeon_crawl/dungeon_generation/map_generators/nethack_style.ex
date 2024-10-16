@@ -649,7 +649,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     room_groups = \
     connected_rooms
     |> Enum.reduce(%{},
-       fn {room_index, connected_to}, acc ->
+       fn {room_index, _connected_to}, acc ->
+         connected_to = _max_room_connection(room_index, connected_rooms)
          room_coord = Enum.at(room_coords, room_index)
          Map.put(acc, connected_to, [ room_coord | Map.get(acc, connected_to, []) ])
        end)
@@ -691,6 +692,16 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     adjacent_doors == []
   end
 
+  defp _max_room_connection(room_index, connected_rooms) do
+    connected_to = Map.get(connected_rooms, room_index)
+
+    if connected_to == room_index do
+      room_index
+    else
+      _max_room_connection(connected_to, connected_rooms)
+    end
+  end
+
   # entities
 
   defp _add_entities(%NethackStyle{solo_level: nil} = nethack_style) do
@@ -728,7 +739,8 @@ defmodule DungeonCrawl.DungeonGeneration.MapGenerators.NethackStyle do
     lone_rooms =
       connected_rooms
       |> Enum.reduce(%{},
-           fn {_, connected_to}, acc ->
+           fn {room_index, _connected_to}, acc ->
+             connected_to = _max_room_connection(room_index, connected_rooms)
              Map.put(acc, connected_to, Map.get(acc, connected_to, 0) + 1)
            end)
       |> Enum.reject(fn {_, connections} -> connections > 1 end) # it only connects to itself
