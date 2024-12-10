@@ -2,13 +2,13 @@ import Config
 import Dotenvy
 
 dir = System.get_env("RELEASE_ROOT") || "envs/"
+env_files = [
+  Path.join([dir, "env"]),
+  Path.join([dir, "env.#{config_env()}"]),
+  Path.join([dir, "env.#{config_env()}.local"])
+]
 
-source!([
-  "#{dir}env",
-  "#{dir}env.#{config_env()}",
-  "#{dir}env.#{config_env()}.local",
-  System.get_env()
-])
+source!(env_files ++ [System.get_env()])
 
 config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
   http: [
