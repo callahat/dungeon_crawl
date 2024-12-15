@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 10.23 (Ubuntu 10.23-0ubuntu0.18.04.2)
--- Dumped by pg_dump version 10.23 (Ubuntu 10.23-0ubuntu0.18.04.2)
+-- Dumped from database version 16.4 (Ubuntu 16.4-0ubuntu0.24.04.2)
+-- Dumped by pg_dump version 16.4 (Ubuntu 16.4-0ubuntu0.24.04.2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -16,23 +16,9 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
 SET default_tablespace = '';
 
-SET default_with_oids = false;
+SET default_table_access_method = heap;
 
 --
 -- Name: asset_imports; Type: TABLE; Schema: public; Owner: -
@@ -1708,7 +1694,7 @@ ALTER TABLE ONLY public.player_locations
 --
 
 ALTER TABLE ONLY public.saved_games
-    ADD CONSTRAINT saved_games_level_instance_id_fkey FOREIGN KEY (level_instance_id) REFERENCES public.level_instances(id) ON DELETE RESTRICT;
+    ADD CONSTRAINT saved_games_level_instance_id_fkey FOREIGN KEY (level_instance_id) REFERENCES public.level_instances(id) ON DELETE CASCADE;
 
 
 --
@@ -1873,3 +1859,4 @@ INSERT INTO public."schema_migrations" (version) VALUES (20231121200342);
 INSERT INTO public."schema_migrations" (version) VALUES (20231230015614);
 INSERT INTO public."schema_migrations" (version) VALUES (20240210195732);
 INSERT INTO public."schema_migrations" (version) VALUES (20240308042241);
+INSERT INTO public."schema_migrations" (version) VALUES (20241215155307);
