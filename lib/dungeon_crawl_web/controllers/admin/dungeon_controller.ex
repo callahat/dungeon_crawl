@@ -7,7 +7,7 @@ defmodule DungeonCrawlWeb.Admin.DungeonController do
 
   def index(conn, %{"show_deleted" => "true"}) do
     dungeons = Dungeons.list_dungeons(:soft_deleted)
-               |> Enum.map(fn(dungeon) -> Repo.preload(dungeon, [:levels]) end)
+               |> Enum.map(fn(dungeon) -> Repo.preload(dungeon, [:levels, :locations, :dungeon_instances, :saves]) end)
     render(conn, "index_deleted.html", dungeons: dungeons)
   end
 
