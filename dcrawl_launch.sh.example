@@ -1,0 +1,11 @@
+#! /bin/bash
+. $HOME/.asdf/asdf.sh
+. $HOME/.asdf/completions/asdf.bash
+
+echo $PATH
+cd /home/pi/dungeon_crawl
+PORT=4001 MIX_ENV=prod nohup mix phx.server &
+# example running headless w/a name, for clustering
+# PORT=4001 elixir MIX_ENV=prod --pipe-to "pipes" "logs" --name node@elixir-node1. -S mix phx.server
+# check for running detached servers
+# ps aux | grep elixir | grep @elixir-node
