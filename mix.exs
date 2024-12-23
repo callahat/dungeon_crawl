@@ -61,6 +61,7 @@ defmodule DungeonCrawl.Mixfile do
      {:phoenix_view, "~> 2.0"},
      {:phoenix_live_view, "~> 0.20"},
      {:dotenvy, "~> 0.8"},
+     {:libcluster, "~> 3.3"},
     ]
   end
 

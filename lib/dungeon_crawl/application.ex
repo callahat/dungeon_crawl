@@ -28,6 +28,8 @@ defmodule DungeonCrawl.Application do
       # Start your own worker by calling: DungeonCrawlWeb.Worker.start_link(arg1, arg2, arg3)
       # worker(DungeonCrawlWeb.Worker, [arg1, arg2, arg3]),
       {DungeonCrawl.DungeonProcesses.DungeonRegistry, name: DungeonInstanceRegistry},
+      # cluster
+      {Cluster.Supervisor, [Application.get_env(:libcluster, :topologies), [name: MyApp.ClusterSupervisor]]},
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
