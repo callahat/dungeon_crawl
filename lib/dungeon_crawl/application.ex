@@ -30,6 +30,10 @@ defmodule DungeonCrawl.Application do
       {DungeonCrawl.DungeonProcesses.DungeonRegistry, name: DungeonInstanceRegistry},
       # cluster
       {Cluster.Supervisor, [Application.get_env(:libcluster, :topologies), [name: MyApp.ClusterSupervisor]]},
+      # For the Horde
+      DungeonCrawl.Horde.Registry,
+      DungeonCrawl.Horde.DungeonSupervisor,
+      DungeonCrawl.Horde.NodeObserver,
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

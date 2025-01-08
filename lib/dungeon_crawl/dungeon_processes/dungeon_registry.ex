@@ -6,6 +6,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
   alias DungeonCrawl.Account
   alias DungeonCrawl.DungeonProcesses.{DungeonProcess}
   alias DungeonCrawl.DungeonInstances
+  alias DungeonCrawl.Horde.{DungeonSupervisor, Registry}
   alias DungeonCrawl.Repo
 
   ## Client API
@@ -68,10 +69,10 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
 
   @impl true
   def init(:ok) do
-    {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
+#    {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
     dungeon_ids = %{}
     refs = %{}
-    {:ok, {dungeon_ids, refs, supervisor}}
+    {:ok, {dungeon_ids, refs, :junk_supervisor}}
   end
 
   @impl true
@@ -113,26 +114,41 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
   end
 
   defp _create_dungeon(dungeon_id, dungeon_instance, {dungeon_ids, refs, supervisor}) do
-    {:ok, map_set_process} = DynamicSupervisor.start_child(supervisor, DungeonProcess)
+    child_spec = %{
+      id: dungeon_instance.id,
+      start: {DungeonProcess, :start_link, [[name: _via_tuple(dungeon_instance.id)]]},
+    }
+
+    # TODO: Might need to make this injectable; tests crash randomly when running with LibCluster/Horde
+    # 183
+    # 167
+    # 151
+    # 124
+    #   3 - maybe these three are the key?
+    {:ok, dungeon_process} = DungeonSupervisor.start_child(child_spec)
 
     dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
 
     author = if dungeon.user_id, do: Account.get_user(dungeon.user_id), else: %Account.User{}
 
-    DungeonProcess.set_author(map_set_process, author)
-    DungeonProcess.set_dungeon(map_set_process, dungeon)
-    DungeonProcess.set_dungeon_instance(map_set_process, dungeon_instance)
-    DungeonProcess.set_state_values(map_set_process, dungeon_instance.state)
-    DungeonProcess.start_scheduler(map_set_process)
+    DungeonProcess.set_author(dungeon_process, author)
+    DungeonProcess.set_dungeon(dungeon_process, dungeon)
+    DungeonProcess.set_dungeon_instance(dungeon_process, dungeon_instance)
+    DungeonProcess.set_state_values(dungeon_process, dungeon_instance.state)
+    DungeonProcess.start_scheduler(dungeon_process)
 
     Repo.preload(dungeon_instance, :levels).levels
     |> Enum.each(fn level ->
-         DungeonProcess.load_instance(map_set_process, level)
+         DungeonProcess.load_instance(dungeon_process, level)
        end)
 
-    ref = Process.monitor(map_set_process)
+    ref = Process.monitor(dungeon_process)
     refs = Map.put(refs, ref, dungeon_id)
-    dungeon_ids = Map.put(dungeon_ids, dungeon_id, map_set_process)
+    dungeon_ids = Map.put(dungeon_ids, dungeon_id, dungeon_process)
     {dungeon_ids, refs, supervisor}
+  end
+
+  defp _via_tuple(name) do
+    {:via, Horde.Registry, {Registry, name}}
   end
 end
