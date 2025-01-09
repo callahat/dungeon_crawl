@@ -117,15 +117,14 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     child_spec = %{
       id: dungeon_instance.id,
       start: {DungeonProcess, :start_link, [[name: _via_tuple(dungeon_instance.id)]]},
+      restart: :temporary, # if it dies it dies
     }
 
-    # TODO: Might need to make this injectable; tests crash randomly when running with LibCluster/Horde
-    # 183
-    # 167
-    # 151
-    # 124
-    #   3 - maybe these three are the key?
-    {:ok, dungeon_process} = DungeonSupervisor.start_child(child_spec)
+    dungeon_process =
+      case DungeonSupervisor.start_child(child_spec) do
+        {:ok, dungeon_process} -> dungeon_process
+        {:error, {:already_started, dungeon_process}} ->dungeon_process
+      end
 
     dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
 

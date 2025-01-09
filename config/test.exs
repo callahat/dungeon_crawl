@@ -27,6 +27,6 @@ config :libcluster,
            # The selected clustering strategy. Required.
            strategy: Cluster.Strategy.Epmd,
            # Configuration for the provided strategy. Optional.
-           config: [hosts: [:"test@testhost"]],
+           config: [hosts: [:"nonode@nohost"]],
          ],
        ]
