@@ -117,7 +117,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     child_spec = %{
       id: dungeon_instance.id,
       start: {DungeonProcess, :start_link, [[name: _via_tuple(dungeon_instance.id)]]},
-      restart: :temporary, # if it dies it dies
+      restart: :transient, # if it dies it dies (normally)
     }
 
     dungeon_process =
