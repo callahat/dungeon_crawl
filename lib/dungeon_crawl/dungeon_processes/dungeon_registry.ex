@@ -69,51 +69,50 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
 
   @impl true
   def init(:ok) do
-#    {:ok, supervisor} = DynamicSupervisor.start_link strategy: :one_for_one
     dungeon_ids = %{}
     refs = %{}
-    {:ok, {dungeon_ids, refs, :junk_supervisor}}
+    {:ok, {dungeon_ids, refs}}
   end
 
   @impl true
-  def handle_call({:lookup, dungeon_id}, _from, {dungeon_ids, _, _} = state) do
+  def handle_call({:lookup, dungeon_id}, _from, {dungeon_ids, _} = state) do
     {:reply, Map.fetch(dungeon_ids, dungeon_id), state}
   end
 
   @impl true
-  def handle_call({:list}, _from, {dungeon_ids, _, _} = state) do
+  def handle_call({:list}, _from, {dungeon_ids, _} = state) do
     {:reply, dungeon_ids, state}
   end
 
   @impl true
-  def handle_cast({:create, dungeon_id}, {dungeon_ids, refs, supervisor}) do
+  def handle_cast({:create, dungeon_id}, {dungeon_ids, refs}) do
     if Map.has_key?(dungeon_ids, dungeon_id) do
-      {:noreply, {dungeon_ids, refs, supervisor}}
+      {:noreply, {dungeon_ids, refs}}
     else
       with di when not is_nil(di) <- DungeonInstances.get_dungeon(dungeon_id) do
-        {:noreply, _create_dungeon(dungeon_id, di, {dungeon_ids, refs, supervisor})}
+        {:noreply, _create_dungeon(dungeon_id, di, {dungeon_ids, refs})}
       else
         _error ->
           Logger.error "Got a CREATE cast for #{dungeon_id} but its already been cleared"
-          {:noreply, {dungeon_ids, refs, supervisor}}
+          {:noreply, {dungeon_ids, refs}}
       end
     end
   end
 
   @impl true
-  def handle_cast({:remove, dungeon_id}, {dungeon_ids, refs, supervisor}) do
+  def handle_cast({:remove, dungeon_id}, {dungeon_ids, refs}) do
     if Map.has_key?(dungeon_ids, dungeon_id), do: GenServer.stop(Map.fetch!(dungeon_ids, dungeon_id), :shutdown)
-    {:noreply, {dungeon_ids, refs, supervisor}}
+    {:noreply, {dungeon_ids, refs}}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {dungeon_ids, refs, supervisor}) do
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, {dungeon_ids, refs}) do
     {dungeon_id, refs} = Map.pop(refs, ref)
     dungeon_ids = Map.delete(dungeon_ids, dungeon_id)
-    {:noreply, {dungeon_ids, refs, supervisor}}
+    {:noreply, {dungeon_ids, refs}}
   end
 
-  defp _create_dungeon(dungeon_id, dungeon_instance, {dungeon_ids, refs, supervisor}) do
+  defp _create_dungeon(dungeon_id, dungeon_instance, {dungeon_ids, refs}) do
     child_spec = %{
       id: dungeon_instance.id,
       start: {DungeonProcess, :start_link, [[name: _via_tuple(dungeon_instance.id)]]},
@@ -144,7 +143,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     ref = Process.monitor(dungeon_process)
     refs = Map.put(refs, ref, dungeon_id)
     dungeon_ids = Map.put(dungeon_ids, dungeon_id, dungeon_process)
-    {dungeon_ids, refs, supervisor}
+    {dungeon_ids, refs}
   end
 
   defp _via_tuple(name) do
