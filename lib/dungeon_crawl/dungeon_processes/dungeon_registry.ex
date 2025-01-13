@@ -69,50 +69,70 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
 
   @impl true
   def init(:ok) do
-    dungeon_ids = %{}
-    refs = %{}
-    {:ok, {dungeon_ids, refs}}
+    {:ok, {}}
   end
 
   @impl true
-  def handle_call({:lookup, dungeon_id}, _from, {dungeon_ids, _} = state) do
-    {:reply, Map.fetch(dungeon_ids, dungeon_id), state}
+  def handle_call({:lookup, dungeon_id}, _from, state) do
+    result = \
+      case Registry.get_dungeon_process_meta({:dungeon_id, dungeon_id}) do
+        {:ok, {:pid, pid}} -> {:ok, pid}
+        _error -> :error
+      end
+    {:reply, result, state}
   end
 
   @impl true
-  def handle_call({:list}, _from, {dungeon_ids, _} = state) do
+  def handle_call({:list}, _from, state) do
+    # todo, this probably needs to be the meta content
+    dungeon_ids =
+      DungeonSupervisor.which_children
+      |> Enum.map(fn {_, pid, _, _} ->
+        case Registry.get_dungeon_process_meta({:pid, pid}) do
+          {:ok, {_, dungeon_id}} -> {dungeon_id, pid}
+          _ -> nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.into(%{})
+
     {:reply, dungeon_ids, state}
   end
 
   @impl true
-  def handle_cast({:create, dungeon_id}, {dungeon_ids, refs}) do
-    if Map.has_key?(dungeon_ids, dungeon_id) do
-      {:noreply, {dungeon_ids, refs}}
-    else
-      with di when not is_nil(di) <- DungeonInstances.get_dungeon(dungeon_id) do
-        {:noreply, _create_dungeon(dungeon_id, di, {dungeon_ids, refs})}
-      else
-        _error ->
-          Logger.error "Got a CREATE cast for #{dungeon_id} but its already been cleared"
-          {:noreply, {dungeon_ids, refs}}
-      end
+  def handle_cast({:create, dungeon_id}, state) do
+    case Registry.get_dungeon_process_meta({:dungeon_id, dungeon_id}) do
+      {:ok, {:pid, _pid}} ->
+        {:noreply, state}
+
+      _error ->
+        with di when not is_nil(di) <- DungeonInstances.get_dungeon(dungeon_id) do
+          {:noreply, _create_dungeon(di, state)}
+        else
+          _error ->
+            Logger.error "Got a CREATE cast for #{dungeon_id} but its already been cleared"
+            {:noreply, state}
+        end
     end
   end
 
   @impl true
-  def handle_cast({:remove, dungeon_id}, {dungeon_ids, refs}) do
-    if Map.has_key?(dungeon_ids, dungeon_id), do: GenServer.stop(Map.fetch!(dungeon_ids, dungeon_id), :shutdown)
-    {:noreply, {dungeon_ids, refs}}
+  def handle_cast({:remove, dungeon_id}, state) do
+    case Registry.get_dungeon_process_meta({:dungeon_id, dungeon_id}) do
+      {:ok, {:pid, pid}} -> GenServer.stop(pid, :shutdown)
+      _ -> nil # nothing to do/already dead?
+    end
+
+    {:noreply, state}
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, {dungeon_ids, refs}) do
-    {dungeon_id, refs} = Map.pop(refs, ref)
-    dungeon_ids = Map.delete(dungeon_ids, dungeon_id)
-    {:noreply, {dungeon_ids, refs}}
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
+    Registry.remove_dungeon_process_meta({:pid, pid})
+    {:noreply, state}
   end
 
-  defp _create_dungeon(dungeon_id, dungeon_instance, {dungeon_ids, refs}) do
+  defp _create_dungeon(dungeon_instance, state) do
     child_spec = %{
       id: dungeon_instance.id,
       start: {DungeonProcess, :start_link, [[name: _via_tuple(dungeon_instance.id)]]},
@@ -122,8 +142,12 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     dungeon_process =
       case DungeonSupervisor.start_child(child_spec) do
         {:ok, dungeon_process} -> dungeon_process
-        {:error, {:already_started, dungeon_process}} ->dungeon_process
+        {:error, {:already_started, dungeon_process}} -> dungeon_process
       end
+
+    # Track where each process lives by dungeon instance id.
+    Process.monitor(dungeon_process)
+    Registry.add_dungeon_process_meta(dungeon_instance.id, dungeon_process)
 
     dungeon = Repo.preload(dungeon_instance, :dungeon).dungeon
 
@@ -140,10 +164,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
          DungeonProcess.load_instance(dungeon_process, level)
        end)
 
-    ref = Process.monitor(dungeon_process)
-    refs = Map.put(refs, ref, dungeon_id)
-    dungeon_ids = Map.put(dungeon_ids, dungeon_id, dungeon_process)
-    {dungeon_ids, refs}
+    state
   end
 
   defp _via_tuple(name) do

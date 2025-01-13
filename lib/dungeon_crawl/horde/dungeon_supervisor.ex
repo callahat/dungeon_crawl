@@ -15,6 +15,10 @@ defmodule DungeonCrawl.Horde.DungeonSupervisor do
     Horde.DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 
+  def which_children() do
+    Horde.DynamicSupervisor.which_children(__MODULE__)
+  end
+
   defp members() do
     Enum.map([Node.self() | Node.list()], &{__MODULE__, &1})
   end
