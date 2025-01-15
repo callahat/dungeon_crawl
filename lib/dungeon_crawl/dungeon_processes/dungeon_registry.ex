@@ -84,7 +84,6 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
 
   @impl true
   def handle_call({:list}, _from, state) do
-    # todo, this probably needs to be the meta content
     dungeon_ids =
       DungeonSupervisor.which_children
       |> Enum.map(fn {_, pid, _, _} ->
