@@ -12,6 +12,7 @@ defmodule DungeonCrawlWeb.Admin.DungeonProcessController do
                |> Enum.map(fn({di_id, dungeon}) ->
                              state = DungeonProcess.get_state(dungeon)
                                      |> Map.take([:dungeon_instance])
+                                     |> Map.put(:node, :erlang.node(dungeon))
                              {state, DungeonInstances.get_dungeon(di_id)}
                            end)
     render(conn, "index.html", dungeons: dungeons)
