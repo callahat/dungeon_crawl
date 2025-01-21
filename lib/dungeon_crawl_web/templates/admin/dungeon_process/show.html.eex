@@ -42,7 +42,7 @@
         <td><%= if instance, do: instance.name %></td>
         <td><%= if instance, do: "N", else: "Y" %></td>
         <% # Yeah, just using this helper here even though this page has nothing to do with livedashboard %>
-        <td><%= Phoenix.LiveDashboard.Helpers.format_bytes(:erlang.process_info(instance_pid)[:total_heap_size]) %></td>
+        <td><%= Phoenix.LiveDashboard.Helpers.format_bytes(LevelProcess.heap_size(instance_pid)) %></td>
 
         <td class="text-right">
           <%= link "Show", to: Routes.admin_level_process_path(@conn, :show, @di_id, state.number, state.player_location_id || "none"), class: "btn btn-light btn-sm" %>

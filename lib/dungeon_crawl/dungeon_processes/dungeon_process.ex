@@ -124,7 +124,7 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
   process and handles the database tables appropriately (ie, deletes them)
   """
   def start_scheduler(server, timeout \\ @timeout) do
-    Process.send_after(server, :check_for_players, timeout)
+    GenServer.cast(server, {:check_for_players, timeout})
   end
 
   ## Defining GenServer Callbacks
@@ -204,6 +204,13 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonProcess do
     else
       {:reply, :ok, state}
     end
+  end
+
+  @impl true
+  def handle_cast({:check_for_players, timeout}, state) do
+    Process.send_after(self(), :check_for_players, timeout)
+
+    {:noreply, state}
   end
 
   @impl true

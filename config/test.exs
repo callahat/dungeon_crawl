@@ -19,3 +19,14 @@ config :dungeon_crawl, :generator, DungeonCrawl.DungeonGeneration.MapGenerators.
 config :dungeon_crawl, :generators, [DungeonCrawl.DungeonGeneration.MapGenerators.TestRooms]
 
 config :phoenix, :plug_init_mode, :runtime
+
+
+config :libcluster,
+       topologies: [
+         test: [
+           # The selected clustering strategy. Required.
+           strategy: Cluster.Strategy.Epmd,
+           # Configuration for the provided strategy. Optional.
+           config: [hosts: [:"nonode@nohost"]],
+         ],
+       ]

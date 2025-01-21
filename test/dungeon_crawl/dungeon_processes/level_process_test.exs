@@ -935,6 +935,10 @@ defmodule DungeonCrawl.LevelProcessTest do
     assert %{ {1, 1} => %{ 0 => ^tile_id, 1 => 999} } = by_coord
   end
 
+  test "heap_size/1", %{instance_process: instance_process} do
+    assert LevelProcess.heap_size(instance_process)
+  end
+
   defp _level_channel(level_instance) do
     "level:#{level_instance.dungeon_instance_id}:#{level_instance.number}:#{level_instance.player_location_id}"
   end

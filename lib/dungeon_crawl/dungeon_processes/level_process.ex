@@ -225,6 +225,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     GenServer.call(instance, {:run_with, {func}})
   end
 
+  @doc """
+  Returns the heap size of the level process
+  """
+  def heap_size(instance) do
+    GenServer.call(instance, {:heap_size})
+  end
+
   ## Defining GenServer Callbacks
 
   @impl true
@@ -283,6 +290,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   def handle_call({:run_with, {function}}, _from, %Levels{} = state) when is_function(function) do
     {return_value, state} = function.(state)
     {:reply, return_value, state}
+  end
+
+  @impl true
+  def handle_call({:heap_size}, _from, state) do
+    {:reply, :erlang.process_info(self())[:total_heap_size], state}
   end
 
   @impl true
