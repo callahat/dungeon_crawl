@@ -3,7 +3,7 @@ defmodule DungeonCrawl.Mixfile do
 
   def project do
     [app: :dungeon_crawl,
-     version: "0.0.1",
+     version: "0.1.0",
      elixir: "~> 1.17",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: Mix.compilers,
@@ -17,7 +17,9 @@ defmodule DungeonCrawl.Mixfile do
        "coveralls.html": :test
      ],
      aliases: aliases(),
-     deps: deps()]
+     deps: deps(),
+     releases: releases(),
+    ]
   end
 
   # Configuration for the OTP application.
@@ -28,6 +30,15 @@ defmodule DungeonCrawl.Mixfile do
 #     applications: [:phoenix, :phoenix_pubsub, :phoenix_html, :cowboy, :logger, :gettext,
 #                    :phoenix_ecto, :postgrex, :comeonin]]
       extra_applications: [:logger, :runtime_tools, :os_mon, :observer, :wx]]
+  end
+
+  def releases do
+    [
+      dungeon_crawl: [
+        include_executables_for: [:unix],
+        steps: [:assemble, :tar],
+      ]
+    ]
   end
 
   # Specifies which paths to compile per environment.

@@ -1,0 +1,36 @@
+#! /bin/bash
+
+if [ "$1" == "" ]; then
+  echo "must give a release version"
+  exit 1
+fi
+
+VERSION=$1
+
+if (grep -q "\"$VERSION\"" mix.exs); then
+  BUILD=true
+fi
+
+if (ls _build/prod | grep -q "\-$VERSION.tar" ) ; then
+  PREBUILT=true
+fi
+
+if  [[ ! ($BUILD || $PREBUILT) ]] ; then
+  echo "Version must be in mix file or an existing tarball"
+  exit 1
+fi
+
+if [[ $BUILD ]] ; then
+  echo Current version given, running mix release
+  MIX_ENV=prod mix release
+fi
+
+# Prep the hosts
+scp _build/prod/dungeon_crawl-$VERSION.tar.gz pi@elixir-node1:~/dungeon_crawl/_build/prod/.
+ssh user@host -C "tar -C ~/dungeon_crawl/_build/prod -xzf ~/dungeon_crawl/_build/prod/dungeon_crawl-$VERSION.tar.gz"
+ssh user@host -C "~/dungeon_crawl/_build/prod/bin/migrate"
+ssh user@host -C "sudo /bin/systemctl restart dungeon_crawl.service"
+
+# repeat the above, though shouldn't need to run the migrate overlay again
+
+

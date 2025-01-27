@@ -1,0 +1,20 @@
+# Update and copy this to /etc/systemd/system/dungeon_crawl.service
+[Unit]
+Description=Dungeon Crawl daemon
+
+[Service]
+Type=simple
+User=
+Group=
+Restart=on-failure
+# If a dependency such a specific version openssl had to be built, add this to the load path
+# Environment="LD_LIBRARY_PATH=<PATH>/opt/lib:$LD_LIBRARY_PATH"
+
+WorkingDirectory=<PATH>/dungeon_crawl
+
+ExecStart=<PATH>/dungeon_crawl/_build/prod/bin/dungeon_crawl start
+ExecStop=<PATH>/dungeon_crawl/_build/prod/bin/dungeon_crawl stop
+
+[Install]
+WantedBy=multi-user.target
+
