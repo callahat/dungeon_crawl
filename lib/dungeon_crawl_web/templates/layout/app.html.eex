@@ -53,7 +53,7 @@
     <%= render("confirmation_modal.html", conn: @conn) %>
 
   </body>
-  <script>window.logSocketMessages=<%= Mix.env() != :prod %></script>
+  <script>window.logSocketMessages=<%= Application.get_env(:dungeon_crawl, :env) != :prod %></script>
   <script>window.userToken = "<%= assigns[:user_token] %>"</script>
   <script src="<%= Routes.static_path(@conn, "/assets/app.js") %>"></script>
 </html>

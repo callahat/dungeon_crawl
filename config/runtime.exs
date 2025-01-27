@@ -10,7 +10,10 @@ env_files = [
 
 source!(env_files ++ [System.get_env()])
 
+config :dungeon_crawl, :env, config_env()
+
 config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
+  server: env!("PHX_SERVER", :boolean?),
   http: [
     port: env!("PORT", :integer) || 4000
   ]
