@@ -1,0 +1,18 @@
+#! /bin/bash
+. $HOME/.asdf/asdf.sh
+. $HOME/.asdf/completions/asdf.bash
+
+# Copy this file to the host (without the .example ext), delete lines below that
+# arent needed (such as migrate, which only needs to run on one of the nodes)
+
+echo $PATH
+cd $HOME/dungeon_crawl
+git checkout master
+git pull
+git checkout $BRANCH
+whereis mix
+MIX_ENV=prod mix deps.get
+MIX_ENV=prod mix ecto.migrate
+MIX_ENV=prod mix assets.deploy
+sudo /bin/systemctl restart dungeon_crawl.service
+echo "Deployed Branch: $(git branch | grep '* ')"
