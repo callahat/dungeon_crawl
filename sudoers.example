@@ -1,0 +1,4 @@
+# add these via `sudo visudo  -f /etc/sudoers.d/1dungeoncrawl`
+<USER> ALL=NOPASSWD: /bin/systemctl start   dungeon_crawl.service
+<USER> ALL=NOPASSWD: /bin/systemctl stop    dungeon_crawl.service
+<USER> ALL=NOPASSWD: /bin/systemctl restart dungeon_crawl.service

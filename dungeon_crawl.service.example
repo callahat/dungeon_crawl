@@ -1,0 +1,17 @@
+[Unit]
+Description=Dungeon Crawl daemon
+
+[Service]
+Type=simple
+User=<user>
+Group=<group>
+Restart=on-failure
+#Environment="LD_LIBRARY_PATH=/home/brodesk/opt/lib:$LD_LIBRARY_PATH"
+Environment="MIX_ENV=prod"
+
+WorkingDirectory=/home/pi/dungeon_crawl
+
+ExecStart=<HOMEPATH>/dcrawl_launch.sh
+
+[Install]
+WantedBy=multi-user.target

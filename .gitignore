@@ -37,6 +37,9 @@ erl_crash.dump
 # Coveralls
 /cover
 
+# Logfiles
+/logs
+
 # temp
 /tmp
 
