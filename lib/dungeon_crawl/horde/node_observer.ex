@@ -1,7 +1,7 @@
 defmodule DungeonCrawl.Horde.NodeObserver do
   use GenServer
 
-  alias DungeonCrawl.Horde.{Registry, Supervisor}
+  alias DungeonCrawl.Horde.{Registry, DungeonSupervisor}
 
   def start_link(_), do: GenServer.start_link(__MODULE__, [])
 
@@ -13,14 +13,14 @@ defmodule DungeonCrawl.Horde.NodeObserver do
 
   def handle_info({:nodeup, _node, _node_type}, state) do
     set_members(Registry)
-    set_members(Supervisor)
+    set_members(DungeonSupervisor)
 
     {:noreply, state}
   end
 
   def handle_info({:nodedown, _node, _node_types}, state) do
     set_members(Registry)
-    set_members(Supervisor)
+    set_members(DungeonSupervisor)
 
     {:noreply, state}
   end

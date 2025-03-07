@@ -7,6 +7,7 @@ defmodule DungeonCrawl.Horde.DungeonSupervisorTest do
 
   # Mostly smoke testing, the supervisor is hit by many other parts of the system
 
+  @tag :horde
   test "start_child/1" do
     di = insert_stubbed_dungeon_instance()
 
@@ -20,6 +21,7 @@ defmodule DungeonCrawl.Horde.DungeonSupervisorTest do
     assert {:error, {:already_started, ^dpid}} = DungeonSupervisor.start_child(child_spec)
   end
 
+  @tag :horde
   test "which_children/0" do
     # nothing started yet
     assert [] == DungeonSupervisor.which_children()

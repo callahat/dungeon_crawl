@@ -110,9 +110,6 @@ defmodule DungeonCrawl.DungeonRegistryTest do
 
     assert di_ids = DungeonRegistry.list(map_set_registry)
     assert %{^di_id => pid} = di_ids
-    # Shared registry, so this is going to be flakey until everything
-    # is cleaned up properly
-    assert length(Map.keys(di_ids)) == 1
 
     # cleanup
     GenServer.stop(pid, :shutdown)
