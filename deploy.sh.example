@@ -11,7 +11,7 @@ git checkout master
 git pull
 git checkout $BRANCH
 whereis mix
-MIX_ENV=prod mix deps.get
+MIX_QUIET=true MIX_ENV=prod mix deps.get
 MIX_ENV=prod mix ecto.migrate
 MIX_ENV=prod mix assets.deploy
 sudo /bin/systemctl restart dungeon_crawl.service
