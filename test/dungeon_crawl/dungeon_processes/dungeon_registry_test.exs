@@ -5,6 +5,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonInstances.{Dungeon,Tile}
   alias DungeonCrawl.DungeonProcesses.{DungeonRegistry,DungeonProcess,LevelRegistry}
+  alias DungeonCrawl.Horde.Registry
 
   setup do
     map_set_registry = start_supervised!(DungeonRegistry)
@@ -24,6 +25,23 @@ defmodule DungeonCrawl.DungeonRegistryTest do
     GenServer.stop(msi_process, :shutdown)
   end
 
+  @tag capture_log: true
+  test "lookup but dead PID in the registry logs message", %{map_set_registry: map_set_registry} do
+    di = insert_stubbed_dungeon_instance()
+    DungeonRegistry.create(map_set_registry, di.id)
+    {:ok, msi_process} = DungeonRegistry.lookup(map_set_registry, di.id)
+    GenServer.stop(msi_process, :shutdown)
+    Registry.add_dungeon_process_meta(di.id, msi_process)
+
+    log = ExUnit.CaptureLog.capture_log(fn ->
+      assert :error = DungeonRegistry.lookup(map_set_registry, di.id)
+      :timer.sleep 5
+    end)
+    assert log =~ ~r/warning.*?PID.*?appears to be dead for dungeon id #{di.id}; removing/
+
+    # no cleanup needed; msi_process is already dead
+  end
+
   test "lookup_or_create", %{map_set_registry: map_set_registry} do
     di = insert_stubbed_dungeon_instance()
 
@@ -35,6 +53,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
     GenServer.stop(msi_process, :shutdown)
   end
 
+  @tag capture_log: true
   test "create/2", %{map_set_registry: map_set_registry} do
     di = insert_stubbed_dungeon_instance(%{state: %{"flag" => "off"}}, %{}, [[%Tile{character: "O", row: 1, col: 1, z_index: 0}]])
     d = Repo.preload(di, :dungeon).dungeon
@@ -57,8 +76,16 @@ defmodule DungeonCrawl.DungeonRegistryTest do
     assert :ok = DungeonRegistry.create(map_set_registry, di.id)
     assert {:ok, ^msi_process} = DungeonRegistry.lookup(map_set_registry, di.id)
 
-    # cleanup
+    # create with a killed process logs a message and creates
     GenServer.stop(msi_process, :shutdown)
+    Registry.add_dungeon_process_meta(di.id, msi_process)
+    log = ExUnit.CaptureLog.capture_log(fn ->
+      assert :ok = DungeonRegistry.create(map_set_registry, di.id)
+      :timer.sleep 5
+    end)
+    assert log =~ ~r/warning.*?PID.*?appears to be dead for dungeon id #{di.id}; removing/
+
+    # no cleanup needed; msi_process is already dead
   end
 
   @tag capture_log: true
