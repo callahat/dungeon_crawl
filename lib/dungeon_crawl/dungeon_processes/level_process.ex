@@ -411,14 +411,19 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   @impl true
   def handle_info(:perform_actions, %Levels{} = state) do
     start_ms = :os.system_time(:millisecond)
-    state = _cycle_programs(%{state | new_pids: []})
-            |> _broadcast_stat_updates()
-            |> Render.rerender_tiles()
-            |> Render.rerender_tiles_for_admin()
-            |> Sound.broadcast_sound_effects()
-            |> Map.put(:rerender_coords, %{})
-            |> Map.put(:shifted_ids, %{})
-            |> _check_for_players()
+    actions_task = Task.async(
+      fn() ->
+        _cycle_programs(%{state | new_pids: []})
+        |> _broadcast_stat_updates()
+        |> Render.rerender_tiles()
+        |> Render.rerender_tiles_for_admin()
+        |> Sound.broadcast_sound_effects()
+        |> Map.put(:rerender_coords, %{})
+        |> Map.put(:shifted_ids, %{})
+        |> _check_for_players()
+      end
+    )
+    state = Task.await(actions_task)
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
       Logger.warning "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
