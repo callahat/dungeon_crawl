@@ -166,15 +166,17 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
     state
   end
 
-  def get_pid_from_dungeon_id(id) do
+  defp get_pid_from_dungeon_id(id) do
     with {:ok, {:pid, pid}} <- Registry.get_dungeon_process_meta({:dungeon_id, id}) do
-      if :rpc.call(node(pid), Process, :alive?, [pid]) do
-        {:ok, pid}
-      else
-        Logger.warning "PID #{ inspect pid } appears to be dead for dungeon id #{ id }; " <>
-                       "removing from metadata"
-        Registry.remove_dungeon_process_meta({:pid, pid})
-        :error
+      case :rpc.call(node(pid), Process, :alive?, [pid]) do
+        true ->
+          {:ok, pid}
+        fail_reason ->
+          Logger.warning "rpc call returned: '#{ inspect fail_reason }' for PID #{ inspect pid } for dungeon id #{ id }; " <>
+                         "removing from metadata"
+          Registry.remove_dungeon_process_meta({:pid, pid})
+
+          :error
       end
     else
       _ -> :error # nothing to do/already dead?

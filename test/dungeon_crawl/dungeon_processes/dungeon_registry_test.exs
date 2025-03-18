@@ -37,7 +37,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
       assert :error = DungeonRegistry.lookup(map_set_registry, di.id)
       :timer.sleep 5
     end)
-    assert log =~ ~r/warning.*?PID.*?appears to be dead for dungeon id #{di.id}; removing/
+    assert log =~ ~r/warning.*?rpc call returned: 'false' for PID #{ inspect msi_process } for dungeon id #{di.id}; removing/
 
     # no cleanup needed; msi_process is already dead
   end
@@ -83,7 +83,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
       assert :ok = DungeonRegistry.create(map_set_registry, di.id)
       :timer.sleep 5
     end)
-    assert log =~ ~r/warning.*?PID.*?appears to be dead for dungeon id #{di.id}; removing/
+    assert log =~ ~r/warning.*?rpc call returned: 'false' for PID #{ inspect msi_process } for dungeon id #{di.id}; removing/
 
     # no cleanup needed; msi_process is already dead
   end
