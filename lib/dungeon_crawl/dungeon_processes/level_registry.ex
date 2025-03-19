@@ -298,6 +298,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelRegistry do
 
     send(instance_process, :perform_actions)
     send(instance_process, :player_torch_timeout)
+    send_after(instance_process, :garbage_collect, 300_000)
     ref = Process.monitor(instance_process)
     refs = Map.put(refs, ref, {level_instance.number, level_instance.player_location_id})
 

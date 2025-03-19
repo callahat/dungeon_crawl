@@ -426,7 +426,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     state = Task.await(actions_task)
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
-      Logger.warning "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+      Logger.warning "perform_actions for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
     end
 
     Process.send_after(self(), :perform_actions, @timeout)
@@ -474,6 +474,15 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     end)
 
     Process.send_after(self(), :player_torch_timeout, @player_torch_timeout)
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:garbage_collect, state) do
+    :erlang.garbage_collect()
+
+    Process.send_after(self(), :garbage_collect, 300_000) # five minutes
 
     {:noreply, state}
   end
