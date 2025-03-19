@@ -480,11 +480,13 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
 
   @impl true
   def handle_info(:garbage_collect, state) do
+    start_ms = :os.system_time(:millisecond)
     :erlang.garbage_collect()
+    Logger.warning "garbage_collect for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
 
     Process.send_after(self(), :garbage_collect, 300_000) # five minutes
 
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 
   # Currently, this is only being used by tests to hook into this module to test
