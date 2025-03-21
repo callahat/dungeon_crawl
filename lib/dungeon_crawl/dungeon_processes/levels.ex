@@ -471,6 +471,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     program_contexts = Map.delete(program_contexts, tile_id)
     passage_exits = Enum.reject(passage_exits, fn({id, _}) -> id == tile_id end)
     dirty_ids = if mark_as_dirty, do: Map.put(state.dirty_ids, tile_id, :deleted), else: state.dirty_ids
+    dirty_ids = if is_integer(tile_id), do: dirty_ids, else: Map.delete(dirty_ids, tile_id)
 
     tile = by_id[tile_id]
 
