@@ -753,6 +753,7 @@ defmodule DungeonCrawl.LevelProcessTest do
     end)
   end
 
+  @tag capture_log: true
   test "write_db", %{instance_process: instance_process, level_instance: level_instance} do
     tt = insert_tile_template()
 
@@ -790,9 +791,17 @@ defmodule DungeonCrawl.LevelProcessTest do
 
     Process.monitor(instance_process)
 
+    orig_logger_level = Logger.level
+    Logger.configure level: :info
     # Trigger the message handling under test
-    assert :ok = Process.send(instance_process, :write_db, [])
-    refute_receive _
+    log = ExUnit.CaptureLog.capture_log([level: :info], fn ->
+      assert :ok = Process.send(instance_process, :write_db, [])
+      :timer.sleep 20
+      refute_receive _
+    end)
+    Logger.configure level: orig_logger_level
+    assert log =~ ~r/info.*?write_db for instance # #{ level_instance.id } took \d+ ms/
+
     # let the process do its thing
     eventually assert "Y" == Repo.get(Tile, tile_id_1).character
     refute Repo.get(Tile, tile_id_2)
