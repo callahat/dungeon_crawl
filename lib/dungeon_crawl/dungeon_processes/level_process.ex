@@ -19,6 +19,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   @timeout 50
   @inactive_player_timeout 60_000
   @player_torch_timeout 5_000
+  @write_db_timeout 180_000
 
   @doc """
   Starts the instance process.
@@ -421,7 +422,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
             |> _check_for_players()
     elapsed_ms = :os.system_time(:millisecond) - start_ms
     if elapsed_ms > @timeout do
-      Logger.warning "_cycle_programs for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
+      Logger.warning "perform_actions for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms !!!"
     end
 
     Process.send_after(self(), :perform_actions, @timeout)
@@ -473,11 +474,11 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
     {:noreply, state}
   end
 
-  # Currently, this is only being used by tests to hook into this module to test
-  # the _write_db_task function
   @impl true
   def handle_info(:write_db, %Levels{} = state) do
     if DungeonInstances.get_level(state.instance_id) do
+      Process.send_after(self(), :write_db, @write_db_timeout)
+
       _write_db_task(state)
     else
       Logger.info "instance # #{state.instance_id} no longer has a backing DB record; shutting down process"
@@ -507,6 +508,8 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
                  Levels.set_tile_id(state, tile, temp_id)
                end)
 
+    time_to_create = :os.system_time(:millisecond) - start_ms
+
     # save off this other stuff but don't block the GenServer, and dont care about the result
     Task.start(fn ->
       # :deleted
@@ -534,9 +537,12 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
         |> DungeonInstances.update_tiles()
       end
 
-      if :os.system_time(:millisecond) - start_ms > 200 do
-        Logger.info "write_db for instance # #{state.instance_id} took #{(:os.system_time(:millisecond) - start_ms)} ms"
-      end
+      total_time = (:os.system_time(:millisecond) - start_ms)
+      Logger.info "write_db for instance # #{state.instance_id} took #{total_time} ms\n" <>
+                  "  (creating: #{time_to_create} ms, updating/deleting: #{total_time - time_to_create} ms)\n" <>
+                  "  #{length(Map.keys(new_ids))} new tiles\n" <>
+                  "  #{length(updates)} updated tiles\n" <>
+                  "  #{length(deletes)} deleted tiles"
     end)
 
     {:noreply, %Levels{ state | dirty_ids: %{}, new_ids: %{}}}

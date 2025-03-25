@@ -572,6 +572,32 @@ defmodule DungeonCrawl.DungeonProcesses.LevelsTest do
     assert light_sources == %{}
   end
 
+  test "delete_tile/2 when a new tile" do
+    tile_id = "new_0"
+    new_tile = %Tile{id: nil, row: 4, col: 4, z_index: 0, character: "."}
+
+    # a new tile is created
+    {created_tile, state} = Levels.create_tile(%Levels{}, new_tile)
+    assert %{} == state.dirty_ids
+    assert %{^tile_id => 0} = state.new_ids
+    assert String.starts_with?(tile_id, "new_")
+
+    new_attributes = %{row: 2, character: "M"}
+
+    # Update the new tile to dirty it
+    assert {updated_tile, updated_state} = Levels.update_tile(state, created_tile, new_attributes)
+    assert Map.merge(created_tile, %{row: 2, character: "M"}) == updated_tile
+
+    assert %{^tile_id => changeset} = updated_state.dirty_ids
+    assert %{tile_id => 0} == updated_state.new_ids
+    assert changeset.changes == Tile.changeset(created_tile, %{character: "M", row: 2}).changes
+
+    # The new unpersisted tile is deleted
+    assert {_, updated_state} = Levels.delete_tile(state, updated_tile)
+    assert %{} == updated_state.dirty_ids
+    assert %{} == updated_state.new_ids
+  end
+
   test "direction_of_tile/3" do
     tile_nw = %Tile{id: 990, row: 2, col: 2, z_index: 0, character: "."}
     tile_n  = %Tile{id: 991, row: 2, col: 3, z_index: 0, character: "#", state: %{"blocking" => true}}

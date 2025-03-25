@@ -75,8 +75,8 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
   @impl true
   def handle_call({:lookup, dungeon_id}, _from, state) do
     result = \
-      case Registry.get_dungeon_process_meta({:dungeon_id, dungeon_id}) do
-        {:ok, {:pid, pid}} -> {:ok, pid}
+      case get_pid_from_dungeon_id(dungeon_id) do
+        {:ok, pid} -> {:ok, pid}
         _error -> :error
       end
     {:reply, result, state}
@@ -100,8 +100,8 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
 
   @impl true
   def handle_cast({:create, dungeon_id}, state) do
-    case Registry.get_dungeon_process_meta({:dungeon_id, dungeon_id}) do
-      {:ok, {:pid, _pid}} ->
+    case get_pid_from_dungeon_id(dungeon_id) do
+      {:ok, _pid} ->
         {:noreply, state}
 
       _error ->
@@ -117,8 +117,8 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
 
   @impl true
   def handle_cast({:remove, dungeon_id}, state) do
-    case Registry.get_dungeon_process_meta({:dungeon_id, dungeon_id}) do
-      {:ok, {:pid, pid}} -> GenServer.stop(pid, :shutdown)
+    case get_pid_from_dungeon_id(dungeon_id) do
+      {:ok, pid} -> GenServer.stop(pid, :shutdown)
       _ -> nil # nothing to do/already dead?
     end
 
@@ -164,6 +164,23 @@ defmodule DungeonCrawl.DungeonProcesses.DungeonRegistry do
        end)
 
     state
+  end
+
+  defp get_pid_from_dungeon_id(id) do
+    with {:ok, {:pid, pid}} <- Registry.get_dungeon_process_meta({:dungeon_id, id}) do
+      case :rpc.call(node(pid), Process, :alive?, [pid]) do
+        true ->
+          {:ok, pid}
+        fail_reason ->
+          Logger.warning "rpc call returned: '#{ inspect fail_reason }' for PID #{ inspect pid } for dungeon id #{ id }; " <>
+                         "removing from metadata"
+          Registry.remove_dungeon_process_meta({:pid, pid})
+
+          :error
+      end
+    else
+      _ -> :error # nothing to do/already dead?
+    end
   end
 
   defp _via_tuple(name) do

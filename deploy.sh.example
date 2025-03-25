@@ -7,11 +7,16 @@
 
 echo $PATH
 cd $HOME/dungeon_crawl
+echo checking out and pulling master
 git checkout master
 git pull
-git checkout $BRANCH
+if [ "$BRANCH" != "master" ]; then
+  echo checking out and pulling $BRANCH
+  git checkout $BRANCH
+  git pull
+fi
 whereis mix
-MIX_ENV=prod mix deps.get
+MIX_QUIET=true MIX_ENV=prod mix deps.get
 MIX_ENV=prod mix ecto.migrate
 MIX_ENV=prod mix assets.deploy
 sudo /bin/systemctl restart dungeon_crawl.service
