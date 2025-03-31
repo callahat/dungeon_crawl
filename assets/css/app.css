@@ -56,6 +56,17 @@ pre.level_preview {
   display: inline-block;
   line-height: 1;
   padding: 0.5em;
+  margin: 0;
+}
+
+pre#flashingMessageBox {
+  background: #f5f5f5;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+  width: min-content;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: -0.5em;
 }
 
 pre.level_preview table tr td {

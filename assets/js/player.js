@@ -24,7 +24,7 @@ let Player = {
         if(resp.chime){
           levelJs.sound.playEffect(levelJs.soundRecieveMessage, levelJs.soundEffectVolume / 100)
         }
-        levelJs.renderMessage(resp.message)
+        levelJs.renderMessage(resp.message, !resp.chime)
       } else {
         levelJs.renderMessageModal(resp.message)
       }
@@ -49,7 +49,7 @@ let Player = {
     playerChannel.join()
       .receive("ok", (resp) => {
         console.log("joined the players channel!")
-        levelJs.renderMessage("Entered the level")
+        levelJs.renderMessage("Entered the level", true)
 
         playerChannel.push("refresh_level", {})
                      .receive("error", e => console.log(e))

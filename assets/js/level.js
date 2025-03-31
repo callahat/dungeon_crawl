@@ -155,7 +155,7 @@ let Level = {
           this.lightTorch()
           break
         case('o'): // o
-          this.renderMessage("Open Direction?")
+          this.renderMessage("Open Direction?", true)
           this.actionMethod = this.open
           break
         case('c'): // c
@@ -218,9 +218,13 @@ let Level = {
     this.levelChannel.push("light_torch", {})
         .receive("error", e => console.log(e))
   },
-  renderMessage(msg){
+  renderMessage(msg, flashMessage=false){
     if(msg == this.lastMessage) { return }
     this.lastMessage = msg
+
+    if(flashMessage) {
+      this.renderFlashingMessage(msg)
+    }
 
     let template = document.createElement("div")
     template.setAttribute("class", "d-flex flex-row no-gutters")
@@ -251,6 +255,20 @@ let Level = {
     }
 
     $('#messageModal').modal('show')
+  },
+  renderFlashingMessage(msg){
+    let el = $('#flashingMessageBox')
+    clearTimeout(this.flashingMessageTimeout)
+    el.prop("classList").add("animate")
+    el.text(msg)
+    el.show()
+    this.flashingMessageTimeout = setTimeout(() => { this.cleanupFlashingMessage() }, 3000)
+  },
+  cleanupFlashingMessage(){
+    let el = $('#flashingMessageBox')
+    el.hide()
+    el.prop("classList").remove("animate")
+    el.text("")
   },
   respawn(){
     this.levelChannel.push("respawn", {})
@@ -306,7 +324,7 @@ let Level = {
   _useDoor(direction, action){
     let payload = {direction: direction, action: action}
     this.levelChannel.push("use_door", payload)
-                       .receive("error", resp => this.renderMessage(resp.msg) )
+                       .receive("error", resp => this.renderMessage(resp.msg, true) )
     this.actionMethod = this.move
   },
   _messageModalKeypressHandler(keyPressed){
@@ -354,6 +372,7 @@ let Level = {
   textLinks: null,
   textLinkPointer: null,
   fadeTimeout: null,
+  flashingMessageTimeout: null,
   sendingMessage: false,
   equippableItems: [],
   sound: null,

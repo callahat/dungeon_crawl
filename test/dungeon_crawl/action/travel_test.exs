@@ -158,7 +158,7 @@ defmodule DungeonCrawl.Action.TravelTest do
     assert_receive %Phoenix.Socket.Broadcast{
         topic: ^player_channel,
         event: "message",
-        payload: %{message: "*** Now on level 2"}}
+        payload: %{message: "*** Now on level 2 ***"}}
 
     level_2_number = level_2.number
     level_2_owner_id = level_2.player_location_id
