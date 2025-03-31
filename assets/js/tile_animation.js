@@ -40,7 +40,9 @@ let TileAnimation = {
         color = pickFunction(context, period, colors, element.style.color),
         backgroundColor = pickFunction(context, period, backgroundColors, element.style.backgroundColor)
 
-    element.innerText = (character || " ")[0]
+    if(!element.classList.contains("random")) {
+      element.innerText = (character || " ")[0]
+    }
     element.style.color = color
     element.style.backgroundColor = backgroundColor
   },
