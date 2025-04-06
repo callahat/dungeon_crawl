@@ -2,6 +2,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.LevelChannel
+  alias DungeonCrawlWeb.PlayerChannel
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.LevelProcess
@@ -77,6 +78,10 @@ defmodule DungeonCrawl.LevelChannelTest do
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
       |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance.id}:#{level_instance.number}:#{level_instance.player_location_id}")
+
+    {:ok, _, _player_socket} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
+      |> subscribe_and_join(PlayerChannel, "players:#{player_location.id}")
 
     on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id) end)
 
@@ -570,6 +575,23 @@ defmodule DungeonCrawl.LevelChannelTest do
       refute Map.has_key?(instance_state, player_location.tile_instance_id)
       {:ok, instance_state}
     end)
+  end
+
+  @tag up_tile: "message_tile"
+  test "use_item - item that sends message to script that has text",
+       %{socket: socket, player_location: player_location, instance: instance} do
+    north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
+    item = insert_item(%{
+      name: "Stuff Toucher",
+      script: "#send touch, @facing",
+    })
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{"equipped" => "stuff_toucher"})
+    end)
+
+    push socket, "use_item", %{"direction" => "up"}
+    assert_broadcast "message", %{message: ["Just a tile", "with line o text"]}
   end
 
   @tag up_tile: "."
