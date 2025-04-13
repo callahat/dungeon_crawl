@@ -2,11 +2,32 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
   use DungeonCrawl.DataCase
 
   alias DungeonCrawl.EctoProgramContexts
+  alias DungeonCrawl.Player.Location
 
   @valid_program_context_elixir %{
     3 => %{
       event_sender: nil,
       object_id: 3,
+      program: %DungeonCrawl.Scripting.Program{
+        broadcasts: [],
+        instructions: %{1 => [:halt, [""]]},
+        labels: %{},
+        lc: 0,
+        locked: false,
+        messages: [],
+        pc: 0,
+        responses: [],
+        status: :idle,
+        wait_cycles: 0,
+        timed_messages: []
+      }
+    },
+    4 => %{
+      event_sender: %Location{
+        user_id_hash: "testing",
+        tile_instance_id: 472236
+      },
+      object_id: 4,
       program: %DungeonCrawl.Scripting.Program{
         broadcasts: [],
         instructions: %{1 => [:halt, [""]]},
@@ -113,6 +134,16 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
               },
               "tile_id" => 3571817
             }
+          },
+          {
+            DateTime.from_unix!(1_694_999_368),
+            "fuse_lit",
+            %{
+              "user_id_hash" => "testing",
+              "tile_instance_id" => 472236,
+              "state" => nil,
+              "name" => nil
+            }
           }
         ]
       }
@@ -140,6 +171,31 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
         "status" => ["__ATOM__", "idle"],
         "wait_cycles" => 0,
         "timed_messages" => []
+      }
+    },
+    "4" => %{
+      "event_sender_player_location" => %{
+        "id" => nil,
+        "name" => nil,
+        "state" => nil,
+        "tile_instance_id" => 472236,
+        "user_id_hash" => "testing"
+      },
+      "object_id" => 4,
+      "program" => %{
+        "broadcasts" => [],
+        "instructions" => %{
+          "1" => [["__ATOM__", "halt"], [""]]
+        },
+        "labels" => %{},
+        "lc" => 0,
+        "locked" => false,
+        "messages" => [],
+        "pc" => 0,
+        "responses" => [],
+        "status" => ["__ATOM__", "idle"],
+        "timed_messages" => [],
+        "wait_cycles" => 0
       }
     },
     "3571817" => %{
@@ -248,6 +304,30 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
               },
               "tile_id" => 3571817
             }
+          ],
+          [
+            "__TUPLE__",
+            %{
+              "day" => 18,
+              "hour" => 01,
+              "year" => 2023,
+              "month" => 9,
+              "minute" => 9,
+              "second" => 28,
+              "calendar" => ["__ATOM__", "Elixir.Calendar.ISO"],
+              "time_zone" => "Etc/UTC",
+              "zone_abbr" => "UTC",
+              "std_offset" => 0,
+              "utc_offset" => 0,
+              "microsecond" => ["__TUPLE__", 0, 0]
+            },
+            "fuse_lit",
+            %{
+              "user_id_hash" => "testing",
+              "tile_instance_id" => 472236,
+              "state" => nil,
+              "name" => nil
+            }
           ]
         ]
       }
@@ -275,18 +355,20 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
 
     test "returns ok and the elixir map when given an elixir map" do
       assert {:ok, program_context} = EctoProgramContexts.cast(@valid_program_context_elixir)
-      assert %{3 => context_3, 3571817 => context_3571817} = program_context
+      assert %{3 => context_3, 4 => context_4, 3571817 => context_3571817} = program_context
 
       assert context_3 == @valid_program_context_elixir[3]
+      assert context_4 == @valid_program_context_elixir[4]
 
       assert context_3571817 == @valid_program_context_elixir[3571817]
     end
 
     test "returns ok and converts it back into elixir when given something from parsed JSON" do
       assert {:ok, program_context} = EctoProgramContexts.cast(@valid_program_context_from_json)
-      assert %{3 => context_3, 3571817 => context_3571817} = program_context
+      assert %{3 => context_3, 4 => context_4, 3571817 => context_3571817} = program_context
 
       assert context_3 == @valid_program_context_elixir[3]
+      assert context_4 == @valid_program_context_elixir[4]
 
       assert context_3571817 == @valid_program_context_elixir[3571817]
     end
@@ -306,9 +388,10 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
 
     test "loads data that is json encoded" do
       assert {:ok, program_context} = EctoProgramContexts.load(@valid_program_context_from_json)
-      assert %{3 => context_3, 3571817 => context_3571817} = program_context
+      assert %{3 => context_3, 4 => context_4, 3571817 => context_3571817} = program_context
 
       assert context_3 == @valid_program_context_elixir[3]
+      assert context_4 == @valid_program_context_elixir[4]
       assert context_3571817 == @valid_program_context_elixir[3571817]
     end
   end
@@ -328,19 +411,19 @@ defmodule DungeonCrawl.EctoProgramContextsTest do
 
     test "returns ok and the ready for json map when given the elixir map" do
       assert {:ok, program_context} = EctoProgramContexts.dump(@valid_program_context_elixir)
-      assert %{"3" => context_3, "3571817" => context_3571817} = program_context
+      assert %{"3" => context_3, "4" => context_4, "3571817" => context_3571817} = program_context
 
       assert context_3 == @valid_program_context_from_json["3"]
-
+      assert context_4 == @valid_program_context_from_json["4"]
       assert context_3571817 == @valid_program_context_from_json["3571817"]
     end
 
     test "returns ok and the ready for json map when given the json map" do
       assert {:ok, program_context} = EctoProgramContexts.dump(@valid_program_context_from_json)
-      assert %{"3" => context_3, "3571817" => context_3571817} = program_context
+      assert %{"3" => context_3, "4" => context_4, "3571817" => context_3571817} = program_context
 
       assert context_3 == @valid_program_context_from_json["3"]
-
+      assert context_4 == @valid_program_context_from_json["4"]
       assert context_3571817 == @valid_program_context_from_json["3571817"]
     end
   end

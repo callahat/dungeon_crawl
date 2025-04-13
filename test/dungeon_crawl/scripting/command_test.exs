@@ -1613,8 +1613,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert state.program_messages == [{9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
 
     # also works when sender was a player
-    player = %Location{tile_instance_id: 12345}
-    stubbed_player_sender = %{tile_id: stubbed_object.id, state: stubbed_object.state, name: stubbed_object.name}
+    player = %Location{tile_instance_id: 12345, state: %{}}
+    stubbed_player_sender = %Location{tile_instance_id: player.tile_instance_id, state: player.state, name: player.name}
     %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: player}, ["tap", [:event_sender]])
     assert state.program_messages == [{12345, "tap", stubbed_player_sender}, {9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
 
@@ -1638,8 +1638,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert state.program_messages == [{9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
 
     # also works when sender was a player
-    player = %Location{tile_instance_id: 12345}
-    stubbed_player_sender = %{tile_id: stubbed_object.id, state: stubbed_object.state, name: stubbed_object.name}
+    player = %Location{tile_instance_id: 12345, state: %{}}
+    stubbed_player_sender = %Location{tile_instance_id: player.tile_instance_id, state: player.state, name: player.name}
     %Runner{state: state} = Command.send_message(%Runner{state: state, object_id: stubbed_object.id, event_sender: player}, ["tap", [:event_sender]])
     assert state.program_messages == [{12345, "tap", stubbed_player_sender}, {9001, "tap", stubbed_sender}, {9001, "touch", stubbed_sender}]
 
