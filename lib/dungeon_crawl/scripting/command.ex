@@ -1450,8 +1450,7 @@ defmodule DungeonCrawl.Scripting.Command do
   defp _send_message_via_ids(runner_state, _label, _event_sender, _delay, []), do: runner_state
   defp _send_message_via_ids(%Runner{state: state} = runner_state, label, event_sender, 0, [po_id | program_object_ids]) do
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, event_sender} |
-                                                              state.program_messages] } },
+      %{ runner_state | state: %{ state | program_messages: [ {po_id, label, event_sender} | state.program_messages] } },
       label,
       0,
       program_object_ids
@@ -1459,8 +1458,7 @@ defmodule DungeonCrawl.Scripting.Command do
   end
   defp _send_message_via_ids(%Runner{state: state} = runner_state, label, event_sender, delay, [po_id | program_object_ids]) do
     _send_message_via_ids(
-      %{ runner_state | state: %{ state | program_messages: [{po_id, label, event_sender, delay} |
-                                                             state.program_messages] } },
+      %{ runner_state | state: %{ state | program_messages: [{po_id, label, event_sender, delay} | state.program_messages] } },
       label,
       delay,
       program_object_ids
