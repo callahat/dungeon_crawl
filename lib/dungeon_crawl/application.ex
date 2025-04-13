@@ -13,6 +13,8 @@ defmodule DungeonCrawl.Application do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    :erlang.system_flag(:backtrace_depth, 20)
+
     # Define workers and child supervisors to be supervised
     children = [
       # Start the PubSub system

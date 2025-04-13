@@ -13,7 +13,8 @@ git pull
 if [ "$BRANCH" != "master" ]; then
   echo checking out and pulling $BRANCH
   git checkout $BRANCH
-  git pull
+  git fetch
+  git reset --hard origin/$BRANCH
 fi
 whereis mix
 MIX_QUIET=true MIX_ENV=prod mix deps.get

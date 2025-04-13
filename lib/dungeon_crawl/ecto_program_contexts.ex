@@ -80,7 +80,7 @@ defmodule DungeonCrawl.EctoProgramContexts do
         true
 
       {:state, values} ->
-        Enum.all?(values, fn {k,v} -> is_binary(k) && _valid_elixir?(v) end)
+        Enum.all?(values || %{}, fn {k,v} -> is_binary(k) && _valid_elixir?(v) end)
 
       {key, value} when is_integer(key) or is_atom(key) ->
         _valid_elixir?(value)

@@ -2,6 +2,7 @@ defmodule DungeonCrawl.LevelChannelTest do
   use DungeonCrawlWeb.ChannelCase
 
   alias DungeonCrawlWeb.LevelChannel
+  alias DungeonCrawlWeb.PlayerChannel
   alias DungeonCrawl.DungeonInstances
   alias DungeonCrawl.DungeonProcesses.Levels
   alias DungeonCrawl.DungeonProcesses.LevelProcess
@@ -77,6 +78,10 @@ defmodule DungeonCrawl.LevelChannelTest do
     {:ok, _, socket} =
       socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
       |> subscribe_and_join(LevelChannel, "level:#{dungeon_instance.id}:#{level_instance.number}:#{level_instance.player_location_id}")
+
+    {:ok, _, _player_socket} =
+      socket(DungeonCrawlWeb.UserSocket, "user_id_hash", %{user_id_hash: player_location.user_id_hash})
+      |> subscribe_and_join(PlayerChannel, "players:#{player_location.id}")
 
     on_exit(fn -> DungeonRegistry.remove(DungeonInstanceRegistry, dungeon_instance.id) end)
 
@@ -154,7 +159,11 @@ defmodule DungeonCrawl.LevelChannelTest do
     # Only lights a torch in the dark provided player has one
     push socket, "light_torch", %{}
 
-    assert_receive %Phoenix.Socket.Broadcast{}
+    assert_receive %Phoenix.Socket.Broadcast{
+      topic: ^player_channel,
+      event: "stat_update",
+      payload: %{stats: %{"torches" => 0}}
+    }
 
     LevelProcess.run_with(instance, fn (instance_state) ->
       player_tile = Levels.get_tile_by_id(instance_state, %{id: player_location.tile_instance_id})
@@ -314,14 +323,15 @@ defmodule DungeonCrawl.LevelChannelTest do
         payload: %{message: "oh hai mark"}}
 
     LevelProcess.run_with(instance, fn (instance_state) ->
-      refute Map.has_key?(instance_state, player_location.tile_instance_id)
+      assert Map.fetch!(instance_state.message_actions, player_location.tile_instance_id) == []
       {:ok, instance_state}
     end)
 
     # when the message is not valid for the player to send, nothing happens
     push socket, "message_action", %{"label" => "touch", "tile_id" => message_object.id}
     refute_receive %Phoenix.Socket.Broadcast{
-        topic: ^player_channel }
+        topic: ^player_channel,
+        event: "touch"}
   end
 
   test "message_action handles an equipped item change", %{socket: socket, player_location: player_location, instance: instance} do
@@ -343,7 +353,8 @@ defmodule DungeonCrawl.LevelChannelTest do
     # when the message is not valid for the player to send, nothing happens
     push socket, "message_action", %{"item_slug" => "invalid item"}
     refute_receive %Phoenix.Socket.Broadcast{
-      topic: ^player_channel }
+      topic: ^player_channel,
+      payload: %{stats: %{"equipped" => "invalid item"}} }
   end
 
   test "message_action handles bad inbound messages ok", %{socket: socket, player_location: player_location} do
@@ -568,6 +579,48 @@ defmodule DungeonCrawl.LevelChannelTest do
     push socket, "use_item", %{"direction" => "up"}
     LevelProcess.run_with(instance, fn (instance_state) ->
       refute Map.has_key?(instance_state, player_location.tile_instance_id)
+      {:ok, instance_state}
+    end)
+  end
+
+  @tag up_tile: "message_tile"
+  test "use_item - item that sends message to script that has text",
+       %{socket: socket, player_location: player_location, instance: instance} do
+
+    north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      instance_state = %{instance_state | adjacent_level_numbers: %{"north" => instance_state.number}}
+      Levels.update_tile(instance_state, north_tile, %{"script" => """
+      #END
+      :TOUCH
+      Just a tile
+      with line o text
+      #send CHANGE, self, 60
+      #END
+      :CHANGE
+      #BECOME character: X
+      """
+      })
+    end)
+
+    north_tile = LevelProcess.get_tile(instance, player_location.tile.row, player_location.tile.col, "north")
+    item = insert_item(%{
+      name: "Stuff Toucher",
+      script: "#send touch, @facing",
+    })
+
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      Levels.update_tile_state(instance_state, %{id: player_location.tile_instance_id}, %{"equipped" => item.slug})
+    end)
+
+    push socket, "use_item", %{"direction" => "up"}
+    assert_broadcast "message", %{message: ["Just a tile", "with line o text"]}, 200
+
+    nt_id = north_tile.id
+    LevelProcess.run_with(instance, fn (instance_state) ->
+      assert %{timed_messages: [{_, "CHANGE", %{tile_id: ^nt_id}}]} =
+               instance_state.program_contexts[nt_id].program
+
       {:ok, instance_state}
     end)
   end
