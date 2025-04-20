@@ -6,6 +6,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
   alias DungeonCrawl.Dungeons
   alias DungeonCrawl.Shipping
   alias DungeonCrawl.Shipping.{DungeonExports, Json}
+  alias DungeonCrawl.Equipment
   alias DungeonCrawl.Equipment.Seeder, as: EquipmentSeeder
   alias DungeonCrawl.Sound.Seeder, as: SoundSeeder
   alias DungeonCrawl.TileTemplates
@@ -108,6 +109,8 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
     dungeon = insert_dungeon(%{user_id: user.id, state: "starting_equipment: #{ item.slug }" })
     data = DungeonExports.run(dungeon.id) |> Json.encode!()
     TileTemplates.update_tile_template(tile_template, %{color: "blue"})
+    {:ok, _} = Equipment.delete_item(item)
+
     dungeon_import = Shipping.create_import!(%{
       data: data,
       user_id: user.id,
@@ -130,6 +133,7 @@ defmodule DungeonCrawl.Shipping.DockWorkerTest do
              [:status, :user_id, :file_name, :line_identifier])
     assert %{log: log} = Shipping.get_import!(dungeon_import.id)
     assert String.contains?(log, "tile_templates - asset exists by slug, creating asset import record")
+    assert String.contains?(log, "whip - items - no match found, flagging asset as buildable")
   end
 
   @tag capture_log: true

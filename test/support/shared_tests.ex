@@ -69,16 +69,13 @@ defmodule DungeonCrawl.SharedTests do
         updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
 
         assert Map.drop(updated_export, [unquote(asset_key), :log]) == Map.drop(export, [unquote(asset_key), :log])
-        assert %{unquote(asset_key) => %{unquote(key) => asset}, log: log} = updated_export
+        assert %{unquote(asset_key) => %{unquote(key) => {:createable, asset, slug}}, log: log} = updated_export
         assert Map.drop(unquote(comparable_field_fn).(asset), [:active, :public, :script, :slug, :user_id]) ==
                  Map.drop(unquote(comparable_field_fn).(asset_from_import), [:active, :public, :script, :slug, :user_id])
 
-        if unquote(asset_key) == :tile_templates, do: assert asset.active
-        refute asset.public
-        assert asset.slug =~ if unquote(asset_key) == :jk,
-                                do: ~r/^#{ asset_from_import.slug }$/,
-                                else: ~r/#{ asset_from_import.slug }_\d+/
         if unquote(asset_key) == :tile_templates do
+          refute Map.get(asset, :public)
+          assert asset.active
           # equipment must have a script
           assert asset.script == ""
           refute Map.has_key?(asset, :tmp_script)
@@ -87,7 +84,7 @@ defmodule DungeonCrawl.SharedTests do
 
         # it logs
         log_prefix = "#{ unquote(key) } - #{ asset_from_import.slug } - #{ unquote(asset_key) }"
-        assert Enum.member?(log, "+ #{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }")
+        assert Enum.member?(log, "- #{ log_prefix } - no match found, flagging asset as buildable: #{ inspect Map.take(asset_from_import, [:name, :description, :character]) }")
       end
 
       @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
@@ -315,13 +312,9 @@ defmodule DungeonCrawl.SharedTests do
         test "#{ unquote(asset_key) } - created when asset has a script",
              %{export: export, user: user, dungeon_import: dungeon_import, asset: asset, attrs: attrs} do
           export = %{ export | unquote(asset_key) => %{unquote(key) => attrs} }
-
           updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
-
-          assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
-
-          assert asset.script == "#end" # placeholder, will be overwritten
-          assert asset.tmp_script == attrs.script
+          assert %{unquote(asset_key) => %{unquote(key) => {:createable, asset, slug}}} = updated_export
+          assert asset.script == "test words"
         end
       end
     end
