@@ -44,8 +44,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         config[:user_asset] -> %{user_id: user.id}
         config[:public_asset] -> %{user_id: nil, public: true}
         config[:others_existing_asset] -> %{user_id: other_user.id, slug: asset_from_import.slug, name: "Common field"}
-        config[:existing_asset] -> %{user_id: user.id, slug: asset_from_import.slug, name: "Common field"}
-        config[:script_asset] -> %{user_id: user.id, script: "test words"}
+        config[:existing_asset] -> %{user_id: user.id, slug: asset_from_import.slug, name: "Common field", script: "test"}
+        config[:script_asset] -> %{user_id: user.id, script: "test words\n#sound tmp_sound1\n#become slug: tmp_ttid_1"}
         true -> %{}
       end
       attrs = Map.merge(asset_from_import, attrs)

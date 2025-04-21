@@ -314,7 +314,22 @@ defmodule DungeonCrawl.SharedTests do
           export = %{ export | unquote(asset_key) => %{unquote(key) => attrs} }
           updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
           assert %{unquote(asset_key) => %{unquote(key) => {:createable, asset, slug}}} = updated_export
-          assert asset.script == "test words"
+          assert asset.script == "test words\n#sound tmp_sound1\n#become slug: tmp_ttid_1"
+        end
+
+        @tag asset_key: unquote(asset_key), key: unquote(key), insert_asset_fn: unquote(insert_asset_fn), existing_asset: true
+        test "#{ unquote(asset_key) } - fuzzed script for asset_import",
+             %{export: export, user: user, dungeon_import: dungeon_import, asset: asset, attrs: attrs} do
+          export = %{ export | unquote(asset_key) => %{unquote(key) => Map.put(attrs, :script, "test words\n#sound tmp_sound_1\n#equip tmp_item_1, ?sender\n#become slug: tmp_ttid_1")} }
+          updated_export = find_or_create_assets(export, dungeon_import.id, unquote(asset_key), user)
+          assert %{unquote(asset_key) => %{unquote(key) => asset}} = updated_export
+
+          assert asset_import = DungeonImports.get_asset_import(dungeon_import.id, unquote(asset_key), unquote(key))
+          assert asset_import.action == :waiting
+          assert asset_import.attributes.script == "test words\n#sound tmp_sound_1\n#equip tmp_item_1, ?sender\n#become slug: tmp_ttid_1"
+          assert asset_import.existing_attributes.script == "test"
+          assert asset_import.attributes.fuzzed_script == "test words\n#sound <FUZZ>\n#equip <FUZZ>, ?sender\n#become slug: <FUZZ>"
+          assert asset_import.existing_attributes.fuzzed_script == "test"
         end
       end
     end
