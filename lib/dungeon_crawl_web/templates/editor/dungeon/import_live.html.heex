@@ -43,7 +43,7 @@
       <%= for import <- @imports do %>
         <tr>
           <%= if @is_admin do %><td><%= import.user.username %></td><% end %>
-          <td><%= import.file_name %></td>
+          <td><%= link(import.file_name, to: Routes.edit_dungeon_import_path(@socket, :dungeon_import_show, import.id), class: "text-reset text-decoration-none") %></td>
           <td><%= import.inserted_at %></td>
           <%= td_status(import) %>
           <td><%= waiting_or_dungeon_link(@socket, DungeonCrawl.Repo.preload(import, :dungeon)) %></td>
