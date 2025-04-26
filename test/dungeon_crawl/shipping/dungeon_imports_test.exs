@@ -392,8 +392,8 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       # dungeon not created
       refute Map.has_key?(dungeon, :__struct__)
 
-      # ambiguous item not created
-      assert 1 == Enum.count(Equipment.list_items()) - item_count
+      # ambiguous item not created, not are completely new items or other assets
+      assert 0 == Enum.count(Equipment.list_items()) - item_count
 
       # asset import record created
       assert DungeonImports.get_asset_import(config.dungeon_import.id, :items, "tmp_item_id_0")
@@ -408,7 +408,7 @@ defmodule DungeonCrawl.Shipping.DungeonImportsTest do
       [end_time_log | _] = log
       [start_time_log | _] = Enum.reverse(log)
 
-      assert length(log) == 19 # start, end, and all the asset logging; this will change if new things are to be logged
+      assert length(log) == 29 # start, end, and all the asset logging; this will change if new things are to be logged
 
       assert start_time_log =~ ~r/Start: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/
       assert end_time_log =~ ~r/End: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/

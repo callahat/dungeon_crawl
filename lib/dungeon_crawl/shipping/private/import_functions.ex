@@ -92,18 +92,18 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
           attrs_existing = asset_attrs(asset_key, existing_by_slug)
 
           attrs = if Map.has_key?(attrs, :script),
-                     do: %{ attrs | script: script_fuzzer(attrs.script)},
+                     do: Map.put(attrs, :fuzzed_script, script_fuzzer(attrs.script)),
                      else: attrs
           attrs_existing = if Map.has_key?(attrs_existing, :script),
-                              do: %{ attrs_existing | script: script_fuzzer(attrs_existing.script)},
+                              do: Map.put(attrs_existing, :fuzzed_script, script_fuzzer(attrs_existing.script)),
                               else: attrs_existing
 
           DungeonImports.create_asset_import!(import_id, asset_key, tmp_slug, slug, attrs, attrs_existing)
           {nil, "? #{ log_prefix } - asset exists by slug, creating asset import record for user action choice"}
 
         else
-          asset = create_asset(asset_key, attrs)
-          {asset, "+ #{ log_prefix } - no match found, created asset with id: #{ asset.id }, slug: #{ asset.slug }"}
+          asset = {:createable, attrs, slug}
+          {asset, "- #{ log_prefix } - no match found, flagging asset as buildable: #{ inspect Map.take(attrs, [:name, :description, :character]) }"}
         end
       end
     else
@@ -251,6 +251,28 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
       create_fn.(attrs)
     end
   end
+
+  # skip ones that arent {:createable, attrs, slug}
+  def create_and_add_slugs_to_built_assets(%{status: "running"} = export, asset_key) do
+    {logs, assets} =
+      Map.get(export, asset_key)
+      |> Enum.map(fn
+          {tmp_slug, {:createable, attrs, slug}} ->
+            log_prefix = "#{ tmp_slug } - #{ slug } - #{ asset_key }"
+            asset = create_asset(asset_key, attrs)
+            {tmp_slug, asset, "+ #{ log_prefix } - created asset with id: #{ asset.id }"}
+
+          {tmp_slug, asset} ->
+            {tmp_slug, asset, nil}
+      end)
+      |> Enum.reduce({[], %{}}, fn {tmp_slug, asset, log}, {logs, assets} ->
+        updated_logs = if is_nil(log), do: logs, else: [log | logs]
+        { updated_logs, Map.put(assets, tmp_slug, asset) }
+      end)
+
+    %{ export | asset_key => assets, log: logs ++ export.log }
+  end
+  def create_and_add_slugs_to_built_assets(export, _asset_key), do: export
 
   def swap_scripts_to_tmp_scripts(%{status: "running"} = export, asset_key) do
     assets = Enum.map(Map.get(export, asset_key), fn {th, asset} ->

@@ -38,6 +38,9 @@ defmodule DungeonCrawl.Shipping.DungeonImports do
              |> find_or_create_assets(import_id, :tile_templates, user)
              |> _break_if_waiting_on_asset_imports(import_id)
     # at this point, bail if there are ambiguous matches that are unresolved
+             |> create_and_add_slugs_to_built_assets(:sounds)
+             |> create_and_add_slugs_to_built_assets(:items)
+             |> create_and_add_slugs_to_built_assets(:tile_templates)
              |> swap_scripts_to_tmp_scripts(:tiles)
              |> repoint_ttids_and_slugs(:tiles)
              |> repoint_ttids_and_slugs(:items)

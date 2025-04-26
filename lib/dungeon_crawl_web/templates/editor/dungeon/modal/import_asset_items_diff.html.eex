@@ -29,14 +29,14 @@
         @existing_attributes[:consumable],
         @attributes[:consumable]) %>
 
-  <%= if @existing_attributes[:script] != @attributes[:script] do %>
+  <%= if @existing_attributes[:fuzzed_script] != @attributes[:fuzzed_script] do %>
   <div class="row">
     <div class="col-2">
       <strong>Script:</strong>
     </div>
     <div class="col-10">
-      <textarea id="scriptExisting<%= @asset_import_id %>"><%= @existing_attributes[:script] %></textarea>
-      <textarea id="scriptImported<%= @asset_import_id %>"><%= @attributes[:script] %></textarea>
+      <textarea id="scriptExisting<%= @asset_import_id %>"><%= @existing_attributes[:fuzzed_script] %></textarea>
+      <textarea id="scriptImported<%= @asset_import_id %>"><%= @attributes[:fuzzed_script] %></textarea>
       <div id="scriptAnchor<%= @asset_import_id %>"></div>
     </div>
   </div>

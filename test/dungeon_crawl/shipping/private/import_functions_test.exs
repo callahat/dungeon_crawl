@@ -44,8 +44,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         config[:user_asset] -> %{user_id: user.id}
         config[:public_asset] -> %{user_id: nil, public: true}
         config[:others_existing_asset] -> %{user_id: other_user.id, slug: asset_from_import.slug, name: "Common field"}
-        config[:existing_asset] -> %{user_id: user.id, slug: asset_from_import.slug, name: "Common field"}
-        config[:script_asset] -> %{user_id: user.id, script: "test words"}
+        config[:existing_asset] -> %{user_id: user.id, slug: asset_from_import.slug, name: "Common field", script: "test"}
+        config[:script_asset] -> %{user_id: user.id, script: "test words\n#sound tmp_sound1\n#become slug: tmp_ttid_1"}
         true -> %{}
       end
       attrs = Map.merge(asset_from_import, attrs)
@@ -389,6 +389,72 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       assert_raise Ecto.InvalidChangesetError, fn ->
         update_asset(:tile_templates, tile_template, %{name: "", script: ""})
       end
+    end
+  end
+
+  describe "create_and_add_slugs_to_built_assets/2" do
+    setup do
+      export = %DungeonExports{
+        sounds: %{
+          "tmp_sound_1" => %{zzfx_params: ""},
+          "tmp_sound_2" => {:createable, %{zzfx_params: "[,0,130.8128,.1,.1,.34,3,1.88,,,,,,,,.1,,.5,.04]", name: "blorp"}, "blorp"}
+        },
+        items: %{
+          "tmp_item_0" => {:createable, %{name: "test item", script: "#end"}, "test_item"},
+          "tmp_item_1" => %{script: "does nothing"}
+        },
+        tile_templates: %{
+          "tmp_ttid_0" => %{script: "#end\n:touch\nhey"},
+          "tmp_ttid_1" => {:createable, %{name: "Test Rock", script: "#end", description: "its rock"}, "rock"}
+        }
+      }
+       %{ export: export }
+    end
+
+    test "creates the assets marked as completely new", %{export: export} do
+      assert 0 == Enum.count(Sound.list_effects())
+      assert 0 == Enum.count(Equipment.list_items())
+      assert 0 == Enum.count(TileTemplates.list_tile_templates())
+
+      assert %{sounds: %{
+        "tmp_sound_1" => sound_0,
+        "tmp_sound_2" => sound_1
+      }} = create_and_add_slugs_to_built_assets(export, :sounds)
+      assert 1 == Enum.count(Sound.list_effects())
+      assert sound_0 == export.sounds["tmp_sound_1"]
+      assert sound_1 == Sound.get_effect!("blorp")
+
+      assert %{ items: %{
+        "tmp_item_0" => item_0,
+        "tmp_item_1" => item_1
+      }} = create_and_add_slugs_to_built_assets(export, :items)
+      assert 1 == Enum.count(Equipment.list_items())
+      assert Map.delete(item_0, :tmp_script) == Equipment.get_item!("test_item")
+      assert item_1 == export.items["tmp_item_1"]
+
+      assert %{tile_templates: %{
+        "tmp_ttid_0" => tt_0,
+        "tmp_ttid_1" => tt_1
+      }} = create_and_add_slugs_to_built_assets(export, :tile_templates)
+      assert 1 == Enum.count(TileTemplates.list_tile_templates())
+      assert tt_0 == export.tile_templates["tmp_ttid_0"]
+      assert Map.delete(tt_1, :tmp_script) == TileTemplates.get_tile_template("test_rock", nil)
+    end
+
+    test "does not impact anything other than the specified assets", %{export: export} do
+      assert Map.drop(export, [:sounds, :log]) ==
+               Map.drop(create_and_add_slugs_to_built_assets(export, :sounds), [:sounds, :log])
+      assert Map.drop(export, [:items, :log]) ==
+               Map.drop(create_and_add_slugs_to_built_assets(export, :items), [:items, :log])
+      assert Map.drop(export, [:tile_templates, :log]) ==
+               Map.drop(create_and_add_slugs_to_built_assets(export, :tile_templates), [:tile_templates, :log])
+    end
+
+    test "noop when status is not running", export do
+      export = Map.put export, :status, "halt"
+      assert export == create_and_add_slugs_to_built_assets(export, :sounds)
+      assert export == create_and_add_slugs_to_built_assets(export, :items)
+      assert export == create_and_add_slugs_to_built_assets(export, :tile_templates)
     end
   end
 
