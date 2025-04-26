@@ -202,10 +202,10 @@ defmodule DungeonCrawl.Scripting.Direction do
   """
   def coordinates_to_edge(%{row: origin_row, col: origin_col}, direction, %{"rows" => rows, "cols" => cols}) do
     case normalize_orthogonal(direction) do
-      "north" -> for row <- origin_row..0, do: %{row: row, col: origin_col}
-      "south" -> for row <- origin_row..(rows - 1), do: %{row: row, col: origin_col}
-      "west" ->  for col <- origin_col..0, do: %{row: origin_row, col: col}
-      "east" ->  for col <- origin_col..(cols - 1), do: %{row: origin_row, col: col}
+      "north" -> for row <- Range.new(origin_row, 0, -1), do: %{row: row, col: origin_col}
+      "south" -> for row <- Range.new(origin_row, rows-1, 1), do: %{row: row, col: origin_col}
+      "west" ->  for col <- Range.new(origin_col, 0, -1), do: %{row: origin_row, col: col}
+      "east" ->  for col <- Range.new(origin_col, cols-1, 1), do: %{row: origin_row, col: col}
       _ -> []
     end
   end

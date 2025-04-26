@@ -340,7 +340,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       tile_template = create_asset(:tile_templates, attrs)
       assert tile_template.name == attrs.name
       assert tile_template.script == ""
-      refute Map.has_key?(tile_template, :tmp_script)
+      refute tile_template.tmp_script
       assert is_integer(tile_template.id)
     end
   end
@@ -429,7 +429,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
         "tmp_item_1" => item_1
       }} = create_and_add_slugs_to_built_assets(export, :items)
       assert 1 == Enum.count(Equipment.list_items())
-      assert Map.delete(item_0, :tmp_script) == Equipment.get_item!("test_item")
+      assert Map.delete(item_0, :tmp_script) ==
+               Map.delete(Equipment.get_item!("test_item"), :tmp_script)
       assert item_1 == export.items["tmp_item_1"]
 
       assert %{tile_templates: %{
@@ -438,7 +439,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
       }} = create_and_add_slugs_to_built_assets(export, :tile_templates)
       assert 1 == Enum.count(TileTemplates.list_tile_templates())
       assert tt_0 == export.tile_templates["tmp_ttid_0"]
-      assert Map.delete(tt_1, :tmp_script) == TileTemplates.get_tile_template("test_rock", nil)
+      assert Map.delete(tt_1, :tmp_script) ==
+               Map.delete(TileTemplates.get_tile_template("test_rock", nil), :tmp_script)
     end
 
     test "does not impact anything other than the specified assets", %{export: export} do

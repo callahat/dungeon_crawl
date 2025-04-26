@@ -100,7 +100,7 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   defp rows(level, height, width, cells_func) do
-    Enum.to_list(0..height-1)
+    Enum.to_list(Range.new(0, height-1, 1))
     |> Enum.map(fn(row) ->
         "<tr>#{cells_func.(level, row, width)}</tr>"
        end )
@@ -108,7 +108,7 @@ defmodule DungeonCrawlWeb.SharedView do
   end
 
   defp cells(level, row, width) do
-    Enum.to_list(0..width-1)
+    Enum.to_list(Range.new(0, width-1, 1))
     |> Enum.map(fn(col) -> "<td id='#{row}_#{col}'>#{ tile_and_style(level[{row, col}]) }</td>" end )
     |> Enum.join("")
   end

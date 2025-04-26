@@ -15,6 +15,8 @@ defmodule DungeonCrawl.Equipment.Item do
     field :slug, :string
     field :program, :map, virtual: true
 
+    field :tmp_script, :string, virtual: true, default: nil
+
     belongs_to :user, DungeonCrawl.Account.User
 
     timestamps()
