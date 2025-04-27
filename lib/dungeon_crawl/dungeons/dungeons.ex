@@ -254,13 +254,9 @@ defmodule DungeonCrawl.Dungeons do
   def list_dungeons_with_player_count() do
     Repo.all(from d in Dungeon,
              where: is_nil(d.deleted_at),
-             left_join: di in assoc(d, :dungeon_instances),
-             left_join: li in assoc(di, :levels),
-             left_join: t in assoc(li, :tiles),
-             left_join: pmt in assoc(t, :player_location),
-             preload: [:user, :locations, dungeon_instances: {di, locations: pmt}],
+             preload: [:user, :locations, :levels, :saves],
              select: %{dungeon_id: d.id, dungeon: d},
-             order_by: [d.name, pmt.id])
+             order_by: [d.name])
   end
 
   @doc """
