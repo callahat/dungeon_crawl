@@ -14,6 +14,7 @@ config :dungeon_crawl,
 
 # Configures the endpoint
 config :dungeon_crawl, DungeonCrawlWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   secret_key_base: "uAZt6ZmV0dMClEWZB0FaHEiFnrOJvA487Lw6QxTGuTPsJ0U1EJgslK7+pbdTIzZW",
   render_errors: [view: DungeonCrawlWeb.ErrorView, accepts: ~w(html json)],

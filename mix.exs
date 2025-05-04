@@ -49,7 +49,6 @@ defmodule DungeonCrawl.Mixfile do
      {:telemetry_poller, "~> 0.5"},
      {:gettext, "~> 0.11"},
      {:jason, "~> 1.0"},
-     {:plug_cowboy, "~> 2.5"},
      {:comeonin, "~> 5.3"},
      {:bcrypt_elixir, "~> 3.0"},
      {:poolboy, "~> 1.5.1"},
@@ -63,6 +62,7 @@ defmodule DungeonCrawl.Mixfile do
      {:dotenvy, "~> 0.8"},
      {:libcluster, "~> 3.3"},
      {:horde, "~> 0.9"},
+     {:bandit, "~> 1.0"},
     ]
   end
 
