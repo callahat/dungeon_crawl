@@ -23,7 +23,7 @@ defmodule DungeonCrawl.SluggableTest do
 
     use Ecto.Schema
     import Ecto.Changeset
-    embedded_schema do
+    schema "userless_models" do
       field :one, :integer, default: 10
       field :slug, :string, default: nil
       field :name, :string, default: "Test Record"
@@ -37,7 +37,7 @@ defmodule DungeonCrawl.SluggableTest do
 
     use Ecto.Schema
     import Ecto.Changeset
-    embedded_schema do
+    schema "user_models" do
       field :one, :integer, default: 10
       field :user, :map, default: %{is_admin: false}
       field :slug, :string, default: nil
@@ -46,6 +46,8 @@ defmodule DungeonCrawl.SluggableTest do
     @doc false
     def changeset(model, attrs), do: cast(model, attrs, [:one, :user, :name])
   end
+
+  alias __MODULE__.{TestModelWithoutUser, TestModelWithUser}
 
   setup do
     {:ok, %{with_user: %TestModelWithUser{id: 10},

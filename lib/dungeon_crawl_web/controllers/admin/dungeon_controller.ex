@@ -13,7 +13,7 @@ defmodule DungeonCrawlWeb.Admin.DungeonController do
 
   def index(conn, _params) do
     dungeons = Dungeons.list_dungeons_with_player_count()
-               |> Enum.map(fn(%{dungeon: dungeon}) -> Repo.preload(dungeon, [:levels, :locations, :dungeon_instances, :saves]) end)
+               |> Enum.map(fn(%{dungeon: dungeon}) -> dungeon end)
     render(conn, "index.html", dungeons: dungeons)
   end
 

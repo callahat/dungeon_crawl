@@ -321,6 +321,8 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     end)
   end
 
+  defp swap_tmp_script(%{tmp_script: nil} = asset), do: asset
+
   defp swap_tmp_script(%{__struct__: TileTemplate, tmp_script: tmp_script} = asset) do
     {:ok, asset} = TileTemplates.update_tile_template(asset, %{script: tmp_script})
     asset

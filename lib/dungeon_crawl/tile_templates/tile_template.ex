@@ -34,6 +34,7 @@ defmodule DungeonCrawl.TileTemplates.TileTemplate do
 
     field :state_variables, {:array, :string}, virtual: true, default: nil
     field :state_values, {:array, :string}, virtual: true, default: nil
+    field :tmp_script, :string, virtual: true, default: nil
 
     has_one :next_version, DungeonCrawl.TileTemplates.TileTemplate, foreign_key: :previous_version_id, on_delete: :nilify_all
     has_many :tiles, DungeonCrawl.Dungeons.Tile, on_delete: :nilify_all

@@ -12,7 +12,7 @@ defmodule DungeonCrawl.Shipping.JsonTest do
     end
 
     test "errors on bad input" do
-      assert_raise Protocol.UndefinedError, ~r"Jason.Encoder not implemented for {} of type Tuple,", fn ->
+      assert_raise Protocol.UndefinedError, ~r"Jason.Encoder not implemented for type Tuple,", fn ->
         Json.encode!({})
       end
     end
