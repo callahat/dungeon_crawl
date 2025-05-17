@@ -334,6 +334,10 @@ defmodule DungeonCrawl.Scripting.ProgramValidator do
     _validate(program, instructions, errors, user)
   end
 
+  defp _validate(program, [ {line_no, [:text, [[{:condition, :error}, _lines]] ]} | instructions], errors, user) do
+    _validate(program, instructions, ["Line #{line_no}: TEXT conditional is invalid" | errors], user)
+  end
+
   defp _validate(program, [ {line_no, [:text, [_text, label] ]} | instructions], errors, user) do
     cond do
       Program.line_for(program, label) ->

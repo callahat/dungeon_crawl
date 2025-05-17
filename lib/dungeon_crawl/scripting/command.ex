@@ -705,18 +705,9 @@ defmodule DungeonCrawl.Scripting.Command do
   def jump_if(%Runner{} = runner_state, [check]) do
     jump_if(runner_state, [check, 1])
   end
-  def jump_if(%Runner{} = runner_state, [[neg, left, op, right], label]) do
-    check = Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right))
-    _jump_if(runner_state, check, label)
-  end
-  def jump_if(%Runner{} = runner_state, [[left, op, right], label]) do
-    jump_if(runner_state, [["", left, op, right], label])
-  end
-  def jump_if(%Runner{} = runner_state, [[neg, left], label]) do
-    jump_if(runner_state, [[neg, left, "==", :truthy], label])
-  end
-  def jump_if(%Runner{} = runner_state, [left, label]) do
-    jump_if(runner_state, [["", left, "==", :truthy], label])
+  def jump_if(%Runner{} = runner_state, [check, label_or_skip]) do
+    check = _decompose_and_check_conditional(runner_state, check)
+    _jump_if(runner_state, check, label_or_skip)
   end
 
   defp _jump_if(%Runner{program: program} = runner_state, true, label) when is_binary(label) do
@@ -732,6 +723,19 @@ defmodule DungeonCrawl.Scripting.Command do
     %{ runner_state | program: %{program | pc: program.pc + skip, lc: 0} }
   end
   defp _jump_if(%Runner{} = runner_state, _, _), do: runner_state
+
+  defp _decompose_and_check_conditional(runner_state, [neg, left, op, right]) do
+    Maths.check(neg, resolve_variable(runner_state, left), op, resolve_variable(runner_state, right))
+  end
+  defp _decompose_and_check_conditional(runner_state, [left, op, right]) do
+    _decompose_and_check_conditional(runner_state, ["", left, op, right])
+  end
+  defp _decompose_and_check_conditional(runner_state, [neg, left]) do
+    _decompose_and_check_conditional(runner_state, [neg, left, "==", :truthy])
+  end
+  defp _decompose_and_check_conditional(runner_state, left) do
+    _decompose_and_check_conditional(runner_state, ["", left, "==", :truthy])
+  end
 
   @doc """
   Locks the object. This will prevent it from receiving and acting on any
@@ -1791,13 +1795,18 @@ defmodule DungeonCrawl.Scripting.Command do
     if params != [[""]] do
       { %Runner{program: program, state: state} = runner_state, lines, labels } = _process_text(runner_state, runner_state.program.pc)
 
-      payload = if length(lines) == 1 && ! String.contains?(Enum.at(lines, 0), "messageLink") do
-                  %{message: Enum.at(lines, 0)}
-                else
-                  %{message: Enum.reverse(lines), modal: true}
+      payload = cond do
+                  length(lines) == 0 ->
+                    nil
+                  length(lines) == 1 && ! String.contains?(Enum.at(lines, 0), "messageLink") ->
+                    %{message: Enum.at(lines, 0)}
+                  true ->
+                    %{message: Enum.reverse(lines), modal: true}
                 end
 
-      program = %{ program |  responses: [ {"message", payload} | program.responses] }
+      program = if payload,
+                   do: %{ program |  responses: [ {"message", payload} | program.responses] },
+                   else: program
 
       case event_sender do
         # only care about tracking available actions sent to a player
@@ -1815,6 +1824,14 @@ defmodule DungeonCrawl.Scripting.Command do
 
   defp _process_text(%Runner{program: program, object_id: object_id} = runner_state, pc, lines \\ [], labels \\ []) do
     case program.instructions[pc] do
+      [:text, [[{:condition, conditional}, skip_lines]]] ->
+        runner_state = %{runner_state | program: %{ program | pc: pc }}
+        increment = if _decompose_and_check_conditional(runner_state, conditional),
+                      do: 1,
+                      else: skip_lines + 1
+
+        _process_text(runner_state, pc + increment, lines, labels)
+
       [:text, [another_line]] ->
         runner_state = %{runner_state | program: %{ program | pc: pc }}
         safe_text = _interpolate_and_escape(another_line, runner_state)

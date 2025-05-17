@@ -131,6 +131,7 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
     #SOUND bloop, yall
     #SOUND bloop, all, extra
     #SEND touch, self, 30
+    ~moo,1
     """
   end
 
@@ -219,7 +220,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 88: UNEQUIP command references nonexistant label `nigeria`",
                "Line 89: SOUND command references invalid slug `123`",
                "Line 90: SOUND command references invalid target `yall`",
-               "Line 91: SOUND command has invalid params `[\"bloop\", \"all\", \"extra\"]`"
+               "Line 91: SOUND command has invalid params `[\"bloop\", \"all\", \"extra\"]`",
+               "Line 93: TEXT conditional is invalid"
               ],
               program} == ProgramValidator.validate(program, user)
       assert {:error,
@@ -283,7 +285,8 @@ defmodule DungeonCrawl.Scripting.ProgramValidatorTest do
                "Line 88: UNEQUIP command references nonexistant label `nigeria`",
                "Line 89: SOUND command references invalid slug `123`",
                "Line 90: SOUND command references invalid target `yall`",
-               "Line 91: SOUND command has invalid params `[\"bloop\", \"all\", \"extra\"]`"
+               "Line 91: SOUND command has invalid params `[\"bloop\", \"all\", \"extra\"]`",
+               "Line 93: TEXT conditional is invalid"
               ],
               program} == ProgramValidator.validate(program, admin)
     end
