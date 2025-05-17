@@ -5,10 +5,9 @@ defmodule DungeonCrawl.RegistrarTest do
   alias DungeonCrawl.DungeonProcesses.DungeonRegistry
 
   setup do
-    map_set_registry = start_supervised!(DungeonRegistry)
     instance = insert_stubbed_level_instance()
 
-    DungeonRegistry.create(map_set_registry, instance.dungeon_instance_id)
+    DungeonRegistry.create(DungeonInstanceRegistry, instance.dungeon_instance_id)
 
     %{di_id: instance.dungeon_instance_id, level_number: instance.number}
   end
