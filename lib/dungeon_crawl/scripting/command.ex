@@ -1844,7 +1844,7 @@ defmodule DungeonCrawl.Scripting.Command do
         _process_text(runner_state, pc + 1, [ "    <span #{attrs}>▶#{ safe_text }</span>" | lines], [ String.downcase(label) | labels ])
 
       _ ->
-        {runner_state, lines, labels}
+        {%{ runner_state | program: _pc_to_end_of_text(program) }, lines, labels}
     end
   end
 
@@ -1855,6 +1855,17 @@ defmodule DungeonCrawl.Scripting.Command do
                          |> html_escape()
 
     "#{safe_text}" <> _interpolate_and_escape(text_fragments, runner_state)
+  end
+
+  defp _pc_to_end_of_text(program) do
+    case program.instructions[program.pc] do
+      [:text, _] ->
+        _pc_to_end_of_text(%{ program | pc: program.pc + 1})
+
+      _ ->
+        # Next run cycle will start off with the line after the last text line
+        %{ program | pc: program.pc - 1}
+    end
   end
 
   @doc """

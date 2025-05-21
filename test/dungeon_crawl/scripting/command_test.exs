@@ -2268,7 +2268,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     assert updated_program.responses == []
     assert updated_program.status == program.status
-    assert updated_program.pc == 1
+    assert updated_program.pc == 2
 
     # conditional is last line in block
     program = program_fixture("Top Line\n~@thing == true, 1")
@@ -2288,6 +2288,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                               skipped line
                               second skipped line
                               last line
+                              ~@thing == false, 3
+                              should not broadcast this separately either
                               """)
     runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
     %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
@@ -2296,7 +2298,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
                %{message: ["One line", "last line"],
                  modal: true}}]
     assert updated_program.status == program.status
-    assert updated_program.pc == 5
+    assert updated_program.pc == 7
   end
 
   test "TRANSPORT" do
