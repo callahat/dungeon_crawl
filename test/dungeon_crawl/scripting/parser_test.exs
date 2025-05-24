@@ -212,7 +212,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  71 => [:jump_if, [{:any_player, "is_facing"}, "touch"]],
                                                  72 => [:text, [["text with interpolation ", {:state_variable, "color"}, ""]]],
                                                  73 => [:text, [["buy ", {:state_variable, "id"}, ""], "buy"]],
-                                                 74 => [:text, [[{:condition, [{:state_variable, "test"}, "==", 5]}, "1"]]],
+                                                 74 => [:text, [[{:condition, [{:state_variable, "test"}, "==", 5]}, 1]]],
                                                  75 => [:text, [["maybe skip this line"]]],
                                                  76 => [:text, [["the end of this modal"]]],
                                                  77 => [:change_dungeon_instance_state, ["di_thing", "++", ""]],
@@ -223,7 +223,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  82 => [:jump_if, [[{:state_variable, "equipment"}, "=~", "gun"], "TOUCH"]],
                                                  83 => [:sound, ["boop"]],
                                                  84 => [:become, [%{"count" => -3}]],
-                                                 85 => [:text, [[{:condition, {:state_variable, "notext"}}, ""]]],
+                                                 85 => [:text, [[{:condition, {:state_variable, "notext"}}, 1]]],
                                                  },
                                  status: :alive,
                                  pc: 1,
@@ -428,7 +428,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
 
     test "bad text conditional" do
       script = "~moo,9"
-      assert {:ok, %{instructions: %{1 => [:text, [[{:condition, :error}, "9"]]]}}} = Parser.parse(script)
+      assert {:ok, %{instructions: %{1 => [:text, [[{:condition, :error}, 9]]]}}} = Parser.parse(script)
     end
   end
 end

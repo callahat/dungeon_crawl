@@ -534,13 +534,22 @@
                 <pre class="script">My color is ${ @color }, and name is ${ @name }</pre></td>
           </tr>
           <tr>
-            <td>!&lt;label&gt;;</td>
+            <td>!&lt;label&gt;;&lt;text&gt;</td>
             <td>Text Action</td>
             <td>This will display a linked text message to the player. The display of the text will appear as a
                 clickable link in a text modal. When clicked, the link will send the message given between the '!' and ';'
                 to that object.</td>
             <td><pre class="script">!buy_gems;Buy Gems</pre>
                 <pre class="script">!no;Answer "No"</pre></td>
+          </tr>
+          <tr>
+            <td>~&lt;conditional&gt;, &lt;number&gt;</td>
+            <td>Text Conditional</td>
+            <td>This will display the following lines of text if the conditional is true, otherwise
+                the number of lines specified after the comma will be ommitted. The conditional are
+                similar to the conditional for the IF command.</td>
+            <td><pre class="script">~?sender@gems > 10, 1</pre>
+                <pre class="script">~not @waiting, 1</pre></td>
           </tr>
         </table>
 
