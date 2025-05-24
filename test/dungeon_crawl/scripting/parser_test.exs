@@ -125,6 +125,9 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF ?any_player@is_facing, touch
                text with interpolation ${ @color }
                !buy;buy ${ @id }
+               ~@test ==5, 1
+               maybe skip this line
+               the end of this modal
                &di_thing++
                #IF &di_thing > 10, TOUCH
                #GAMEOVER
@@ -133,6 +136,7 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                #IF @equipment =~ gun, TOUCH
                #SOUND boop
                #BECOME count: -3
+               ~@notext
                """
       assert {:ok, program = %Program{}} = Parser.parse(script)
       assert program == %Program{instructions: %{1 => [:halt, [""]],
@@ -208,14 +212,18 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                                  71 => [:jump_if, [{:any_player, "is_facing"}, "touch"]],
                                                  72 => [:text, [["text with interpolation ", {:state_variable, "color"}, ""]]],
                                                  73 => [:text, [["buy ", {:state_variable, "id"}, ""], "buy"]],
-                                                 74 => [:change_dungeon_instance_state, ["di_thing", "++", ""]],
-                                                 75 => [:jump_if, [[{:dungeon_instance_state_variable, "di_thing"}, ">", 10], "TOUCH"]],
-                                                 76 => [:gameover, [""]],
-                                                 77 => [:equip, ["gun", [:event_sender], 1, "TOUCH"]],
-                                                 78 => [:unequip, ["gun", "south", "TOUCH"]],
-                                                 79 => [:jump_if, [[{:state_variable, "equipment"}, "=~", "gun"], "TOUCH"]],
-                                                 80 => [:sound, ["boop"]],
-                                                 81 => [:become, [%{"count" => -3}]],
+                                                 74 => [:text, [[{:condition, [{:state_variable, "test"}, "==", 5]}, "1"]]],
+                                                 75 => [:text, [["maybe skip this line"]]],
+                                                 76 => [:text, [["the end of this modal"]]],
+                                                 77 => [:change_dungeon_instance_state, ["di_thing", "++", ""]],
+                                                 78 => [:jump_if, [[{:dungeon_instance_state_variable, "di_thing"}, ">", 10], "TOUCH"]],
+                                                 79 => [:gameover, [""]],
+                                                 80 => [:equip, ["gun", [:event_sender], 1, "TOUCH"]],
+                                                 81 => [:unequip, ["gun", "south", "TOUCH"]],
+                                                 82 => [:jump_if, [[{:state_variable, "equipment"}, "=~", "gun"], "TOUCH"]],
+                                                 83 => [:sound, ["boop"]],
+                                                 84 => [:become, [%{"count" => -3}]],
+                                                 85 => [:text, [[{:condition, {:state_variable, "notext"}}, ""]]],
                                                  },
                                  status: :alive,
                                  pc: 1,
@@ -416,6 +424,11 @@ defmodule DungeonCrawl.Scripting.ParserTest do
                                  broadcasts: [],
                                  responses: []}
       assert {:error, "Invalid shorthand movement: @i", _program = %Program{}} = Parser.parse("/w@i")
+    end
+
+    test "bad text conditional" do
+      script = "~moo,9"
+      assert {:ok, %{instructions: %{1 => [:text, [[{:condition, :error}, "9"]]]}}} = Parser.parse(script)
     end
   end
 end

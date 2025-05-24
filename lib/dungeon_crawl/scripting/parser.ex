@@ -85,6 +85,8 @@ defmodule DungeonCrawl.Scripting.Parser do
   <no prefix> - this is treated as text that can be displayed to a player.
   !<label>;   - this is treaded as a text action, which can be displayed to a player and
                 has an associated label/message that will be sent to the object when clicked.
+  ~<condition>, <lines> - this is used for multiline texts; when the conditional is false skip
+                          the over the next lines
 
 
   ## Examples
@@ -271,10 +273,18 @@ defmodule DungeonCrawl.Scripting.Parser do
   defp _handle_text(line, program) do
     line_number = Enum.count(program.instructions) + 1
 
-    %{"label" => label, "text" => text} = Regex.named_captures(~r/(?:!(?<label>[A-Za-z\d_]+);)?(?<text>.*)$/, line)
+    params = \
+    case Regex.named_captures(~r/(?:~(?<condition>.*?)(?:\s*,\s*(?<lines>\d+))?)$|^(?:!(?<label>[A-Za-z\d_]+);)?(?<text>.*)$/, line) do
+      %{"condition" => condition, "lines" => lines} when condition != "" ->
+        lines = if lines == "", do: 1, else: String.to_integer(lines)
+        [[{:condition, _normalize_conditional(condition)}, lines]]
 
-    text_chunks = _interpolations(text)
-    params = if label != "", do: [text_chunks, label], else: [text_chunks]
+      %{"label" => label, "text" => text} when label != "" ->
+        [_interpolations(text), label]
+
+      %{"text" => text} ->
+        [_interpolations(text)]
+    end
 
     {:ok, %{program | instructions: Map.put(program.instructions, line_number, [:text, params ]) } }
   end

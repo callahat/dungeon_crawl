@@ -2247,6 +2247,60 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_program.pc == 1
   end
 
+  test "TEXT with conditionally displayed lines" do
+    program = program_fixture("~@thing == true, 1\nShown line")
+
+    stubbed_object = %{id: 2, state: %{"thing" => true}}
+    state = %Levels{map_by_ids: %{2 => stubbed_object}}
+    runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
+    %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
+
+    assert updated_program.responses ==
+             [{"message",
+               %{message: "Shown line"}}]
+    assert updated_program.status == program.status
+    assert updated_program.pc == 2
+
+    # conditional is false
+    program = program_fixture("~@thing == false, 1\nShown line")
+    runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
+    %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
+
+    assert updated_program.responses == []
+    assert updated_program.status == program.status
+    assert updated_program.pc == 2
+
+    # conditional is last line in block
+    program = program_fixture("Top Line\n~@thing == true, 1")
+    runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
+    %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
+
+    assert updated_program.responses ==
+             [{"message",
+               %{message: "Top Line"}}]
+    assert updated_program.status == program.status
+    assert updated_program.pc == 2
+
+    # multiline
+    program = program_fixture("""
+                              One line
+                              ~@thing == false, 2
+                              skipped line
+                              second skipped line
+                              last line
+                              ~@thing == false, 3
+                              should not broadcast this separately either
+                              """)
+    runner_state = %Runner{program: program, object_id: stubbed_object.id, state: state}
+    %Runner{program: updated_program} = Command.text(runner_state, ["ignord"])
+    assert updated_program.responses ==
+             [{"message",
+               %{message: ["One line", "last line"],
+                 modal: true}}]
+    assert updated_program.status == program.status
+    assert updated_program.pc == 7
+  end
+
   test "TRANSPORT" do
     # it calls Travel.passage, so a lot of testing will be redundant. What will be useful is testing the various params do what they should
     defmodule TravelMock1 do
