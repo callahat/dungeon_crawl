@@ -99,6 +99,11 @@ DungeonCrawl.Dungeons.generate_dungeon(DungeonCrawl.DungeonGeneration.MapGenerat
   true)
 ```
 
+## Existing Games
+
+"Mainline" and "Chore Simulator" JSON exports have been moved to a separate repository.
+https://github.com/callahat/dungeon_crawl_games
+
 ## Learn more
 
 Ready to run in production? Please [check our deployment guides](http://www.phoenixframework.org/docs/deployment).
