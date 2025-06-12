@@ -279,15 +279,24 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end
   end
 
+  # The tile hash is for quick comparison and uniqueness. After the tile extraction
+  # phase is completed the hashes may be replaced with smaller values to save space.
   defp recalculate_tile_hashes(%{levels: levels, tiles: tiles} = export) do
-    old_to_new_hash = Enum.map(tiles, fn {old_hash, tile_fields} ->
-                        {old_hash, calculate_tile_hash(tile_fields)}
-                      end)
-                      |> Enum.into(%{})
-    tiles = Enum.map(tiles, fn {old_hash, tile_fields} ->
-              { Map.get(old_to_new_hash, old_hash), tile_fields }
-            end)
-            |> Enum.into(%{})
+    {old_to_new_hash, tiles} =
+      # getting the new hash and sorting makes the order more consistent
+      Enum.map(tiles, fn {old_hash, tile_fields} ->
+        {old_hash, calculate_tile_hash(tile_fields)}
+      end)
+      |> Enum.sort(fn {_, new_a}, {_, new_b} -> new_a < new_b end)
+      |> Enum.with_index()
+      |> Enum.reduce({%{}, %{}}, fn {{tile_hash, _}, index}, {map1, map2} ->
+        short_hash = _base_n_number(index)
+        {
+          Map.put(map1, tile_hash, short_hash),
+          Map.put(map2, short_hash, tiles[tile_hash])
+        }
+      end)
+
     levels = Enum.map(levels, fn {number, %{tile_data: tile_data} = level_fields} ->
                tile_data = Enum.map(tile_data, fn [old_hash | coords] ->
                              [ Map.get(old_to_new_hash, old_hash) | coords ]
@@ -308,5 +317,22 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
              |> Enum.map(fn {_slug_or_id, asset} -> {Map.get(asset, temp_id_key), asset} end)
              |> Enum.into(%{})
     %{ export | asset_key => assets }
+  end
+
+  # base84
+  @digits to_string(
+            Enum.to_list(?0..?9) ++ # 10 digits
+            Enum.to_list(?a..?z) ++ # 26 digits
+            Enum.to_list(?A..?Z) ++ # 26 digits
+            ~c"~!@#$%^&*()_+,./<>[]{}") # 22 digits
+  @base String.length(@digits)
+  defp _base_n_number(i) do
+    ii = trunc(i / @base)
+
+    if ii > 0 do
+      _base_n_number(ii) <> String.at(@digits, i - ii * @base)
+    else
+      String.at(@digits, i)
+    end
   end
 end
