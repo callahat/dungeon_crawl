@@ -114,6 +114,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
   end
 
   test "run/1", export do
+    Application.put_env(:dungeon_crawl, :test_timestamp, "2025-06-16 19:55:13 UTC")
     export_hash = DungeonExports.run(export.dungeon.id)
     assert %DungeonExports{
              dungeon: dungeon,
@@ -123,6 +124,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              tile_templates: tile_templates,
              sounds: sounds,
              spawn_locations: spawn_locations,
+             _meta: _metadata,
            } = export_hash
 
     # Items

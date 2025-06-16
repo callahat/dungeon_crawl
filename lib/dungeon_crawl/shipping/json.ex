@@ -21,6 +21,7 @@ defmodule DungeonCrawl.Shipping.Json do
          ++ Map.keys(%Effect{})
          ++ Map.keys(%DungeonExports{})
          ++ [:temp_tt_id, :temp_item_id, :temp_sound_id, :tile_data, :user_name]
+         ++ [:date, :host, :dungeon_active, :dungeon_crawl_version, :dungeon_version, :exporter_version]
          |> Enum.map(&to_string/1)
          |> Enum.uniq()
 

@@ -19,6 +19,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   use DungeonCrawl.Shipping.SlugMatching
 
+  @exporter_version "2.0.0"
+
   @derive Jason.Encoder
   defstruct dungeon: nil,
             levels: %{},
@@ -28,7 +30,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
             sounds: %{},
             spawn_locations: [],
             status: "running",
-            log: []
+            log: [],
+            _meta: %{}
 
   def run(dungeon_id) do
     dungeon = Dungeons.get_dungeon!(dungeon_id)
@@ -47,6 +50,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> switch_keys(:sounds, :temp_sound_id)
     |> switch_keys(:items, :temp_item_id)
     |> switch_keys(:tile_templates, :temp_tt_id)
+    |> add_metadata()
   end
 
   # these can be private, for now easier to work on them one at a time
@@ -319,12 +323,28 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     %{ export | asset_key => assets }
   end
 
+  defp add_metadata(export, version, active) do
+    Map.put(export, :_meta, %{
+      dungeon_crawl_version: to_string(Application.spec(:dungeon_crawl)[:vsn]),
+      exporter_version: @exporter_version,
+      dungeon_version: version,
+      dungeon_active: active,
+      date: Application.get_env(:dungeon_crawl, :test_timestamp) || Calendar.strftime(DateTime.now!("Etc/UTC"), "%Y-%m-%d %H:%M:%S UTC"),
+      host: get_in(Application.get_env(:dungeon_crawl, DungeonCrawlWeb.Endpoint), [:url, :host]),
+    })
+  end
+  defp add_metadata(%{dungeon: %{version: version, active: active}} = export),
+       do: add_metadata(export, version, active)
+  defp add_metadata(export),
+       do: add_metadata(export, nil, nil)
+
   # base84
-  @digits to_string(
+  @digits to_string(Enum.sort(
             Enum.to_list(?0..?9) ++ # 10 digits
             Enum.to_list(?a..?z) ++ # 26 digits
             Enum.to_list(?A..?Z) ++ # 26 digits
-            ~c"~!@#$%^&*()_+,./<>[]{}") # 22 digits
+            ~c"~!@#$%^&*()_+,./<>[]{}" # 22 digits
+          ))
   @base String.length(@digits)
   defp _base_n_number(i) do
     ii = trunc(i / @base)
