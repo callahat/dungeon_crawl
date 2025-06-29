@@ -19,7 +19,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   use DungeonCrawl.Shipping.SlugMatching
 
-  @exporter_version "2.0.0"
+  @exporter_version "3.0.0"
 
   @derive Jason.Encoder
   defstruct dungeon: nil,
@@ -46,6 +46,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> repoint_ttids_and_slugs(:items)
     |> repoint_ttids_and_slugs(:tile_templates)
     |> recalculate_tile_hashes()
+    |> compress_level_tile_data()
     |> repoint_dungeon_item_slugs()
     |> switch_keys(:sounds, :temp_sound_id)
     |> switch_keys(:items, :temp_item_id)
@@ -314,6 +315,46 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   defp calculate_tile_hash(tile_fields) do
     Base.encode64(:crypto.hash(:sha, inspect(Enum.sort(tile_fields))))
+  end
+
+  defp compress_level_tile_data(%{levels: levels} = export) do
+    levels = Enum.map(levels, fn {number, level_fields} ->
+      %{tile_data: tile_data, width: width, height: height} = level_fields
+      compressed_data = _compress_level_tile_data(tile_data, width, height)
+      {number, %{level_fields | tile_data: compressed_data}}
+    end)
+    |> Enum.into(%{})
+
+    %{ export | levels: levels }
+  end
+
+  defp _compress_level_tile_data(tile_data, width, height) do
+    Enum.group_by(tile_data, fn [_tile, _row, _col, z] -> z end)
+    |> Enum.map(fn {z, tiles} ->
+      row_col_map = tiles
+        |> Enum.map(fn [tile, row, col, _z] -> {{row, col}, tile} end)
+        |> Enum.into(%{})
+
+      compressed_tile_data = \
+        for row <- 0..height-1 do
+          row = \
+          [String.pad_leading("#{row}", 3, "0")] ++
+          for col <- 0..width-1 do
+            row_col_map[{row, col}] || "" # empty string is no tile here
+          end
+          |> Enum.join(" ") # space is the separator
+          |> String.replace(~r/\s+$/, "")
+
+          # if only the row number is present, nothing needed here
+          if String.length(row) == 3,
+            do: nil,
+            else: row
+        end
+        |> Enum.reject(&is_nil/1)
+
+      {z, compressed_tile_data}
+    end)
+    |> Enum.into(%{})
   end
 
   defp switch_keys(export, asset_key, temp_id_key) do

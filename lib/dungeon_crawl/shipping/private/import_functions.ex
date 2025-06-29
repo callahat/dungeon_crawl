@@ -406,6 +406,20 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctions do
     create_levels(levels, export)
   end
 
+  defp create_tiles(tile_data, level_id, export) when is_map(tile_data) do
+    tile_data
+    |> Enum.flat_map(fn {z_index, tile_data} ->
+      Enum.flat_map(tile_data, fn row_and_td ->
+        [row | td] = String.split(row_and_td, " ")
+        row = String.to_integer(row)
+
+        Enum.with_index(td, fn hash, col -> [hash, row, col, z_index] end)
+        |> Enum.reject(fn [hash | _] -> hash == "" end)
+      end)
+    end)
+    |> create_tiles(level_id, export)
+  end
+
   defp create_tiles([], _level_id, export), do: export
   defp create_tiles([[tile_hash, row, col, z_index] | tile_hashes], level_id, export) do
     tile_attrs = export.tiles[tile_hash]
