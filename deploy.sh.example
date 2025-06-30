@@ -22,4 +22,5 @@ MIX_QUIET=true MIX_ENV=prod mix deps.get
 MIX_ENV=prod mix ecto.migrate
 MIX_ENV=prod mix assets.deploy
 sudo /bin/systemctl restart dungeon_crawl.service
+systemctl status dungeon_crawl.service | grep active
 echo "Deployed Branch: $(git branch | grep '* ')"
