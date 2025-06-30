@@ -51,7 +51,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> switch_keys(:sounds, :temp_sound_id)
     |> switch_keys(:items, :temp_item_id)
     |> switch_keys(:tile_templates, :temp_tt_id)
-    |> add_metadata()
+    |> add_metadata(dungeon)
   end
 
   # these can be private, for now easier to work on them one at a time
@@ -374,9 +374,9 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
       host: get_in(Application.get_env(:dungeon_crawl, DungeonCrawlWeb.Endpoint), [:url, :host]),
     })
   end
-  defp add_metadata(%{dungeon: %{version: version, active: active}} = export),
+  defp add_metadata(export, %{version: version, active: active}),
        do: add_metadata(export, version, active)
-  defp add_metadata(export),
+  defp add_metadata(export, _),
        do: add_metadata(export, nil, nil)
 
   # base84

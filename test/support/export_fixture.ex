@@ -5,9 +5,9 @@ defmodule DungeonCrawlWeb.ExportFixture do
       _meta: %{
         date: "2025-06-16 19:55:13 UTC",
         host: "localhost",
-        dungeon_active: nil,
+        dungeon_active: true,
         dungeon_crawl_version: "0.0.2",
-        dungeon_version: nil,
+        dungeon_version: 1,
         exporter_version: "3.0.0"
       },
       dungeon: %{
