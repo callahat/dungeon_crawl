@@ -21,6 +21,7 @@ defmodule DungeonCrawl.Shipping.Json do
          ++ Map.keys(%Effect{})
          ++ Map.keys(%DungeonExports{})
          ++ [:temp_tt_id, :temp_item_id, :temp_sound_id, :tile_data, :user_name]
+         ++ [:date, :host, :dungeon_active, :dungeon_crawl_version, :dungeon_version, :exporter_version]
          |> Enum.map(&to_string/1)
          |> Enum.uniq()
 
@@ -43,10 +44,15 @@ defmodule DungeonCrawl.Shipping.Json do
     |> Enum.into(%{})
   end
   defp _convert_keys([]), do: []
-  defp _convert_keys([{:state, values} | json]) do
+  defp _convert_keys([{"state", values} | json]) do
     # State goes no deeper, and none of the keys in its associated map should be atoms
     [
       {:state, values} | _convert_keys(json)
+    ]
+  end
+  defp _convert_keys([{"tiles", values} | json]) do
+    [
+      {:tiles, _convert_the_children(values)} | _convert_keys(json)
     ]
   end
   defp _convert_keys([{key, value} | json]) do
@@ -55,6 +61,22 @@ defmodule DungeonCrawl.Shipping.Json do
     ]
   end
   defp _convert_keys(terminal_value), do: terminal_value
+
+  # these keys should not be converted, but the children could.
+  # in the case of tiles, the key should always be a string but the
+  # regex might mistake "0" for something to turn into an integer
+  defp _convert_the_children(json) when is_map(json) do
+    json
+    |> Map.to_list()
+    |> _convert_the_children()
+    |> Enum.into(%{})
+  end
+  defp _convert_the_children([]), do: []
+  defp _convert_the_children([{key, value} | json]) do
+    [
+      {key, _convert_keys(value)} | _convert_the_children(json)
+    ]
+  end
 
   defp _convert_key(key) do
     cond do

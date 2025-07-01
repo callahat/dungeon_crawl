@@ -114,6 +114,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
   end
 
   test "run/1", export do
+    Application.put_env(:dungeon_crawl, :test_timestamp, "2025-06-16 19:55:13 UTC")
     export_hash = DungeonExports.run(export.dungeon.id)
     assert %DungeonExports{
              dungeon: dungeon,
@@ -123,6 +124,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              tile_templates: tile_templates,
              sounds: sounds,
              spawn_locations: spawn_locations,
+             _meta: _metadata,
            } = export_hash
 
     # Items
@@ -304,7 +306,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              name: "Stubbed",
              number: 1,
              tile_data: level_1_tile_data} = level_1
-    assert [] == level_1_tile_data
+    assert %{} == level_1_tile_data
 
     assert %{entrance: true,
              height: 20,
@@ -313,17 +315,12 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              number: 2,
              number_north: 3,
              tile_data: level_2_tile_data} = level_2
-    assert [
-             [floor_hash, 0, 1, 0],
-             [rock_hash, 0, 2, 0],
-             [floor_hash, 0, 3, 0],
-             [floor_hash, 1, 1, 0],
-             [c_door_hash, 1, 2, 0],
-             [floor_hash, 1, 3, 0],
-             [wall_hash, 2, 1, 0],
-             [wall_hash, 2, 2, 0],
-             [wall_hash, 2, 3, 0]
-           ] == level_2_tile_data
+    assert %{
+      0 => [
+        "000  #{ floor_hash } #{   rock_hash } #{ floor_hash }",
+        "001  #{ floor_hash } #{ c_door_hash } #{ floor_hash }",
+        "002  #{ wall_hash  } #{   wall_hash } #{  wall_hash }"
+    ]} == level_2_tile_data
 
     assert %{entrance: nil,
              height: 20,
@@ -332,12 +329,14 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
              number: 3,
              state: %{"visibility" => "fog"},
              tile_data: level_3_tile_data} = level_3
-    assert [
-             [floor_hash, 0, 1, 0],
-             [floor_hash, 0, 2, 0],
-             [floor2_hash, 1, 1, 0],
-             [custom_hash, 1, 2, 1]
-           ] == level_3_tile_data
+    assert %{
+      0 => [
+        "000  #{  floor_hash } #{ floor_hash}",
+        "001  #{ floor2_hash }"
+      ],
+      1 => [
+        "001   #{ custom_hash }"
+      ]} == level_3_tile_data
 
     # spawn locations
     assert [[2, 0, 1], [2, 0, 3], [3, 1, 1]] == spawn_locations
@@ -449,7 +448,7 @@ defmodule DungeonCrawl.Shipping.DungeonExportsTest do
     assert length(Map.keys(levels)) == 1
 
     assert %{tile_data: level_1_tile_data} = level_1
-    assert [[gives_item_hash, 1, 3, 0]] == level_1_tile_data
+    assert %{0 => ["001    #{ gives_item_hash }"]} == level_1_tile_data
   end
 
   def comp_item_fields(item) do

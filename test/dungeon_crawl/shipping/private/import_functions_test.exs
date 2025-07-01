@@ -803,7 +803,7 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
   end
 
   describe "create_levels/1" do
-    setup do
+    setup config do
       dungeon = insert_dungeon()
       floor = insert_tile_template(%{character: ".", state: %{"blocking" => false}, description: "a dirty floor", name: "Floor"})
       rock = TileTemplateSeeder.rock_tile()
@@ -821,11 +821,17 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
             number_south: nil,
             number_west: nil,
             state: %{},
-            tile_data: [
-              ["rock_hash", 0, 1, 0],
-              ["floor_hash", 0, 2, 0],
-              ["rock_hash", 0, 3, 0]
-            ],
+            tile_data: if(config[:tile_data_style] == "old",
+              do: [
+                ["rock_hash", 0, 1, 0],
+                ["floor_hash", 0, 2, 0],
+                ["rock_hash", 0, 3, 0]
+              ],
+              else: %{
+              0 => [
+                "000  rock_hash floor_hash rock_hash"
+              ]
+              }),
             width: 20
           },
           2 => %{
@@ -838,12 +844,22 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
             number_south: nil,
             number_west: nil,
             state: %{"visibility" => "fog"},
-            tile_data: [
-              ["rock_hash", 0, 1, 0],
-              ["floor_hash", 0, 2, 0],
-              ["floor_hash", 1, 1, 0],
-              ["lamp_hash", 1, 2, 1]
-            ],
+            tile_data: if(config[:tile_data_style] == "old",
+              do: [
+                ["rock_hash", 0, 1, 0],
+                ["floor_hash", 0, 2, 0],
+                ["floor_hash", 1, 1, 0],
+                ["lamp_hash", 1, 2, 1]
+              ],
+              else: %{
+              0 => [
+                "000  rock_hash floor_hash",
+                "001  floor_hash",
+              ],
+              1 => [
+                "001   lamp_hash"
+              ]
+              }),
             width: 20
           }
         },
@@ -897,6 +913,36 @@ defmodule DungeonCrawl.Shipping.Private.ImportFunctionsTest do
     end
 
     test "it creates the levels and their tiles", %{export: export, dungeon: dungeon} do
+      updated_export = create_levels(export)
+      dungeon_id = dungeon.id
+
+      # the tiles hash is not updated in the export
+      assert Map.drop(updated_export, [:levels]) == Map.drop(export, [:levels])
+      assert %{levels: updated_levels} = updated_export
+      %{1 => updated_level_1, 2 => updated_level_2} = updated_levels
+      assert Kernel.map_size(updated_levels) == 2
+      assert %Dungeons.Level{
+               dungeon_id: ^dungeon_id,
+               state: %{}
+             } = updated_level_1
+      assert %Dungeons.Level{
+               dungeon_id: ^dungeon_id,
+               state: %{"visibility" => "fog"}
+             } = updated_level_2
+
+      # but the tiles are created in the DB
+      [%{name: "Rock"}] = Dungeons.get_tiles(updated_level_1.id, 0, 1)
+      [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_1.id, 0, 2)
+      [%{name: "Rock"}] = Dungeons.get_tiles(updated_level_1.id, 0, 3)
+
+      [%{name: "Rock"}] = Dungeons.get_tiles(updated_level_2.id, 0, 1)
+      [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_2.id, 0, 2)
+      [%{name: "Floor"}] = Dungeons.get_tiles(updated_level_2.id, 1, 1)
+      [%{name: "Lamp"}] = Dungeons.get_tiles(updated_level_2.id, 1, 2)
+    end
+
+    @tag tile_data_style: "old"
+    test "it creates the levels and their tiles with the old format", %{export: export, dungeon: dungeon} do
       updated_export = create_levels(export)
       dungeon_id = dungeon.id
 

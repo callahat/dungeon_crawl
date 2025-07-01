@@ -19,6 +19,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   use DungeonCrawl.Shipping.SlugMatching
 
+  @exporter_version "3.0.0"
+
   @derive Jason.Encoder
   defstruct dungeon: nil,
             levels: %{},
@@ -28,7 +30,8 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
             sounds: %{},
             spawn_locations: [],
             status: "running",
-            log: []
+            log: [],
+            _meta: %{}
 
   def run(dungeon_id) do
     dungeon = Dungeons.get_dungeon!(dungeon_id)
@@ -43,10 +46,12 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     |> repoint_ttids_and_slugs(:items)
     |> repoint_ttids_and_slugs(:tile_templates)
     |> recalculate_tile_hashes()
+    |> compress_level_tile_data()
     |> repoint_dungeon_item_slugs()
     |> switch_keys(:sounds, :temp_sound_id)
     |> switch_keys(:items, :temp_item_id)
     |> switch_keys(:tile_templates, :temp_tt_id)
+    |> add_metadata(dungeon)
   end
 
   # these can be private, for now easier to work on them one at a time
@@ -279,15 +284,24 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     end
   end
 
+  # The tile hash is for quick comparison and uniqueness. After the tile extraction
+  # phase is completed the hashes may be replaced with smaller values to save space.
   defp recalculate_tile_hashes(%{levels: levels, tiles: tiles} = export) do
-    old_to_new_hash = Enum.map(tiles, fn {old_hash, tile_fields} ->
-                        {old_hash, calculate_tile_hash(tile_fields)}
-                      end)
-                      |> Enum.into(%{})
-    tiles = Enum.map(tiles, fn {old_hash, tile_fields} ->
-              { Map.get(old_to_new_hash, old_hash), tile_fields }
-            end)
-            |> Enum.into(%{})
+    {old_to_new_hash, tiles} =
+      # getting the new hash and sorting makes the order more consistent
+      Enum.map(tiles, fn {old_hash, tile_fields} ->
+        {old_hash, calculate_tile_hash(tile_fields)}
+      end)
+      |> Enum.sort(fn {_, new_a}, {_, new_b} -> new_a < new_b end)
+      |> Enum.with_index()
+      |> Enum.reduce({%{}, %{}}, fn {{tile_hash, _}, index}, {map1, map2} ->
+        short_hash = _base_n_number(index)
+        {
+          Map.put(map1, tile_hash, short_hash),
+          Map.put(map2, short_hash, tiles[tile_hash])
+        }
+      end)
+
     levels = Enum.map(levels, fn {number, %{tile_data: tile_data} = level_fields} ->
                tile_data = Enum.map(tile_data, fn [old_hash | coords] ->
                              [ Map.get(old_to_new_hash, old_hash) | coords ]
@@ -303,10 +317,83 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
     Base.encode64(:crypto.hash(:sha, inspect(Enum.sort(tile_fields))))
   end
 
+  defp compress_level_tile_data(%{levels: levels} = export) do
+    levels = Enum.map(levels, fn {number, level_fields} ->
+      %{tile_data: tile_data, width: width, height: height} = level_fields
+      compressed_data = _compress_level_tile_data(tile_data, width, height)
+      {number, %{level_fields | tile_data: compressed_data}}
+    end)
+    |> Enum.into(%{})
+
+    %{ export | levels: levels }
+  end
+
+  defp _compress_level_tile_data(tile_data, width, height) do
+    Enum.group_by(tile_data, fn [_tile, _row, _col, z] -> z end)
+    |> Enum.map(fn {z, tiles} ->
+      row_col_map = tiles
+        |> Enum.map(fn [tile, row, col, _z] -> {{row, col}, tile} end)
+        |> Enum.into(%{})
+
+      compressed_tile_data = \
+        for row <- 0..height-1 do
+          row = \
+          [String.pad_leading("#{row}", 3, "0")] ++
+          for col <- 0..width-1 do
+            row_col_map[{row, col}] || "" # empty string is no tile here
+          end
+          |> Enum.join(" ") # space is the separator
+          |> String.replace(~r/\s+$/, "")
+
+          # if only the row number is present, nothing needed here
+          if String.length(row) == 3,
+            do: nil,
+            else: row
+        end
+        |> Enum.reject(&is_nil/1)
+
+      {z, compressed_tile_data}
+    end)
+    |> Enum.into(%{})
+  end
+
   defp switch_keys(export, asset_key, temp_id_key) do
     assets = Map.get(export, asset_key)
              |> Enum.map(fn {_slug_or_id, asset} -> {Map.get(asset, temp_id_key), asset} end)
              |> Enum.into(%{})
     %{ export | asset_key => assets }
+  end
+
+  defp add_metadata(export, version, active) do
+    Map.put(export, :_meta, %{
+      dungeon_crawl_version: to_string(Application.spec(:dungeon_crawl)[:vsn]),
+      exporter_version: @exporter_version,
+      dungeon_version: version,
+      dungeon_active: active,
+      date: Application.get_env(:dungeon_crawl, :test_timestamp) || Calendar.strftime(DateTime.now!("Etc/UTC"), "%Y-%m-%d %H:%M:%S UTC"),
+      host: get_in(Application.get_env(:dungeon_crawl, DungeonCrawlWeb.Endpoint), [:url, :host]),
+    })
+  end
+  defp add_metadata(export, %{version: version, active: active}),
+       do: add_metadata(export, version, active)
+  defp add_metadata(export, _),
+       do: add_metadata(export, nil, nil)
+
+  # base84
+  @digits to_string(Enum.sort(
+            Enum.to_list(?0..?9) ++ # 10 digits
+            Enum.to_list(?a..?z) ++ # 26 digits
+            Enum.to_list(?A..?Z) ++ # 26 digits
+            ~c"~!@#$%^&*()_+,./<>[]{}" # 22 digits
+          ))
+  @base String.length(@digits)
+  defp _base_n_number(i) do
+    ii = trunc(i / @base)
+
+    if ii > 0 do
+      _base_n_number(ii) <> String.at(@digits, i - ii * @base)
+    else
+      String.at(@digits, i)
+    end
   end
 end
