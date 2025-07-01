@@ -1,5 +1,7 @@
 # DungeonCrawl
 
+[![Elixir CI](https://github.com/callahat/dungeon_crawl/actions/workflows/ci.yml/badge.svg)](https://github.com/callahat/dungeon_crawl/actions/workflows/ci.yml)
+
 This is a retro style top down multiplayer client/server game engine. The application
 acts as the server (which can be networked or just run locally) and the gameplay
 takes place in a web browser. Greatly inspired by ZZT this project is an attempt
