@@ -10,6 +10,14 @@ jobs:
   mix_test:
     name: mix test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
     runs-on: ${{ matrix.os }}
+    services:
+      postgresql:
+        image: postgres:11.11
+        env:
+          POSTGRES_USER: elixir
+          POSTGRES_PASSWORD: elixir
+        ports: [ '5432:5432' ]
+        options: --health-cmd pg_isready --health-interval 2s --health-timeout 1s --health-retries 10
     strategy:
       fail-fast: false
       matrix:
@@ -41,4 +49,5 @@ jobs:
           key: ${{ matrix.otp }}-${{ matrix.elixir }}-build
       - run: mix compile --warnings-as-errors
         if: matrix.warnings_as_errors
+      - run: mix ecto.create && mix ecto.load && mix ecto.migrate
       - run: mix test
