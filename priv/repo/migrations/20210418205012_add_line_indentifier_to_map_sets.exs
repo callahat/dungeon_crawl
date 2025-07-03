@@ -55,10 +55,4 @@ defmodule DungeonCrawl.Repo.Migrations.AddLineIndentifierToMapSets do
       _update_line_identifiers(blank_count)
     end
   end
-
-  def down do
-    alter table(:map_sets) do
-      remove :line_identifier
-    end
-  end
 end
