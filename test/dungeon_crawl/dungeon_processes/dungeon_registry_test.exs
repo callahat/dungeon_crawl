@@ -35,7 +35,7 @@ defmodule DungeonCrawl.DungeonRegistryTest do
 
     log = ExUnit.CaptureLog.capture_log(fn ->
       assert :error = DungeonRegistry.lookup(map_set_registry, di.id)
-      :timer.sleep 5
+      eventually assert :error == Registry.get_dungeon_process_meta({:dungeon_id, di.id})
     end)
     assert log =~ ~r/warning.*?rpc call returned: 'false' for PID #{ inspect msi_process } for dungeon id #{di.id}; removing/
 
