@@ -21,7 +21,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   @exporter_version "3.0.0"
 
-  @derive Jason.Encoder
+  @derive {Jason.Encoder, except: [:status, :log, :__struct__]}
   defstruct dungeon: nil,
             levels: %{},
             tiles: %{},
