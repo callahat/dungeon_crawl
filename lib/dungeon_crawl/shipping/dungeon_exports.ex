@@ -19,7 +19,7 @@ defmodule DungeonCrawl.Shipping.DungeonExports do
 
   use DungeonCrawl.Shipping.SlugMatching
 
-  @exporter_version "3.0.0"
+  @exporter_version "3.0.1"
 
   @derive {Jason.Encoder, except: [:status, :log, :__struct__]}
   defstruct dungeon: nil,
