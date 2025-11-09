@@ -55,3 +55,4 @@ jobs:
         if: matrix.warnings_as_errors
       - run: mix ecto.create && mix ecto.migrate
       - run: mix test
+      - run: mix test --failed
