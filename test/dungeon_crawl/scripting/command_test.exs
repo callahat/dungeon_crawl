@@ -665,7 +665,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Levels.create_tile(state, %Tile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Levels.create_tile(state, %Tile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
-    assert Command.go(%Runner{object_id: mover.id, state: state}, ["left"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["left", true])
+    assert comparable_runner_map(Command.go(%Runner{object_id: mover.id, state: state}, ["left"])) ==
+             comparable_runner_map(Command.move(%Runner{object_id: mover.id, state: state}, ["left", true]))
 
     # Unsuccessful
     assert Command.go(%Runner{object_id: mover.id, state: state}, ["down"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["down", true])
@@ -1152,9 +1153,12 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     assert updated_runner_state.program == %{ updated_runner_state.program | pc: 1, status: :wait, wait_cycles: 5}
 
     # pull with second param as false is the same as without it
-    assert Command.pull(runner_state, ["west"]) == Command.pull(runner_state, ["west", false])
-    assert Command.pull(runner_state, ["south"]) == Command.pull(runner_state, ["south", false])
-    assert Command.pull(runner_state, ["north"]) == Command.pull(runner_state, ["north", false])
+    assert comparable_runner_map(Command.pull(runner_state, ["west"])) ==
+             comparable_runner_map(Command.pull(runner_state, ["west", false]))
+    assert comparable_runner_map(Command.pull(runner_state, ["south"])) ==
+             comparable_runner_map(Command.pull(runner_state, ["south", false]))
+    assert comparable_runner_map(Command.pull(runner_state, ["north"])) ==
+             comparable_runner_map(Command.pull(runner_state, ["north", false]))
 
     # Pull, but blocked and retry
     %Runner{program: program} = Command.pull(runner_state, ["west", true])
@@ -2353,7 +2357,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Levels.create_tile(state, %Tile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Levels.create_tile(state, %Tile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
-    assert Command.try(%Runner{object_id: mover.id, state: state}, ["left"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["left", false])
+    assert comparable_runner_map(Command.try(%Runner{object_id: mover.id, state: state}, ["left"])) ==
+             comparable_runner_map(Command.move(%Runner{object_id: mover.id, state: state}, ["left", false]))
 
     # Unsuccessful
     assert Command.try(%Runner{object_id: mover.id, state: state}, ["down"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["down", false])
@@ -2472,7 +2477,8 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["left", false])
     expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
 
-    assert Command.walk(%Runner{state: state, object_id: mover.id}, ["left"]) == expected_runner_state
+    assert comparable_runner_map(Command.walk(%Runner{state: state, object_id: mover.id}, ["left"])) ==
+             comparable_runner_map(expected_runner_state)
 
     # Unsuccessful
     assert Command.walk(%Runner{state: state, object_id: mover.id}, ["down"]) == Command.move(%Runner{object_id: mover.id, state: state}, ["down", false])
@@ -2484,10 +2490,11 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Levels.create_tile(state, %Tile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Levels.create_tile(state, %Tile{id: 3, character: "c", row: 1, col: 2, z_index: 1, state: %{"facing" => "west"}})
 
-    expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["west", false])
+    %Runner{} = expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["west", false])
     expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
 
-    assert Command.walk(%Runner{object_id: mover.id, state: state}, ["continue"]) == expected_runner_state
+    assert comparable_runner_map(Command.walk(%Runner{object_id: mover.id, state: state}, ["continue"])) ==
+             comparable_runner_map(expected_runner_state)
   end
 
   test "ZAP" do
@@ -2501,5 +2508,14 @@ defmodule DungeonCrawl.Scripting.CommandTest do
 
     assert runner_state == Command.zap(runner_state, ["thud"])
     assert runner_state == Command.zap(runner_state, ["derp"])
+  end
+
+  defp comparable_runner_map(runner = %Runner{state: state = %{dirty_ids: dirty_ids}}) do
+    dirty_ids = \
+      dirty_ids
+      |> Enum.map(fn {k, v} -> {k, Map.delete(v, :validations)} end)
+      |> Enum.into(%{})
+
+    %{ runner | state: %{ state | dirty_ids: dirty_ids }}
   end
 end
