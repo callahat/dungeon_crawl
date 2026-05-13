@@ -2474,7 +2474,7 @@ defmodule DungeonCrawl.Scripting.CommandTest do
     {_, state} = Levels.create_tile(state, %Tile{id: 2, character: ".", row: 1, col: 2, z_index: 0})
     {mover, state} = Levels.create_tile(state, %Tile{id: 3, character: "c", row: 1, col: 2, z_index: 1})
 
-    expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["left", false])
+    %Runner{} = expected_runner_state = Command.move(%Runner{object_id: mover.id, state: state}, ["left", false])
     expected_runner_state = %Runner{ expected_runner_state | program: %{ expected_runner_state.program | pc: 0 } }
 
     assert comparable_runner_map(Command.walk(%Runner{state: state, object_id: mover.id}, ["left"])) ==
