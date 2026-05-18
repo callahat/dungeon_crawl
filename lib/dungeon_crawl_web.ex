@@ -28,7 +28,9 @@ defmodule DungeonCrawl.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: DungeonCrawlWeb
+      use Phoenix.Controller, formats: [html: "View", json: "View"]
+
+      plug :put_layout, html: {DungeonCrawlWeb.LayoutView, :app}
 
       alias DungeonCrawl.Repo
       import Ecto
