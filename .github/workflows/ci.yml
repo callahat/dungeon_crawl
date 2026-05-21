@@ -50,7 +50,7 @@ jobs:
             ~/.hex
             ~/.mix
             _build
-          key: ${{ matrix.otp }}-${{ matrix.elixir }}-build
+          key: ${{ matrix.otp }}-${{ matrix.elixir }}-{{ hashFiles('**/package-lock.json', '**/mix.lock') }}-build
       - run: mix compile --warnings-as-errors
         if: matrix.warnings_as_errors
       - run: mix ecto.create && mix ecto.migrate
