@@ -499,6 +499,7 @@ defmodule DungeonCrawl.DungeonProcesses.LevelProcess do
   defp _write_db_task(%Levels{dirty_ids: dirty_ids, new_ids: new_ids} = state) do
     start_ms = :os.system_time(:millisecond)
 
+    %Levels{} = \
     state = new_ids
             |> Enum.map(fn({id, _age}) -> id end)
             |> Enum.reduce(state, fn(temp_id, state) ->

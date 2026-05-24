@@ -143,11 +143,15 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
     case program_contexts do
       %{^tile_id => %{program: program, object_id: object_id}} ->
         sender = Map.drop(sender, [:tile, :inserted_at, :updated_at, :__meta__]) # the struct is still used elsewhere
-        %Runner{program: program, state: state} = Scripting.Runner.run(%Runner{program: program,
-                                                                               object_id: object_id,
-                                                                               state: state,
-                                                                               event_sender: sender},
-                                                                       event)
+        %Runner{program: program, state: %Levels{} = state} = \
+          Scripting.Runner.run(
+            %Runner{
+              program: program,
+              object_id: object_id,
+              state: state,
+              event_sender: sender
+            },
+            event)
                                   |> handle_broadcasting()
         if program.status == :dead do
           %Levels{ state | program_contexts: Map.delete(state.program_contexts, tile_id)}
@@ -440,7 +444,7 @@ defmodule DungeonCrawl.DungeonProcesses.Levels do
   defp _update_program(_previous_program, {:none, tile, state}) do
     {tile, state}
   end
-  defp _update_program(previous_program, {:ok, tile, state}) do
+  defp _update_program(previous_program, {:ok, tile, %Levels{} = state}) do
     new_program = state.program_contexts[tile.id].program
                   |> Map.merge(Map.take(previous_program, [:broadcasts, :responses]))
                   |> Map.put(:status, :wait)

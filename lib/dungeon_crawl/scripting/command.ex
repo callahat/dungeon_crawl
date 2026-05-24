@@ -961,7 +961,7 @@ defmodule DungeonCrawl.Scripting.Command do
         _push(runner_state, object, direction, {row_d, col_d}, range - 1)
 
       pushees ->
-        Enum.reduce(pushees, runner_state, fn(pushee, runner_state) ->
+        Enum.reduce(pushees, runner_state, fn(pushee, %Runner{} = runner_state) ->
           case pushee.state["pushable"] &&
                pushee.id != object.id &&
                Move.go(pushee, Levels.get_tile(state, pushee, direction), state) do
@@ -1505,7 +1505,7 @@ defmodule DungeonCrawl.Scripting.Command do
                  |> Enum.filter(fn({tile, _dest_tile}) -> tile && tile.state["pushable"] && !state.shifted_ids[tile.id] end)
                  |> Enum.reject(fn({_tile, dest_tile}) -> !dest_tile || dest_tile.state["blocking"] && !dest_tile.state["pushable"] end)
 
-    {runner_state, _, tile_changes} = _shifting(runner_state, shiftables, %{})
+    {%Runner{}, _, _} = {runner_state, _, tile_changes} = _shifting(runner_state, shiftables, %{})
 
     # TODO: see if Move.go needs the {row, col} return anymore, or if it can be swapped with %{row: _, col: _}
     rerender_coords = tile_changes

@@ -6,7 +6,7 @@ defmodule DungeonCrawlWeb.ExportFixture do
         date: "2025-06-16 19:55:13 UTC",
         host: "localhost",
         dungeon_active: true,
-        dungeon_crawl_version: "0.0.3",
+        dungeon_crawl_version: "0.1.0",
         dungeon_version: 1,
         exporter_version: "3.0.1"
       },

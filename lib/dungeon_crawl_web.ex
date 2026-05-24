@@ -28,7 +28,9 @@ defmodule DungeonCrawl.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: DungeonCrawlWeb
+      use Phoenix.Controller, formats: [html: "View", json: "View"]
+
+      plug :put_layout, html: {DungeonCrawlWeb.LayoutView, :app}
 
       alias DungeonCrawl.Repo
       import Ecto
@@ -83,7 +85,9 @@ defmodule DungeonCrawl.Web do
   defp view_helpers do
     quote do
       # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
+      import Phoenix.HTML
+      import Phoenix.HTML.Form
+      use PhoenixHTMLHelpers
 
       # Import LiveView helpers (live_render, live_component, live_patch, etc)
       import Phoenix.LiveView.Helpers

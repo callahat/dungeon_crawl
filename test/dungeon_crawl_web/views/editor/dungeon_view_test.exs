@@ -5,7 +5,7 @@ defmodule DungeonCrawlWeb.Editor.DungeonViewTest do
 
   test "activate_or_new_version_button/2 renders activate if dungeon inactive", %{conn: conn} do
     dungeon = insert_stubbed_dungeon(%{active: false})
-    assert Regex.match?(~r{Activate}, inspect(DungeonView.activate_or_new_version_button(conn, dungeon, nil)))
+    assert Regex.match?(~r{Activate}, inspect(DungeonView.activate_or_new_version_button(conn, dungeon, nil), limit: :infinity))
     assert Regex.match?(~r{Test Crawl}, inspect(DungeonView.activate_or_new_version_button(conn, dungeon, nil)))
     refute Regex.match?(~r{Your current crawl will be lost}, inspect(DungeonView.activate_or_new_version_button(conn, dungeon, nil)))
 
