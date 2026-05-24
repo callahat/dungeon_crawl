@@ -19,7 +19,7 @@ defmodule DungeonCrawl.Mixfile do
 
   def cli do
     [
-      preferred_cli_env: [
+      preferred_envs: [
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
